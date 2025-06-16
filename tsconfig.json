@@ -23,6 +23,12 @@
       ],
       "@weaver2/common/*": [
         "libs/common/src/*"
+      ],
+      "@weaver2/prisma": [
+        "libs/prisma/src"
+      ],
+      "@weaver2/prisma/*": [
+        "libs/prisma/src/*"
       ]
     }
   }
