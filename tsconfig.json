@@ -17,6 +17,13 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {}
+    "paths": {
+      "@weaver2/common": [
+        "libs/common/src"
+      ],
+      "@weaver2/common/*": [
+        "libs/common/src/*"
+      ]
+    }
   }
 }
