@@ -3,6 +3,7 @@ import { CoreController } from './core.controller';
 import { CoreService } from './core.service';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './modules/users/users.module';
+import { PrismaModule } from '@weaver2/prisma';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
       isGlobal: true,
     }),
     UsersModule,
+    PrismaModule,
   ],
   controllers: [CoreController],
   providers: [CoreService],

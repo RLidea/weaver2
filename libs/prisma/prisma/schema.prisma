@@ -1,0 +1,27 @@
+// libs/prisma/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 예시 모델 (필요 시 수정 가능)
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  displatName String   @unique
+  role        Role
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  USER
+  DEVELOPER
+  MODERATOR
+}
