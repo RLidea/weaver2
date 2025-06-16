@@ -23,6 +23,7 @@
     "test:e2e": "sh scripts/run-test.sh e2e",
     "test:integration": "sh scripts/run-test.sh integration",
     "test:debug": "sh scripts/run-test.sh debug",
+    "gen:barrel:common": "tsx scripts/generate-barrel.ts ../libs/common/src",
     "---------------------------OTHERs---------------------------": "",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -62,6 +63,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
