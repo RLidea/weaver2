@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient, Role } from '@prisma/client';
 
-const usersToSeed: Prisma.UserCreateInput[] = [
+const usersToSeed: Prisma.UsersCreateInput[] = [
   {
     username: 'admin',
     displayName: '관리자',
@@ -15,12 +15,12 @@ const usersToSeed: Prisma.UserCreateInput[] = [
 
 async function seedUsers(prisma: PrismaClient) {
   const creationPromises = usersToSeed.map(async (userData) => {
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { username: userData.username },
     });
 
     if (!existingUser) {
-      await prisma.user.create({
+      await prisma.users.create({
         data: userData,
       });
       console.log(`✅ User '${userData.username}' created!`);

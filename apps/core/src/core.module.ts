@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { CoreController } from './core.controller';
 import { CoreService } from './core.service';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './modules/users/users.module';
+import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
 
 @Module({
@@ -10,7 +10,7 @@ import { PrismaModule } from '@weaver2/prisma';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    UsersModule,
+    UserModule,
     PrismaModule,
   ],
   controllers: [CoreController],

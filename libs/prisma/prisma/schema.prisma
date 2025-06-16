@@ -9,7 +9,7 @@ datasource db {
 }
 
 // 예시 모델 (필요 시 수정 가능)
-model User {
+model Users {
   id          String   @id @default(cuid())
   username    String   @unique
   displayName String   @unique
