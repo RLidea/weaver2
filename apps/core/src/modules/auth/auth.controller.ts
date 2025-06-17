@@ -1,7 +1,7 @@
 // auth.controller.ts
-import { Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Req, UseGuards, Body } from '@nestjs/common';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { Response } from 'express';
+import { Request } from 'express';
 import {
   // ApiBearerAuth,
   ApiBody,
@@ -11,7 +11,7 @@ import {
 } from '@nestjs/swagger';
 import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { CallbackUser } from '@weaver2/common/decorator/callback-user.decorator';
+import { AuthService } from './auth.service';
 
 @ApiTags('Auth')
 @Controller({
@@ -19,6 +19,8 @@ import { CallbackUser } from '@weaver2/common/decorator/callback-user.decorator'
   version: '1',
 })
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
   @Public()
   @UseGuards(LocalAuthGuard)
   @Post('login')
@@ -40,8 +42,12 @@ export class AuthController {
   @ApiOperationWithPublic({
     summary: 'email, password 로그인',
   })
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  login(@CallbackUser() user: any, @Req() res: Response) {
-    return;
+  login(@Req() req: Request) {
+    return this.authService.emailLogin(req.user);
+  }
+
+  @Post('refresh')
+  refresh(@Body() { refreshToken }: { refreshToken: string }) {
+    return this.authService.refresh(refreshToken);
   }
 }
