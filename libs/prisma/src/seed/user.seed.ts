@@ -55,7 +55,6 @@ export async function seedAuths(prisma: PrismaClient) {
     });
 
     if (!existingAuth) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const passwordHash = await bcrypt.hash(authData.password, 10);
 
       await prisma.auth.create({

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import helmet from 'helmet';
 import { INestApplication } from '@nestjs/common';
 import * as csurf from 'csurf';
@@ -14,7 +13,6 @@ export function setSecurityMiddleware(app: INestApplication): void {
   /*
     CORS
    */
-
   const whitelist = [
     ...(process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
     undefined, // for Postman/Insomnia
@@ -37,13 +35,42 @@ export function setSecurityMiddleware(app: INestApplication): void {
   /*
     CSRF
    */
-  app.use(
-    csurf({
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    const userAgent = req.headers['user-agent'];
+
+    const isSwagger =
+      origin?.includes(process.env.ORIGIN_URL) ||
+      referer?.includes('/api') ||
+      userAgent?.includes('Swagger');
+
+    if (isSwagger) return next(); // ✅ Swagger는 CSRF 제외
+
+    return csurf({
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
       },
-    }),
-  );
+    })(req, res, next);
+  });
+  app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+      console.warn('🚫 CSRF BLOCKED:', {
+        url: req.originalUrl,
+        method: req.method,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        ip: req.ip,
+      });
+
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid CSRF token',
+      });
+    }
+
+    next(err); // 다른 에러는 Nest로 전달
+  });
 }
