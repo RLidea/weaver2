@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
   ApiBearerAuth,
@@ -10,6 +10,7 @@ import { Roles } from '../../decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('User')
 @Controller({ path: 'users', version: '1' })
@@ -27,5 +28,13 @@ export class UserController {
   })
   findAll(@Query() query: PaginationRequestDto) {
     return this.usersService.findUsers(query);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '자신의 정보 조회' })
+  getProfile() {
+    return;
   }
 }

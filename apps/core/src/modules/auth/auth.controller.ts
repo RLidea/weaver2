@@ -42,8 +42,9 @@ export class AuthController {
   @ApiOperationWithPublic({
     summary: 'email, password 로그인',
   })
-  login(@Req() req: Request) {
-    return this.authService.emailLogin(req.user);
+  emailLogin(@Req() req: Request) {
+    console.log('# login');
+    return this.authService.login(req.user, 'email');
   }
 
   @Post('refresh')

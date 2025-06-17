@@ -3,7 +3,6 @@ import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import { FindAuthQuery } from './queries/find-auth.query';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +11,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string) {
+  async validateUserByEmail(email: string, password: string) {
     const auth = await this.prisma.auth.findUnique({
       where: { email },
       include: { user: true },
@@ -24,17 +23,31 @@ export class AuthService {
     const match = await bcrypt.compare(password, auth.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
 
+    console.log('# ', auth.user);
     return auth.user;
   }
 
-  async emailLogin(user: any) {
-    const payload = { sub: user.id, email: user.email };
-    const auth = await FindAuthQuery(this.prisma, {
-      userId: user.id,
-      email: user.email,
+  async validateUserById(userId: string, authId: string) {
+    const auth = await this.prisma.auth.findUnique({
+      where: { userId, id: authId },
+      include: { user: true },
     });
     if (!auth) throw new UnauthorizedException('Invalid credentials');
+    return auth.user;
+  }
 
+  async login(user: any, provider: string) {
+    console.log(user);
+    let auth;
+    if (provider === 'email') {
+      auth = await this.prisma.auth.findFirst({
+        where: {
+          userId: user.id,
+          password: { not: null },
+        },
+      });
+    }
+    const payload = { sub: user.id, authId: auth.id };
     const generatedRefreshToken = await this.generateRefreshToken(auth.id);
     return {
       accessToken: this.jwtService.sign(payload),
@@ -70,7 +83,7 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign({
         sub: user?.id,
-        email: stored.auth.email,
+        authId: stored.auth.id,
       }),
     };
   }
