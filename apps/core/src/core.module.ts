@@ -4,7 +4,7 @@ import { CoreService } from './core.service';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
-import { RequestLoggerMiddleware } from '@weaver2/common/configs/middleware/request-logger.middleware';
+import { RequestLoggerMiddleware } from '@weaver2/common/middleware/request-logger.middleware';
 
 @Module({
   imports: [

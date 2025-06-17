@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { CoreModule } from './core.module';
-import { setNestApp } from '@weaver2/common/configs/set-nest-app.config';
+import { setNestApp } from '@weaver2/common/nest.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(CoreModule);

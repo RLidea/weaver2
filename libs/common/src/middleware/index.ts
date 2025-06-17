@@ -1,9 +1,12 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
-import { setSecurityMiddleware } from '@weaver2/common/configs/middleware/security.middleware';
+import { setSecurityMiddleware } from '@weaver2/common/middleware/security.middleware';
 
 export function setMiddleware<T extends INestApplication>(app: T): void {
+  // Versioning
   app.enableVersioning({
     type: VersioningType.URI,
   });
+
+  // Security
   setSecurityMiddleware(app);
 }
