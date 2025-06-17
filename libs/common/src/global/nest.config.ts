@@ -3,32 +3,31 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { setMiddleware } from './middleware';
 import { setPipe } from './pipe';
 import { setInterceptor } from '@weaver2/common/global/interceptor';
+import { setExceptionFilter } from '@weaver2/common/global/exception-filter';
 
 export function setNestApp<T extends INestApplication>(app: T): void {
   /* Request lifecycle */
 
-  // Middleware
   setMiddleware(app);
-  // Guards
-  // Interceptors
   setInterceptor(app);
-  // Pipes
   setPipe(app);
-  // Filters
+  setExceptionFilter(app);
 
   // 앱 종료시 이벤트 후크 설정
   app.enableShutdownHooks();
 
   // API document
-  const title = process.env.APP_NAME;
-  const config = new DocumentBuilder()
-    .setTitle(`${title} Document`)
-    .setDescription(`The ${title} API description`)
-    .setVersion('1.0')
-    .addTag(title || 'doc')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  if (process.env.NODE_ENV !== 'production') {
+    const title = process.env.APP_NAME;
+    const config = new DocumentBuilder()
+      .setTitle(`${title} Document`)
+      .setDescription(`The ${title} API description`)
+      .setVersion('1.0')
+      .addTag(title || 'doc')
+      .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, documentFactory);
+  }
 
   /*
   * https://docs.nestjs.com/faq/request-lifecycle#middleware
