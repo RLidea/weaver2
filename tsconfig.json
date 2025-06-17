@@ -24,6 +24,12 @@
       "@weaver2/common/*": [
         "libs/common/src/*"
       ],
+      "@weaver2/pagination": [
+        "libs/pagination/src"
+      ],
+      "@weaver2/pagination/*": [
+        "libs/pagination/src/*"
+      ],
       "@weaver2/prisma": [
         "libs/prisma/src"
       ],

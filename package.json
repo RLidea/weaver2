@@ -100,6 +100,7 @@
     ],
     "moduleNameMapper": {
       "^@weaver2/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+      "^@weaver2/pagination(|/.*)$": "<rootDir>/libs/pagination/src/$1",
       "^@weaver2/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1"
     }
   }

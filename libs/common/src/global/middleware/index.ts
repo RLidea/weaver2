@@ -1,5 +1,5 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
-import { setSecurityMiddleware } from '@weaver2/common/middleware/security.middleware';
+import { setSecurityMiddleware } from './security.middleware';
 
 export function setMiddleware<T extends INestApplication>(app: T): void {
   // Versioning

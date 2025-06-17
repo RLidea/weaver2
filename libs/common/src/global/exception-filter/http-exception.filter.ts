@@ -1,4 +1,4 @@
-// common/src/filters/http-exception.filter.ts
+// src/common/filters/http-exception.filter.ts
 import {
   ExceptionFilter,
   Catch,
@@ -20,16 +20,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
+    const errorResponse =
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Internal server error';
+        : { message: 'Internal server error' };
 
     response.status(status).json({
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      message,
+      success: false,
+      error: {
+        code: status,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        ...(typeof errorResponse === 'object'
+          ? errorResponse
+          : { message: errorResponse }),
+      },
     });
   }
 }

@@ -1,7 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { setMiddleware } from '@weaver2/common/middleware';
-import { setPipe } from '@weaver2/common/websocket/pipe';
+import { setMiddleware } from './middleware';
+import { setPipe } from './pipe';
+import { setInterceptor } from '@weaver2/common/global/interceptor';
 
 export function setNestApp<T extends INestApplication>(app: T): void {
   /* Request lifecycle */
@@ -10,6 +11,7 @@ export function setNestApp<T extends INestApplication>(app: T): void {
   setMiddleware(app);
   // Guards
   // Interceptors
+  setInterceptor(app);
   // Pipes
   setPipe(app);
   // Filters

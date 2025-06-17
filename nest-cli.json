@@ -29,6 +29,15 @@
         "tsConfigPath": "apps/core/tsconfig.app.json"
       }
     },
+    "pagination": {
+      "type": "library",
+      "root": "libs/pagination",
+      "entryFile": "index",
+      "sourceRoot": "libs/pagination/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/pagination/tsconfig.lib.json"
+      }
+    },
     "prisma": {
       "type": "library",
       "root": "libs/prisma",

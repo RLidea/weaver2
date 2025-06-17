@@ -1,17 +1,8 @@
 import { Users } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
-import { FindUsersDto } from './dto/find-users.dto';
-
-/**
- * 페이지네이션된 결과에 대한 데이터 전송 객체입니다.
- * @template T 데이터 아이템의 타입
- */
-export class PaginatedDto<T> {
-  total: number;
-  page: number;
-  limit: number;
-  data: T[];
-}
+import { PaginationService } from '@weaver2/pagination';
+import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 
 /**
  * 제공된 기준에 따라 사용자를 검색하고 페이지네이션을 적용합니다.
@@ -22,27 +13,13 @@ export class PaginatedDto<T> {
  */
 export async function findUserQuery(
   prisma: PrismaService,
-  options: FindUsersDto,
-): Promise<PaginatedDto<Users>> {
-  const { page, limit, role } = options;
-  const skip = (page - 1) * limit;
-
-  const where = role ? { role } : {};
-
-  const [users, total] = await Promise.all([
-    prisma.users.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.users.count({ where }),
-  ]);
-
-  return {
-    total,
-    page,
-    limit,
-    data: users,
-  };
+  options: PaginationRequestDto,
+): Promise<PaginationResponseDto<Users>> {
+  return PaginationService.buildFromPrisma({
+    prisma: prisma.users,
+    options,
+    where: {
+      // deletedAt: null,
+    },
+  });
 }
