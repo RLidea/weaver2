@@ -8,18 +8,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 예시 모델 (필요 시 수정 가능)
-model Users {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  displayName String   @unique
-  role        Role
-  createdAt   DateTime @default(now())
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  displayName String    @unique
+  role        Role      @default(USER)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Auth 관련 관계
+  auth Auth?
 }
 
 enum Role {
-  ADMIN
   USER
-  DEVELOPER
+  ADMIN
   MODERATOR
+  DEVELOPER
+}
+
+model Auth {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password           String? // 비밀번호는 OAuth 사용자에게는 null일 수 있음
+  passwordResetToken String? // 비밀번호 재설정 토큰
+  resetTokenExpiry   DateTime? // 토큰 만료 시간
+  verificationToken  String? // 이메일 인증 토큰
+  isVerified         Boolean   @default(false)
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String? // 2FA 비밀키
+
+  // 사용자 관계
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // OAuth 제공자 관계
+  oauthConnections OAuthConnection[]
+
+  // 세션 및 토큰 관계
+  refreshTokens RefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OAuthConnection {
+  id           String    @id @default(uuid())
+  provider     String // 'google', 'kakao', 'naver', 'facebook' 등
+  providerId   String // 제공자에서의 사용자 ID
+  accessToken  String? // OAuth 액세스 토큰
+  refreshToken String? // OAuth 리프레시 토큰
+  tokenExpiry  DateTime?
+
+  // Auth 관계
+  authId String
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+}
+
+model RefreshToken {
+  id      String   @id @default(uuid())
+  token   String   @unique
+  expires DateTime
+
+  // Auth 관계
+  authId String
+  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

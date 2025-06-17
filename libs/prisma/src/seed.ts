@@ -1,12 +1,13 @@
 // libs/prisma/src/seed.ts
 import { PrismaClient } from '@prisma/client';
-import { CreateUserSeed } from './seed/user.seed';
+import { seedAuths, seedUsers } from './seed/user.seed';
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting the seeding process...');
 
-  await CreateUserSeed(prisma);
+  await seedUsers(prisma);
+  await seedAuths(prisma);
   console.log('Seeding process completed successfully.');
 }
 

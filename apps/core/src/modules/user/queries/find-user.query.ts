@@ -1,4 +1,4 @@
-import { Users } from '@prisma/client';
+import { User } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
 import { PaginationService } from '@weaver2/pagination';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
@@ -14,9 +14,9 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 export async function findUserQuery(
   prisma: PrismaService,
   options: PaginationRequestDto,
-): Promise<PaginationResponseDto<Users>> {
+): Promise<PaginationResponseDto<User>> {
   return PaginationService.buildFromPrisma({
-    prisma: prisma.users,
+    prisma: prisma.user,
     options,
     where: {
       // deletedAt: null,
