@@ -34,7 +34,7 @@ model Auth {
   password           String? // 비밀번호는 OAuth 사용자에게는 null일 수 있음
   passwordResetToken String? // 비밀번호 재설정 토큰
   resetTokenExpiry   DateTime? // 토큰 만료 시간
-  verificationToken  String? // 이메일 인증 토큰
+  verificationToken  String?   @unique // 이메일 인증 토큰
   isVerified         Boolean   @default(false)
   twoFactorEnabled   Boolean   @default(false)
   twoFactorSecret    String? // 2FA 비밀키

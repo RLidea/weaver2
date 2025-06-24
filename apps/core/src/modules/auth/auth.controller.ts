@@ -1,5 +1,13 @@
 // auth.controller.ts
-import { Controller, Post, Req, UseGuards, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Req,
+  UseGuards,
+  Body,
+  Get,
+  Query,
+} from '@nestjs/common';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { Request } from 'express';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
@@ -76,5 +84,10 @@ export class AuthController {
   })
   emailSignUp(@Body() dto: EmailSignUpDto) {
     return this.authService.emailSignUp(dto);
+  }
+
+  @Get('verify')
+  verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 }

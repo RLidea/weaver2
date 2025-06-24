@@ -10,6 +10,8 @@ import { randomUUID } from 'crypto';
 import { EmailSignUpDto } from './dto/email-sign-up.dto';
 import { UserService } from '../user/user.service';
 import { SignUpCommand } from './repositories/sign-up.command';
+import { UpdateValidationTokenCommand } from './repositories/update-validation-token.command';
+import { FindAuthByTokenQuery } from './repositories/find-auth-by-token.query';
 
 @Injectable()
 export class AuthService {
@@ -107,20 +109,26 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-      const result = await SignUpCommand(this.prisma, {
+      // create user
+      const createdUser = await SignUpCommand(this.prisma, {
         username,
         displayName,
         role: 'USER',
         email,
         hashedPassword,
       });
-      console.log(result);
+      // create validation token
+      await UpdateValidationTokenCommand(this.prisma, {
+        userId: createdUser.id,
+        email,
+      });
+
       return {
         message: 'Sign-up completed successfully.',
         user: {
-          id: result.id,
-          username: result.username,
-          displayName: result.displayName,
+          id: createdUser.id,
+          username: createdUser.username,
+          displayName: createdUser.displayName,
         },
       };
     } catch (err) {
@@ -129,5 +137,13 @@ export class AuthService {
         'Failed to complete sign-up process.',
       );
     }
+  }
+
+  async verifyEmail(token: string) {
+    await FindAuthByTokenQuery(this.prisma, {
+      verificationToken: token,
+    });
+    // TODO: send email
+    return;
   }
 }
