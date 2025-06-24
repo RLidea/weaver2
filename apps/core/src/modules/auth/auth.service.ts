@@ -1,14 +1,22 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
+import { EmailSignUpDto } from './dto/email-sign-up.dto';
+import { UserService } from '../user/user.service';
+import { SignUpCommand } from './repositories/sign-up.command';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly userService: UserService,
   ) {}
 
   async validateUserByEmail(email: string, password: string) {
@@ -86,5 +94,40 @@ export class AuthService {
         authId: stored.auth.id,
       }),
     };
+  }
+
+  async emailSignUp(dto: EmailSignUpDto) {
+    const { username, displayName, email, password } = dto;
+
+    await this.userService.checkExistingUser({
+      username,
+      displayName,
+      email,
+    });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    try {
+      const result = await SignUpCommand(this.prisma, {
+        username,
+        displayName,
+        role: 'USER',
+        email,
+        hashedPassword,
+      });
+      console.log(result);
+      return {
+        message: 'Sign-up completed successfully.',
+        user: {
+          id: result.id,
+          username: result.username,
+          displayName: result.displayName,
+        },
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err,
+        'Failed to complete sign-up process.',
+      );
+    }
   }
 }
