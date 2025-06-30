@@ -1,7 +1,7 @@
 import { PrismaService } from '@weaver2/prisma';
 import { generateTokenUtil } from '@weaver2/common/utility/generate-token.util';
 
-export async function UpdateValidationTokenCommand(
+export async function CreateValidationTokenCommand(
   prisma: PrismaService,
   options: { userId: string; email: string },
 ) {

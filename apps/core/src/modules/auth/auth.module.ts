@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { SignInController } from './controllers/sign-in.controller';
+import { SignInService } from './services/sign-in.service';
 import { PrismaModule } from '@weaver2/prisma';
 import { LocalStrategy } from './strategy/local.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constant/jwt.constants';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { UserModule } from '../user/user.module';
+import { SignUpController } from './controllers/sign-up.controller';
+import { SignUpService } from './services/sign-up.service';
 
 @Module({
   imports: [
@@ -17,8 +19,8 @@ import { UserModule } from '../user/user.module';
     }),
     UserModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
-  exports: [AuthService],
+  controllers: [SignInController, SignUpController],
+  providers: [SignInService, SignUpService, LocalStrategy, JwtStrategy],
+  exports: [SignInService],
 })
 export class AuthModule {}

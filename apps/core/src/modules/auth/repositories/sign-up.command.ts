@@ -12,8 +12,6 @@ export function SignUpCommand(
   },
 ): Promise<User> {
   const { username, displayName, role, email, hashedPassword } = options;
-  console.log('## command:');
-  console.log(options);
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
       data: {

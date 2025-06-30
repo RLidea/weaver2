@@ -1,20 +1,12 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import { EmailSignUpDto } from './dto/email-sign-up.dto';
-import { UserService } from '../user/user.service';
-import { SignUpCommand } from './repositories/sign-up.command';
-import { UpdateValidationTokenCommand } from './repositories/update-validation-token.command';
-import { FindAuthByTokenQuery } from './repositories/find-auth-by-token.query';
+import { UserService } from '../../user/user.service';
 
 @Injectable()
-export class AuthService {
+export class SignInService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -33,7 +25,6 @@ export class AuthService {
     const match = await bcrypt.compare(password, auth.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
 
-    console.log('# ', auth.user);
     return auth.user;
   }
 
@@ -47,7 +38,6 @@ export class AuthService {
   }
 
   async login(user: any, provider: string) {
-    console.log(user);
     let auth;
     if (provider === 'email') {
       auth = await this.prisma.auth.findFirst({
@@ -96,54 +86,5 @@ export class AuthService {
         authId: stored.auth.id,
       }),
     };
-  }
-
-  async emailSignUp(dto: EmailSignUpDto) {
-    const { username, displayName, email, password } = dto;
-
-    await this.userService.checkExistingUser({
-      username,
-      displayName,
-      email,
-    });
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    try {
-      // create user
-      const createdUser = await SignUpCommand(this.prisma, {
-        username,
-        displayName,
-        role: 'USER',
-        email,
-        hashedPassword,
-      });
-      // create validation token
-      await UpdateValidationTokenCommand(this.prisma, {
-        userId: createdUser.id,
-        email,
-      });
-
-      return {
-        message: 'Sign-up completed successfully.',
-        user: {
-          id: createdUser.id,
-          username: createdUser.username,
-          displayName: createdUser.displayName,
-        },
-      };
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err,
-        'Failed to complete sign-up process.',
-      );
-    }
-  }
-
-  async verifyEmail(token: string) {
-    await FindAuthByTokenQuery(this.prisma, {
-      verificationToken: token,
-    });
-    // TODO: send email
-    return;
   }
 }
