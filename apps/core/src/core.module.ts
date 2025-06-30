@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
 import { RequestLoggerMiddleware } from '@weaver2/common/global/middleware/request-logger.middleware';
 import { AuthModule } from './modules/auth/auth.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
     UserModule,
     PrismaModule,
     AuthModule,
+    EmailModule,
   ],
   controllers: [CoreController],
   providers: [CoreService],
