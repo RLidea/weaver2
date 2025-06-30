@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategy/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { SignUpController } from './controllers/sign-up.controller';
 import { SignUpService } from './services/sign-up.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SignUpService } from './services/sign-up.service';
       signOptions: { expiresIn: '1h' },
     }),
     UserModule,
+    EmailModule,
   ],
   controllers: [SignInController, SignUpController],
   providers: [SignInService, SignUpService, LocalStrategy, JwtStrategy],

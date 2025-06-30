@@ -1,6 +1,6 @@
-export const verifyEmailTemplate = () => {
+export const welcomeEmailTemplate = () => {
   return {
-    subject: 'Welcome to Weaver2 👋',
+    subject: '',
     html: `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">
       <h2>Welcome to Weaver2 👋</h2>

@@ -20,11 +20,11 @@ export class EmailController {
         },
         subject: {
           type: 'string',
-          example: 'Welcome to Weaver2',
+          example: verifyEmailTemplate().subject,
         },
         html: {
           type: 'string',
-          example: verifyEmailTemplate(),
+          example: verifyEmailTemplate().html,
         },
       },
     },

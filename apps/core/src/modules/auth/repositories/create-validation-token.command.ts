@@ -6,8 +6,14 @@ export async function CreateValidationTokenCommand(
   options: { userId: string; email: string },
 ) {
   const verificationToken = generateTokenUtil();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1시간
+
   await prisma.auth.update({
     where: { userId: options.userId, email: options.email },
-    data: { verificationToken },
+    data: { verificationToken, verificationTokenExpiry: expiresAt },
   });
+  return {
+    verificationToken,
+    expiresAt,
+  };
 }
