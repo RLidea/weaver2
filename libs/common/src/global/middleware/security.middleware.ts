@@ -42,7 +42,7 @@ export function setSecurityMiddleware(app: INestApplication): void {
 
     const isSwagger =
       origin?.includes(process.env.ORIGIN_URL) ||
-      referer?.includes('/api') ||
+      referer?.includes('/docs') ||
       userAgent?.includes('Swagger');
 
     if (isSwagger) return next(); // ✅ Swagger는 CSRF 제외
