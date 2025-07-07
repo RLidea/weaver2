@@ -54,3 +54,8 @@ Commit messages should follow a specific format.
     -   Application-specific DTOs (like `UserDto`) should be located within the corresponding module's `dto` directory (e.g., `apps/core/src/modules/user/dto`).
     -   DTOs used purely for Swagger documentation (like `ErrorResponseDto`) should be placed in `libs/common/src/global/dto/swagger`.
 -   **Custom Decorators:** Use custom decorators to reduce boilerplate, especially for Swagger annotations. Add detailed JSDoc comments to explain their purpose and usage.
+
+## Important Notes
+
+- **Logging:** Do not use `console.log`. Instead, use the `Logger` from `@nestjs/common`.
+- **Environment Variables:** Manage environment variables by copying `.env.example` to a `.env` file. Never commit sensitive information directly into the source code.
