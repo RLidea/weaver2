@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { sendPasswordResetEmail } from './templates/send-password-reset-email';
 
 @Injectable()
 export class EmailService {
@@ -23,8 +24,6 @@ export class EmailService {
     html: string;
     from?: string;
   }) {
-    console.log('SMTP_USER:', JSON.stringify(process.env.SMTP_USER));
-    console.log('SMTP_PASS:', JSON.stringify(process.env.SMTP_PASS));
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
 
@@ -33,17 +32,13 @@ export class EmailService {
     }
 
     try {
-      this.transporter.verify((err, success) => {
-        console.log('#success:' + success);
+      this.transporter.verify((err) => {
         if (err) {
           console.error('SMTP 연결 실패:', err);
           throw new InternalServerErrorException('Failed connect SMTP server.');
-        } else {
-          console.log('SMTP 연결 성공!');
         }
       });
 
-      console.log(process.env.SMTP_USER);
       await this.transporter.sendMail({
         from: options.from ?? `"Weaver2" <no-reply@weaver2.com>`,
         to: options.to,
@@ -54,5 +49,18 @@ export class EmailService {
       console.error('이메일 전송 실패:', err);
       throw new InternalServerErrorException('Failed to send email.');
     }
+  }
+
+  async sendVerificationEmail(email: string, verificationLink: string) {
+    const subject = '[Weaver2] 이메일 인증 안내';
+    const html = `
+      <p>Weaver2에 오신 것을 환영합니다! 아래 링크를 클릭하여 이메일 인증을 완료해주세요.</p>
+      <a href="${verificationLink}">이메일 인증하기</a>
+    `;
+    await this.sendMail({ to: email, subject, html });
+  }
+
+  async sendPasswordResetEmail(email: string, resetLink: string) {
+    await sendPasswordResetEmail(this, email, resetLink);
   }
 }

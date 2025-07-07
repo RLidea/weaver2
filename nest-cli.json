@@ -26,7 +26,8 @@
       "entryFile": "main",
       "sourceRoot": "apps/core/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/core/tsconfig.app.json"
+        "tsConfigPath": "apps/core/tsconfig.app.json",
+        "assets": ["public/**/*"]
       }
     },
     "pagination": {
