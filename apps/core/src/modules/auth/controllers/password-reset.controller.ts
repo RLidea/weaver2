@@ -5,6 +5,7 @@ import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { RequestPasswordResetService } from '../services/request-password-reset.service';
 import { ResetPasswordService } from '../services/reset-password.service';
 import { Public } from '@weaver2/common/decorator/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth - Password')
 @Controller('auth/password')
@@ -15,6 +16,7 @@ export class PasswordResetController {
   ) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('request-reset')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a password reset' })
@@ -34,6 +36,7 @@ export class PasswordResetController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('reset')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with a token' })

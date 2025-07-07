@@ -4,6 +4,7 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import { SignUpService } from '../services/sign-up.service';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller({
@@ -14,6 +15,7 @@ export class SignUpController {
   constructor(private readonly signUpService: SignUpService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('sign-up/email')
   @ApiBody({
     schema: {
@@ -33,7 +35,7 @@ export class SignUpController {
         },
         password: {
           type: 'string',
-          example: 'secret!!',
+          example: '',
         },
       },
     },
