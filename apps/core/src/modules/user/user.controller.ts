@@ -6,7 +6,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { UserService } from './user.service';
+import { FindUserService } from './services/find-user.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../decorator/roles.decorator';
 import { Role } from '@prisma/client';
@@ -22,7 +22,7 @@ import { UserDto } from './dto/user.dto';
 @Controller({ path: 'users', version: '1' })
 export class UserController {
   constructor(
-    private readonly usersService: UserService,
+    private readonly findUserService: FindUserService,
     private readonly deleteAccountService: DeleteAccountService,
   ) {}
 
@@ -32,7 +32,7 @@ export class UserController {
   @ApiOperation({ summary: '사용자 목록 조회 (페이지네이션)' })
   @ApiStandardResponses({ type: PaginationResponseDto })
   findAll(@Query() query: PaginationRequestDto) {
-    return this.usersService.findUsers(query);
+    return this.findUserService.findUsers(query);
   }
 
   @Get('me')
@@ -40,7 +40,7 @@ export class UserController {
   @ApiOperation({ summary: '자신의 정보 조회' })
   @ApiStandardResponses({ type: UserDto })
   async getProfile(@AuthUser() authUser: CommonAuthUserDto): Promise<UserDto> {
-    return this.usersService.findUserById(authUser.id);
+    return this.findUserService.findUserById(authUser.id);
   }
 
   @Get('admin-info')

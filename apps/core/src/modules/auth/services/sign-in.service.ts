@@ -3,15 +3,15 @@ import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import { UserService } from '../../user/user.service';
-import { Auth } from '@prisma/client'; // Import User and Auth types
+import { Auth } from '@prisma/client';
+import { FindUserService } from '../../user/services/find-user.service'; // Import User and Auth types
 
 @Injectable()
 export class SignInService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly userService: UserService,
+    private readonly findUserService: FindUserService,
   ) {}
 
   async validateUserByEmail(email: string, password: string) {

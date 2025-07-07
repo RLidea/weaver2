@@ -3,7 +3,6 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
-import { UserService } from '../../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
@@ -14,20 +13,21 @@ import { FindAuthByTokenQuery } from '../repositories/find-auth-by-token.query';
 import { EmailService } from '../../email/email.service';
 import { welcomeEmailTemplate } from '../../email/templates/welcome.template';
 import { verifyEmailTemplate } from '../../email/templates/verify-email.template';
+import { FindUserService } from '../../user/services/find-user.service';
 
 @Injectable()
 export class SignUpService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly userService: UserService,
+    private readonly findUserService: FindUserService,
     private readonly emailService: EmailService,
   ) {}
 
   async emailSignUp(dto: EmailSignUpDto) {
     const { username, displayName, email, password } = dto;
 
-    await this.userService.checkExistingUser({
+    await this.findUserService.checkExistingUser({
       username,
       displayName,
       email,
