@@ -13,6 +13,9 @@ import { PasswordResetController } from './controllers/password-reset.controller
 import { RequestPasswordResetService } from './services/request-password-reset.service';
 import { ResetPasswordService } from './services/reset-password.service';
 import { PrismaModule } from '@weaver2/prisma';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
@@ -32,6 +35,14 @@ import { PrismaModule } from '@weaver2/prisma';
     JwtStrategy,
     RequestPasswordResetService,
     ResetPasswordService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
   exports: [SignInService],
 })
