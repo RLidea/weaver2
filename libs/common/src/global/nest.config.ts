@@ -26,6 +26,14 @@ export function setNestApp<T extends INestApplication>(app: T): void {
       .setDescription(`The ${title} API description`)
       .setVersion('1.0')
       .addTag(title || 'doc')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'Token',
+        },
+        'ACCESS-TOKEN',
+      )
       .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, documentFactory);
