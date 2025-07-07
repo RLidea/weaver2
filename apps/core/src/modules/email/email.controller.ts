@@ -20,11 +20,17 @@ export class EmailController {
         },
         subject: {
           type: 'string',
-          example: verifyEmailTemplate().subject,
+          example: verifyEmailTemplate({
+            verificationToken: 'sample',
+            expiresAt: new Date(),
+          }).subject,
         },
         html: {
           type: 'string',
-          example: verifyEmailTemplate().html,
+          example: verifyEmailTemplate({
+            verificationToken: 'sample',
+            expiresAt: new Date(),
+          }).html,
         },
       },
     },

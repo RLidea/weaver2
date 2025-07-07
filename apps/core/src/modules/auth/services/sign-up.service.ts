@@ -43,17 +43,19 @@ export class SignUpService {
         email,
         hashedPassword,
       });
+
       // create validation token
-      await CreateValidationTokenCommand(this.prisma, {
+      const token = await CreateValidationTokenCommand(this.prisma, {
         userId: createdUser.id,
         email,
       });
 
       // send email
+      const emailTemplate = verifyEmailTemplate(token);
       await this.emailService.sendMail({
         to: email,
-        subject: verifyEmailTemplate().subject,
-        html: verifyEmailTemplate().html,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
       });
 
       return {
