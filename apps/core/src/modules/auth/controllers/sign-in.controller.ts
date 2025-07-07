@@ -1,12 +1,13 @@
 // auth.controller.ts
-import { Controller, Post, Req, UseGuards, Body } from '@nestjs/common';
+import { Controller, Post, UseGuards, Body } from '@nestjs/common';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
-import { Request } from 'express';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { SignInService } from '../services/sign-in.service';
 import { Throttle } from '@nestjs/throttler';
+import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
+import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
 @ApiTags('Auth')
 @Controller({
@@ -41,8 +42,8 @@ export class SignInController {
   @ApiOperationWithPublic({
     summary: 'email, password 로그인',
   })
-  emailLogin(@Req() req: Request) {
-    return this.signInService.login(req.user, 'email');
+  emailLogin(@AuthUser() authUser: CommonAuthUserDto) {
+    return this.signInService.login(authUser.id, 'email');
   }
 
   @Post('refresh')

@@ -3,7 +3,6 @@ import {
   Get,
   Query,
   Delete,
-  Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -15,11 +14,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Roles } from '../../decorator/roles.decorator';
-import { Role, User } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { DeleteAccountService } from './services/delete-account.service';
-import { Request } from 'express';
+import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
+import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
 @ApiTags('User')
 @Controller({ path: 'users', version: '1' })
@@ -45,8 +45,8 @@ export class UserController {
   @Get('me')
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '자신의 정보 조회' })
-  getProfile(@Req() req: Request) {
-    return req.user;
+  async getProfile(@AuthUser() authUser: CommonAuthUserDto) {
+    return this.usersService.findUserById(authUser.id);
   }
 
   @Get('admin-info')
@@ -64,8 +64,7 @@ export class UserController {
   @ApiOperation({ summary: '자신의 계정 탈퇴' })
   @ApiResponse({ status: 204, description: '계정 탈퇴 성공' })
   @ApiResponse({ status: 404, description: '사용자 인증 기록을 찾을 수 없음' })
-  async deleteMyAccount(@Req() req: Request) {
-    const user = req.user as User;
-    await this.deleteAccountService.execute(user.id);
+  async deleteMyAccount(@AuthUser() authUser: CommonAuthUserDto) {
+    await this.deleteAccountService.execute(authUser.id);
   }
 }

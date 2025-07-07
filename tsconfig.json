@@ -37,5 +37,6 @@
         "libs/prisma/src/*"
       ]
     }
-  }
+  },
+  "include": ["apps/**/*.ts", "libs/**/*.ts", "apps/core/src/types/**/*.d.ts"]
 }

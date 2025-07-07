@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { User } from '@prisma/client';
 
@@ -13,6 +13,16 @@ export class UserService {
 
   findUsers(query: PaginationRequestDto): Promise<PaginationResponseDto<User>> {
     return findUserQuery(this.prisma, query);
+  }
+
+  async findUserById(id: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`);
+    }
+    return user;
   }
 
   checkExistingUser(query: {

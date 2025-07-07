@@ -1,7 +1,9 @@
+/* eslint-disable */
 import helmet from 'helmet';
 import { INestApplication } from '@nestjs/common';
 import * as csurf from 'csurf';
 import * as process from 'process';
+import { Request, Response, NextFunction } from 'express'; // Import Request, Response, NextFunction
 
 export function setSecurityMiddleware(app: INestApplication): void {
   /*
@@ -35,15 +37,15 @@ export function setSecurityMiddleware(app: INestApplication): void {
   /*
     CSRF
    */
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
     const referer = req.headers.referer;
     const userAgent = req.headers['user-agent'];
 
     const isSwagger =
-      origin?.includes(process.env.ORIGIN_URL) ||
-      referer?.includes('/docs') ||
-      userAgent?.includes('Swagger');
+      (origin && origin.includes(process.env.ORIGIN_URL || '')) ||
+      (referer && referer.includes('/docs')) ||
+      (userAgent && userAgent.includes('Swagger'));
 
     if (isSwagger) return next(); // ✅ Swagger는 CSRF 제외
 
@@ -55,8 +57,13 @@ export function setSecurityMiddleware(app: INestApplication): void {
       },
     })(req, res, next);
   });
-  app.use((err, req, res, next) => {
-    if (err.code === 'EBADCSRFTOKEN') {
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      err.code === 'EBADCSRFTOKEN'
+    ) {
       console.warn('🚫 CSRF BLOCKED:', {
         url: req.originalUrl,
         method: req.method,

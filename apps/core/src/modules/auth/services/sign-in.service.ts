@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import { UserService } from '../../user/user.service';
+import { Auth } from '@prisma/client'; // Import User and Auth types
 
 @Injectable()
 export class SignInService {
@@ -37,17 +38,24 @@ export class SignInService {
     return auth.user;
   }
 
-  async login(user: any, provider: string) {
-    let auth;
+  async login(userId: string, provider: string) {
+    let auth: Auth | null = null;
     if (provider === 'email') {
       auth = await this.prisma.auth.findFirst({
         where: {
-          userId: user.id,
+          userId: userId,
           password: { not: null },
         },
       });
     }
-    const payload = { sub: user.id, authId: auth.id };
+
+    if (!auth) {
+      throw new UnauthorizedException(
+        ' Authentication record not found for user.',
+      );
+    }
+
+    const payload = { sub: userId, authId: auth.id };
     const generatedRefreshToken = await this.generateRefreshToken(auth.id);
     return {
       accessToken: this.jwtService.sign(payload),
