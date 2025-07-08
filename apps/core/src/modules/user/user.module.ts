@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './user.controller';
 import { FindUserService } from './services/find-user.service';
 import { DeleteAccountService } from './services/delete-account.service';
 import { PrismaModule } from '@weaver2/prisma';
+import { UserProfileController } from './controllers/user-profile.controller';
+import { UserQueryController } from './controllers/user-query.controller';
+import { UserAdminController } from './controllers/user-admin.controller';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [UserController],
+  controllers: [
+    UserProfileController,
+    UserQueryController,
+    UserAdminController,
+  ],
   providers: [FindUserService, DeleteAccountService],
   exports: [FindUserService],
 })
