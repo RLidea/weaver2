@@ -22,6 +22,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // If it's an Unauthorized or Forbidden exception and the request is from a browser, redirect to login
+    if (
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      (status === HttpStatus.UNAUTHORIZED || status === HttpStatus.FORBIDDEN) &&
+      request.headers.accept &&
+      request.headers.accept.includes('text/html')
+    ) {
+      return response.redirect('/admin/login');
+    }
+
     const errorResponse =
       exception instanceof HttpException
         ? exception.getResponse()
