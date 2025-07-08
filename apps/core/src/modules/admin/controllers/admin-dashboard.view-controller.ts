@@ -7,7 +7,7 @@ import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
 @Controller({ path: 'admin' })
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.DEVELOPER)
 export class AdminDashboardViewController {
   @Get()
   toDashboard(@Res() res: Response) {

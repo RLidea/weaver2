@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
@@ -19,6 +20,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
+      const request = context.switchToHttp().getRequest();
+      request['user'] = {
+        isLogin: true,
+      };
       return true; // Skip JWT authentication for public routes
     }
 

@@ -42,6 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       sub: payload.sub || user.id, // Ensure sub is always present
       iat: payload.iat,
       exp: payload.exp,
+      isLogin: true,
     };
   }
 }
