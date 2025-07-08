@@ -16,7 +16,7 @@ export class AdminAuthViewController {
     @Res() res: Response,
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
-    if (authUser.isLogin) return res.redirect('/admin/dashboard');
+    if (authUser && authUser.isLogin) return res.redirect('/admin/dashboard');
     res.sendFile(
       join(process.cwd(), 'apps/core/src/public', 'admin-login.html'),
     );

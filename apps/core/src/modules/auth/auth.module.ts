@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { SignInController } from './controllers/sign-in.controller';
 import { SignInService } from './services/sign-in.service';
 import { LocalStrategy } from './strategy/local.strategy';
-import { JwtModule } from '@nestjs/jwt';
-import { jwtConstants } from './constant/jwt.constants';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { SignUpController } from './controllers/sign-up.controller';
@@ -18,15 +16,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 
 @Module({
-  imports: [
-    PrismaModule,
-    JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '1h' },
-    }),
-    UserModule,
-    EmailModule,
-  ],
+  imports: [PrismaModule, UserModule, EmailModule],
   controllers: [SignInController, SignUpController, PasswordResetController],
   providers: [
     SignInService,
