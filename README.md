@@ -44,6 +44,15 @@ $ pnpm run dev
 $ pnpm run prod
 ```
 
+## Database
+
+```bash
+
+## Reset Database
+pnpm run db:reset
+pnpm run db:seed
+```
+
 ## Run tests
 
 ```bash

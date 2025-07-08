@@ -5,6 +5,7 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { FindUserService } from './services/find-user.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -50,6 +51,16 @@ export class UserController {
   @ApiStandardResponses()
   getAdminInfo() {
     return { message: 'Welcome, Admin!' };
+  }
+
+  @Get(':username')
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '사용자 이름으로 사용자 조회' })
+  @ApiStandardResponses({ type: UserDto })
+  async findUserByUsername(
+    @Param('username') username: string,
+  ): Promise<UserDto> {
+    return this.findUserService.findUserByUsername(username);
   }
 
   @Delete('me')
