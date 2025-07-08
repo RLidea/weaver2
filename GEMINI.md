@@ -36,21 +36,18 @@ Commit messages should follow a specific format.
 -   **Format:**
     ```
     type(scope): subject
-
       - Bullet point 1
       - Bullet point 2
     ```
 -   **Example:**
     ```
     feat(swagger): Improve DX with standard response decorator
-
       - Introduces a custom decorator, @ApiStandardResponses, to reduce boilerplate.
       - Refactors DTO locations for better architectural clarity.
     ```
 -   **Presentation:** When suggesting commit messages, present them as plain text without line numbers or code block formatting, like this:
     ```
     type(scope): subject
-
       - Bullet point 1
       - Bullet point 2
     ```

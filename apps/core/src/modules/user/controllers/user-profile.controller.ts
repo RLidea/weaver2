@@ -1,4 +1,11 @@
-import { Controller, Get, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
@@ -6,9 +13,11 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { UserDto } from '../dto/user.dto';
 import { FindUserService } from '../services/find-user.service';
 import { DeleteAccountService } from '../services/delete-account.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
+@UseGuards(JwtAuthGuard)
 export class UserProfileController {
   constructor(
     private readonly findUserService: FindUserService,

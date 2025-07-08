@@ -1,6 +1,6 @@
 // libs/prisma/src/seed.ts
 import { PrismaClient } from '@prisma/client';
-import { seedAuths, seedUsers } from './seed/user.seed';
+import { seedAuths, seedUsers } from './user.seed';
 const prisma = new PrismaClient();
 
 async function main() {
