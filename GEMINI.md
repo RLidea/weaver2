@@ -45,7 +45,7 @@ Commit messages should follow a specific format.
       - Introduces a custom decorator, @ApiStandardResponses, to reduce boilerplate.
       - Refactors DTO locations for better architectural clarity.
     ```
--   **Presentation:** When suggesting commit messages, present them as plain text without line numbers or code block formatting, like this:
+-   **Presentation:** When suggesting commit messages, present them as plain text without line numbers or any code block formatting. For example:
     ```
     type(scope): subject
       - Bullet point 1
