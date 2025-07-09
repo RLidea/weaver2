@@ -2,12 +2,14 @@ import {
   Controller,
   Get,
   Delete,
+  Patch,
   HttpCode,
   HttpStatus,
   UseGuards,
   Post,
   UseInterceptors,
   UploadedFile,
+  Body,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -28,6 +30,8 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { UpdateUserProfileService } from '../services/update-user-profile.service';
 import * as fs from 'fs';
+import { ChangePasswordService } from '../services/change-password.service';
+import { ChangePasswordDto } from '../dto/change-password.dto';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
@@ -37,6 +41,7 @@ export class UserProfileController {
     private readonly findUserService: FindUserService,
     private readonly deleteAccountService: DeleteAccountService,
     private readonly updateUserProfileService: UpdateUserProfileService,
+    private readonly changePasswordService: ChangePasswordService,
   ) {}
 
   @Get()
@@ -54,6 +59,21 @@ export class UserProfileController {
   @ApiStandardResponses({ status: 204, description: '계정 탈퇴 성공' })
   async deleteMyAccount(@AuthUser() authUser: CommonAuthUserDto) {
     await this.deleteAccountService.execute(authUser.id);
+  }
+
+  @Patch('password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '비밀번호 변경' })
+  @ApiStandardResponses({ status: 204, description: '비밀번호 변경 성공' })
+  async changePassword(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    await this.changePasswordService.changePassword(
+      authUser.id,
+      changePasswordDto,
+    );
   }
 
   @Post('profile-image')
@@ -85,6 +105,7 @@ export class UserProfileController {
             String(year),
             month,
           );
+
           if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
           }

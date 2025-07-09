@@ -14,7 +14,12 @@ import { UpdateUserProfileService } from './services/update-user-profile.service
     UserQueryController,
     UserAdminController,
   ],
-  providers: [FindUserService, DeleteAccountService, UpdateUserProfileService],
-  exports: [FindUserService, UpdateUserProfileService],
+  providers: [
+    FindUserService,
+    DeleteAccountService,
+    UpdateUserProfileService,
+    ChangePasswordService,
+  ],
+  exports: [FindUserService, UpdateUserProfileService, ChangePasswordService],
 })
 export class UserModule {}
