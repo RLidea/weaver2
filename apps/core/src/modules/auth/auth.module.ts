@@ -16,6 +16,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { SignOutController } from './controllers/sign-out.controller';
 import { SignOutService } from './services/sign-out.service';
+import { TermsService } from '../terms/terms.service';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule],
@@ -33,6 +34,7 @@ import { SignOutService } from './services/sign-out.service';
     RequestPasswordResetService,
     ResetPasswordService,
     SignOutService,
+    TermsService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

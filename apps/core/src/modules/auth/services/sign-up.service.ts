@@ -14,6 +14,7 @@ import { EmailService } from '../../email/email.service';
 import { welcomeEmailTemplate } from '../../email/templates/welcome.template';
 import { verifyEmailTemplate } from '../../email/templates/verify-email.template';
 import { FindUserService } from '../../user/services/find-user.service';
+import { TermsService } from '../../terms/terms.service';
 
 @Injectable()
 export class SignUpService {
@@ -22,10 +23,11 @@ export class SignUpService {
     private readonly jwtService: JwtService,
     private readonly findUserService: FindUserService,
     private readonly emailService: EmailService,
+    private readonly termsService: TermsService,
   ) {}
 
   async emailSignUp(dto: EmailSignUpDto) {
-    const { username, displayName, email, password } = dto;
+    const { username, displayName, email, password, agreedTermsIds } = dto;
 
     await this.findUserService.checkExistingUser({
       username,
@@ -35,6 +37,18 @@ export class SignUpService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
+      // Validate terms agreement
+      const latestTerms = await this.termsService.getLatestTerms();
+      const requiredTermsIds = latestTerms.map((term) => term.id);
+
+      const missingTerms = requiredTermsIds.filter(
+        (id) => !agreedTermsIds.includes(id),
+      );
+
+      if (missingTerms.length > 0) {
+        throw new BadRequestException('Missing agreement for required terms.');
+      }
+
       // create user
       const createdUser = await SignUpCommand(this.prisma, {
         username,
@@ -42,6 +56,29 @@ export class SignUpService {
         role: 'USER',
         email,
         hashedPassword,
+      });
+
+      // Create UserSetting for the newly created user
+      const isMarketingConsentGiven = agreedTermsIds.includes(
+        latestTerms.find((term) => term.title.includes('마케팅'))?.id || '',
+      );
+
+      await this.prisma.userSetting.create({
+        data: {
+          userId: createdUser.id,
+          isMarketingConsentGiven: isMarketingConsentGiven,
+          // Other settings will use their defaults
+        },
+      });
+
+      // Create UserTermsAgreement records
+      const userTermsAgreements = agreedTermsIds.map((termId) => ({
+        userId: createdUser.id,
+        termsAndConditionsId: termId,
+      }));
+
+      await this.prisma.userTermsAgreement.createMany({
+        data: userTermsAgreements,
       });
 
       // create validation token
@@ -67,6 +104,9 @@ export class SignUpService {
         },
       };
     } catch (err) {
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
       throw new InternalServerErrorException(
         err,
         'Failed to complete sign-up process.',
