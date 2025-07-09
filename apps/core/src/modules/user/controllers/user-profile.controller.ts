@@ -32,6 +32,8 @@ import { UpdateUserProfileService } from '../services/update-user-profile.servic
 import * as fs from 'fs';
 import { ChangePasswordService } from '../services/change-password.service';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { UpdateProfileService } from '../services/update-profile.service';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
@@ -42,6 +44,7 @@ export class UserProfileController {
     private readonly deleteAccountService: DeleteAccountService,
     private readonly updateUserProfileService: UpdateUserProfileService,
     private readonly changePasswordService: ChangePasswordService,
+    private readonly updateProfileService: UpdateProfileService,
   ) {}
 
   @Get()
@@ -59,6 +62,21 @@ export class UserProfileController {
   @ApiStandardResponses({ status: 204, description: '계정 탈퇴 성공' })
   async deleteMyAccount(@AuthUser() authUser: CommonAuthUserDto) {
     await this.deleteAccountService.execute(authUser.id);
+  }
+
+  @Patch()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '자신의 프로필 정보 수정' })
+  @ApiStandardResponses({ status: 204, description: '프로필 정보 수정 성공' })
+  async updateProfile(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    await this.updateProfileService.updateProfile(
+      authUser.id,
+      updateProfileDto,
+    );
   }
 
   @Patch('password')

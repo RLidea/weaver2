@@ -14,6 +14,7 @@ import { join } from 'path';
 import { AdminModule } from './modules/admin/admin.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './modules/upload/upload.module';
+import { TermsModule } from './modules/terms/terms.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { UploadModule } from './modules/upload/upload.module';
     EmailModule,
     AdminModule,
     UploadModule,
+    TermsModule,
   ],
   controllers: [CoreController],
   providers: [

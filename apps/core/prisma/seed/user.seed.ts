@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { logSeedResult } from './seed-logger';
 
 const usersToSeed: Prisma.UserCreateInput[] = [
   {
@@ -39,9 +40,9 @@ export async function seedUsers(prisma: PrismaClient) {
       await prisma.user.create({
         data: userData,
       });
-      console.log(`✅ User '${userData.username}' created!`);
+      logSeedResult('User', userData.username, 'created');
     } else {
-      console.log(`⚠️ User '${userData.username}' already exists.`);
+      logSeedResult('User', userData.username, 'exists');
     }
   });
 
@@ -68,9 +69,9 @@ export async function seedAuths(prisma: PrismaClient) {
         },
       });
 
-      console.log(`✅ Auth for '${authData.email}' created!`);
+      logSeedResult('Auth', authData.email, 'created');
     } else {
-      console.log(`⚠️ Auth for '${authData.email}' already exists.`);
+      logSeedResult('Auth', authData.email, 'exists');
     }
   });
 

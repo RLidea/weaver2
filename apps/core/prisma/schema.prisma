@@ -20,6 +20,7 @@ model User {
 
   // Auth 관련 관계
   auth Auth?
+  userAgreements UserTermsAgreement[]
 }
 
 enum Role {
@@ -84,4 +85,27 @@ model RefreshToken {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TermsAndConditions {
+  id          String    @id @default(uuid())
+  version     Int       @unique
+  title       String
+  content     String
+  effectiveAt DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userAgreements UserTermsAgreement[]
+}
+
+model UserTermsAgreement {
+  id                   String             @id @default(uuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id])
+  termsAndConditionsId String
+  termsAndConditions   TermsAndConditions @relation(fields: [termsAndConditionsId], references: [id])
+  agreedAt             DateTime           @default(now())
+
+  @@unique([userId, termsAndConditionsId])
 }

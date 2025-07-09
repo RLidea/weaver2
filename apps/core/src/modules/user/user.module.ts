@@ -6,6 +6,8 @@ import { UserProfileController } from './controllers/user-profile.controller';
 import { UserQueryController } from './controllers/user-query.controller';
 import { UserAdminController } from './controllers/user-admin.controller';
 import { UpdateUserProfileService } from './services/update-user-profile.service';
+import { ChangePasswordService } from './services/change-password.service';
+import { UpdateProfileService } from './services/update-profile.service';
 
 @Module({
   imports: [PrismaModule],
@@ -19,7 +21,13 @@ import { UpdateUserProfileService } from './services/update-user-profile.service
     DeleteAccountService,
     UpdateUserProfileService,
     ChangePasswordService,
+    UpdateProfileService,
   ],
-  exports: [FindUserService, UpdateUserProfileService, ChangePasswordService],
+  exports: [
+    FindUserService,
+    UpdateUserProfileService,
+    ChangePasswordService,
+    UpdateProfileService,
+  ],
 })
 export class UserModule {}
