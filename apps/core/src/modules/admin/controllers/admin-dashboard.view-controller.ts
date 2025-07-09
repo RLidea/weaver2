@@ -15,7 +15,7 @@ export class AdminDashboardViewController {
   @Get('dashboard')
   getDashboardPage(@Res() res: Response) {
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public', 'admin-dashboard.html'),
+      join(process.cwd(), 'apps/core/src/public/admin', 'admin-dashboard.html'),
     );
   }
 }

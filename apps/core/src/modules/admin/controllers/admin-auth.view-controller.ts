@@ -18,7 +18,7 @@ export class AdminAuthViewController {
   ) {
     if (authUser && authUser.isLogin) return res.redirect('/admin/dashboard');
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public', 'admin-login.html'),
+      join(process.cwd(), 'apps/core/src/public/admin', 'admin-login.html'),
     );
   }
 }

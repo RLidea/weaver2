@@ -14,10 +14,17 @@ import { PrismaModule } from '@weaver2/prisma';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { SignOutController } from './controllers/sign-out.controller';
+import { SignOutService } from './services/sign-out.service';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule],
-  controllers: [SignInController, SignUpController, PasswordResetController],
+  controllers: [
+    SignInController,
+    SignUpController,
+    PasswordResetController,
+    SignOutController,
+  ],
   providers: [
     SignInService,
     SignUpService,
@@ -25,6 +32,7 @@ import { RolesGuard } from './guards/roles.guard';
     JwtStrategy,
     RequestPasswordResetService,
     ResetPasswordService,
+    SignOutService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
