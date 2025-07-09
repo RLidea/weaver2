@@ -24,7 +24,7 @@ export class SignInController {
   @Public()
   @UseGuards(LocalAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post('login')
+  @Post('sign-in')
   @ApiBody({
     schema: {
       type: 'object',

@@ -6,7 +6,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     errorMessageDiv.textContent = '';
 
     try {
-        const response = await fetch('/v1/auth/login', {
+        const response = await fetch('/v1/auth/sign-in', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

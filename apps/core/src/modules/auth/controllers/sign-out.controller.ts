@@ -13,7 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 export class SignOutController {
   constructor(private readonly signOutService: SignOutService) {}
 
-  @Post('logout')
+  @Post('sign-out')
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @AuthUser() authUser: CommonAuthUserDto,

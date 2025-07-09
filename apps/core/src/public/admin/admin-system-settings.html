@@ -3,30 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
+    <title>System Settings</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/admin/css/admin-common.css" rel="stylesheet">
-    <link href="/admin/css/admin-dashboard.css" rel="stylesheet"> <!-- Reusing dashboard CSS for now -->
+    <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
 </head>
 <body class="bg-pattern">
 <div id="admin-menu-placeholder"></div>
 
 <div class="main-content">
     <div class="dashboard-header card">
-        <h1 class="text-primary text-shadow"><i class="fas fa-users"></i> User Management</h1>
-        <p class="text-secondary">Manage all users in the system</p>
+        <h1 class="text-primary text-shadow"><i class="fas fa-cog"></i> System Settings</h1>
+        <p class="text-secondary">Configure global system parameters</p>
     </div>
 
     <div class="dashboard-cards">
-        <!-- User management specific content will go here -->
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md users">
-                    <i class="fas fa-user-plus"></i>
+                    <i class="fas fa-cogs"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Add New User</div>
-                    <div class="card-description text-secondary">Create new user accounts</div>
+                    <div class="card-title text-primary">General Settings</div>
+                    <div class="card-description text-secondary">Basic application configurations</div>
                 </div>
             </div>
             <div class="card-number text-primary"></div>
@@ -35,11 +34,11 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md search">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-database"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Search Users</div>
-                    <div class="card-description text-secondary">Find users by various criteria</div>
+                    <div class="card-title text-primary">Database Settings</div>
+                    <div class="card-description text-secondary">Manage database connections</div>
                 </div>
             </div>
             <div class="card-number text-primary"></div>
@@ -48,6 +47,6 @@
 </div>
 
 <script src="/admin/js/admin-menu.js"></script>
-<script src="/admin/js/admin-user-management.js"></script> <!-- Specific JS for user management -->
+<script src="/admin/js/admin-system-settings.js"></script>
 </body>
 </html>

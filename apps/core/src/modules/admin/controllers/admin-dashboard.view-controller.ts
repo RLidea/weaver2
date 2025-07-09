@@ -29,4 +29,51 @@ export class AdminDashboardViewController {
       ),
     );
   }
+
+  @Get('analytics')
+  getAnalyticsPage(@Res() res: Response) {
+    res.sendFile(
+      join(process.cwd(), 'apps/core/src/public/admin', 'admin-analytics.html'),
+    );
+  }
+
+  @Get('content-management')
+  getContentManagementPage(@Res() res: Response) {
+    res.sendFile(
+      join(
+        process.cwd(),
+        'apps/core/src/public/admin',
+        'admin-content-management.html',
+      ),
+    );
+  }
+
+  @Get('notifications')
+  getNotificationsPage(@Res() res: Response) {
+    res.sendFile(
+      join(
+        process.cwd(),
+        'apps/core/src/public/admin',
+        'admin-notifications.html',
+      ),
+    );
+  }
+
+  @Get('security')
+  getSecurityPage(@Res() res: Response) {
+    res.sendFile(
+      join(process.cwd(), 'apps/core/src/public/admin', 'admin-security.html'),
+    );
+  }
+
+  @Get('system-settings')
+  getSystemSettingsPage(@Res() res: Response) {
+    res.sendFile(
+      join(
+        process.cwd(),
+        'apps/core/src/public/admin',
+        'admin-system-settings.html',
+      ),
+    );
+  }
 }

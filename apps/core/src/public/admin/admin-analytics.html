@@ -3,30 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
+    <title>Analytics</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/admin/css/admin-common.css" rel="stylesheet">
-    <link href="/admin/css/admin-dashboard.css" rel="stylesheet"> <!-- Reusing dashboard CSS for now -->
+    <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
 </head>
 <body class="bg-pattern">
 <div id="admin-menu-placeholder"></div>
 
 <div class="main-content">
     <div class="dashboard-header card">
-        <h1 class="text-primary text-shadow"><i class="fas fa-users"></i> User Management</h1>
-        <p class="text-secondary">Manage all users in the system</p>
+        <h1 class="text-primary text-shadow"><i class="fas fa-chart-bar"></i> Analytics Dashboard</h1>
+        <p class="text-secondary">Detailed insights and data visualization</p>
     </div>
 
     <div class="dashboard-cards">
-        <!-- User management specific content will go here -->
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md users">
-                    <i class="fas fa-user-plus"></i>
+                    <i class="fas fa-chart-line"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Add New User</div>
-                    <div class="card-description text-secondary">Create new user accounts</div>
+                    <div class="card-title text-primary">Website Traffic</div>
+                    <div class="card-description text-secondary">Overview of site visitors</div>
                 </div>
             </div>
             <div class="card-number text-primary"></div>
@@ -35,11 +34,11 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md search">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-users"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Search Users</div>
-                    <div class="card-description text-secondary">Find users by various criteria</div>
+                    <div class="card-title text-primary">User Engagement</div>
+                    <div class="card-description text-secondary">Active users and session duration</div>
                 </div>
             </div>
             <div class="card-number text-primary"></div>
@@ -48,6 +47,6 @@
 </div>
 
 <script src="/admin/js/admin-menu.js"></script>
-<script src="/admin/js/admin-user-management.js"></script> <!-- Specific JS for user management -->
+<script src="/admin/js/admin-analytics.js"></script>
 </body>
 </html>
