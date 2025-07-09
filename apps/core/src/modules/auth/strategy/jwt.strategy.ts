@@ -37,9 +37,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     this.logger.debug(`User from validateUserById: ${JSON.stringify(user)}`);
     // The returned value is attached to the request object as req.user
     return {
-      username: user.username, // Includes id, username, displayName, role, etc.
+      username: user.username,
       role: user.role,
-      sub: payload.sub || user.id, // Ensure sub is always present
+      sub: payload.sub || user.id,
+      authId: payload.authId,
       iat: payload.iat,
       exp: payload.exp,
       isLogin: true,

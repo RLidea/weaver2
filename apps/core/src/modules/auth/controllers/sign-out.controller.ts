@@ -18,8 +18,11 @@ export class SignOutController {
     @Res({ passthrough: true }) res: Response,
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
-    await this.signOutService.signOut(authUser.sub);
-    res.clearCookie('access_token');
+    try {
+      await this.signOutService.signOut(authUser.authId);
+    } finally {
+      res.clearCookie('access_token');
+    }
     return { message: 'Successfully signed out' };
   }
 }
