@@ -18,4 +18,15 @@ export class AdminDashboardViewController {
       join(process.cwd(), 'apps/core/src/public/admin', 'admin-dashboard.html'),
     );
   }
+
+  @Get('user-management')
+  getUserManagementPage(@Res() res: Response) {
+    res.sendFile(
+      join(
+        process.cwd(),
+        'apps/core/src/public/admin',
+        'admin-user-management.html',
+      ),
+    );
+  }
 }

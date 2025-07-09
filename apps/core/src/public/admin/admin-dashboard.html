@@ -16,10 +16,12 @@
     </div>
     <ul>
         <li><a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-        <li><a href="#"><i class="fas fa-users"></i> User Management</a></li>
-        <li><a href="#"><i class="fas fa-search"></i> User Search</a></li>
+        <li><a href="/admin/user-management"><i class="fas fa-users"></i> User Management</a></li>
         <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-        <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="#"><i class="fas fa-file-alt"></i> Content Management</a></li>
+        <li><a href="#"><i class="fas fa-bell"></i> Notifications</a></li>
+        <li><a href="#"><i class="fas fa-shield-alt"></i> Security</a></li>
+        <li><a href="#"><i class="fas fa-cog"></i> System Settings</a></li>
         <li><a href="#" id="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
     </ul>
 </div>
@@ -50,20 +52,20 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md search">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-chart-line"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Search Queries</div>
-                    <div class="card-description text-secondary">Total search operations today</div>
+                    <div class="card-title text-primary">Monthly Growth</div>
+                    <div class="card-description text-secondary">New users this month</div>
                 </div>
             </div>
-            <div class="card-number text-primary">567</div>
+            <div class="card-number text-primary">+12%</div>
         </div>
 
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md analytics">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-server"></i>
                 </div>
                 <div>
                     <div class="card-title text-primary">System Health</div>
@@ -76,7 +78,7 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md settings">
-                    <i class="fas fa-cogs"></i>
+                    <i class="fas fa-users-cog"></i>
                 </div>
                 <div>
                     <div class="card-title text-primary">Active Sessions</div>
@@ -94,10 +96,10 @@
                 <i class="fas fa-user-plus"></i> Add New User
             </a>
             <a href="#" class="action-btn btn btn-secondary success">
-                <i class="fas fa-file-export"></i> Export Data
+                <i class="fas fa-users-cog"></i> Manage Users
             </a>
             <a href="#" class="action-btn btn btn-secondary warning">
-                <i class="fas fa-tools"></i> System Settings
+                <i class="fas fa-file-export"></i> Export Data
             </a>
             <a href="#" class="action-btn btn btn-secondary danger">
                 <i class="fas fa-shield-alt"></i> Security Logs

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management - Admin Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="/admin/css/admin-common.css" rel="stylesheet">
+  <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
+  <link href="/admin/css/admin-user-management.css" rel="stylesheet">
+</head>
+<body class="bg-pattern">
+<div class="sidebar glass">
+  <div class="sidebar-header">
+    <h2 class="text-primary text-shadow"><i class="fas fa-shield-alt"></i> Admin Panel</h2>
+    <div class="sidebar-subtitle text-secondary">Management System</div>
+  </div>
+  <ul>
+    <li><a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+    <li><a href="/admin/users" class="active"><i class="fas fa-users"></i> User Management</a></li>
+    <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+    <li><a href="#"><i class="fas fa-file-alt"></i> Content Management</a></li>
+    <li><a href="#"><i class="fas fa-bell"></i> Notifications</a></li>
+    <li><a href="#"><i class="fas fa-shield-alt"></i> Security</a></li>
+    <li><a href="#"><i class="fas fa-cog"></i> System Settings</a></li>
+    <li><a href="#" id="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+  </ul>
+</div>
+
+<div class="main-content">
+  <div class="page-header card">
+    <div class="page-title-section">
+      <h1 class="text-primary text-shadow"><i class="fas fa-users"></i> User Management</h1>
+      <p class="text-secondary">Manage all users in your system</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" id="addUserBtn">
+        <i class="fas fa-user-plus"></i> Add New User
+      </button>
+      <button class="btn btn-secondary" id="exportBtn">
+        <i class="fas fa-file-export"></i> Export Users
+      </button>
+    </div>
+  </div>
+
+  <!-- 검색 및 필터 섹션 -->
+  <div class="search-filters card">
+    <div class="search-section">
+      <div class="search-input-group">
+        <input type="text" class="form-input" placeholder="Search users by name, email, or ID..." id="searchInput">
+        <button class="btn btn-secondary search-btn">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <label>Status:</label>
+        <select class="form-input" id="statusFilter">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Role:</label>
+        <select class="form-input" id="roleFilter">
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+          <option value="moderator">Moderator</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Registration Date:</label>
+        <input type="date" class="form-input" id="dateFilter">
+      </div>
+    </div>
+  </div>
+
+  <!-- 사용자 통계 -->
+  <div class="user-stats">
+    <div class="stat-card card">
+      <div class="stat-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-number">1,234</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+    </div>
+
+    <div class="stat-card card">
+      <div class="stat-icon active">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-number">1,156</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+    </div>
+
+    <div class="stat-card card">
+      <div class="stat-icon inactive">
+        <i class="fas fa-user-times"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-number">78</div>
+        <div class="stat-label">Inactive Users</div>
+      </div>
+    </div>
+
+    <div class="stat-card card">
+      <div class="stat-icon new">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-number">45</div>
+        <div class="stat-label">New This Month</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사용자 테이블 -->
+  <div class="user-table-container card">
+    <div class="table-header">
+      <h3 class="text-primary"><i class="fas fa-list"></i> User List</h3>
+      <div class="table-controls">
+        <select class="form-input" id="entriesPerPage">
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="user-table">
+        <thead>
+        <tr>
+          <th><input type="checkbox" id="selectAll"></th>
+          <th>ID</th>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Registration</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="userTableBody">
+        <!-- 사용자 데이터가 여기에 동적으로 추가됩니다 -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer">
+      <div class="table-info">
+        <span>Showing 1 to 10 of 1,234 entries</span>
+      </div>
+      <div class="pagination">
+        <button class="btn btn-secondary" disabled>
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="btn btn-secondary active">1</button>
+        <button class="btn btn-secondary">2</button>
+        <button class="btn btn-secondary">3</button>
+        <button class="btn btn-secondary">...</button>
+        <button class="btn btn-secondary">124</button>
+        <button class="btn btn-secondary">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-user-management.js"></script>
+</body>
+</html>
