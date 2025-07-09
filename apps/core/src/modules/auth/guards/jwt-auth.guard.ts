@@ -5,7 +5,6 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@weaver2/common/decorator/public.decorator';
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
-import { JwtStrategy } from '../strategy/jwt.strategy';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -15,7 +14,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   ) {
     super();
   }
-  private logger = new Logger(JwtStrategy.name);
+  private readonly logger = new Logger(JwtAuthGuard.name);
 
   canActivate(
     context: ExecutionContext,
@@ -37,11 +36,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
           // 검증된 사용자 정보를 request에 설정
           request['user'] = {
-            ...payload,
+            id: payload.sub,
+            authId: payload.authId,
             isLogin: true,
           };
-
-          this.logger.debug('Token verified for public route:', payload);
+          this.logger.debug(
+            `Token verified for public route: ${JSON.stringify(payload)}`,
+          );
         } catch (error) {
           this.logger.debug('Invalid token on public route:', error.message);
 

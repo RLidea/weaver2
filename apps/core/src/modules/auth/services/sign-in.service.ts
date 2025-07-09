@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -14,11 +14,17 @@ export class SignInService {
     private readonly findUserService: FindUserService,
   ) {}
 
+  private readonly logger = new Logger(SignInService.name);
+
   async validateUserByEmail(email: string, password: string) {
     const auth = await this.prisma.auth.findUnique({
       where: { email },
       include: { user: true },
     });
+
+    this.logger.debug(
+      `validateUserByEmail: Found auth: ${JSON.stringify(auth?.id)}, user: ${JSON.stringify(auth?.user?.id)}`,
+    );
 
     if (!auth || !auth.password)
       throw new UnauthorizedException('Invalid credentials');
@@ -26,7 +32,10 @@ export class SignInService {
     const match = await bcrypt.compare(password, auth.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
 
-    return auth.user;
+    this.logger.debug(
+      `validateUserByEmail: Returning user: ${JSON.stringify(auth.user)}`,
+    );
+    return { ...auth.user, authId: auth.id };
   }
 
   async validateUserById(userId: string, authId: string) {
@@ -40,6 +49,7 @@ export class SignInService {
 
   async login(userId: string, provider: string) {
     let auth: Auth | null = null;
+    this.logger.debug(`Logged in user is: ${userId}`);
     if (provider === 'email') {
       auth = await this.prisma.auth.findFirst({
         where: {
@@ -56,6 +66,9 @@ export class SignInService {
     }
 
     const payload = { sub: userId, authId: auth.id };
+    this.logger.debug(
+      `SignInService.login: Signing JWT for userId=${userId}, authId=${auth.id}`,
+    );
     const generatedRefreshToken = await this.generateRefreshToken(auth.id);
     return {
       accessToken: this.jwtService.sign(payload),

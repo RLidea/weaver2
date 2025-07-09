@@ -49,7 +49,7 @@ export class SignInController {
   ) {
     this.logger.debug(JSON.stringify(authUser));
     const { accessToken, refreshToken } = await this.signInService.login(
-      authUser.sub,
+      authUser.id,
       'email',
     );
     res.cookie('access_token', accessToken, {

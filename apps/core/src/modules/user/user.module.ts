@@ -5,6 +5,7 @@ import { PrismaModule } from '@weaver2/prisma';
 import { UserProfileController } from './controllers/user-profile.controller';
 import { UserQueryController } from './controllers/user-query.controller';
 import { UserAdminController } from './controllers/user-admin.controller';
+import { UpdateUserProfileService } from './services/update-user-profile.service';
 
 @Module({
   imports: [PrismaModule],
@@ -13,7 +14,7 @@ import { UserAdminController } from './controllers/user-admin.controller';
     UserQueryController,
     UserAdminController,
   ],
-  providers: [FindUserService, DeleteAccountService],
-  exports: [FindUserService],
+  providers: [FindUserService, DeleteAccountService, UpdateUserProfileService],
+  exports: [FindUserService, UpdateUserProfileService],
 })
 export class UserModule {}

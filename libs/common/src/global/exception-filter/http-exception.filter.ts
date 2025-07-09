@@ -5,13 +5,17 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpException.name);
   catch(exception: unknown, host: ArgumentsHost) {
-    if (process.env.NODE_ENV !== 'production') console.log(exception);
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.error(exception);
+    }
 
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
