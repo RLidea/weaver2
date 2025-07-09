@@ -13,6 +13,7 @@ import { join } from 'path';
 // import { APP_GUARD } from '@nestjs/core';
 import { AdminModule } from './modules/admin/admin.module';
 import { JwtModule } from '@nestjs/jwt';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { JwtModule } from '@nestjs/jwt';
     AuthModule,
     EmailModule,
     AdminModule,
+    UploadModule,
   ],
   controllers: [CoreController],
   providers: [

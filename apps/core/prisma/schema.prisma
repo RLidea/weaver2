@@ -12,6 +12,7 @@ model User {
   id          String    @id @default(uuid())
   username    String    @unique
   displayName String    @unique
+  profileImageUrl String? // Add this line for profile image URL
   role        Role      @default(USER)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
