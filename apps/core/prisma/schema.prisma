@@ -12,7 +12,7 @@ model User {
   id          String    @id @default(uuid())
   username    String    @unique
   displayName String    @unique
-  profileImageUrl String? // Add this line for profile image URL
+  profileImageUrl String?
   role        Role      @default(USER)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -21,6 +21,23 @@ model User {
   // Auth 관련 관계
   auth Auth?
   userAgreements UserTermsAgreement[]
+  userSetting    UserSetting? // One-to-one relation
+}
+
+model UserSetting {
+  id                       String    @id @default(uuid())
+  userId                   String    @unique
+  user                     User      @relation(fields: [userId], references: [id])
+
+  isMarketingConsentGiven  Boolean   @default(false)
+  isNewsletterSubscribed   Boolean   @default(false)
+  isEmailNotificationsEnabled Boolean @default(true)
+  isSmsNotificationsEnabled Boolean @default(false)
+  isPushNotificationsEnabled Boolean @default(false)
+  prefersDarkMode          Boolean   @default(false)
+
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 }
 
 enum Role {

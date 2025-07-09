@@ -10,7 +10,7 @@ export class UpdateProfileService {
     userId: string,
     updateProfileDto: UpdateProfileDto,
   ): Promise<void> {
-    const { displayName, username } = updateProfileDto;
+    const { displayName, username, ...userSettings } = updateProfileDto;
 
     if (displayName) {
       const existingUser = await this.prisma.user.findUnique({
@@ -32,9 +32,25 @@ export class UpdateProfileService {
       }
     }
 
+    // Update User model fields
     await this.prisma.user.update({
       where: { id: userId },
-      data: { ...updateProfileDto },
+      data: {
+        ...(displayName && { displayName }),
+        ...(username && { username }),
+      },
     });
+
+    // Update or create UserSetting fields
+    if (Object.keys(userSettings).length > 0) {
+      await this.prisma.userSetting.upsert({
+        where: { userId },
+        update: { ...userSettings },
+        create: {
+          userId,
+          ...userSettings,
+        },
+      });
+    }
   }
 }

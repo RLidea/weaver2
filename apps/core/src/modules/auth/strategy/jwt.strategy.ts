@@ -36,13 +36,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     );
     this.logger.debug(`User from validateUserById: ${JSON.stringify(user)}`);
     // The returned value is attached to the request object as req.user
-    const result = {
-      id: payload.sub || user.id,
+    return {
+      id: user.id,
       username: user.username,
       role: user.role,
       authId: payload.authId,
       isLogin: true,
+      userSetting: user.userSetting ?? undefined,
     };
-    return result;
   }
 }

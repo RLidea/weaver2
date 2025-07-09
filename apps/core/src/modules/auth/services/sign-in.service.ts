@@ -8,18 +8,18 @@ import { FindUserService } from '../../user/services/find-user.service'; // Impo
 
 @Injectable()
 export class SignInService {
+  private readonly logger = new Logger(SignInService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly findUserService: FindUserService,
   ) {}
 
-  private readonly logger = new Logger(SignInService.name);
-
   async validateUserByEmail(email: string, password: string) {
     const auth = await this.prisma.auth.findUnique({
       where: { email },
-      include: { user: true },
+      include: { user: { include: { userSetting: true } } },
     });
 
     this.logger.debug(
@@ -39,10 +39,16 @@ export class SignInService {
   }
 
   async validateUserById(userId: string, authId: string) {
+    this.logger.debug(
+      `SignInService.validateUserById: Validating userId=${userId}, authId=${authId}`,
+    );
     const auth = await this.prisma.auth.findUnique({
       where: { userId, id: authId },
-      include: { user: true },
+      include: { user: { include: { userSetting: true } } },
     });
+    this.logger.debug(
+      `SignInService.validateUserById: Found auth=${JSON.stringify(auth?.id)}, user=${JSON.stringify(auth?.user?.id)}`,
+    );
     if (!auth) throw new UnauthorizedException('Invalid credentials');
     return auth.user;
   }
