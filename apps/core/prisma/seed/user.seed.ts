@@ -69,6 +69,16 @@ export async function seedAuths(prisma: PrismaClient) {
         },
       });
 
+      // Create UserSetting for the newly created user
+      await prisma.userSetting.upsert({
+        where: { userId: authData.userId },
+        update: {},
+        create: {
+          userId: authData.userId,
+          // Default values will be applied by Prisma
+        },
+      });
+
       logSeedResult('Auth', authData.email, 'created');
     } else {
       logSeedResult('Auth', authData.email, 'exists');
