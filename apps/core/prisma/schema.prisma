@@ -17,6 +17,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
+  lastLoginAt     DateTime? // Add this line for active user tracking
 
   // Auth 관련 관계
   auths          Auth[]

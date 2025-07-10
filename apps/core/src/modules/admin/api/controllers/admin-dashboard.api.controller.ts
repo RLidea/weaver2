@@ -3,7 +3,7 @@ import { Roles } from '../../../../decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { AdminDashboardApiService } from '../services/admin-dashboard.api.service';
 
-@Controller('admin/dashboard')
+@Controller({ path: 'admin/dashboard', version: '1' })
 @Roles(Role.ADMIN, Role.DEVELOPER)
 export class AdminDashboardApiController {
   constructor(

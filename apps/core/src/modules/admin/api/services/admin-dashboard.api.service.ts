@@ -33,9 +33,14 @@ export class AdminDashboardApiService {
       },
     });
 
-    // TODO: Implement activeUsers and bannedUsers logic based on your application's definition
-    const activeUsers = 0; // Placeholder
-    const bannedUsers = 0; // Placeholder
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const activeUsers = await this.prisma.user.count({
+      where: {
+        lastLoginAt: {
+          gte: twentyFourHoursAgo,
+        },
+      },
+    });
 
     return {
       totalUsers,
@@ -45,7 +50,6 @@ export class AdminDashboardApiService {
       totalComments,
       todayComments,
       activeUsers,
-      bannedUsers,
     };
   }
 }

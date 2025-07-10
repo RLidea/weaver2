@@ -10,7 +10,7 @@ export const AuthUser = createParamDecorator((data, ctx: ExecutionContext) => {
       username: request.user.username,
       role: request.user.role,
       authId: request.user.authId,
-      isLogin: request.user.isLogin,
+      isLogin: !!request.user,
     };
   } else {
     return undefined;

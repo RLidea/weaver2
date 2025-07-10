@@ -13,6 +13,10 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
   });
+
+  app.useStaticAssets(join(process.cwd(), 'apps/core/src/public'), {
+    prefix: '/',
+  });
   console.log(`Current Working Directory: ${process.cwd()}`);
 
   setNestApp(app);
