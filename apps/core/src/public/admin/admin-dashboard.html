@@ -31,46 +31,98 @@
                     <div class="card-description text-secondary">Registered users in the system</div>
                 </div>
             </div>
-            <div class="card-number text-primary">1,234</div>
+            <div class="card-number text-primary" id="totalUsers">1,234</div>
         </div>
 
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md search">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-user-plus"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Monthly Growth</div>
-                    <div class="card-description text-secondary">New users this month</div>
+                    <div class="card-title text-primary">Today Signups</div>
+                    <div class="card-description text-secondary">New users today</div>
                 </div>
             </div>
-            <div class="card-number text-primary">+12%</div>
+            <div class="card-number text-primary" id="todaySignups">+12%</div>
         </div>
 
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md analytics">
-                    <i class="fas fa-server"></i>
+                    <i class="fas fa-file-alt"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">System Health</div>
-                    <div class="card-description text-secondary">Overall system performance</div>
+                    <div class="card-title text-primary">Total Posts</div>
+                    <div class="card-description text-secondary">Total posts in the system</div>
                 </div>
             </div>
-            <div class="card-number text-primary">98%</div>
+            <div class="card-number text-primary" id="totalPosts">98%</div>
         </div>
 
         <div class="card">
             <div class="card-header">
                 <div class="card-icon icon icon-md settings">
-                    <i class="fas fa-users-cog"></i>
+                    <i class="fas fa-comments"></i>
                 </div>
                 <div>
-                    <div class="card-title text-primary">Active Sessions</div>
-                    <div class="card-description text-secondary">Current online users</div>
+                    <div class="card-title text-primary">Total Comments</div>
+                    <div class="card-description text-secondary">Total comments in the system</div>
                 </div>
             </div>
-            <div class="card-number text-primary">89</div>
+            <div class="card-number text-primary" id="totalComments">89</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon icon-md users">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div>
+                    <div class="card-title text-primary">Today Posts</div>
+                    <div class="card-description text-secondary">Posts created today</div>
+                </div>
+            </div>
+            <div class="card-number text-primary" id="todayPosts">0</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon icon-md users">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <div>
+                    <div class="card-title text-primary">Today Comments</div>
+                    <div class="card-description text-secondary">Comments created today</div>
+                </div>
+            </div>
+            <div class="card-number text-primary" id="todayComments">0</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon icon-md users">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div>
+                    <div class="card-title text-primary">Active Users</div>
+                    <div class="card-description text-secondary">Currently active users</div>
+                </div>
+            </div>
+            <div class="card-number text-primary" id="activeUsers">0</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon icon icon-md users">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <div>
+                    <div class="card-title text-primary">Banned Users</div>
+                    <div class="card-description text-secondary">Users who are banned</div>
+                </div>
+            </div>
+            <div class="card-number text-primary" id="bannedUsers">0</div>
         </div>
     </div>
 
