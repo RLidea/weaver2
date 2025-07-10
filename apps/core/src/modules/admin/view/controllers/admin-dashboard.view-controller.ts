@@ -1,7 +1,7 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
-import { Roles } from '../../../decorator/roles.decorator';
+import { Roles } from '../../../../decorator/roles.decorator';
 import { Role } from '@prisma/client';
 
 @Controller({ path: 'admin' })
