@@ -15,6 +15,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './modules/upload/upload.module';
 import { TermsModule } from './modules/terms/terms.module';
+import { BoardModule } from './modules/board/board.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TermsModule } from './modules/terms/terms.module';
     AdminModule,
     UploadModule,
     TermsModule,
+    BoardModule,
   ],
   controllers: [CoreController],
   providers: [

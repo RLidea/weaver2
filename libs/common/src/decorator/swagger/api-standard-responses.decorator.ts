@@ -34,8 +34,14 @@ export function ApiStandardResponses(options?: {
   type?: Type<any>;
   status?: number;
   description?: string;
+  isArray?: boolean; // Add isArray option
 }) {
-  const { type, status = 200, description = 'Success' } = options || {};
+  const {
+    type,
+    status = 200,
+    description = 'Success',
+    isArray,
+  } = options || {};
 
   const decorators = [
     ApiResponse({
@@ -53,7 +59,7 @@ export function ApiStandardResponses(options?: {
   // `type`이 제공된 경우에만 성공 응답을 추가합니다.
   // `type`이 없으면, 성공 응답 본문이 없다고 간주합니다. (예: 204 No Content)
   if (type) {
-    decorators.push(ApiResponse({ status, description, type }));
+    decorators.push(ApiResponse({ status, description, type, isArray }));
   } else {
     // type이 없는 경우, status와 description만으로 응답을 정의합니다.
     decorators.push(ApiResponse({ status, description }));

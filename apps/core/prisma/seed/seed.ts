@@ -58,6 +58,28 @@ async function main() {
     logSeedResult('TermsAndConditions', privacy1.title, 'created');
   }
 
+  // Seed Boards
+  const boardsToSeed = [
+    { name: 'Notice', description: '공지사항을 안내하는 게시판입니다.' },
+    {
+      name: 'Free',
+      description: '자유롭게 이야기를 나눌 수 있는 게시판입니다.',
+    },
+    { name: 'Q&A', description: '질문과 답변을 주고받는 게시판입니다.' },
+  ];
+
+  for (const boardData of boardsToSeed) {
+    let board = await prisma.board.findUnique({
+      where: { name: boardData.name },
+    });
+    if (board) {
+      logSeedResult('Board', board.name, 'exists');
+    } else {
+      board = await prisma.board.create({ data: boardData });
+      logSeedResult('Board', board.name, 'created');
+    }
+  }
+
   await seedUsers(prisma);
   await seedAuths(prisma);
   console.log('Seeding process completed successfully.');

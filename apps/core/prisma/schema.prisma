@@ -9,35 +9,37 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(uuid())
-  username    String    @unique
-  displayName String    @unique
+  id              String    @id @default(uuid())
+  username        String    @unique
+  displayName     String    @unique
   profileImageUrl String?
-  role        Role      @default(USER)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  role            Role      @default(USER)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   // Auth 관련 관계
-  auth Auth?
+  auths          Auth[]
   userAgreements UserTermsAgreement[]
   userSetting    UserSetting? // One-to-one relation
+  posts          Post[] // Inverse relation for Post.author
+  comments       Comment[] // Inverse relation for Comment.author
 }
 
 model UserSetting {
-  id                       String    @id @default(uuid())
-  userId                   String    @unique
-  user                     User      @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  isMarketingConsentGiven  Boolean   @default(false)
-  isNewsletterSubscribed   Boolean   @default(false)
+  isMarketingConsentGiven     Boolean @default(false)
+  isNewsletterSubscribed      Boolean @default(false)
   isEmailNotificationsEnabled Boolean @default(true)
-  isSmsNotificationsEnabled Boolean @default(false)
-  isPushNotificationsEnabled Boolean @default(false)
-  prefersDarkMode          Boolean   @default(false)
+  isSmsNotificationsEnabled   Boolean @default(false)
+  isPushNotificationsEnabled  Boolean @default(false)
+  prefersDarkMode             Boolean @default(false)
 
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
@@ -60,7 +62,7 @@ model Auth {
   twoFactorSecret         String? // 2FA 비밀키
 
   // 사용자 관계
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // OAuth 제공자 관계
@@ -105,13 +107,13 @@ model RefreshToken {
 }
 
 model TermsAndConditions {
-  id          String    @id @default(uuid())
-  version     Int       @unique
+  id          String   @id @default(uuid())
+  version     Int      @unique
   title       String
   content     String
   effectiveAt DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   userAgreements UserTermsAgreement[]
 }
@@ -125,4 +127,42 @@ model UserTermsAgreement {
   agreedAt             DateTime           @default(now())
 
   @@unique([userId, termsAndConditionsId])
+}
+
+model Board {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  comments Comment[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 }
