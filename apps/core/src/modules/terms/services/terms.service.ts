@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { FindLatestTermsAndConditionsQuery } from './repositories/find-latest-terms-and-conditions.query';
+import { FindLatestTermsAndConditionsQuery } from '../repositories/find-latest-terms-and-conditions.query';
 
 @Injectable()
 export class TermsService {

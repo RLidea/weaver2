@@ -1,8 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { EmailService } from './email.service';
-import { SendEmailDto } from './dto/send-email.dto';
+import { EmailService } from '../services/email.service';
+import { SendEmailDto } from '../dto/send-email.dto';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
-import { verifyEmailTemplate } from './templates/verify-email.template';
+import { verifyEmailTemplate } from '../templates/verify-email.template';
 
 @Controller('email')
 export class EmailController {

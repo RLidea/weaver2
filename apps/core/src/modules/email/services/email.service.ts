@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { sendPasswordResetEmail } from './templates/send-password-reset-email';
+import { sendPasswordResetEmail } from '../templates/send-password-reset-email';
 
 @Injectable()
 export class EmailService {

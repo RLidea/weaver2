@@ -4,14 +4,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
-import { PostDto } from './dto/post.dto';
-import { CreatePostCommand } from './repositories/create-post.command';
-import { FindPostByIdQuery } from './repositories/find-post-by-id.query';
-import { FindAllPostsByBoardIdQuery } from './repositories/find-all-posts-by-board-id.query';
-import { UpdatePostCommand } from './repositories/update-post.command';
-import { DeletePostCommand } from './repositories/delete-post.command';
+import { CreatePostDto } from '../dto/create-post.dto';
+import { UpdatePostDto } from '../dto/update-post.dto';
+import { PostDto } from '../dto/post.dto';
+import { CreatePostCommand } from '../repositories/create-post.command';
+import { FindPostByIdQuery } from '../repositories/find-post-by-id.query';
+import { FindAllPostsByBoardIdQuery } from '../repositories/find-all-posts-by-board-id.query';
+import { UpdatePostCommand } from '../repositories/update-post.command';
+import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
 
 @Injectable()

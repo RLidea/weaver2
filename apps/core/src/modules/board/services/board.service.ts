@@ -4,14 +4,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { CreateBoardDto } from './dto/create-board.dto';
-import { UpdateBoardDto } from './dto/update-board.dto';
-import { BoardDto } from './dto/board.dto';
-import { CreateBoardCommand } from './repositories/create-board.command';
-import { FindBoardByIdQuery } from './repositories/find-board-by-id.query';
-import { FindAllBoardsQuery } from './repositories/find-all-boards.query';
-import { UpdateBoardCommand } from './repositories/update-board.command';
-import { DeleteBoardCommand } from './repositories/delete-board.command';
+import { CreateBoardDto } from '../dto/create-board.dto';
+import { BoardDto } from '../dto/board.dto';
+import { CreateBoardCommand } from '../repositories/create-board.command';
+import { FindAllBoardsQuery } from '../repositories/find-all-boards.query';
+import { FindBoardByIdQuery } from '../repositories/find-board-by-id.query';
+import { UpdateBoardDto } from '../dto/update-board.dto';
+import { UpdateBoardCommand } from '../repositories/update-board.command';
+import { DeleteBoardCommand } from '../repositories/delete-board.command';
 
 @Injectable()
 export class BoardService {

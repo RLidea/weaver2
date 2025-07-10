@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { UploadController } from './upload.controller';
-import { UploadService } from './upload.service';
+import { UploadController } from './controllers/upload.controller';
+import { UploadService } from './services/upload.service';
 import { PrismaModule } from '@weaver2/prisma';
 
 @Module({

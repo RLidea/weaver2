@@ -16,7 +16,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { SignOutController } from './controllers/sign-out.controller';
 import { SignOutService } from './services/sign-out.service';
-import { TermsService } from '../terms/terms.service';
+import { TermsService } from '../terms/services/terms.service';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule],

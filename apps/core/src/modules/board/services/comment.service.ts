@@ -4,14 +4,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
-import { CommentDto } from './dto/comment.dto';
-import { CreateCommentCommand } from './repositories/create-comment.command';
-import { FindCommentByIdQuery } from './repositories/find-comment-by-id.query';
-import { FindAllCommentsByPostIdQuery } from './repositories/find-all-comments-by-post-id.query';
-import { UpdateCommentCommand } from './repositories/update-comment.command';
-import { DeleteCommentCommand } from './repositories/delete-comment.command';
+import { CreateCommentDto } from '../dto/create-comment.dto';
+import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { CommentDto } from '../dto/comment.dto';
+import { CreateCommentCommand } from '../repositories/create-comment.command';
+import { FindCommentByIdQuery } from '../repositories/find-comment-by-id.query';
+import { FindAllCommentsByPostIdQuery } from '../repositories/find-all-comments-by-post-id.query';
+import { UpdateCommentCommand } from '../repositories/update-comment.command';
+import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
 
 @Injectable()

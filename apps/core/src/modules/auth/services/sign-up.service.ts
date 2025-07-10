@@ -10,13 +10,13 @@ import * as bcrypt from 'bcrypt';
 import { SignUpCommand } from '../repositories/sign-up.command';
 import { CreateValidationTokenCommand } from '../repositories/create-validation-token.command';
 import { FindAuthByTokenQuery } from '../repositories/find-auth-by-token.query';
-import { EmailService } from '../../email/email.service';
 import { welcomeEmailTemplate } from '../../email/templates/welcome.template';
 import { verifyEmailTemplate } from '../../email/templates/verify-email.template';
 import { FindUserService } from '../../user/services/find-user.service';
-import { TermsService } from '../../terms/terms.service';
 import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
 import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
+import { EmailService } from '../../email/services/email.service';
+import { TermsService } from '../../terms/services/terms.service';
 
 @Injectable()
 export class SignUpService {

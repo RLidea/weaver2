@@ -1,5 +1,5 @@
 import { passwordResetTemplate } from './password-reset.template';
-import { EmailService } from '../email.service'; // Import EmailService
+import { EmailService } from '../services/email.service';
 
 export const sendPasswordResetEmail = async (
   emailService: EmailService, // Explicitly type emailService

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { BoardController } from './board.controller';
-import { BoardService } from './board.service';
 import { PrismaModule } from '@weaver2/prisma';
-import { PostService } from './post.service';
-import { PostController } from './post.controller';
-import { CommentService } from './comment.service';
-import { CommentController } from './comment.controller';
+import { BoardController } from './controllers/board.controller';
+import { PostController } from './controllers/post.controller';
+import { CommentController } from './controllers/comment.controller';
+import { BoardService } from './services/board.service';
+import { PostService } from './services/post.service';
+import { CommentService } from './services/comment.service';
 
 @Module({
   imports: [PrismaModule],

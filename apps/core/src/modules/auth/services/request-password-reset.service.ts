@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { EmailService } from '../../email/email.service';
 import { RequestPasswordResetDto } from '../dto/request-password-reset.dto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 import { generateTokenUtil } from '@weaver2/common/utility/generate-token.util';
 import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
 import { UpdateAuthPasswordResetTokenCommand } from '../repositories/update-auth-password-reset-token.command';
+import { EmailService } from '../../email/services/email.service';
 
 @Injectable()
 export class RequestPasswordResetService {

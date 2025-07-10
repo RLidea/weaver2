@@ -11,15 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { BoardService } from './board.service';
-import { CreateBoardDto } from './dto/create-board.dto';
-import { UpdateBoardDto } from './dto/update-board.dto';
-import { BoardDto } from './dto/board.dto';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../../decorator/roles.decorator';
 import { Role } from '@prisma/client';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { BoardService } from '../services/board.service';
+import { CreateBoardDto } from '../dto/create-board.dto';
+import { Roles } from '../../../decorator/roles.decorator';
+import { BoardDto } from '../dto/board.dto';
+import { UpdateBoardDto } from '../dto/update-board.dto';
 
 @ApiTags('Boards')
 @Controller({ path: 'boards', version: '1' })
