@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
@@ -26,40 +25,29 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     if (isPublic) {
       const request = context.switchToHttp().getRequest();
-      const accessToken = context?.switchToHttp()?.getRequest()
-        .cookies?.access_token;
+      const accessToken = request.cookies?.access_token;
 
       if (accessToken) {
         try {
-          // accessToken 검증
           const payload = this.jwtService.verify(accessToken);
-
-          // 검증된 사용자 정보를 request에 설정
           request['user'] = {
             id: payload.sub,
             authId: payload.authId,
+            username: payload.username,
+            role: payload.role,
             isLogin: true,
           };
           this.logger.debug(
             `Token verified for public route: ${JSON.stringify(payload)}`,
           );
         } catch (error) {
-          this.logger.debug('Invalid token on public route:', error.message);
-
-          // public 라우트에서는 토큰이 유효하지 않아도 접근 허용
-          // 하지만 user 정보는 설정하지 않음
-          request['user'] = {
-            isLogin: false,
-          };
+          this.logger.debug(`Invalid token on public route: ${error.message}`);
+          request['user'] = { isLogin: false };
         }
       } else {
-        // 토큰이 없는 경우
-        request['user'] = {
-          isLogin: false,
-        };
+        request['user'] = { isLogin: false };
       }
-
-      return true; // Skip JWT authentication for public routes
+      return true;
     }
 
     return super.canActivate(context);

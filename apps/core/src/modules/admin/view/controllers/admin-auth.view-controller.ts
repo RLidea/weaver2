@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Logger, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { Public } from '@weaver2/common/decorator/public.decorator';
@@ -7,12 +7,14 @@ import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.d
 
 @Controller({ path: 'admin' })
 export class AdminAuthViewController {
+  private readonly logger = new Logger(AdminAuthViewController.name);
   @Public()
   @Get('login')
   getLoginPageUnauthenticated(
     @Res() res: Response,
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
+    this.logger.debug(JSON.stringify(authUser));
     if (authUser && authUser.isLogin) return res.redirect('/admin/dashboard');
     res.sendFile(
       join(process.cwd(), 'apps/core/src/public/admin', 'admin-login.html'),
