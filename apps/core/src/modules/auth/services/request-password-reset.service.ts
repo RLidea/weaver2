@@ -4,6 +4,8 @@ import { RequestPasswordResetDto } from '../dto/request-password-reset.dto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 import { generateTokenUtil } from '@weaver2/common/utility/generate-token.util';
+import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
+import { UpdateAuthPasswordResetTokenCommand } from '../repositories/update-auth-password-reset-token.command';
 
 @Injectable()
 export class RequestPasswordResetService {
@@ -16,7 +18,7 @@ export class RequestPasswordResetService {
   async execute(dto: RequestPasswordResetDto): Promise<void> {
     const { email } = dto;
 
-    const auth = await this.prisma.auth.findUnique({ where: { email } });
+    const auth = await FindAuthByEmailQuery(this.prisma, email);
     if (!auth) {
       // To prevent user enumeration attacks, we don't reveal that the user does not exist.
       // We just return successfully, as if an email was sent.
@@ -27,13 +29,12 @@ export class RequestPasswordResetService {
     const expiry = new Date();
     expiry.setHours(expiry.getHours() + 1); // Token valid for 1 hour
 
-    await this.prisma.auth.update({
-      where: { id: auth.id },
-      data: {
-        passwordResetToken: token,
-        resetTokenExpiry: expiry,
-      },
-    });
+    await UpdateAuthPasswordResetTokenCommand(
+      this.prisma,
+      auth.id,
+      token,
+      expiry,
+    );
 
     const resetLink = `${this.configService.get(
       'CLIENT_URL',

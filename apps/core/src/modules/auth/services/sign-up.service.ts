@@ -15,6 +15,8 @@ import { welcomeEmailTemplate } from '../../email/templates/welcome.template';
 import { verifyEmailTemplate } from '../../email/templates/verify-email.template';
 import { FindUserService } from '../../user/services/find-user.service';
 import { TermsService } from '../../terms/terms.service';
+import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
+import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
 
 @Injectable()
 export class SignUpService {
@@ -62,13 +64,9 @@ export class SignUpService {
       const isMarketingConsentGiven = agreedTermsIds.includes(
         latestTerms.find((term) => term.title.includes('마케팅'))?.id || '',
       );
-
-      await this.prisma.userSetting.create({
-        data: {
-          userId: createdUser.id,
-          isMarketingConsentGiven: isMarketingConsentGiven,
-          // Other settings will use their defaults
-        },
+      await CreateUserSettingCommand(this.prisma, createdUser.id, {
+        isMarketingConsentGiven: isMarketingConsentGiven,
+        // Other settings will use their defaults
       });
 
       // Create UserTermsAgreement records
@@ -77,9 +75,7 @@ export class SignUpService {
         termsAndConditionsId: termId,
       }));
 
-      await this.prisma.userTermsAgreement.createMany({
-        data: userTermsAgreements,
-      });
+      await CreateUserTermsAgreementCommand(this.prisma, userTermsAgreements);
 
       // create validation token
       const token = await CreateValidationTokenCommand(this.prisma, {

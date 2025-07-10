@@ -6,6 +6,8 @@ import { findUserQuery } from '../repositories/find-user.query';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { CheckExistingUserQuery } from '../repositories/check-existing-user.query';
+import { FindUserByIdQuery } from '../repositories/find-user-by-id.query';
+import { FindUserByUsernameQuery } from '../repositories/find-user-by-username.query';
 
 @Injectable()
 export class FindUserService {
@@ -16,9 +18,7 @@ export class FindUserService {
   }
 
   async findUserById(id: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
+    const user = await FindUserByIdQuery(this.prisma, id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
@@ -26,9 +26,7 @@ export class FindUserService {
   }
 
   async findUserByUsername(username: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await FindUserByUsernameQuery(this.prisma, username);
     if (!user) {
       throw new NotFoundException(`User with username ${username} not found.`);
     }

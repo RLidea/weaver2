@@ -1,6 +1,10 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { FindUserByDisplayNameQuery } from '../repositories/find-user-by-display-name.query';
+import { FindUserByUsernameQuery } from '../repositories/find-user-by-username.query';
+import { UpdateUserCommand } from '../repositories/update-user.command';
+import { UpsertUserSettingCommand } from '../repositories/upsert-user-setting.command';
 
 @Injectable()
 export class UpdateProfileService {
@@ -13,9 +17,10 @@ export class UpdateProfileService {
     const { displayName, username, ...userSettings } = updateProfileDto;
 
     if (displayName) {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { displayName },
-      });
+      const existingUser = await FindUserByDisplayNameQuery(
+        this.prisma,
+        displayName,
+      );
 
       if (existingUser && existingUser.id !== userId) {
         throw new ConflictException('Display name already taken.');
@@ -23,9 +28,7 @@ export class UpdateProfileService {
     }
 
     if (username) {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { username },
-      });
+      const existingUser = await FindUserByUsernameQuery(this.prisma, username);
 
       if (existingUser && existingUser.id !== userId) {
         throw new ConflictException('Username already taken.');
@@ -33,24 +36,14 @@ export class UpdateProfileService {
     }
 
     // Update User model fields
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(displayName && { displayName }),
-        ...(username && { username }),
-      },
+    await UpdateUserCommand(this.prisma, userId, {
+      ...(displayName && { displayName }),
+      ...(username && { username }),
     });
 
     // Update or create UserSetting fields
     if (Object.keys(userSettings).length > 0) {
-      await this.prisma.userSetting.upsert({
-        where: { userId },
-        update: { ...userSettings },
-        create: {
-          userId,
-          ...userSettings,
-        },
-      });
+      await UpsertUserSettingCommand(this.prisma, userId, userSettings);
     }
   }
 }

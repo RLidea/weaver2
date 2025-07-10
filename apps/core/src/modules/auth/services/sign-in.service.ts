@@ -4,7 +4,12 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import { Auth } from '@prisma/client';
-import { FindUserService } from '../../user/services/find-user.service'; // Import User and Auth types
+import { FindUserService } from '../../user/services/find-user.service';
+import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
+import { FindAuthByUserIdAndAuthIdQuery } from '../repositories/find-auth-by-user-id-and-auth-id.query';
+import { FindAuthByUserIdQuery } from '../repositories/find-auth-by-user-id.query';
+import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
+import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
 
 @Injectable()
 export class SignInService {
@@ -17,10 +22,7 @@ export class SignInService {
   ) {}
 
   async validateUserByEmail(email: string, password: string) {
-    const auth = await this.prisma.auth.findUnique({
-      where: { email },
-      include: { user: { include: { userSetting: true } } },
-    });
+    const auth = await FindAuthByEmailQuery(this.prisma, email);
 
     this.logger.debug(
       `validateUserByEmail: Found auth: ${JSON.stringify(auth?.id)}, user: ${JSON.stringify(auth?.user?.id)}`,
@@ -42,10 +44,11 @@ export class SignInService {
     this.logger.debug(
       `SignInService.validateUserById: Validating userId=${userId}, authId=${authId}`,
     );
-    const auth = await this.prisma.auth.findUnique({
-      where: { userId, id: authId },
-      include: { user: { include: { userSetting: true } } },
-    });
+    const auth = await FindAuthByUserIdAndAuthIdQuery(
+      this.prisma,
+      userId,
+      authId,
+    );
     this.logger.debug(
       `SignInService.validateUserById: Found auth=${JSON.stringify(auth?.id)}, user=${JSON.stringify(auth?.user?.id)}`,
     );
@@ -57,12 +60,7 @@ export class SignInService {
     let auth: Auth | null = null;
     this.logger.debug(`Logged in user is: ${userId}`);
     if (provider === 'email') {
-      auth = await this.prisma.auth.findFirst({
-        where: {
-          userId: userId,
-          password: { not: null },
-        },
-      });
+      auth = await FindAuthByUserIdQuery(this.prisma, userId);
     }
 
     if (!auth) {
@@ -86,18 +84,13 @@ export class SignInService {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7일
 
-    await this.prisma.refreshToken.create({
-      data: { token, authId, expires },
-    });
+    await CreateRefreshTokenCommand(this.prisma, authId, token, expires);
 
     return token;
   }
 
   async refresh(refreshToken: string) {
-    const stored = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { auth: true },
-    });
+    const stored = await FindRefreshTokenQuery(this.prisma, refreshToken);
 
     if (!stored || stored.expires < new Date()) {
       throw new UnauthorizedException('Invalid or expired refresh token');

@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { FindAuthByUserIdQuery } from '../../auth/repositories/find-auth-by-user-id.query';
+import { UpdateAuthPasswordByUserIdCommand } from '../../auth/repositories/update-auth-password-by-user-id.command';
 
 @Injectable()
 export class ChangePasswordService {
@@ -13,9 +15,7 @@ export class ChangePasswordService {
   ): Promise<void> {
     const { currentPassword, newPassword } = changePasswordDto;
 
-    const auth = await this.prisma.auth.findUnique({
-      where: { userId },
-    });
+    const auth = await FindAuthByUserIdQuery(this.prisma, userId);
 
     if (!auth || !auth.password) {
       throw new UnauthorizedException(
@@ -33,9 +33,10 @@ export class ChangePasswordService {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    await this.prisma.auth.update({
-      where: { userId },
-      data: { password: hashedNewPassword },
-    });
+    await UpdateAuthPasswordByUserIdCommand(
+      this.prisma,
+      userId,
+      hashedNewPassword,
+    );
   }
 }
