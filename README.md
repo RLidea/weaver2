@@ -1,106 +1,64 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Weaver2
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+이 문서는 Weaver2 프로젝트의 디렉토리 구조와 각 부분의 역할을 설명합니다. 이 프로젝트는 NestJS 모노레포로 구성되어 있으며, 확장성과 유지보수성을 고려하여 설계되었습니다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📂 최상위 디렉토리 구조
 
-## Description
+-   `.`
+    -   ├── `apps/`: 실행 가능한 애플리케이션들이 위치합니다.
+    -   ├── `libs/`: 여러 애플리케이션에서 공유되는 라이브러리(모듈)들이 위치합니다.
+    -   ├── `scripts/`: 프로젝트에서 사용되는 유틸리티 스크립트들이 위치합니다.
+    -   ├── `package.json`: 프로젝트의 의존성 및 스크립트를 정의합니다.
+    -   ├── `GEMINI.md`: Gemini 어시스턴트를 위한 프로젝트 가이드라인 및 컨텍스트 정보를 담고 있습니다.
+    -   └── `tsconfig.json`: TypeScript 컴파일러 설정 파일입니다.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 📱 애플리케이션 (`apps`)
 
-```bash
-$ pnpm install
-```
+### `core`
 
-## Compile and run the project
+메인 애플리케이션입니다. API 서버의 핵심 비즈니스 로직이 모두 이곳에 구현됩니다.
 
-```bash
-# development
-$ pnpm run start
+-   `apps/core`
+    -   ├── `prisma/`: 데이터베이스 스키마(`schema.prisma`), 마이그레이션 기록, 시드(seed) 스크립트가 포함됩니다. 이 디렉토리는 `core` 애플리케이션의 데이터베이스 관련 파일들을 관리합니다.
+    -   ├── `src/`: 소스 코드가 위치합니다.
+    -   │   ├── `main.ts`: 애플리케이션의 시작점(entry point)입니다.
+    -   │   ├── `core.module.ts`: 루트 모듈(Root Module)입니다.
+    -   │   ├── `modules/`: 기능별로 도메인이 분리된 모듈들이 위치합니다.
+    -   │   │   ├── `auth/`: 인증/인가 (회원가입, 로그인, JWT) 관련 로직
+    -   │   │   ├── `user/`: 사용자 정보 관리 관련 로직
+    -   │   │   ├── `board/`: 게시판 관련 로직
+    -   │   │   └── ... (기타 비즈니스 로직 모듈)
+    -   │   ├── `decorator/`: 해당 애플리케이션(`core`) 내에서만 사용되는 커스텀 데코레이터가 위치합니다.
+    -   │   ├── `public/`: 외부에 노출되는 정적 파일(HTML, CSS, JS)들이 위치합니다.
+    -   │   └── `types/`: 애플리케이션 전역에서 사용되는 타입 정의가 위치합니다.
+    -   └── `test/`: E2E(End-to-End) 테스트 코드가 위치합니다.
 
-# watch mode
-$ pnpm run dev
+---
 
-# production mode
-$ pnpm run prod
-```
+## 📚 라이브러리 (`libs`)
 
-## Database
+여러 `apps`에서 공통으로 사용될 수 있는 재사용 가능한 기능들을 모아놓은 곳입니다.
 
-```bash
-## Reset Database
-pnpm run db:reset
-pnpm run db:seed
-```
+-   `libs`
+    -   ├── `common/`: 전역적으로 사용될 가능성이 높은 유틸리티, 데코레이터, 예외 필터, 인터셉터 등이 위치합니다.
+    -   │   └── `src/`
+    -   │       ├── `decorator/`: 여러 앱에서 공용으로 사용할 데코레이터 (`@Public`, `@AuthUser` 등)
+    -   │       └── `global/`: NestJS의 전역(Global) 기능 모음 (Exception Filters, Interceptors, Middlewares 등)
+    -   ├── `pagination/`: 페이지네이션(Pagination) 관련 DTO 및 서비스 로직을 제공하는 라이브러리입니다.
+    -   └── `prisma/`: Prisma 클라이언트 서비스를 앱에 주입하기 위한 모듈입니다. 이 라이브러리는 Prisma 관련 로직을 추상화하여 다른 모듈에서 데이터베이스 접근을 용이하게 합니다.
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ pnpm run test
+## 🛠️ 주요 실행 명령어
 
-# e2e tests
-$ pnpm run test:e2e
+`GEMINI.md`에 정의된 주요 명령어들입니다.
 
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+-   **`pnpm lint`**: ESLint로 코드 품질을 검사합니다.
+-   **`pnpm format`**: Prettier로 코드 스타일을 통일합니다.
+-   **`pnpm test`**: 모든 유닛 테스트를 실행합니다.
+-   **`pnpm test:e2e`**: E2E 테스트를 실행합니다.
+-   **`pnpm db:migrate`**: Prisma 마이그레이션을 실행하여 DB 스키마를 업데이트합니다.
+-   **`pnpm db:generate`**: Prisma 스키마 변경 후 Prisma 클라이언트를 다시 생성합니다.
+-   **`pnpm dev`**: 개발 모드로 `core` 애플리케이션을 실행합니다.
