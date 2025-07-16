@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Res, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import {
@@ -99,6 +99,56 @@ export class HealthController {
       'apps/core/src/public/health/dashboard.css',
     );
     res.setHeader('Content-Type', 'text/css');
+    return res.sendFile(filePath);
+  }
+
+  @Public()
+  @Get('/shared/:type/:file')
+  @ApiOperation({ summary: 'Shared components and styles' })
+  @ApiResponse({ status: 200, description: 'Shared resources' })
+  serveSharedFiles(
+    @Param('type') type: string,
+    @Param('file') file: string,
+    @Res() res: Response,
+  ) {
+    const filePath = join(
+      process.cwd(),
+      'apps/core/src/public/shared',
+      type,
+      file,
+    );
+
+    if (file.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (file.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+
+    return res.sendFile(filePath);
+  }
+
+  @Public()
+  @Get('/shared/components/:component/:file')
+  @ApiOperation({ summary: 'Shared component files' })
+  @ApiResponse({ status: 200, description: 'Component files' })
+  serveComponentFiles(
+    @Param('component') component: string,
+    @Param('file') file: string,
+    @Res() res: Response,
+  ) {
+    const filePath = join(
+      process.cwd(),
+      'apps/core/src/public/shared/components',
+      component,
+      file,
+    );
+
+    if (file.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (file.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+
     return res.sendFile(filePath);
   }
 }

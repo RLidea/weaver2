@@ -1,3 +1,6 @@
+// 개별 컴포넌트 import
+import { createHealthCard, createCard } from '/health/shared/components/card/card.js';
+
 let healthData = null;
 let refreshInterval = null;
 
@@ -104,7 +107,7 @@ function renderDashboard(data) {
     // 개별 헬스체크 결과 카드들
     if (healthDetails) {
         Object.entries(healthDetails).forEach(([key, value]) => {
-            const card = createHealthCard(key, value);
+            const card = createHealthStatusCard(key, value);
             dashboard.appendChild(card);
         });
     }
@@ -112,151 +115,50 @@ function renderDashboard(data) {
 
 // 전체 상태 카드 생성
 function createOverallStatusCard(data) {
-    const card = document.createElement('div');
-    card.className = 'card overall-status';
-    
-    const statusClass = data.status === 'ok' ? 'status-healthy' : 'status-error';
+    const status = data.status === 'ok' ? 'success' : 'error';
     const statusText = data.status === 'ok' ? '정상' : '오류';
     const statusIcon = data.status === 'ok' ? '✅' : '❌';
     
-    // 카드 상태 클래스 추가
-    if (data.status === 'ok') {
-        card.classList.add('healthy');
-    } else {
-        card.classList.add('error');
-    }
-    
-    card.innerHTML = `
-        <div class="card-header">
-            <div class="status-icon ${statusClass}">${statusIcon}</div>
-            <h3>전체 시스템 상태</h3>
+    const content = `
+        <div class="weaver-metric">
+            <div class="weaver-metric-label">상태</div>
+            <div class="weaver-metric-value">${statusText}</div>
         </div>
-        <div class="metric">
-            <div class="metric-label">상태</div>
-            <div class="metric-value">${statusText}</div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">확인 시간</div>
-            <div class="metric-value">${new Date().toLocaleString('ko-KR')}</div>
+        <div class="weaver-metric">
+            <div class="weaver-metric-label">확인 시간</div>
+            <div class="weaver-metric-value">${new Date().toLocaleString('ko-KR')}</div>
         </div>
     `;
     
-    return card;
+    return createCard({
+        title: '전체 시스템 상태',
+        content,
+        status,
+        className: 'overall-status',
+        icon: statusIcon
+    });
 }
 
-// 개별 헬스체크 카드 생성
-function createHealthCard(key, data) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    
-    const statusClass = data.status === 'up' ? 'status-healthy' : 'status-error';
-    const title = getHealthTitle(key);
-    const icon = getHealthIcon(key);
-    
-    // 카드 상태 클래스 추가
-    if (data.status === 'up') {
-        card.classList.add('healthy');
-    } else {
-        card.classList.add('error');
-    }
-    
-    card.innerHTML = `
-        <div class="card-header">
-            <div class="status-icon ${statusClass}">${icon}</div>
-            <h3>${title}</h3>
-        </div>
-        ${renderHealthMetrics(key, data)}
-    `;
-    
-    return card;
-}
-
-// 헬스체크 메트릭 렌더링
-function renderHealthMetrics(key, data) {
-    let metricsHtml = `
-        <div class="metric">
-            <div class="metric-label">상태</div>
-            <div class="metric-value">${data.status === 'up' ? '정상' : '오류'}</div>
-        </div>
-    `;
-
-    if (key === 'database') {
-        metricsHtml += `
-            <div class="metric">
-                <div class="metric-label">연결 상태</div>
-                <div class="metric-value">${data.status === 'up' ? '연결됨' : '연결 실패'}</div>
-            </div>
-        `;
-    } else if (key.includes('memory')) {
-        if (data.used && data.limit) {
-            const usedMB = Math.round(data.used / 1024 / 1024);
-            const limitMB = Math.round(data.limit / 1024 / 1024);
-            const percentage = Math.round((data.used / data.limit) * 100);
-            
-            metricsHtml += `
-                <div class="metric">
-                    <div class="metric-label">사용량</div>
-                    <div class="metric-value">${usedMB}MB / ${limitMB}MB (${percentage}%)</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${percentage > 80 ? 'error' : percentage > 60 ? 'warning' : ''}" 
-                         style="width: ${percentage}%"></div>
-                </div>
-            `;
-        }
-    } else if (key === 'storage') {
-        if (data.used && data.available) {
-            const usedGB = Math.round(data.used / 1024 / 1024 / 1024);
-            const availableGB = Math.round(data.available / 1024 / 1024 / 1024);
-            const totalGB = usedGB + availableGB;
-            const percentage = Math.round((data.used / (data.used + data.available)) * 100);
-            
-            metricsHtml += `
-                <div class="metric">
-                    <div class="metric-label">사용량</div>
-                    <div class="metric-value">${usedGB}GB / ${totalGB}GB (${percentage}%)</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${percentage > 90 ? 'error' : percentage > 70 ? 'warning' : ''}" 
-                         style="width: ${percentage}%"></div>
-                </div>
-            `;
-        }
-    }
-
-    if (data.message && data.status !== 'up') {
-        metricsHtml += `
-            <div class="metric">
-                <div class="metric-label">오류 메시지</div>
-                <div class="metric-value" style="color: #f44336;">${data.message}</div>
-            </div>
-        `;
-    }
-
-    return metricsHtml;
-}
-
-// 헬스체크 타이틀 매핑
-function getHealthTitle(key) {
+// 개별 헬스체크 카드 생성 (함수명 변경하여 충돌 방지)
+function createHealthStatusCard(key, data) {
     const titles = {
         'database': '데이터베이스',
         'memory_heap': '힙 메모리',
         'memory_rss': 'RSS 메모리',
         'storage': '스토리지'
     };
-    return titles[key] || key;
+    const title = titles[key] || key;
+    
+    return createHealthCard({
+        type: key,
+        title,
+        data
+    });
 }
 
-// 헬스체크 아이콘 매핑
-function getHealthIcon(key) {
-    const icons = {
-        'database': '🗄️',
-        'memory_heap': '💾',
-        'memory_rss': '📊',
-        'storage': '💿'
-    };
-    return icons[key] || '📋';
-}
+// 헬스체크 메트릭 렌더링 함수는 공통 컴포넌트로 이동됨
+
+// 헬스체크 타이틀과 아이콘 매핑은 utils/helpers.js에서 import됨
 
 // 타임스탬프 업데이트
 function updateTimestamp() {
