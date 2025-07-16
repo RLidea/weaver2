@@ -1,0 +1,457 @@
+/* ========== 헬스 대시보드 스타일 ========== */
+:root {
+  /* 색상 변수 */
+  --primary-bg: linear-gradient(135deg, #fafafa 0%, #f5f5f5 30%, #f0f0f0 70%, #fafafa 100%);
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-bg-hover: rgba(255, 255, 255, 0.18);
+  --glass-bg-focus: rgba(255, 255, 255, 0.25);
+  --glass-bg-strong: rgba(255, 255, 255, 0.15);
+
+  --primary-blue: #1e40af;
+  --secondary-blue: #3b82f6;
+  --light-blue: #93c5fd;
+  --accent-blue: #147197;
+
+  --success-green: #10b981;
+  --warning-orange: #f59e0b;
+  --error-red: #ef4444;
+
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color-hover: rgba(0, 0, 0, 0.12);
+  --border-color-focus: rgba(59, 130, 246, 0.25);
+
+  --shadow-light: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-heavy: 0 8px 28px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.1);
+
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --inset-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+
+  /* 크기 변수 */
+  --border-radius: 16px;
+  --border-radius-large: 20px;
+  --border-radius-small: 12px;
+
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 30px;
+  --spacing-3xl: 40px;
+
+  /* 폰트 */
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 애니메이션 */
+  --transition: all 0.3s ease;
+  --blur-amount: blur(30px);
+  --blur-light: blur(15px);
+}
+
+/* ========== 기본 리셋 ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--primary-bg);
+  min-height: 100vh;
+  position: relative;
+  color: var(--text-primary);
+}
+
+/* ========== 배경 효과 ========== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(248, 250, 252, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(241, 245, 249, 0.2) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ========== 컨테이너 ========== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl);
+}
+
+/* ========== 헤더 ========== */
+.header {
+  text-align: center;
+  margin-bottom: var(--spacing-3xl);
+  padding: var(--spacing-3xl) 0;
+}
+
+.header h1 {
+  font-size: 40px;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.health-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 197, 253, 0.3));
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  backdrop-filter: var(--blur-light);
+  border: 1px solid var(--border-color);
+  color: var(--secondary-blue);
+}
+
+/* ========== 대시보드 그리드 ========== */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-3xl);
+}
+
+/* ========== 카드 스타일 ========== */
+.card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-amount);
+  border-radius: var(--border-radius-large);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-medium), var(--inset-highlight);
+  transition: var(--transition);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-heavy), var(--inset-highlight);
+  background: var(--glass-bg-hover);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+/* ========== 카드 헤더 ========== */
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-header h3 {
+  margin-left: var(--spacing-md);
+  font-size: 20px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ========== 상태 아이콘 ========== */
+.status-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  backdrop-filter: var(--blur-light);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.status-healthy {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+  color: var(--success-green);
+}
+
+.status-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+  color: var(--warning-orange);
+}
+
+.status-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+  color: var(--error-red);
+}
+
+.status-icon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status-icon:hover::before {
+  opacity: 1;
+}
+
+/* ========== 메트릭 ========== */
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metric:last-child {
+  border-bottom: none;
+}
+
+.metric-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.metric-value {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+/* ========== 프로그레스 바 ========== */
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: var(--spacing-xs);
+  backdrop-filter: var(--blur-light);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success-green), rgba(16, 185, 129, 0.8));
+  transition: width 0.8s ease;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, var(--warning-orange), rgba(245, 158, 11, 0.8));
+}
+
+.progress-fill.error {
+  background: linear-gradient(90deg, var(--error-red), rgba(239, 68, 68, 0.8));
+}
+
+/* ========== 버튼 ========== */
+.refresh-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.3));
+  color: var(--text-primary);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: var(--spacing-md) var(--spacing-2xl);
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition);
+  display: block;
+  margin: 0 auto;
+  backdrop-filter: var(--blur-light);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover), var(--inset-highlight);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.4));
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.refresh-btn:hover::before {
+  left: 100%;
+}
+
+/* ========== 타임스탬프 ========== */
+.timestamp {
+  text-align: center;
+  color: var(--text-muted);
+  margin-top: var(--spacing-lg);
+  font-size: 14px;
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-small);
+  backdrop-filter: var(--blur-light);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ========== 로딩 ========== */
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 18px;
+  margin: var(--spacing-3xl) 0;
+  padding: var(--spacing-2xl);
+  background: var(--glass-bg);
+  border-radius: var(--border-radius-large);
+  backdrop-filter: var(--blur-amount);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.loading {
+  animation: pulse 2s infinite;
+}
+
+/* ========== 에러 메시지 ========== */
+.error-message {
+  background: rgba(254, 242, 242, 0.9);
+  color: var(--error-red);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-small);
+  margin: var(--spacing-lg) 0;
+  border: 1px solid rgba(252, 165, 165, 0.4);
+  backdrop-filter: var(--blur-light);
+  box-shadow: var(--shadow-light);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ========== 특별한 카드 스타일 ========== */
+.card.overall-status {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.card.overall-status .card-header h3 {
+  color: var(--secondary-blue);
+}
+
+/* ========== 상태별 카드 강조 ========== */
+.card.healthy {
+  box-shadow: var(--shadow-medium), var(--inset-highlight), 0 0 0 1px rgba(16, 185, 129, 0.1);
+}
+
+.card.warning {
+  box-shadow: var(--shadow-medium), var(--inset-highlight), 0 0 0 1px rgba(245, 158, 11, 0.1);
+}
+
+.card.error {
+  box-shadow: var(--shadow-medium), var(--inset-highlight), 0 0 0 1px rgba(239, 68, 68, 0.1);
+}
+
+/* ========== 반응형 ========== */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-lg);
+  }
+  
+  .header h1 {
+    font-size: 28px;
+  }
+  
+  .header p {
+    font-size: 16px;
+  }
+  
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+  
+  .card {
+    padding: var(--spacing-lg);
+  }
+  
+  .status-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .card-header h3 {
+    font-size: 18px;
+  }
+}

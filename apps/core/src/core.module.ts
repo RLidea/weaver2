@@ -16,6 +16,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './modules/upload/upload.module';
 import { TermsModule } from './modules/terms/terms.module';
 import { BoardModule } from './modules/board/board.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { BoardModule } from './modules/board/board.module';
     UploadModule,
     TermsModule,
     BoardModule,
+    HealthModule,
   ],
   controllers: [CoreController],
   providers: [
