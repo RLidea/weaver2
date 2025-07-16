@@ -18,6 +18,16 @@ import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-
 import { EmailService } from '../../email/services/email.service';
 import { TermsService } from '../../terms/services/terms.service';
 
+interface TermsItem {
+  id: string;
+  title: string;
+  content: string;
+  version: number;
+  effectiveAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class SignUpService {
   constructor(
@@ -40,7 +50,8 @@ export class SignUpService {
 
     try {
       // Validate terms agreement
-      const latestTerms = await this.termsService.getLatestTerms();
+      const latestTerms =
+        (await this.termsService.getLatestTerms()) as TermsItem[];
       const requiredTermsIds = latestTerms.map((term) => term.id);
 
       const missingTerms = requiredTermsIds.filter(
@@ -61,8 +72,11 @@ export class SignUpService {
       });
 
       // Create UserSetting for the newly created user
+      const marketingTerm = latestTerms.find((term) =>
+        term.title.includes('마케팅'),
+      );
       const isMarketingConsentGiven = agreedTermsIds.includes(
-        latestTerms.find((term) => term.title.includes('마케팅'))?.id || '',
+        marketingTerm?.id || '',
       );
       await CreateUserSettingCommand(this.prisma, createdUser.id, {
         isMarketingConsentGiven: isMarketingConsentGiven,

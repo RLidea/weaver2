@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 export async function UpsertUserSettingCommand(
   prisma: PrismaClient,
   userId: string,
-  data: any,
+  data: Record<string, unknown>,
 ) {
   return prisma.userSetting.upsert({
     where: { userId },

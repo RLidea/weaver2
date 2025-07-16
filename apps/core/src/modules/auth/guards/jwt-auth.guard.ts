@@ -5,6 +5,26 @@ import { IS_PUBLIC_KEY } from '@weaver2/common/decorator/public.decorator';
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 
+interface JwtPayload {
+  sub: string;
+  authId: string;
+  username: string;
+  role: string;
+}
+
+interface UserContext {
+  id?: string;
+  authId?: string;
+  username?: string;
+  role?: string;
+  isLogin: boolean;
+}
+
+interface RequestWithUser extends Request {
+  user?: UserContext;
+  cookies?: Record<string, string>;
+}
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
@@ -24,13 +44,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
-      const request = context.switchToHttp().getRequest();
+      const request = context.switchToHttp().getRequest<RequestWithUser>();
       const accessToken = request.cookies?.access_token;
 
       if (accessToken) {
         try {
-          const payload = this.jwtService.verify(accessToken);
-          request['user'] = {
+          const payload: JwtPayload = this.jwtService.verify(accessToken);
+          request.user = {
             id: payload.sub,
             authId: payload.authId,
             username: payload.username,
@@ -41,11 +61,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             `Token verified for public route: ${JSON.stringify(payload)}`,
           );
         } catch (error) {
-          this.logger.debug(`Invalid token on public route: ${error.message}`);
-          request['user'] = { isLogin: false };
+          this.logger.debug(
+            `Invalid token on public route: ${(error as Error).message}`,
+          );
+          request.user = { isLogin: false };
         }
       } else {
-        request['user'] = { isLogin: false };
+        request.user = { isLogin: false };
       }
       return true;
     }
