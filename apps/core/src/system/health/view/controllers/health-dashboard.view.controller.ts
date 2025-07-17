@@ -1,5 +1,5 @@
 import { Controller, Get, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { join } from 'path';
@@ -8,9 +8,12 @@ import { join } from 'path';
 @Controller('health')
 @Public()
 export class HealthDashboardViewController {
+  @Get('/')
+  toDashboard(@Res() res: Response) {
+    return res.redirect('/health/dashboard');
+  }
+
   @Get('/dashboard')
-  @ApiOperation({ summary: 'Health dashboard HTML page' })
-  @ApiResponse({ status: 200, description: 'Health dashboard page' })
   dashboard(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
@@ -20,8 +23,6 @@ export class HealthDashboardViewController {
   }
 
   @Get('/dashboard.js')
-  @ApiOperation({ summary: 'Health dashboard JavaScript file' })
-  @ApiResponse({ status: 200, description: 'Health dashboard JavaScript' })
   dashboardJs(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
@@ -32,8 +33,6 @@ export class HealthDashboardViewController {
   }
 
   @Get('/dashboard.css')
-  @ApiOperation({ summary: 'Health dashboard CSS file' })
-  @ApiResponse({ status: 200, description: 'Health dashboard CSS' })
   dashboardCss(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
