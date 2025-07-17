@@ -2,13 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { CoreModule } from './core.module';
 import { setNestApp } from '@weaver2/common/global/nest.config';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { VersioningType } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { join } from 'path';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(CoreModule, {
     logger: ['error', 'warn'],
   });
+  const configService = app.get(ConfigService);
 
   // Enable API versioning
   app.enableVersioning({
@@ -24,13 +26,16 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'apps/core/src/assets'), {
     prefix: '/',
   });
-  console.log(`Current Working Directory: ${process.cwd()}`);
 
   setNestApp(app);
-  await app.listen(process.env.PORT ?? 3000);
-}
-void bootstrap().then(() => {
-  console.log(
-    `🟢 ${process.env.APP_NAME} is running on port ${process.env.PORT} (${process.env.NODE_ENV})`,
+  const port = configService.get<number>('PORT') ?? 3000;
+  await app.listen(port);
+
+  const logger = new Logger('Bootstrap');
+  logger.log(
+    `🟢 ${configService.get<string>(
+      'APP_NAME',
+    )} is running on port ${port} (${configService.get<string>('NODE_ENV')})`,
   );
-});
+}
+void bootstrap();

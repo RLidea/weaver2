@@ -9,6 +9,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Auth')
 @Controller({
@@ -16,7 +17,10 @@ import { Response } from 'express';
   version: '1',
 })
 export class SignInController {
-  constructor(private readonly signInService: SignInService) {}
+  constructor(
+    private readonly signInService: SignInService,
+    private readonly configService: ConfigService,
+  ) {}
   private logger = new Logger(SignInController.name);
   /*
     Sign In
@@ -54,7 +58,7 @@ export class SignInController {
     );
     res.cookie('access_token', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.configService.get('NODE_ENV') === 'production',
       path: '/',
     });
     return { message: 'Login successful', data: { accessToken, refreshToken } };

@@ -1,19 +1,20 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { sendPasswordResetEmail } from '../templates/send-password-reset-email';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT!),
-      secure: Number(process.env.SMTP_PORT) === 465,
+      host: this.configService.get('SMTP_HOST'),
+      port: this.configService.get('SMTP_PORT'),
+      secure: this.configService.get('SMTP_PORT') === 465,
       auth: {
-        user: process.env.SMTP_USER!,
-        pass: process.env.SMTP_PASS!,
+        user: this.configService.get('SMTP_USER'),
+        pass: this.configService.get('SMTP_PASS'),
       },
     });
   }
@@ -24,8 +25,8 @@ export class EmailService {
     html: string;
     from?: string;
   }) {
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
 
     if (!user || !pass) {
       throw new Error('SMTP credentials are missing!');

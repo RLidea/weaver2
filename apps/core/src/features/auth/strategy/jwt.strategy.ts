@@ -1,15 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { jwtConstants } from '../constant/jwt.constants';
 import { SignInService } from '../services/sign-in.service';
 import { JwtPayload } from './jwt-payload.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
-  constructor(private signInService: SignInService) {
+  constructor(
+    private signInService: SignInService,
+    private configService: ConfigService,
+  ) {
+    const jwtSecret = configService.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable not set');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request) => {
@@ -24,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromAuthHeaderAsBearerToken(), // Fallback for Swagger or other API clients
       ]),
       ignoreExpiration: false,
-      secretOrKey: jwtConstants.secret,
+      secretOrKey: jwtSecret,
     });
   }
 
