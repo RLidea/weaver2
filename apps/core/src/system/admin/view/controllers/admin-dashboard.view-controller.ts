@@ -15,7 +15,7 @@ export class AdminDashboardViewController {
   @Get('dashboard')
   getDashboardPage(@Res() res: Response) {
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public/admin', 'admin-dashboard.html'),
+      join(process.cwd(), 'apps/core/src/assets/admin', 'admin-dashboard.html'),
     );
   }
 
@@ -24,7 +24,7 @@ export class AdminDashboardViewController {
     res.sendFile(
       join(
         process.cwd(),
-        'apps/core/src/public/admin',
+        'apps/core/src/assets/admin',
         'admin-user-management.html',
       ),
     );
@@ -33,7 +33,7 @@ export class AdminDashboardViewController {
   @Get('analytics')
   getAnalyticsPage(@Res() res: Response) {
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public/admin', 'admin-analytics.html'),
+      join(process.cwd(), 'apps/core/src/assets/admin', 'admin-analytics.html'),
     );
   }
 
@@ -42,7 +42,7 @@ export class AdminDashboardViewController {
     res.sendFile(
       join(
         process.cwd(),
-        'apps/core/src/public/admin',
+        'apps/core/src/assets/admin',
         'admin-content-management.html',
       ),
     );
@@ -53,7 +53,7 @@ export class AdminDashboardViewController {
     res.sendFile(
       join(
         process.cwd(),
-        'apps/core/src/public/admin',
+        'apps/core/src/assets/admin',
         'admin-notifications.html',
       ),
     );
@@ -62,7 +62,7 @@ export class AdminDashboardViewController {
   @Get('security')
   getSecurityPage(@Res() res: Response) {
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public/admin', 'admin-security.html'),
+      join(process.cwd(), 'apps/core/src/assets/admin', 'admin-security.html'),
     );
   }
 
@@ -71,7 +71,7 @@ export class AdminDashboardViewController {
     res.sendFile(
       join(
         process.cwd(),
-        'apps/core/src/public/admin',
+        'apps/core/src/assets/admin',
         'admin-system-settings.html',
       ),
     );

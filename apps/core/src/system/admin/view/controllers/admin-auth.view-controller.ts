@@ -17,7 +17,7 @@ export class AdminAuthViewController {
     this.logger.debug(JSON.stringify(authUser));
     if (authUser && authUser.isLogin) return res.redirect('/admin/dashboard');
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/public/admin', 'admin-login.html'),
+      join(process.cwd(), 'apps/core/src/assets/admin', 'admin-login.html'),
     );
   }
 }
