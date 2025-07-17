@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { CoreModule } from './core.module';
 import { setNestApp } from '@weaver2/common/global/nest.config';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { VersioningType } from '@nestjs/common';
 import { join } from 'path';
 
 async function bootstrap() {
@@ -9,12 +10,18 @@ async function bootstrap() {
     logger: ['error', 'warn'],
   });
 
+  // Enable API versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'v',
+  });
+
   // Serve static files from the 'uploads' directory
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
   });
 
-  app.useStaticAssets(join(process.cwd(), 'apps/core/src/public'), {
+  app.useStaticAssets(join(process.cwd(), 'apps/core/src/assets'), {
     prefix: '/',
   });
   console.log(`Current Working Directory: ${process.cwd()}`);

@@ -8,6 +8,7 @@ Weaver2는 NestJS 기반의 종합적인 웹 애플리케이션 백엔드 시스
 - **사용자 관리**: 프로필 관리, 프로필 이미지 업로드, 계정 설정
 - **게시판 시스템**: 게시판/게시글/댓글 CRUD 관리
 - **관리자 기능**: 대시보드, 사용자 관리, 시스템 통계
+- **공유 컴포넌트 시스템**: 재사용 가능한 UI 컴포넌트 라이브러리
 - **이메일 시스템**: SMTP 기반 이메일 발송 및 인증
 - **파일 업로드**: 이미지 업로드 및 정적 파일 서빙
 - **약관 관리**: 이용약관 버전 관리 및 동의 시스템
@@ -53,6 +54,8 @@ Weaver2는 NestJS 기반의 종합적인 웹 애플리케이션 백엔드 시스
     -   │   │   └── ... (기타 비즈니스 로직 모듈)
     -   │   ├── `decorator/`: 해당 애플리케이션(`core`) 내에서만 사용되는 커스텀 데코레이터가 위치합니다.
     -   │   ├── `public/`: 외부에 노출되는 정적 파일(HTML, CSS, JS)들이 위치합니다.
+    -   │   │   ├── `health/`: 헬스체크 대시보드 관련 정적 파일
+    -   │   │   └── `shared/`: 공유 컴포넌트 시스템 (카드, 버튼, 상태 배지 등)
     -   │   └── `types/`: 애플리케이션 전역에서 사용되는 타입 정의가 위치합니다.
     -   └── `test/`: E2E(End-to-End) 테스트 코드가 위치합니다.
 
@@ -186,6 +189,22 @@ GET /admin/analytics           # 분석 페이지
 GET /admin/content-management  # 컨텐츠 관리 페이지
 ```
 
+### 헬스체크 및 모니터링
+```
+GET /v1/health                 # 시스템 헬스체크 (API v1)
+GET /v1/health/ready           # Kubernetes 준비성 검사 (API v1)
+GET /v1/health/live            # Kubernetes 생존성 검사 (API v1)
+GET /health/dashboard          # 헬스체크 대시보드 (View)
+GET /health/dashboard.js       # 대시보드 JavaScript (View)
+GET /health/dashboard.css      # 대시보드 CSS (View)
+```
+
+### 정적 파일 서빙
+```
+GET /static/shared/:type/:file # 공유 스타일/컴포넌트 파일
+GET /static/shared/components/:component/:file # 컴포넌트별 파일
+```
+
 ### 기타
 ```
 POST /email                    # 이메일 발송
@@ -222,6 +241,17 @@ GET  /terms/latest             # 최신 약관 조회
 - API와 View 분리 구조
 - 정적 HTML 페이지 제공
 
+#### 🏥 Health 모듈
+- 시스템 헬스체크 API
+- 실시간 모니터링 대시보드
+- Kubernetes 준비성/생존성 검사
+- Glassmorphism UI 적용
+
+#### 📁 Static 모듈
+- 공유 컴포넌트 시스템 서빙
+- 정적 파일 제공 및 관리
+- 컴포넌트별 파일 라우팅
+
 #### 📧 Email 모듈
 - SMTP 기반 이메일 발송
 - 이메일 템플릿 관리
@@ -231,6 +261,17 @@ GET  /terms/latest             # 최신 약관 조회
 - 약관 버전 관리
 - 사용자 동의 기록
 - 회원가입 시 약관 동의 연동
+
+#### 🎨 Shared Component System (공유 컴포넌트 시스템)
+- **Glassmorphism 디자인**: 반투명 배경과 블러 효과 적용
+- **재사용 가능한 컴포넌트**: Card, Button, Status Badge, Progress Meter 등
+- **일관된 디자인 시스템**: CSS 변수 기반 통합 스타일 관리
+- **모듈화된 구조**: ES6 모듈 패턴으로 구현
+- **확장 가능한 아키텍처**: Web Components로 마이그레이션 준비
+- **서빙 엔드포인트**: 
+  - `/static/shared/styles/:file` - 스타일 파일
+  - `/static/shared/components/:component/:file` - 컴포넌트 파일
+- **상세 가이드**: `apps/core/src/public/shared/GUIDE.md` 참조
 
 ### 공통 라이브러리
 

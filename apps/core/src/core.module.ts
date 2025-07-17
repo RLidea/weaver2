@@ -2,21 +2,22 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { CoreController } from './core.controller';
 import { CoreService } from './core.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from './modules/user/user.module';
+import { UserModule } from './features/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
 import { RequestLoggerMiddleware } from '@weaver2/common/global/middleware/request-logger.middleware';
-import { AuthModule } from './modules/auth/auth.module';
-import { EmailModule } from './modules/email/email.module';
+import { AuthModule } from './features/auth/auth.module';
+import { EmailModule } from './infrastructure/email/email.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 // import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 // import { APP_GUARD } from '@nestjs/core';
-import { AdminModule } from './modules/admin/admin.module';
+import { AdminModule } from './system/admin/admin.module';
+import { HealthModule } from './system/health/health.module';
+import { StaticModule } from './system/static/static.module';
 import { JwtModule } from '@nestjs/jwt';
-import { UploadModule } from './modules/upload/upload.module';
-import { TermsModule } from './modules/terms/terms.module';
-import { BoardModule } from './modules/board/board.module';
-import { HealthModule } from './modules/health/health.module';
+import { UploadModule } from './infrastructure/upload/upload.module';
+import { TermsModule } from './features/terms/terms.module';
+import { BoardModule } from './features/board/board.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { HealthModule } from './modules/health/health.module';
     TermsModule,
     BoardModule,
     HealthModule,
+    StaticModule,
   ],
   controllers: [CoreController],
   providers: [
