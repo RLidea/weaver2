@@ -8,5 +8,17 @@ export async function UpdatePostCommand(
   return prisma.post.update({
     where: { id },
     data,
+    include: {
+      board: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+      author: { select: { id: true, username: true, displayName: true } },
+    },
   });
 }

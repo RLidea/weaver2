@@ -83,7 +83,10 @@ export class UserProfileController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '비밀번호 변경' })
-  @ApiStandardResponses({ status: 204, description: '비밀번호 변경 성공' })
+  @ApiStandardResponses({
+    status: 204,
+    description: 'Password changed successfully',
+  })
   async changePassword(
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -96,7 +99,7 @@ export class UserProfileController {
 
   @Post('profile-image')
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '자신의 프로필 이미지 업로드' })
+  @ApiOperation({ summary: 'Upload my profile image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

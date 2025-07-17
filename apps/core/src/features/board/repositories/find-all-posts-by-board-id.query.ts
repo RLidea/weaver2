@@ -8,6 +8,15 @@ export async function FindAllPostsByBoardIdQuery(
     where: { boardId },
     include: {
       author: { select: { id: true, username: true, displayName: true } },
+      board: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });

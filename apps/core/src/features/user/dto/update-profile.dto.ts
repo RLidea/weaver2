@@ -1,54 +1,48 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  MinLength,
-  MaxLength,
-  IsBoolean,
-} from 'class-validator';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional({ description: '표시 이름' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Display name' })
   @IsString()
-  @MinLength(2)
-  @MaxLength(20)
+  @IsOptional()
   displayName?: string;
 
-  @ApiPropertyOptional({ description: '사용자 이름 (로그인 ID)' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Username (for login)' })
   @IsString()
-  @MinLength(4)
-  @MaxLength(20)
+  @IsOptional()
   username?: string;
 
-  @ApiPropertyOptional({ description: '마케팅 정보 수신 동의 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Consent to receive marketing information',
+  })
   @IsBoolean()
-  isMarketingConsentGiven?: boolean;
+  @IsOptional()
+  marketingConsent?: boolean;
 
-  @ApiPropertyOptional({ description: '뉴스레터 수신 동의 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Consent to receive newsletter' })
   @IsBoolean()
-  isNewsletterSubscribed?: boolean;
+  @IsOptional()
+  newsletterConsent?: boolean;
 
-  @ApiPropertyOptional({ description: '이메일 알림 수신 동의 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Consent to receive email notifications',
+  })
   @IsBoolean()
-  isEmailNotificationsEnabled?: boolean;
+  @IsOptional()
+  emailNotification?: boolean;
 
-  @ApiPropertyOptional({ description: 'SMS 알림 수신 동의 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Consent to receive SMS notifications' })
   @IsBoolean()
-  isSmsNotificationsEnabled?: boolean;
+  @IsOptional()
+  smsNotification?: boolean;
 
-  @ApiPropertyOptional({ description: '푸시 알림 수신 동의 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Consent to receive push notifications' })
   @IsBoolean()
-  isPushNotificationsEnabled?: boolean;
+  @IsOptional()
+  pushNotification?: boolean;
 
-  @ApiPropertyOptional({ description: '다크 모드 선호 여부' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Dark mode preference' })
   @IsBoolean()
-  prefersDarkMode?: boolean;
+  @IsOptional()
+  darkMode?: boolean;
 }

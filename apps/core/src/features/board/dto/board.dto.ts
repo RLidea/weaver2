@@ -1,18 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BoardDto {
-  @ApiProperty({ description: '게시판 ID' })
+  @ApiProperty({ description: 'Board ID' })
   id: string;
 
-  @ApiProperty({ description: '게시판 이름' })
+  @ApiProperty({ description: 'Board name' })
   name: string;
 
-  @ApiProperty({ description: '게시판 설명' })
+  @ApiProperty({ description: 'Board description', nullable: true })
   description: string | null;
 
-  @ApiProperty({ description: '생성일시' })
+  @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 
-  @ApiProperty({ description: '수정일시' })
+  @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 }

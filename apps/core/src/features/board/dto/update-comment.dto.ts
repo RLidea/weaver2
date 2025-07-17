@@ -1,9 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class UpdateCommentDto {
-  @ApiPropertyOptional({ description: '댓글 내용' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Comment content' })
   @IsString()
+  @IsNotEmpty()
+  @IsOptional()
   content?: string;
 }

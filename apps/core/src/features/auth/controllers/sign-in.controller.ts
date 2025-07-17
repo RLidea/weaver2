@@ -45,7 +45,7 @@ export class SignInController {
     },
   })
   @ApiOperationWithPublic({
-    summary: 'email, password 로그인',
+    summary: 'Sign in with email and password',
   })
   async emailLogin(
     @AuthUser() authUser: CommonAuthUserDto,

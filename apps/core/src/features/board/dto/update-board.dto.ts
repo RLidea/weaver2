@@ -1,16 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class UpdateBoardDto {
-  @ApiPropertyOptional({ description: '게시판 이름 (고유해야 함)' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Board name (must be unique)' })
   @IsString()
-  @MaxLength(50)
+  @IsNotEmpty()
+  @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional({ description: '게시판 설명' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Board description' })
   @IsString()
-  @MaxLength(255)
+  @IsOptional()
   description?: string;
 }

@@ -8,26 +8,26 @@ import {
 } from 'class-validator';
 
 export class EmailSignUpDto {
-  @ApiProperty({ description: '사용자 이름' })
+  @ApiProperty({ description: 'Username' })
   @IsString()
   @IsNotEmpty()
   username: string;
 
-  @ApiProperty({ description: '표시 이름' })
+  @ApiProperty({ description: 'Display name' })
   @IsString()
   @IsNotEmpty()
   displayName: string;
 
-  @ApiProperty({ description: '이메일 주소' })
+  @ApiProperty({ description: 'Email address' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ description: '비밀번호' })
+  @ApiProperty({ description: 'Password' })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password: string;
 
-  @ApiProperty({ description: '동의한 약관 ID 목록', type: [String] })
+  @ApiProperty({ description: 'List of agreed term IDs', type: [String] })
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })

@@ -14,5 +14,17 @@ export async function CreatePostCommand(
       title,
       content,
     },
+    include: {
+      board: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+      author: { select: { id: true, username: true, displayName: true } },
+    },
   });
 }

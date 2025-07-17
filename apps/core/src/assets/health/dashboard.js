@@ -33,7 +33,7 @@ async function refreshHealth() {
     const errorContainer = document.getElementById('error-container');
     
     refreshBtn.disabled = true;
-    refreshBtn.textContent = '🔄 확인 중...';
+    refreshBtn.textContent = '🔄 Checking...';
     loading.style.display = 'block';
     dashboard.style.display = 'none';
     errorContainer.innerHTML = '';
@@ -59,7 +59,7 @@ async function refreshHealth() {
         loading.style.display = 'none';
     } finally {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = '🔄 새로고침';
+        refreshBtn.textContent = '🔄 Refresh';
         updateTimestamp();
     }
 }
@@ -69,7 +69,7 @@ function showError(message) {
     const errorContainer = document.getElementById('error-container');
     errorContainer.innerHTML = `
         <div class="error-message">
-            <strong>⚠️ 헬스체크 실패:</strong> ${message}
+            <strong>⚠️ Health check failed:</strong> ${message}
         </div>
     `;
 }
@@ -116,22 +116,22 @@ function renderDashboard(data) {
 // 전체 상태 카드 생성
 function createOverallStatusCard(data) {
     const status = data.status === 'ok' ? 'success' : 'error';
-    const statusText = data.status === 'ok' ? '정상' : '오류';
+    const statusText = data.status === 'ok' ? 'Healthy' : 'Error';
     const statusIcon = data.status === 'ok' ? '✅' : '❌';
     
     const content = `
         <div class="weaver-metric">
-            <div class="weaver-metric-label">상태</div>
+            <div class="weaver-metric-label">Status</div>
             <div class="weaver-metric-value">${statusText}</div>
         </div>
         <div class="weaver-metric">
-            <div class="weaver-metric-label">확인 시간</div>
-            <div class="weaver-metric-value">${new Date().toLocaleString('ko-KR')}</div>
+            <div class="weaver-metric-label">Checked At</div>
+            <div class="weaver-metric-value">${new Date().toLocaleString('en-US')}</div>
         </div>
     `;
     
     return createCard({
-        title: '전체 시스템 상태',
+        title: 'Overall System Status',
         content,
         status,
         className: 'overall-status',
@@ -142,10 +142,10 @@ function createOverallStatusCard(data) {
 // 개별 헬스체크 카드 생성 (함수명 변경하여 충돌 방지)
 function createHealthStatusCard(key, data) {
     const titles = {
-        'database': '데이터베이스',
-        'memory_heap': '힙 메모리',
-        'memory_rss': 'RSS 메모리',
-        'storage': '스토리지'
+        'database': 'Database',
+        'memory_heap': 'Heap Memory',
+        'memory_rss': 'RSS Memory',
+        'storage': 'Storage'
     };
     const title = titles[key] || key;
     
@@ -163,7 +163,7 @@ function createHealthStatusCard(key, data) {
 // 타임스탬프 업데이트
 function updateTimestamp() {
     const timestamp = document.getElementById('timestamp');
-    timestamp.textContent = `마지막 업데이트: ${new Date().toLocaleString('ko-KR')}`;
+    timestamp.textContent = `Last updated: ${new Date().toLocaleString('en-US')}`;
 }
 
 // 페이지 언로드 시 자동 새로고침 중지

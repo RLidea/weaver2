@@ -11,7 +11,7 @@ export class TermsController {
 
   @Public()
   @Get('latest')
-  @ApiOperation({ summary: '최신 약관 조회' })
+  @ApiOperation({ summary: 'Get the latest terms and conditions' })
   @ApiStandardResponses()
   async getLatestTerms() {
     return this.termsService.getLatestTerms();

@@ -26,7 +26,7 @@ export class UserQueryController {
   @Public()
   @Get(':username')
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: 'username 으로 사용자 조회' })
+  @ApiOperation({ summary: 'Find user by username' })
   @ApiStandardResponses({ type: UserDto })
   async findUserByUsername(
     @Param('username') username: string,

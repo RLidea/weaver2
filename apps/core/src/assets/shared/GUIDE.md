@@ -242,7 +242,7 @@ import { createAdminCard } from '/health/shared/components/card/card.js';
 
 const userCard = createAdminCard({
   title: '사용자 관리',
-  description: '등록된 사용자를 관리합니다',
+  description: 'Manage registered users',
   number: '1,234',
   icon: '👥'
 });

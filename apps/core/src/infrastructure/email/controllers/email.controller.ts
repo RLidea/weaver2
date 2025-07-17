@@ -9,7 +9,7 @@ export class EmailController {
   constructor(private readonly emailService: EmailService) {}
 
   @Post()
-  @ApiOperation({ summary: '이메일 발송' })
+  @ApiOperation({ summary: 'Send an email' })
   @ApiBody({
     schema: {
       type: 'object',

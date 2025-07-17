@@ -1,15 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class UpdatePostDto {
-  @ApiPropertyOptional({ description: '게시글 제목' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Post title' })
   @IsString()
-  @MaxLength(100)
+  @IsNotEmpty()
+  @IsOptional()
   title?: string;
 
-  @ApiPropertyOptional({ description: '게시글 내용' })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Post content' })
   @IsString()
+  @IsNotEmpty()
+  @IsOptional()
   content?: string;
 }

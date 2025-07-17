@@ -2,31 +2,31 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BoardDto } from './board.dto';
 
 export class PostDto {
-  @ApiProperty({ description: '게시글 ID' })
+  @ApiProperty({ description: 'Post ID' })
   id: string;
 
-  @ApiProperty({ description: '게시글 제목' })
+  @ApiProperty({ description: 'Post title' })
   title: string;
 
-  @ApiProperty({ description: '게시글 내용' })
+  @ApiProperty({ description: 'Post content' })
   content: string;
 
-  @ApiProperty({ description: '생성일시' })
+  @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 
-  @ApiProperty({ description: '수정일시' })
+  @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 
-  @ApiProperty({ description: '게시판 ID' })
+  @ApiProperty({ description: 'Board ID' })
   boardId: string;
 
-  @ApiProperty({ description: '작성자 ID' })
+  @ApiProperty({ description: 'Author ID' })
   authorId: string;
 
-  @ApiProperty({ description: '게시판 정보' })
-  board?: BoardDto;
+  @ApiProperty({ description: 'Board information' })
+  board: BoardDto;
 
-  @ApiProperty({ description: '작성자 정보' })
+  @ApiProperty({ description: 'Author information' })
   author?: {
     id: string;
     username: string;

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
@@ -17,6 +25,7 @@ export class SignUpController {
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('sign-up/email')
+  @HttpCode(HttpStatus.CREATED)
   @ApiBody({
     schema: {
       type: 'object',
@@ -41,7 +50,7 @@ export class SignUpController {
     },
   })
   @ApiOperationWithPublic({
-    summary: 'email, password 회원가입',
+    summary: 'Sign up with email and password',
   })
   emailSignUp(@Body() dto: EmailSignUpDto) {
     return this.signUpService.emailSignUp(dto);

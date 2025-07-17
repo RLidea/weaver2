@@ -1,35 +1,33 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
-  Param,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PostService } from '../services/post.service';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
-import { PostDto } from '../dto/post.dto';
-import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
-import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
+import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
+import { PostDto } from '../dto/post.dto';
 
-@ApiTags('Posts')
-@Controller({ path: 'boards/:boardId/posts', version: '1' })
-@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('Post')
+@Controller({ path: 'posts', version: '1' })
+@UseGuards(JwtAuthGuard)
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
   @Post()
-  @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '새 게시글 생성' })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new post' })
   @ApiStandardResponses({ type: PostDto })
   async createPost(
     @Param('boardId') boardId: string,
@@ -70,8 +68,11 @@ export class PostController {
   @Delete(':postId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '게시글 삭제' })
-  @ApiStandardResponses({ status: 204, description: '게시글 삭제 성공' })
+  @ApiOperation({ summary: 'Delete a post' })
+  @ApiStandardResponses({
+    status: 204,
+    description: 'Post deleted successfully',
+  })
   async deletePost(
     @Param('postId') postId: string,
     @AuthUser() authUser: CommonAuthUserDto,

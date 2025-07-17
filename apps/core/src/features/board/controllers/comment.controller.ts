@@ -1,35 +1,33 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
-  Param,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
-import { CommentDto } from '../dto/comment.dto';
-import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
-import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
+import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
+import { CommentDto } from '../dto/comment.dto';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 
-@ApiTags('Comments')
-@Controller({ path: 'boards/:boardId/posts/:postId/comments', version: '1' })
-@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('Comment')
+@Controller({ path: 'comments', version: '1' })
+@UseGuards(JwtAuthGuard)
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 
   @Post()
-  @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '새 댓글 생성' })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new comment' })
   @ApiStandardResponses({ type: CommentDto })
   async createComment(
     @Param('postId') postId: string,
@@ -80,8 +78,11 @@ export class CommentController {
   @Delete(':commentId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '댓글 삭제' })
-  @ApiStandardResponses({ status: 204, description: '댓글 삭제 성공' })
+  @ApiOperation({ summary: 'Delete a comment' })
+  @ApiStandardResponses({
+    status: 204,
+    description: 'Comment deleted successfully',
+  })
   async deleteComment(
     @Param('commentId') commentId: string,
     @AuthUser() authUser: CommonAuthUserDto,

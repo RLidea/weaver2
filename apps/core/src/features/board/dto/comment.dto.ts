@@ -1,25 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CommentDto {
-  @ApiProperty({ description: '댓글 ID' })
+  @ApiProperty({ description: 'Comment ID' })
   id: string;
 
-  @ApiProperty({ description: '댓글 내용' })
+  @ApiProperty({ description: 'Comment content' })
   content: string;
 
-  @ApiProperty({ description: '생성일시' })
+  @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 
-  @ApiProperty({ description: '수정일시' })
+  @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 
-  @ApiProperty({ description: '게시글 ID' })
+  @ApiProperty({ description: 'Post ID' })
   postId: string;
 
-  @ApiProperty({ description: '작성자 ID' })
+  @ApiProperty({ description: 'Author ID' })
   authorId: string;
 
-  @ApiProperty({ description: '작성자 정보' })
+  @ApiProperty({ description: 'Author information' })
   author?: {
     id: string;
     username: string;
