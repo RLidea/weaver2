@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailService as LibEmailService } from '@weaver2/email';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus, Prisma } from '@prisma/client';
 import { EmailLogService } from './email-log.service';
 import { EmailTemplateService } from './email-template.service';
 import {
@@ -66,8 +66,10 @@ export class EmailBusinessService {
       }
     } catch (error) {
       // 4. 발송 실패 로그 업데이트
-      await this.emailLogService.markAsFailed(emailLog.id, error.message);
-      return { success: false, emailLogId: emailLog.id, error: error.message };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      await this.emailLogService.markAsFailed(emailLog.id, errorMessage);
+      return { success: false, emailLogId: emailLog.id, error: errorMessage };
     }
   }
 
@@ -192,7 +194,7 @@ export class EmailBusinessService {
       templateId: emailLog.templateId || undefined,
       userId: emailLog.userId || undefined,
       metadata: {
-        ...(emailLog.metadata as any),
+        ...(emailLog.metadata as Prisma.JsonObject),
         retryOf: emailLogId,
       },
     });

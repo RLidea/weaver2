@@ -40,9 +40,13 @@ export class EmailTemplateService {
   /**
    * 템플릿 변수를 실제 값으로 치환
    */
-  renderTemplate(template: string, variables: Record<string, any>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      return variables[key] !== undefined ? variables[key] : match;
+  renderTemplate(
+    template: string,
+    variables: Record<string, string | number>,
+  ): string {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
+      const value = variables[key];
+      return value !== undefined ? String(value) : match;
     });
   }
 

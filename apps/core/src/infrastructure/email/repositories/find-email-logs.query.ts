@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus, Prisma } from '@prisma/client';
 
 export interface FindEmailLogsOptions {
   userId?: string;
@@ -27,7 +27,7 @@ export class FindEmailLogsQuery {
       limit = 10,
     } = options;
 
-    const where: any = {};
+    const where: Prisma.EmailLogWhereInput = {};
 
     if (userId) where.userId = userId;
     if (status) where.status = status;

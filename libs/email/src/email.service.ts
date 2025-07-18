@@ -49,6 +49,7 @@ export class EmailService {
       });
 
       // 이메일 발송
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await this.transporter.sendMail({
         from: options.from ?? `"Weaver2" <no-reply@weaver2.com>`,
         to: options.to,
@@ -59,14 +60,18 @@ export class EmailService {
 
       return {
         success: true,
-        messageId: result.messageId,
-        response: result.response,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        messageId: String(result.messageId || ''),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        response: String(result.response || ''),
       };
     } catch (err) {
       console.error('이메일 전송 실패:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to send email.';
       return {
         success: false,
-        error: err.message || 'Failed to send email.',
+        error: errorMessage,
       };
     }
   }

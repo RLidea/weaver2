@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus, Prisma } from '@prisma/client';
 
 export interface CreateEmailLogData {
   to: string;
@@ -10,7 +10,7 @@ export interface CreateEmailLogData {
   textContent?: string;
   templateId?: string;
   userId?: string;
-  metadata?: any;
+  metadata?: Prisma.InputJsonValue;
 }
 
 @Injectable()

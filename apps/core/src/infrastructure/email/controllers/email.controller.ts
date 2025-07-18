@@ -10,7 +10,7 @@ import {
 import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../features/auth/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
-import { AuthUser } from '@weaver2/common';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { Role } from '@prisma/client';
 import { EmailBusinessService } from '../services/email-business.service';
 import { EmailLogService } from '../services/email-log.service';
@@ -40,7 +40,10 @@ export class EmailController {
   @Post('send')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async sendEmail(@Body() dto: SendBusinessEmailDto, @AuthUser() user: any) {
+  async sendEmail(
+    @Body() dto: SendBusinessEmailDto,
+    @AuthUser() user: CommonAuthUserDto,
+  ) {
     return this.emailBusinessService.sendEmail({
       ...dto,
       userId: user.id,
@@ -55,7 +58,7 @@ export class EmailController {
   @Roles(Role.ADMIN, Role.DEVELOPER)
   async sendTemplateEmail(
     @Body() dto: SendTemplateEmailDto,
-    @AuthUser() user: any,
+    @AuthUser() user: CommonAuthUserDto,
   ) {
     return this.emailBusinessService.sendTemplateEmail({
       ...dto,
@@ -89,7 +92,7 @@ export class EmailController {
   @Get('logs/my')
   async getMyEmailLogs(
     @Query() query: FindEmailLogsOptions,
-    @AuthUser() user: any,
+    @AuthUser() user: CommonAuthUserDto,
   ) {
     return this.emailLogService.findUserEmailLogs(user.id, query);
   }

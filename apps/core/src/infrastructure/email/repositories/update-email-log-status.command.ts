@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class UpdateEmailLogStatusCommand {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(id: string, status: EmailStatus, errorMessage?: string) {
-    const updateData: any = { status };
+    const updateData: Prisma.EmailLogUpdateInput = { status };
 
     if (status === EmailStatus.SENT) {
       updateData.sentAt = new Date();
