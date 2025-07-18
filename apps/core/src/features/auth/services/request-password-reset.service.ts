@@ -5,13 +5,13 @@ import { PrismaService } from '@weaver2/prisma';
 import { generateTokenUtil } from '@weaver2/common/utility/generate-token.util';
 import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
 import { UpdateAuthPasswordResetTokenCommand } from '../repositories/update-auth-password-reset-token.command';
-import { EmailService } from '../../../infrastructure/email/services/email.service';
+import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 
 @Injectable()
 export class RequestPasswordResetService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly emailService: EmailService,
+    private readonly emailBusinessService: EmailBusinessService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -40,6 +40,10 @@ export class RequestPasswordResetService {
       'CLIENT_URL',
     )}/reset-password?token=${token}`;
 
-    await this.emailService.sendPasswordResetEmail(auth.email, resetLink);
+    await this.emailBusinessService.sendPasswordResetEmail(
+      auth.email,
+      resetLink,
+      auth.userId,
+    );
   }
 }

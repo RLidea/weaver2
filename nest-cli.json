@@ -27,7 +27,18 @@
       "sourceRoot": "apps/core/src",
       "compilerOptions": {
         "tsConfigPath": "apps/core/tsconfig.app.json",
-        "assets": ["public/**/*"]
+        "assets": [
+          "public/**/*"
+        ]
+      }
+    },
+    "email": {
+      "type": "library",
+      "root": "libs/email",
+      "entryFile": "index",
+      "sourceRoot": "libs/email/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/email/tsconfig.lib.json"
       }
     },
     "pagination": {

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedAuths, seedUsers } from './user.seed';
+import { seedEmailTemplates } from './email-templates.seed';
 import { logSeedResult } from './seed-logger';
 const prisma = new PrismaClient();
 
@@ -82,6 +83,7 @@ async function main() {
 
   await seedUsers(prisma);
   await seedAuths(prisma);
+  await seedEmailTemplates();
   console.log('Seeding process completed successfully.');
 }
 

@@ -24,6 +24,12 @@
       "@weaver2/common/*": [
         "libs/common/src/*"
       ],
+      "@weaver2/email": [
+        "libs/email/src"
+      ],
+      "@weaver2/email/*": [
+        "libs/email/src/*"
+      ],
       "@weaver2/pagination": [
         "libs/pagination/src"
       ],
@@ -38,5 +44,9 @@
       ]
     }
   },
-  "include": ["apps/**/*.ts", "libs/**/*.ts", "apps/core/src/types/**/*.d.ts"]
+  "include": [
+    "apps/**/*.ts",
+    "libs/**/*.ts",
+    "apps/core/src/types/**/*.d.ts"
+  ]
 }

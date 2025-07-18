@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
@@ -10,12 +11,10 @@ import * as bcrypt from 'bcrypt';
 import { SignUpCommand } from '../repositories/sign-up.command';
 import { CreateValidationTokenCommand } from '../repositories/create-validation-token.command';
 import { FindAuthByTokenQuery } from '../repositories/find-auth-by-token.query';
-import { welcomeEmailTemplate } from '../../../infrastructure/email/templates/welcome.template';
-import { verifyEmailTemplate } from '../../../infrastructure/email/templates/verify-email.template';
 import { FindUserService } from '../../user/services/find-user.service';
 import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
 import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
-import { EmailService } from '../../../infrastructure/email/services/email.service';
+import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { TermsService } from '../../terms/services/terms.service';
 
 interface TermsItem {
@@ -33,8 +32,9 @@ export class SignUpService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly findUserService: FindUserService,
-    private readonly emailService: EmailService,
+    private readonly emailBusinessService: EmailBusinessService,
     private readonly termsService: TermsService,
   ) {}
 
@@ -97,13 +97,12 @@ export class SignUpService {
         email,
       });
 
-      // send email
-      const emailTemplate = verifyEmailTemplate(token);
-      await this.emailService.sendMail({
-        to: email,
-        subject: emailTemplate.subject,
-        html: emailTemplate.html,
-      });
+      // send verification email using template
+      await this.emailBusinessService.sendVerificationEmail(
+        email,
+        `${this.configService.get('FRONTEND_URL')}/auth/verify?token=${token.verificationToken}`,
+        createdUser.id,
+      );
 
       return {
         message: 'Sign-up completed successfully.',
@@ -148,12 +147,18 @@ export class SignUpService {
         verificationTokenExpiry: null,
       },
     });
-    // send email
-    await this.emailService.sendMail({
-      to: auth.email,
-      subject: welcomeEmailTemplate().subject,
-      html: welcomeEmailTemplate().html,
+    // send welcome email using template
+    const user = await this.prisma.user.findUnique({
+      where: { id: auth.userId },
     });
+
+    if (user) {
+      await this.emailBusinessService.sendWelcomeEmail(
+        auth.email,
+        user.displayName,
+        user.id,
+      );
+    }
     return {
       message: 'Email successfully verified.',
     };

@@ -25,6 +25,7 @@ model User {
   userSetting    UserSetting? // One-to-one relation
   posts          Post[] // Inverse relation for Post.author
   comments       Comment[] // Inverse relation for Comment.author
+  emailLogs      EmailLog[] // Inverse relation for EmailLog.user
 }
 
 model UserSetting {
@@ -166,4 +167,52 @@ model Comment {
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique // "welcome", "password-reset", "email-verification"
+  subject     String
+  htmlContent String
+  textContent String?
+  variables   Json?    // 템플릿 변수 정의 (예: ["userName", "verificationLink"])
+  isActive    Boolean  @default(true)
+  
+  emailLogs   EmailLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id          String      @id @default(uuid())
+  to          String
+  from        String
+  subject     String
+  htmlContent String
+  textContent String?
+  templateId  String?
+  status      EmailStatus @default(PENDING)
+  sentAt      DateTime?
+  failedAt    DateTime?
+  errorMessage String?
+  metadata    Json?       // 추가 메타데이터 (템플릿 변수값 등)
+  
+  template    EmailTemplate? @relation(fields: [templateId], references: [id])
+  user        User?          @relation(fields: [userId], references: [id])
+  userId      String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_logs")
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
 }

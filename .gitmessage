@@ -1,0 +1,26 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type: feat, fix, docs, style, refactor, test, chore
+# Scope: auth, email, user, board, admin, etc.
+# Subject: imperative, present tense, no period
+# Body: explain what and why (optional)
+# Footer: issues, breaking changes (optional)
+
+# Examples:
+# feat(auth): add JWT refresh token functionality
+# fix(email): resolve template variable substitution issue
+# refactor(user): extract user validation logic to separate service
+# docs(readme): update API documentation
+
+# Rules:
+# - Use English for commit messages
+# - Keep subject line under 50 characters
+# - Capitalize subject line
+# - Do not end subject line with period
+# - Use imperative mood ("add" not "added")
+# - Wrap body at 72 characters
+# - Use body to explain what and why, not how
