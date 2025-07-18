@@ -182,8 +182,6 @@ model EmailTemplate {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@map("email_templates")
 }
 
 model EmailLog {
@@ -206,8 +204,6 @@ model EmailLog {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@map("email_logs")
 }
 
 enum EmailStatus {

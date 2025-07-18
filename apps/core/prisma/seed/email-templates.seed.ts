@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { emailVerificationTemplate } from '../../src/infrastructure/email/templates/email-verification.template';
 import { passwordResetTemplate } from '../../src/infrastructure/email/templates/password-reset.template';
 import { welcomeTemplate } from '../../src/infrastructure/email/templates/welcome.template';
+import { logSeedResult } from './seed-logger';
 const prisma = new PrismaClient();
 
 export async function seedEmailTemplates() {
@@ -12,25 +13,34 @@ export async function seedEmailTemplates() {
   ];
 
   for (const template of templates) {
-    await prisma.emailTemplate.upsert({
+    const existingTemplate = await prisma.emailTemplate.findUnique({
       where: { name: template.name },
-      update: {
-        subject: template.subject,
-        htmlContent: template.htmlContent,
-        textContent: template.textContent,
-        variables: template.variables,
-        isActive: true,
-      },
-      create: {
-        name: template.name,
-        subject: template.subject,
-        htmlContent: template.htmlContent,
-        textContent: template.textContent,
-        variables: template.variables,
-        isActive: true,
-      },
     });
 
-    console.log(`✓ Email template '${template.name}' seeded successfully`);
+    if (existingTemplate) {
+      await prisma.emailTemplate.update({
+        where: { name: template.name },
+        data: {
+          subject: template.subject,
+          htmlContent: template.htmlContent,
+          textContent: template.textContent,
+          variables: template.variables,
+          isActive: true,
+        },
+      });
+      logSeedResult('EmailTemplate', template.name, 'exists');
+    } else {
+      await prisma.emailTemplate.create({
+        data: {
+          name: template.name,
+          subject: template.subject,
+          htmlContent: template.htmlContent,
+          textContent: template.textContent,
+          variables: template.variables,
+          isActive: true,
+        },
+      });
+      logSeedResult('EmailTemplate', template.name, 'created');
+    }
   }
 }

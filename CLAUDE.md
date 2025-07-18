@@ -33,6 +33,15 @@
 - 테스트 명령어: 기존 스타일 유지
 - 빌드 명령어: 기존 스타일 유지
 
+### DB 관련 처리 방침
+- DB reset, migrate, generate 등의 명령어는 사용자가 직접 처리
+- Claude는 스키마 수정만 담당하고 실제 마이그레이션은 사용자에게 위임
+
+### 시드 로그 일관성
+- 모든 시드 파일은 `seed-logger.ts`의 `logSeedResult` 함수 사용
+- 일관된 로그 형식 유지: `✅ EntityName 'identifier' created!`
+- 중복 시드 방지 및 적절한 경고 메시지 출력
+
 ### 코드 스타일
 - ESLint/Prettier 설정 준수
 - TypeScript 엄격 모드 사용
