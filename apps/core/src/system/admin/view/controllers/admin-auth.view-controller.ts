@@ -8,6 +8,7 @@ import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.d
 @Controller({ path: 'admin' })
 export class AdminAuthViewController {
   private readonly logger = new Logger(AdminAuthViewController.name);
+
   @Public()
   @Get('login')
   getLoginPageUnauthenticated(
@@ -18,6 +19,26 @@ export class AdminAuthViewController {
     if (authUser && authUser.isLogin) return res.redirect('/admin/dashboard');
     res.sendFile(
       join(process.cwd(), 'apps/core/src/assets/admin', 'admin-login.html'),
+    );
+  }
+
+  @Public()
+  @Get('request-password-reset')
+  getRequestPasswordResetPage(@Res() res: Response) {
+    res.sendFile(
+      join(
+        process.cwd(),
+        'apps/core/src/assets/admin',
+        'request-password-reset.html',
+      ),
+    );
+  }
+
+  @Public()
+  @Get('reset-password')
+  getResetPasswordPage(@Res() res: Response) {
+    res.sendFile(
+      join(process.cwd(), 'apps/core/src/assets', 'reset-password.html'),
     );
   }
 }

@@ -55,4 +55,28 @@ export class StaticController {
 
     return res.sendFile(filePath);
   }
+
+  @Get('/admin/:type/:file')
+  @ApiOperation({ summary: 'Admin assets (CSS, JS)' })
+  @ApiResponse({ status: 200, description: 'Admin asset files' })
+  serveAdminAssets(
+    @Param('type') type: string,
+    @Param('file') file: string,
+    @Res() res: Response,
+  ) {
+    const filePath = join(
+      process.cwd(),
+      'apps/core/src/assets/admin',
+      type,
+      file,
+    );
+
+    if (file.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (file.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+
+    return res.sendFile(filePath);
+  }
 }
