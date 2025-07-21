@@ -178,14 +178,14 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
     transition: var(--transition);
     backdrop-filter: var(--blur-light);
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: var(--shadow-light);
 }
 
 .detail-item:hover {
     background: rgba(255, 255, 255, 0.75);
     border-color: rgba(255, 255, 255, 0.7);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-hover), var(--inset-highlight);
+    box-shadow: var(--shadow-hover);
 }
 
 .detail-label {
@@ -278,26 +278,26 @@
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: var(--shadow-light);
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .modal-action-btn.primary:hover {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
-    box-shadow: var(--shadow-hover), var(--inset-highlight);
+    box-shadow: var(--shadow-hover);
 }
 
 .modal-action-btn.secondary {
     background: var(--glass-bg);
     color: var(--text-primary);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: var(--shadow-light);
 }
 
 .modal-action-btn.secondary:hover {
     background: var(--glass-bg-hover);
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: var(--shadow-hover), var(--inset-highlight);
+    box-shadow: var(--shadow-hover);
 }
 
 .modal-action-btn i {
