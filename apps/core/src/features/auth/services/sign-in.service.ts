@@ -56,9 +56,11 @@ export class SignInService {
     return auth.user;
   }
 
-  async login(userId: string, provider: string) {
+  async login(userId: string, provider: string, rememberMe = false) {
     let auth: Auth | null = null;
-    this.logger.debug(`Logged in user is: ${userId}`);
+    this.logger.debug(
+      `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
+    );
     if (provider === 'email') {
       auth = await FindAuthByUserIdQuery(this.prisma, userId);
     }
@@ -73,16 +75,25 @@ export class SignInService {
     this.logger.debug(
       `SignInService.login: Signing JWT for userId=${userId}, authId=${auth.id}`,
     );
-    const generatedRefreshToken = await this.generateRefreshToken(auth.id);
+
+    // Remember me에 따라 토큰 만료 기간 설정
+    const expiryDays = rememberMe ? 30 : 7;
+    const tokenExpiry = expiryDays * 24 * 60 * 60 * 1000; // 밀리초
+
+    const generatedRefreshToken = await this.generateRefreshToken(
+      auth.id,
+      expiryDays,
+    );
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: generatedRefreshToken,
+      tokenExpiry, // 쿠키 설정용
     };
   }
 
-  async generateRefreshToken(authId: string) {
+  async generateRefreshToken(authId: string, expiryDays: number) {
     const token = randomUUID();
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7일
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
 
     await CreateRefreshTokenCommand(this.prisma, authId, token, expires);
 

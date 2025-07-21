@@ -41,6 +41,11 @@ export class SignInController {
           type: 'string',
           example: '',
         },
+        rememberMe: {
+          type: 'boolean',
+          example: false,
+          description: 'Keep user logged in for extended period',
+        },
       },
     },
   })
@@ -49,23 +54,61 @@ export class SignInController {
   })
   async emailLogin(
     @AuthUser() authUser: CommonAuthUserDto,
+    @Body() loginDto: { rememberMe?: boolean },
     @Res({ passthrough: true }) res: Response,
   ) {
     this.logger.debug(JSON.stringify(authUser));
-    const { accessToken, refreshToken } = await this.signInService.login(
-      authUser.id,
-      'email',
-    );
+    const { accessToken, refreshToken, tokenExpiry } =
+      await this.signInService.login(authUser.id, 'email', loginDto.rememberMe);
+
+    // Access Token 쿠키 설정
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
       path: '/',
+      maxAge: 15 * 60 * 1000, // 15분
     });
+
+    // Refresh Token 쿠키 설정 (Remember me에 따라 기간 조정)
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      path: '/',
+      maxAge: tokenExpiry,
+    });
+
     return { message: 'Login successful', data: { accessToken, refreshToken } };
   }
 
+  @Public()
   @Post('refresh')
-  refresh(@Body() { refreshToken }: { refreshToken: string }) {
-    return this.signInService.refresh(refreshToken);
+  @ApiOperationWithPublic({
+    summary: 'Refresh access token using refresh token',
+  })
+  async refresh(
+    @Body() { refreshToken }: { refreshToken: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const { accessToken } = await this.signInService.refresh(refreshToken);
+
+      // 새로운 Access Token 쿠키 설정
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        path: '/',
+        maxAge: 15 * 60 * 1000, // 15분
+      });
+
+      return {
+        message: 'Token refreshed successfully',
+        data: { accessToken },
+      };
+    } catch (error) {
+      // Refresh token이 유효하지 않으면 쿠키 삭제
+      res.clearCookie('refresh_token');
+      res.clearCookie('access_token');
+      throw error;
+    }
   }
 }
