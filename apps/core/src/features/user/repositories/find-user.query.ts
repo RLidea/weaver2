@@ -15,11 +15,32 @@ export async function findUserQuery(
   prisma: PrismaService,
   options: PaginationRequestDto,
 ): Promise<PaginationResponseDto<User>> {
+  // Build search conditions if search parameter exists
+  const searchConditions = options.search
+    ? {
+        OR: [
+          {
+            username: {
+              contains: options.search,
+              mode: 'insensitive' as const,
+            },
+          },
+          {
+            displayName: {
+              contains: options.search,
+              mode: 'insensitive' as const,
+            },
+          },
+        ],
+      }
+    : {};
+
   return PaginationService.buildFromPrisma({
     prisma: prisma.user,
     options,
     where: {
       // deletedAt: null,
+      ...searchConditions,
     },
   });
 }

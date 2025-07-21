@@ -178,11 +178,15 @@ window.WeaverDataTable = class {
   handleSearch(query) {
     this.state.searchQuery = query.toLowerCase();
     this.state.currentPage = 1;
-    this.filterData();
-    this.render();
     
+    // Only trigger server-side search callback if it exists
+    // Don't use filterData() for API-based tables - let the server handle filtering
     if (this.callbacks.onSearch) {
       this.callbacks.onSearch(query);
+    } else {
+      // Fallback to client-side filtering for static data tables
+      this.filterData();
+      this.render();
     }
   }
   
@@ -269,8 +273,14 @@ window.WeaverDataTable = class {
   }
   
   render() {
-    this.filterData();
-    this.sortData();
+    // Only filter and sort data if this is a static data table (no API callbacks)
+    if (!this.callbacks.onSearch && !this.callbacks.onSort) {
+      this.filterData();
+      this.sortData();
+    } else {
+      // For API-based tables, use the data as-is since filtering/sorting is handled server-side
+      this.state.filteredData = [...this.data];
+    }
     
     this.renderTitle();
     this.renderFilters();

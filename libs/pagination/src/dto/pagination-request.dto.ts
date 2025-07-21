@@ -39,4 +39,12 @@ export class PaginationRequestDto {
   @IsOptional()
   @IsString()
   filter?: string; // JSON string or key:value,key2:value2
+
+  @ApiPropertyOptional({
+    description: '검색어 (username, displayName에서 검색)',
+    example: 'admin',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
