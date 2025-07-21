@@ -44,10 +44,15 @@ class UserEditModal extends CommonModal {
                                         type="text" 
                                         id="username" 
                                         name="username" 
-                                        class="form-input" 
+                                        class="form-input username-input" 
                                         value="${user.username}"
                                         placeholder="Enter username"
+                                        data-original-value="${user.username}"
                                     >
+                                    <div class="username-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>⚠️ Warning: Changing username will modify your profile URL (e.g., /profile/${user.username} → /profile/new_name)</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -131,6 +136,9 @@ class UserEditModal extends CommonModal {
             });
         }
 
+        // Username change warning
+        this.bindUsernameWarning();
+
         // Real-time validation
         this.bindValidation();
     }
@@ -138,6 +146,125 @@ class UserEditModal extends CommonModal {
     // Override canClose to prevent closing while loading
     canClose() {
         return !this.isLoading;
+    }
+
+    bindUsernameWarning() {
+        const usernameInput = this.modal.querySelector('#username');
+        const warningElement = this.modal.querySelector('.username-warning');
+        
+        if (!usernameInput || !warningElement) return;
+
+        const originalUsername = usernameInput.dataset.originalValue;
+
+        usernameInput.addEventListener('input', () => {
+            const currentValue = usernameInput.value.trim();
+            
+            if (currentValue !== originalUsername && currentValue !== '') {
+                warningElement.style.display = 'flex';
+                // Update the warning message with current values
+                const warningSpan = warningElement.querySelector('span');
+                if (warningSpan) {
+                    warningSpan.textContent = `⚠️ Warning: Changing username will modify your profile URL (e.g., /profile/${originalUsername} → /profile/${currentValue})`;
+                }
+            } else {
+                warningElement.style.display = 'none';
+            }
+        });
+    }
+
+    showUsernameChangeConfirmation(oldUsername, newUsername) {
+        return new Promise((resolve) => {
+            // Create confirmation modal overlay
+            const confirmationOverlay = document.createElement('div');
+            confirmationOverlay.className = 'username-confirmation-overlay modal-overlay-base';
+            confirmationOverlay.style.zIndex = '20000'; // Higher than main modal
+            
+            confirmationOverlay.innerHTML = `
+                <div class="username-confirmation-modal modal-base">
+                    <div class="modal-header">
+                        <h2 class="modal-title">
+                            <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                            Confirm Username Change
+                        </h2>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="confirmation-content">
+                            <p><strong>Are you sure you want to change the username?</strong></p>
+                            <p>This change will affect the following:</p>
+                            
+                            <ul class="impact-list">
+                                <li><i class="fas fa-link"></i> <strong>Profile URL change:</strong> <code>/profile/${oldUsername}</code> → <code>/profile/${newUsername}</code></li>
+                                <li><i class="fas fa-unlink"></i> Existing links may no longer work</li>
+                                <li><i class="fas fa-search"></i> Other users may have difficulty finding you</li>
+                                <li><i class="fas fa-share-alt"></i> Shared profile links will become invalid</li>
+                            </ul>
+                            
+                            <div class="change-summary">
+                                <div class="change-item">
+                                    <span class="change-label">Current:</span>
+                                    <span class="change-value old">${oldUsername}</span>
+                                </div>
+                                <div class="change-arrow">→</div>
+                                <div class="change-item">
+                                    <span class="change-label">New:</span>
+                                    <span class="change-value new">${newUsername}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="modal-action-btn secondary cancel-btn">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="button" class="modal-action-btn primary confirm-btn">
+                            <i class="fas fa-check"></i>
+                            Change Username
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add to DOM
+            document.body.appendChild(confirmationOverlay);
+
+            // Show with animation
+            requestAnimationFrame(() => {
+                confirmationOverlay.classList.add('show');
+            });
+
+            // Event handlers
+            const handleClose = (confirmed) => {
+                confirmationOverlay.classList.remove('show');
+                setTimeout(() => {
+                    if (confirmationOverlay.parentNode) {
+                        confirmationOverlay.remove();
+                    }
+                }, 300);
+                resolve(confirmed);
+            };
+
+            confirmationOverlay.querySelector('.cancel-btn').addEventListener('click', () => handleClose(false));
+            confirmationOverlay.querySelector('.confirm-btn').addEventListener('click', () => handleClose(true));
+            
+            // Close on overlay click
+            confirmationOverlay.addEventListener('click', (e) => {
+                if (e.target === confirmationOverlay) {
+                    handleClose(false);
+                }
+            });
+
+            // Close on ESC key
+            const handleKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    document.removeEventListener('keydown', handleKeydown);
+                    handleClose(false);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+        });
     }
 
     bindValidation() {
@@ -249,6 +376,17 @@ class UserEditModal extends CommonModal {
             role: formData.get('role'),
             status: formData.get('status'),
         };
+
+        // Check if username has changed and show confirmation modal
+        const originalUsername = this.currentData.username;
+        const newUsername = updatedUser.username;
+        
+        if (originalUsername !== newUsername) {
+            const confirmed = await this.showUsernameChangeConfirmation(originalUsername, newUsername);
+            if (!confirmed) {
+                return; // User cancelled the change
+            }
+        }
 
         // Show loading state
         this.setLoading(true);

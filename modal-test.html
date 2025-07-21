@@ -94,9 +94,15 @@
             UserEditModal.show(testUser, {
                 onSave: async (updatedUser) => {
                     console.log('Save called with:', updatedUser);
+                    
+                    // Check if username changed for demonstration
+                    if (updatedUser.username !== testUser.username) {
+                        console.log('Username changed from', testUser.username, 'to', updatedUser.username);
+                    }
+                    
                     // Simulate API delay
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    alert('User saved successfully!');
+                    alert(`User saved successfully! ${updatedUser.username !== testUser.username ? '(Username changed)' : ''}`);
                 },
                 onClose: () => {
                     console.log('Edit modal closed');
