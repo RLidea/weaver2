@@ -27,6 +27,8 @@ apps/core/src/public/shared/
     │   ├── data-table.css       # 데이터 테이블 스타일
     │   └── data-table.js        # 데이터 테이블 컴포넌트
     ├── modal/
+    │   ├── common-modal.css      # 공통 모달 기본 스타일
+    │   ├── common-modal.js       # 공통 모달 기본 클래스
     │   ├── user-detail-modal.css # 사용자 상세 모달 스타일
     │   ├── user-detail-modal.js  # 사용자 상세 모달 컴포넌트
     │   ├── user-edit-modal.css   # 사용자 편집 모달 스타일
@@ -392,6 +394,75 @@ async function updateUser(userData) {
 - **🔍 폼 포커스**: 활성 필드 시각적 강조
 - **⚡ 상태 표시**: 로딩, 오류, 성공 상태별 스타일
 - **🎯 접근성**: 스크린 리더 및 키보드 네비게이션 지원
+
+### 7. 공통 모달 기본 클래스 (CommonModal) ⭐ **NEW**
+
+모든 모달 컴포넌트의 기본 클래스로, 중복 코드를 줄이고 일관성을 제공합니다.
+
+```javascript
+// 공통 모달을 상속받는 새 모달 만들기
+class MyCustomModal extends CommonModal {
+    getOverlayClass() {
+        return 'my-custom-modal-overlay modal-overlay-base';
+    }
+
+    generateModalHTML(data) {
+        return `
+            <div class="my-custom-modal modal-base" role="dialog">
+                ${this.generateModalHeader('My Custom Title', 'fas fa-custom-icon')}
+                <div class="modal-body">
+                    <!-- 커스텀 컨텐츠 -->
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-action-btn primary modal-close-btn">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 사용법
+MyCustomModal.show(data, { onClose: () => {} });
+```
+
+#### 공통 기능
+- **🔧 기본 이벤트 처리**: ESC 키, 오버레이 클릭, 닫기 버튼
+- **🎬 애니메이션**: 일관된 열기/닫기 애니메이션
+- **🔄 생명주기 관리**: 생성, 표시, 정리 자동화
+- **🎨 공통 스타일**: 모든 모달에 일관된 디자인 적용
+- **📱 반응형**: 모바일 친화적 기본 설정
+
+#### 제공되는 유틸리티 메서드
+```javascript
+// HTML 생성 도우미
+this.generateModalHeader(title, icon)
+this.generateUserAvatar(user, size)
+this.generateStatusBadges(user)
+this.generateDetailItem(icon, label, value)
+this.generateInfoItem(icon, label, value)
+
+// 유틸리티 함수
+this.formatDate(dateString)
+this.getUserInitials(user)
+```
+
+#### 구현 패턴
+1. **상속**: `CommonModal`을 상속받기
+2. **오버라이드**: `getOverlayClass()`와 `generateModalHTML()` 구현
+3. **확장**: 필요시 `bindEvents()`와 `canClose()` 오버라이드
+4. **사용**: `static show()` 메서드로 간편하게 호출
+
+#### 스타일 특징
+- **🌟 완전한 Glassmorphism**: 50% 투명도로 배경이 선명하게 비춰보임
+- **🎭 외부 그림자**: 내부로는 그림자가 없고 외부로만 향하는 다층 그림자
+- **✨ 시인성**: 강한 외부 그림자로 배경과의 명확한 구분
+- **🎨 자연스러운 블렌딩**: 배경과 조화로우면서도 독립적인 레이어
+- **📐 3단계 그림자 시스템**:
+  - 깊은 그림자: `0 30px 60px rgba(0, 0, 0, 0.25)`
+  - 중간 그림자: `0 20px 40px rgba(0, 0, 0, 0.18)`
+  - 가까운 그림자: `0 8px 20px rgba(0, 0, 0, 0.12)`
 
 ## 🔧 새 컴포넌트 추가하기
 

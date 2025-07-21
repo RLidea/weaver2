@@ -1,62 +1,31 @@
-// User Edit Modal Component
-class UserEditModal {
+// User Edit Modal Component - Extends CommonModal
+class UserEditModal extends CommonModal {
     constructor() {
-        this.modal = null;
-        this.isOpen = false;
-        this.currentUser = null;
+        super();
         this.onSave = null;
-        this.onClose = null;
         this.isLoading = false;
     }
 
+    getOverlayClass() {
+        return 'user-edit-modal-overlay modal-overlay-base';
+    }
+
     create(user, options = {}) {
-        this.currentUser = { ...user }; // Create a copy for editing
         this.onSave = options.onSave || null;
-        this.onClose = options.onClose || null;
-
-        // Remove existing modal if any
-        this.destroy();
-
-        // Create modal overlay
-        this.modal = document.createElement('div');
-        this.modal.className = 'user-edit-modal-overlay';
-        this.modal.innerHTML = this.generateModalHTML(user);
-
-        // Add to DOM
-        document.body.appendChild(this.modal);
-        document.body.style.overflow = 'hidden';
-
-        // Bind events
-        this.bindEvents();
-
-        // Show modal with animation
-        requestAnimationFrame(() => {
-            this.modal.classList.add('show');
-            this.isOpen = true;
-        });
-
-        return this.modal;
+        
+        // Call parent create method
+        return super.create({ ...user }, options); // Create a copy for editing
     }
 
     generateModalHTML(user) {
-        const initials = (user.displayName || user.username || '').split(' ').map(n => n[0]).join('').toUpperCase();
-        
         return `
-            <div class="user-edit-modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
-                <div class="modal-header">
-                    <h2 id="modal-title" class="modal-title">
-                        <i class="fas fa-user-edit"></i>
-                        Edit User
-                    </h2>
-                    <button class="modal-close-btn" type="button" aria-label="Close modal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+            <div class="user-edit-modal modal-base large" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+                ${this.generateModalHeader('Edit User', 'fas fa-user-edit')}
                 
                 <div class="modal-body">
                     <form id="user-edit-form" class="user-edit-form">
                         <div class="user-profile-header">
-                            <div class="user-avatar-large">${initials}</div>
+                            ${this.generateUserAvatar(user)}
                             <div class="user-basic-info">
                                 <div class="form-group">
                                     <label for="displayName">Display Name</label>
@@ -125,27 +94,9 @@ class UserEditModal {
                         </div>
                         
                         <div class="form-info-section">
-                            <div class="info-item">
-                                <span class="info-label">
-                                    <i class="fas fa-id-card"></i>
-                                    User ID
-                                </span>
-                                <span class="info-value">${user.id}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">
-                                    <i class="fas fa-calendar-plus"></i>
-                                    Created Date
-                                </span>
-                                <span class="info-value">${this.formatDate(user.createdAt)}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">
-                                    <i class="fas fa-clock"></i>
-                                    Last Login
-                                </span>
-                                <span class="info-value">${user.lastLoginAt && user.lastLoginAt !== 'Never' ? this.formatDate(user.lastLoginAt) : 'Never'}</span>
-                            </div>
+                            ${this.generateInfoItem('fas fa-id-card', 'User ID', user.id)}
+                            ${this.generateInfoItem('fas fa-calendar-plus', 'Created Date', this.formatDate(user.createdAt))}
+                            ${this.generateInfoItem('fas fa-clock', 'Last Login', user.lastLoginAt && user.lastLoginAt !== 'Never' ? this.formatDate(user.lastLoginAt) : 'Never')}
                         </div>
                     </form>
                 </div>
@@ -168,28 +119,8 @@ class UserEditModal {
     }
 
     bindEvents() {
-        if (!this.modal) return;
-
-        // Close modal events
-        const closeButtons = this.modal.querySelectorAll('.modal-close-btn');
-        closeButtons.forEach(btn => {
-            btn.addEventListener('click', () => this.close());
-        });
-
-        // Close on overlay click
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.close();
-            }
-        });
-
-        // Close on ESC key
-        this.handleKeydown = (e) => {
-            if (e.key === 'Escape' && this.isOpen && !this.isLoading) {
-                this.close();
-            }
-        };
-        document.addEventListener('keydown', this.handleKeydown);
+        // Call parent class event binding first
+        super.bindEvents();
 
         // Form submit
         const form = this.modal.querySelector('#user-edit-form');
@@ -202,6 +133,11 @@ class UserEditModal {
 
         // Real-time validation
         this.bindValidation();
+    }
+
+    // Override canClose to prevent closing while loading
+    canClose() {
+        return !this.isLoading;
     }
 
     bindValidation() {
@@ -306,7 +242,7 @@ class UserEditModal {
 
         const formData = new FormData(this.modal.querySelector('#user-edit-form'));
         const updatedUser = {
-            id: this.currentUser.id,
+            id: this.currentData.id,
             displayName: formData.get('displayName'),
             username: formData.get('username'),
             email: formData.get('email'),
@@ -374,58 +310,6 @@ class UserEditModal {
         }, 5000);
     }
 
-    formatDate(dateString) {
-        if (!dateString || dateString === 'Never') return 'Never';
-        
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            console.error('Error formatting date:', error);
-            return dateString;
-        }
-    }
-
-    close() {
-        if (!this.modal || !this.isOpen || this.isLoading) return;
-
-        this.modal.classList.remove('show');
-        this.isOpen = false;
-
-        // Wait for animation to complete before removing
-        setTimeout(() => {
-            this.destroy();
-        }, 300);
-    }
-
-    destroy() {
-        if (this.modal) {
-            this.modal.remove();
-            this.modal = null;
-        }
-        
-        document.body.style.overflow = '';
-        
-        if (this.handleKeydown) {
-            document.removeEventListener('keydown', this.handleKeydown);
-            this.handleKeydown = null;
-        }
-
-        if (this.onClose) {
-            this.onClose();
-        }
-    }
-
-    static show(user, options = {}) {
-        const modal = new UserEditModal();
-        return modal.create(user, options);
-    }
 }
 
 // Export for use in other modules

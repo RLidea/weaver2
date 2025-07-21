@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="apps/core/src/assets/admin/css/admin-common.css">
+    <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/common-modal.css">
+    <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-detail-modal.css">
+    <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-edit-modal.css">
+    <style>
+        body {
+            padding: 20px;
+            font-family: var(--font-family);
+        }
+        .test-buttons {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .test-btn {
+            padding: 10px 20px;
+            background: var(--secondary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .test-btn:hover {
+            background: var(--primary-blue);
+        }
+        .weaver-status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .weaver-status-badge.success { background: #10b981; color: white; }
+        .weaver-status-badge.error { background: #ef4444; color: white; }
+        .weaver-status-badge.info { background: #3b82f6; color: white; }
+        .weaver-status-badge.warning { background: #f59e0b; color: white; }
+    </style>
+</head>
+<body class="bg-pattern">
+    <h1>Modal Test Page</h1>
+    
+    <div class="test-buttons">
+        <button class="test-btn" onclick="testDetailModal()">
+            <i class="fas fa-user"></i> Test User Detail Modal
+        </button>
+        <button class="test-btn" onclick="testEditModal()">
+            <i class="fas fa-user-edit"></i> Test User Edit Modal
+        </button>
+    </div>
+
+    <script src="apps/core/src/assets/shared/components/modal/common-modal.js"></script>
+    <script src="apps/core/src/assets/shared/components/modal/user-detail-modal.js"></script>
+    <script src="apps/core/src/assets/shared/components/modal/user-edit-modal.js"></script>
+    
+    <script>
+        // Sample user data for testing
+        const testUser = {
+            id: 1,
+            username: 'johndoe',
+            displayName: 'John Doe',
+            email: 'john.doe@example.com',
+            role: 'admin',
+            status: 'active',
+            createdAt: '2024-01-15T10:30:00Z',
+            lastLoginAt: '2024-03-15T14:22:00Z',
+            profileImageUrl: null
+        };
+
+        // Mock handleEditUser function
+        window.handleEditUser = function(user) {
+            console.log('handleEditUser called with:', user);
+            testEditModal();
+        };
+
+        function testDetailModal() {
+            console.log('Testing User Detail Modal...');
+            UserDetailModal.show(testUser, {
+                onClose: () => {
+                    console.log('Detail modal closed');
+                }
+            });
+        }
+
+        function testEditModal() {
+            console.log('Testing User Edit Modal...');
+            UserEditModal.show(testUser, {
+                onSave: async (updatedUser) => {
+                    console.log('Save called with:', updatedUser);
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    alert('User saved successfully!');
+                },
+                onClose: () => {
+                    console.log('Edit modal closed');
+                }
+            });
+        }
+
+        console.log('Modal test page loaded');
+        console.log('CommonModal:', typeof CommonModal);
+        console.log('UserDetailModal:', typeof UserDetailModal);
+        console.log('UserEditModal:', typeof UserEditModal);
+    </script>
+</body>
+</html>
