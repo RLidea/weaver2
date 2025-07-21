@@ -22,10 +22,10 @@
 }
 
 .user-edit-modal {
-    background: var(--glass-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: var(--blur-amount);
     border-radius: var(--border-radius-large);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     box-shadow: 
         0 20px 60px rgba(0, 0, 0, 0.15),
         0 8px 32px rgba(0, 0, 0, 0.1);
@@ -179,11 +179,11 @@
 .form-select {
     width: 100%;
     padding: 15px var(--spacing-lg);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: var(--border-radius);
     font-size: 16px;
     transition: var(--transition);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.3);
     backdrop-filter: var(--blur-light);
     outline: none;
     color: var(--text-primary);
@@ -194,7 +194,7 @@
 .form-select:focus {
     border-color: var(--border-color-focus);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06), var(--inset-shadow), 0 2px 8px rgba(0, 0, 0, 0.05);
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .form-input.error,
@@ -235,8 +235,8 @@
 
 /* Form Info Section */
 .form-info-section {
-    background: var(--glass-bg);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     display: flex;

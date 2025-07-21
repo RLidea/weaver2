@@ -22,10 +22,10 @@
 }
 
 .user-detail-modal {
-    background: var(--glass-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: var(--blur-amount);
     border-radius: var(--border-radius-large);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     box-shadow: 
         0 20px 60px rgba(0, 0, 0, 0.15),
         0 8px 32px rgba(0, 0, 0, 0.1);
@@ -172,18 +172,18 @@
 }
 
 .detail-item {
-    background: var(--glass-bg);
+    background: rgba(255, 255, 255, 0.6);
     padding: var(--spacing-lg);
     border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     transition: var(--transition);
     backdrop-filter: var(--blur-light);
     box-shadow: var(--shadow-light), var(--inset-highlight);
 }
 
 .detail-item:hover {
-    background: var(--glass-bg-hover);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.7);
     transform: translateY(-2px);
     box-shadow: var(--shadow-hover), var(--inset-highlight);
 }
