@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CoreService {
-  getHello(): string {
-    return 'Hello Weaver2!';
+  constructor(private readonly configService: ConfigService) {}
+  index(): string {
+    return `${this.configService.get('APP_NAME')}(${this.configService.get(
+      'NODE_ENV',
+    )}) is running`;
   }
 }

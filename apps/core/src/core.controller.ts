@@ -8,7 +8,7 @@ export class CoreController {
 
   @Public()
   @Get()
-  getHello(): string {
-    return this.coreService.getHello();
+  index(): string {
+    return this.coreService.index();
   }
 }
