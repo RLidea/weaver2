@@ -247,6 +247,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('Sort:', column, direction);
             const sortParam = `${column}:${direction}`;
             loadUsers(userTable.state.currentPage, userTable.state.perPage, sortParam, '', currentFilters);
+        },
+        onPageChange: function(page) {
+            console.log('Page change:', page);
+            loadUsers(page, userTable.state.perPage, 'createdAt:desc', '', currentFilters);
         }
     });
 
@@ -279,7 +283,7 @@ async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search =
         console.log('Applied filters:', filtersToUse);
         
         if (userTable && userTable.setData) {
-            userTable.setData(transformedUsers);
+            userTable.setData(transformedUsers, pagination);
         }
         
     } catch (error) {

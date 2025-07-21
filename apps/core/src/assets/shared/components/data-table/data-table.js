@@ -33,7 +33,10 @@ window.WeaverDataTable = class {
       searchQuery: '',
       filters: {},
       filteredData: [...this.data],
-      loading: false
+      loading: false,
+      // API pagination info
+      totalItems: 0,
+      totalPages: 1
     };
     
     this.callbacks = {
@@ -43,7 +46,8 @@ window.WeaverDataTable = class {
       onView: options.onView || null,
       onSort: options.onSort || null,
       onFilter: options.onFilter || null,
-      onSearch: options.onSearch || null
+      onSearch: options.onSearch || null,
+      onPageChange: options.onPageChange || null
     };
     
     this.init();
@@ -230,7 +234,14 @@ window.WeaverDataTable = class {
   
   handlePageChange(page) {
     this.state.currentPage = page;
-    this.render();
+    
+    // For API-based tables, trigger page change callback
+    if (this.callbacks.onPageChange) {
+      this.callbacks.onPageChange(page);
+    } else {
+      // For client-side tables, just re-render
+      this.render();
+    }
   }
   
   filterData() {
@@ -503,8 +514,11 @@ window.WeaverDataTable = class {
   renderPagination() {
     if (!this.config.pagination || !this.elements.pagination) return;
     
-    const totalPages = Math.ceil(this.state.filteredData.length / this.state.perPage);
-    if (totalPages <= 1) {
+    // For API-based tables, use totalPages from state; for client-side, calculate from data
+    const totalPages = this.state.totalPages > 1 ? this.state.totalPages : Math.ceil(this.state.filteredData.length / this.state.perPage);
+    
+    // Always show pagination if there's any data, even if it's just 1 page
+    if (totalPages < 1 || this.state.filteredData.length === 0) {
       this.elements.pagination.innerHTML = '';
       return;
     }
@@ -570,8 +584,9 @@ window.WeaverDataTable = class {
     if (!this.elements.info) return;
     
     const start = (this.state.currentPage - 1) * this.state.perPage + 1;
-    const end = Math.min(start + this.state.perPage - 1, this.state.filteredData.length);
-    const total = this.state.filteredData.length;
+    // For API-based tables, use totalItems from state; for client-side, use filteredData.length
+    const total = this.state.totalItems > 0 ? this.state.totalItems : this.state.filteredData.length;
+    const end = Math.min(start + this.state.perPage - 1, total);
     
     if (total === 0) {
       this.elements.info.textContent = 'Showing 0 of 0 items';
@@ -650,10 +665,22 @@ window.WeaverDataTable = class {
   }
   
   // Public API methods
-  setData(data) {
+  setData(data, paginationInfo = null) {
     this.data = data || [];
     this.originalData = [...this.data];
-    this.state.currentPage = 1;
+    
+    // Set pagination info if provided (for API-based tables)
+    if (paginationInfo) {
+      this.state.totalItems = paginationInfo.total || 0;
+      this.state.totalPages = paginationInfo.lastPage || 1;
+      this.state.currentPage = paginationInfo.currentPage || 1;
+    } else {
+      // Reset for client-side tables
+      this.state.totalItems = 0;
+      this.state.totalPages = 1;
+      this.state.currentPage = 1;
+    }
+    
     this.render();
   }
   
