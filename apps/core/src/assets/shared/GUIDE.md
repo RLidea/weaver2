@@ -22,6 +22,10 @@ apps/core/src/public/shared/
     │   └── progress-meter.js    # 진행률 미터 컴포넌트
     ├── loading-spinner/
     │   └── loading-spinner.js   # 로딩 스피너 컴포넌트
+    ├── data-table/
+    │   ├── data-table.html      # 데이터 테이블 템플릿
+    │   ├── data-table.css       # 데이터 테이블 스타일
+    │   └── data-table.js        # 데이터 테이블 컴포넌트
     └── utils/
         └── helpers.js           # 유틸리티 함수
 ```
@@ -127,6 +131,100 @@ const badge = createStatusBadge({
   text: 'System Monitor',
   status: 'info' // success, warning, error, info
 });
+```
+
+### 4. 데이터 테이블 (Data Table) ⭐ **NEW**
+
+고급 기능을 갖춘 재사용 가능한 데이터 테이블 컴포넌트입니다.
+
+```javascript
+// 기본 사용법
+const userTable = new WeaverDataTable({
+  container: document.getElementById('table-container'),
+  data: userData,
+  columns: [
+    {
+      key: 'user',
+      label: 'User',
+      type: 'user',
+      sortable: true
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      type: 'role',
+      sortable: true,
+      filterable: true
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'status',
+      sortable: true,
+      filterable: true
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      type: 'actions',
+      sortable: false
+    }
+  ],
+  title: 'User Management',
+  searchable: true,
+  sortable: true,
+  filterable: true,
+  pagination: true,
+  perPageOptions: [10, 25, 50, 100],
+  defaultPerPage: 10,
+  showAddButton: true,
+  addButtonText: 'Add New User',
+  onAdd: () => handleAddUser(),
+  onEdit: (user) => handleEditUser(user),
+  onDelete: (user) => handleDeleteUser(user),
+  onView: (user) => handleViewUser(user)
+});
+```
+
+#### 주요 기능
+- **🔍 실시간 검색**: 300ms debounce로 최적화된 검색
+- **📊 컬럼 정렬**: 클릭으로 오름차순/내림차순 정렬
+- **🔽 필터링**: 역할, 상태별 필터링 + 초기화
+- **📄 페이지네이션**: 설정 가능한 페이지당 아이템 수
+- **⚡ 액션 버튼**: 보기/수정/삭제 버튼
+- **📱 반응형**: 모바일 친화적 디자인
+- **🎨 Admin 테마**: 글래스모피즘 스타일 적용
+
+#### 컬럼 타입
+- `user`: 사용자 정보 (아바타 + 이름 + 사용자명)
+- `status`: 상태 배지 (active/inactive/suspended)
+- `role`: 역할 배지
+- `date`: 날짜 포맷팅
+- `actions`: 액션 버튼들
+- 기본: 일반 텍스트
+
+#### 사용 사례
+```javascript
+// Admin 사용자 관리
+const container = document.getElementById('user-data-table-container');
+const userTable = new WeaverDataTable({
+  container: container,
+  data: sampleUsers,
+  columns: userColumns,
+  title: 'User Management',
+  onEdit: (user) => openEditModal(user),
+  onDelete: (user) => confirmDelete(user)
+});
+
+// 동적 데이터 업데이트
+userTable.setData(newUserData);
+userTable.setLoading(true);
+userTable.refresh();
 ```
 
 ## 🔧 새 컴포넌트 추가하기
@@ -248,6 +346,25 @@ const userCard = createAdminCard({
 });
 ```
 
+### 데이터 테이블 (User Management)
+```javascript
+// 사용자 관리 페이지에서 사용
+const container = document.getElementById('user-data-table-container');
+const userTable = new WeaverDataTable({
+  container: container,
+  data: sampleUsers, // 50명의 샘플 데이터
+  columns: userColumns, // 사용자 컬럼 정의
+  title: 'User Management',
+  searchable: true,
+  filterable: true,
+  pagination: true,
+  defaultPerPage: 10,
+  onEdit: handleEditUser,
+  onDelete: handleDeleteUser,
+  onView: handleViewUser
+});
+```
+
 ## 📝 유지보수 가이드
 
 ### 1. 스타일 수정
@@ -262,6 +379,18 @@ const userCard = createAdminCard({
 `static.controller.ts`에서 정의된 엔드포인트:
 - `/static/shared/styles/:file` - 스타일 파일
 - `/static/shared/components/:component/:file` - 컴포넌트 파일
+
+### 4. 데이터 테이블 업데이트
+- **HTML 템플릿 수정**: `data-table/data-table.html`
+- **스타일 수정**: `data-table/data-table.css`
+- **기능 추가/수정**: `data-table/data-table.js`
+- **새 컬럼 타입 추가**: `renderCell()` 메서드에 case 추가
+
+```javascript
+// 새 컬럼 타입 추가 예시
+case 'custom-type':
+  return this.renderCustomType(value);
+```
 
 ---
 
