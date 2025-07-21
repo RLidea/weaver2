@@ -258,11 +258,12 @@ function handleAddUser() {
 }
 
 function handleViewUser(user) {
-    alert(`View User: ${user.displayName || user.username}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status}`);
-    // Here you would typically:
-    // - Open a modal with user details
-    // - Navigate to user profile page
-    // - Show user information in a sidebar
+    // Open user detail modal
+    UserDetailModal.show(user, {
+        onClose: () => {
+            console.log('User detail modal closed');
+        }
+    });
 }
 
 function handleEditUser(user) {
@@ -299,10 +300,13 @@ function simulateLoading() {
     }, 2000);
 }
 
-// Export functions for console debugging
+// Export functions for console debugging and modal access
 window.userManagement = {
     refreshUserList,
     simulateLoading,
     loadUsers,
     getAuthToken
 };
+
+// Make handleEditUser globally accessible for modal
+window.handleEditUser = handleEditUser;

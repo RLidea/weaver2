@@ -26,6 +26,9 @@ apps/core/src/public/shared/
     │   ├── data-table.html      # 데이터 테이블 템플릿
     │   ├── data-table.css       # 데이터 테이블 스타일
     │   └── data-table.js        # 데이터 테이블 컴포넌트
+    ├── modal/
+    │   ├── user-detail-modal.css # 사용자 상세 모달 스타일
+    │   └── user-detail-modal.js  # 사용자 상세 모달 컴포넌트
     └── utils/
         └── helpers.js           # 유틸리티 함수
 ```
@@ -226,6 +229,78 @@ userTable.setData(newUserData);
 userTable.setLoading(true);
 userTable.refresh();
 ```
+
+### 5. 사용자 상세 모달 (User Detail Modal) ⭐ **NEW**
+
+사용자 정보를 상세하게 보여주는 모달 컴포넌트입니다.
+
+```javascript
+// 기본 사용법
+import '/shared/components/modal/user-detail-modal.js';
+
+// 모달 표시
+UserDetailModal.show(userData, {
+  onClose: () => {
+    console.log('모달이 닫혔습니다');
+  }
+});
+
+// 또는 인스턴스 생성
+const modal = new UserDetailModal();
+modal.create(userData, {
+  onClose: () => handleModalClose()
+});
+```
+
+#### 주요 기능
+- **👤 사용자 프로필**: 아바타, 이름, 사용자명 표시
+- **📊 상태 정보**: 역할, 상태 배지로 시각화
+- **📝 상세 정보**: 이메일, 생성일, 마지막 로그인 등
+- **🎬 부드러운 애니메이션**: 모달 열기/닫기 애니메이션
+- **🔒 접근성**: ESC 키, 오버레이 클릭으로 닫기
+- **⚡ 액션 버튼**: 편집 기능 연결
+- **📱 반응형**: 모바일 최적화
+
+#### 데이터 구조
+```javascript
+const userData = {
+  id: 1,
+  username: 'johndoe',
+  displayName: 'John Doe',
+  email: 'john@example.com',
+  role: 'admin',
+  status: 'active', // active, inactive
+  createdAt: '2024-01-15T10:30:00Z',
+  lastLoginAt: '2024-03-15T14:22:00Z',
+  profileImageUrl: 'optional-image-url.jpg'
+};
+```
+
+#### 통합 사용 예시
+```javascript
+// admin-user-management.js에서 사용
+function handleViewUser(user) {
+  UserDetailModal.show(user, {
+    onClose: () => {
+      console.log('User detail modal closed');
+    }
+  });
+}
+
+// DataTable과 연결
+const userTable = new WeaverDataTable({
+  // ... 기타 설정
+  onView: function(user) {
+    handleViewUser(user);
+  }
+});
+```
+
+#### 스타일 특징
+- **🎨 Glassmorphism**: 기존 디자인 시스템과 일관성 유지
+- **🌫️ 자연스러운 배경**: 주변은 그대로, 모달 뒤만 블러 처리
+- **✨ 외부 그림자**: 깔끔한 드롭 샤도우로 깊이감 표현
+- **🎭 호버 효과**: 버튼과 카드에 미묘한 상호작용
 
 ## 🔧 새 컴포넌트 추가하기
 
