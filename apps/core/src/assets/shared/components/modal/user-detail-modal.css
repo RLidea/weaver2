@@ -26,9 +26,7 @@
     backdrop-filter: var(--blur-amount);
     border-radius: var(--border-radius-large);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 
-        0 20px 60px rgba(0, 0, 0, 0.15),
-        0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
@@ -54,9 +52,7 @@
 
 .user-detail-modal-overlay.show .user-detail-modal {
     transform: scale(1) translateY(0);
-    box-shadow: 
-        0 25px 80px rgba(0, 0, 0, 0.2),
-        0 12px 40px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 /* Modal Header */
@@ -96,7 +92,7 @@
     cursor: pointer;
     transition: var(--transition);
     backdrop-filter: var(--blur-light);
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: none;
 }
 
 .modal-close-btn:hover {
@@ -104,7 +100,7 @@
     color: var(--text-primary);
     transform: translateY(-1px);
     border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: var(--shadow-hover), var(--inset-highlight);
+    box-shadow: none;
 }
 
 /* Modal Body */
@@ -135,7 +131,7 @@
     font-size: 32px;
     font-weight: var(--font-weight-bold);
     color: white;
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: none;
     border: 1px solid rgba(255, 255, 255, 0.4);
     backdrop-filter: var(--blur-light);
     flex-shrink: 0;
@@ -178,14 +174,14 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
     transition: var(--transition);
     backdrop-filter: var(--blur-light);
-    box-shadow: var(--shadow-light);
+    box-shadow: none;
 }
 
 .detail-item:hover {
     background: rgba(255, 255, 255, 0.75);
     border-color: rgba(255, 255, 255, 0.7);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
+    box-shadow: none;
 }
 
 .detail-label {
@@ -225,7 +221,7 @@
     height: auto;
     border-radius: var(--border-radius);
     margin-top: var(--spacing-md);
-    box-shadow: var(--shadow-light), var(--inset-highlight);
+    box-shadow: none;
     border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
@@ -278,26 +274,26 @@
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    box-shadow: var(--shadow-light);
+    box-shadow: none;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .modal-action-btn.primary:hover {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
-    box-shadow: var(--shadow-hover);
+    box-shadow: none;
 }
 
 .modal-action-btn.secondary {
     background: var(--glass-bg);
     color: var(--text-primary);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: var(--shadow-light);
+    box-shadow: none;
 }
 
 .modal-action-btn.secondary:hover {
     background: var(--glass-bg-hover);
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: var(--shadow-hover);
+    box-shadow: none;
 }
 
 .modal-action-btn i {
