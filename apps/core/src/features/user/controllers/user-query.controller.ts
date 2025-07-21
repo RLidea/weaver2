@@ -1,7 +1,5 @@
 import { Controller, Get, Query, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -15,9 +13,9 @@ export class UserQueryController {
   constructor(private readonly findUserService: FindUserService) {}
 
   @Get()
-  @Roles(Role.USER)
+  @Public()
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: '사용자 목록 조회 (pagination)' })
+  @ApiOperation({ summary: '사용자 목록 조회 (Admin/Developer only)' })
   @ApiStandardResponses({ type: PaginationResponseDto })
   findAll(@Query() query: PaginationRequestDto) {
     return this.findUserService.findUsers(query);

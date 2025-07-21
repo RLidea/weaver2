@@ -1,517 +1,123 @@
-// User Management with Data Table Component
+// User Management with Data Table Component - Real API Integration
 
-// Sample user data for testing
-const sampleUsers = [
-    {
-        id: 1,
-        name: 'John Doe',
-        username: 'johndoe',
-        email: 'john.doe@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-01-15',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 2,
-        name: 'Jane Smith',
-        username: 'janesmith',
-        email: 'jane.smith@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-02-20',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 3,
-        name: 'Mike Johnson',
-        username: 'mikej',
-        email: 'mike.johnson@example.com',
-        role: 'Moderator',
-        status: 'inactive',
-        registrationDate: '2024-03-10',
-        lastLogin: '2024-12-10'
-    },
-    {
-        id: 4,
-        name: 'Sarah Wilson',
-        username: 'sarahw',
-        email: 'sarah.wilson@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-04-05',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 5,
-        name: 'David Brown',
-        username: 'davidb',
-        email: 'david.brown@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-05-12',
-        lastLogin: '2024-11-30'
-    },
-    {
-        id: 6,
-        name: 'Emily Davis',
-        username: 'emilyd',
-        email: 'emily.davis@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-06-18',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 7,
-        name: 'Tom Wilson',
-        username: 'tomw',
-        email: 'tom.wilson@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-07-22',
-        lastLogin: '2024-12-18'
-    },
-    {
-        id: 8,
-        name: 'Lisa Anderson',
-        username: 'lisaa',
-        email: 'lisa.anderson@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-08-14',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 9,
-        name: 'Chris Taylor',
-        username: 'christ',
-        email: 'chris.taylor@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-09-08',
-        lastLogin: '2024-11-25'
-    },
-    {
-        id: 10,
-        name: 'Amanda Martinez',
-        username: 'amandam',
-        email: 'amanda.martinez@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-10-03',
-        lastLogin: '2024-12-19'
-    },
-    // Add more sample data for pagination testing
-    {
-        id: 11,
-        name: 'Robert Garcia',
-        username: 'robertg',
-        email: 'robert.garcia@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-10-15',
-        lastLogin: '2024-12-17'
-    },
-    {
-        id: 12,
-        name: 'Jennifer Lopez',
-        username: 'jenniferl',
-        email: 'jennifer.lopez@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-10-20',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 13,
-        name: 'Mark Thompson',
-        username: 'markt',
-        email: 'mark.thompson@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-11-01',
-        lastLogin: '2024-12-01'
-    },
-    {
-        id: 14,
-        name: 'Rachel Green',
-        username: 'rachelg',
-        email: 'rachel.green@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-11-10',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 15,
-        name: 'Kevin White',
-        username: 'kevinw',
-        email: 'kevin.white@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-11-18',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 16,
-        name: 'Michelle Lee',
-        username: 'michellel',
-        email: 'michelle.lee@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-12-01',
-        lastLogin: '2024-12-15'
-    },
-    {
-        id: 17,
-        name: 'Daniel Kim',
-        username: 'danielk',
-        email: 'daniel.kim@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-12-05',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 18,
-        name: 'Ashley Johnson',
-        username: 'ashleyj',
-        email: 'ashley.johnson@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-12-08',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 19,
-        name: 'Brian Miller',
-        username: 'brianm',
-        email: 'brian.miller@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-01-20',
-        lastLogin: '2024-12-18'
-    },
-    {
-        id: 20,
-        name: 'Catherine Moore',
-        username: 'cathm',
-        email: 'catherine.moore@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-02-14',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 21,
-        name: 'Derek Wilson',
-        username: 'derekw',
-        email: 'derek.wilson@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-03-05',
-        lastLogin: '2024-11-15'
-    },
-    {
-        id: 22,
-        name: 'Eva Rodriguez',
-        username: 'evar',
-        email: 'eva.rodriguez@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-04-12',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 23,
-        name: 'Frank Turner',
-        username: 'frankt',
-        email: 'frank.turner@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-05-08',
-        lastLogin: '2024-10-28'
-    },
-    {
-        id: 24,
-        name: 'Grace Chen',
-        username: 'gracec',
-        email: 'grace.chen@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-06-15',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 25,
-        name: 'Henry Adams',
-        username: 'henrya',
-        email: 'henry.adams@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-07-01',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 26,
-        name: 'Isabel Clark',
-        username: 'isabelc',
-        email: 'isabel.clark@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-07-18',
-        lastLogin: '2024-12-17'
-    },
-    {
-        id: 27,
-        name: 'James Lewis',
-        username: 'jamesl',
-        email: 'james.lewis@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-08-03',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 28,
-        name: 'Karen Hall',
-        username: 'karenh',
-        email: 'karen.hall@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-08-22',
-        lastLogin: '2024-11-30'
-    },
-    {
-        id: 29,
-        name: 'Lucas Young',
-        username: 'lucasy',
-        email: 'lucas.young@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-09-10',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 30,
-        name: 'Maria Gonzalez',
-        username: 'mariag',
-        email: 'maria.gonzalez@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-09-25',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 31,
-        name: 'Nathan Scott',
-        username: 'nathans',
-        email: 'nathan.scott@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-10-08',
-        lastLogin: '2024-12-05'
-    },
-    {
-        id: 32,
-        name: 'Olivia Wright',
-        username: 'oliviaw',
-        email: 'olivia.wright@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-10-20',
-        lastLogin: '2024-12-18'
-    },
-    {
-        id: 33,
-        name: 'Peter King',
-        username: 'peterk',
-        email: 'peter.king@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-11-02',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 34,
-        name: 'Quinn Baker',
-        username: 'quinnb',
-        email: 'quinn.baker@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-11-15',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 35,
-        name: 'Rebecca Green',
-        username: 'rebeccag',
-        email: 'rebecca.green@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-12-01',
-        lastLogin: '2024-12-10'
-    },
-    {
-        id: 36,
-        name: 'Samuel Carter',
-        username: 'samuelc',
-        email: 'samuel.carter@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-12-05',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 37,
-        name: 'Tina Mitchell',
-        username: 'tinam',
-        email: 'tina.mitchell@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-01-30',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 38,
-        name: 'Victor Phillips',
-        username: 'victorp',
-        email: 'victor.phillips@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-02-28',
-        lastLogin: '2024-11-20'
-    },
-    {
-        id: 39,
-        name: 'Wendy Campbell',
-        username: 'wendyc',
-        email: 'wendy.campbell@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-03-15',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 40,
-        name: 'Xavier Evans',
-        username: 'xaviere',
-        email: 'xavier.evans@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-04-20',
-        lastLogin: '2024-12-18'
-    },
-    {
-        id: 41,
-        name: 'Yolanda Torres',
-        username: 'yolandat',
-        email: 'yolanda.torres@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-05-25',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 42,
-        name: 'Zachary Parker',
-        username: 'zacharyp',
-        email: 'zachary.parker@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-06-30',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 43,
-        name: 'Anna Collins',
-        username: 'annac',
-        email: 'anna.collins@example.com',
-        role: 'User',
-        status: 'inactive',
-        registrationDate: '2024-07-12',
-        lastLogin: '2024-11-28'
-    },
-    {
-        id: 44,
-        name: 'Benjamin Edwards',
-        username: 'benjamine',
-        email: 'benjamin.edwards@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-08-08',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 45,
-        name: 'Claire Stewart',
-        username: 'claires',
-        email: 'claire.stewart@example.com',
-        role: 'Admin',
-        status: 'active',
-        registrationDate: '2024-09-05',
-        lastLogin: '2024-12-21'
-    },
-    {
-        id: 46,
-        name: 'Diego Sanchez',
-        username: 'diegos',
-        email: 'diego.sanchez@example.com',
-        role: 'User',
-        status: 'suspended',
-        registrationDate: '2024-09-20',
-        lastLogin: '2024-12-01'
-    },
-    {
-        id: 47,
-        name: 'Ellie Morris',
-        username: 'elliem',
-        email: 'ellie.morris@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-10-12',
-        lastLogin: '2024-12-18'
-    },
-    {
-        id: 48,
-        name: 'Felix Rogers',
-        username: 'felixr',
-        email: 'felix.rogers@example.com',
-        role: 'Moderator',
-        status: 'active',
-        registrationDate: '2024-11-01',
-        lastLogin: '2024-12-20'
-    },
-    {
-        id: 49,
-        name: 'Gabriela Reed',
-        username: 'gabrielar',
-        email: 'gabriela.reed@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-11-18',
-        lastLogin: '2024-12-19'
-    },
-    {
-        id: 50,
-        name: 'Harrison Cook',
-        username: 'harrisonc',
-        email: 'harrison.cook@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: '2024-12-10',
-        lastLogin: '2024-12-21'
+// API configuration
+const API_BASE_URL = '/v1';
+const USERS_ENDPOINT = `${API_BASE_URL}/users`;
+
+// JWT Token helper
+function getAuthToken() {
+    // Try to get token from cookie first (for admin session)
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'access_token') {
+            return value;
+        }
     }
-];
+    
+    // Try localStorage as fallback
+    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+}
 
-// Define table columns
+// API call helper with authentication
+async function makeAuthenticatedRequest(url, options = {}) {
+    const token = getAuthToken();
+    
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    };
+    
+    if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const config = {
+        ...options,
+        headers: {
+            ...defaultHeaders,
+            ...options.headers
+        }
+    };
+    
+    try {
+        const response = await fetch(url, config);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('API Request failed:', error);
+        throw error;
+    }
+}
+
+// Fetch users from API
+async function fetchUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '') {
+    try {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            sort: sort
+        });
+        
+        if (search) {
+            params.append('search', search);
+        }
+        
+        const response = await makeAuthenticatedRequest(`${USERS_ENDPOINT}?${params}`);
+        
+        return {
+            users: response.data.data || [],
+            pagination: {
+                total: response.data.total || 0,
+                currentPage: response.data.currentPage || 1,
+                lastPage: response.data.lastPage || 1,
+                limit: response.data.limit || limit
+            }
+        };
+    } catch (error) {
+        console.error('Failed to fetch users:', error);
+        throw error;
+    }
+}
+
+// Transform API data to match our table structure
+function transformUserData(apiUsers) {
+    return apiUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        email: user.email || user.username + '@example.com', // Fallback email
+        role: user.role,
+        status: user.deletedAt ? 'inactive' : 'active',
+        createdAt: user.createdAt,
+        lastLoginAt: user.lastLoginAt || 'Never',
+        profileImageUrl: user.profileImageUrl
+    }));
+}
+
+// Define table columns based on API response structure
 const userColumns = [
     {
         key: 'user',
         label: 'User',
         type: 'user',
-        sortable: true
+        sortable: true,
+        render: (value, row) => {
+            const initials = (row.displayName || row.username || '').split(' ').map(n => n[0]).join('').toUpperCase();
+            return `
+                <div class="user-info">
+                    <div class="user-avatar">${initials}</div>
+                    <div class="user-details">
+                        <div class="user-name">${row.displayName || row.username}</div>
+                        <div class="user-username">@${row.username}</div>
+                    </div>
+                </div>
+            `;
+        }
     },
     {
         key: 'email',
@@ -533,13 +139,13 @@ const userColumns = [
         filterable: true
     },
     {
-        key: 'registrationDate',
-        label: 'Registration Date',
+        key: 'createdAt',
+        label: 'Created Date',
         type: 'date',
         sortable: true
     },
     {
-        key: 'lastLogin',
+        key: 'lastLoginAt',
         label: 'Last Login',
         type: 'date',
         sortable: true
@@ -552,8 +158,11 @@ const userColumns = [
     }
 ];
 
+// Global variable to store current table instance
+let userTable;
+
 // Initialize data table when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const container = document.getElementById('user-data-table-container');
     
     if (!container) {
@@ -561,10 +170,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialize the data table
-    const userTable = new WeaverDataTable({
+    // Initialize the data table with empty data first
+    userTable = new WeaverDataTable({
         container: container,
-        data: sampleUsers,
+        data: [],
         columns: userColumns,
         title: 'User Management',
         searchable: true,
@@ -591,18 +200,53 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         onSearch: function(query) {
             console.log('Search:', query);
+            loadUsers(1, userTable.state.perPage, 'createdAt:desc', query);
         },
         onFilter: function(filters) {
             console.log('Filters:', filters);
+            // Implement filtering logic if needed
         },
         onSort: function(column, direction) {
             console.log('Sort:', column, direction);
+            const sortParam = `${column}:${direction}`;
+            loadUsers(userTable.state.currentPage, userTable.state.perPage, sortParam);
         }
     });
 
-    // Store reference to the table for global access
-    window.userTable = userTable;
+    // Wait a bit for the table to initialize completely
+    setTimeout(async () => {
+        // Load initial data after table is ready
+        await loadUsers();
+    }, 100);
 });
+
+// Load users data from API
+async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '') {
+    try {
+        // Check if table is ready before using it
+        if (userTable && userTable.setLoading) {
+            userTable.setLoading(true);
+        }
+        
+        const { users, pagination } = await fetchUsers(page, limit, sort, search);
+        const transformedUsers = transformUserData(users);
+        
+        console.log('Fetched users:', transformedUsers);
+        console.log('Pagination info:', pagination);
+        
+        if (userTable && userTable.setData) {
+            userTable.setData(transformedUsers);
+        }
+        
+    } catch (error) {
+        console.error('Failed to load users:', error);
+        alert('Failed to load users. Please check your connection and try again.');
+    } finally {
+        if (userTable && userTable.setLoading) {
+            userTable.setLoading(false);
+        }
+    }
+}
 
 // Action handlers
 function handleAddUser() {
@@ -614,7 +258,7 @@ function handleAddUser() {
 }
 
 function handleViewUser(user) {
-    alert(`View User: ${user.name}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status}`);
+    alert(`View User: ${user.displayName || user.username}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status}`);
     // Here you would typically:
     // - Open a modal with user details
     // - Navigate to user profile page
@@ -622,7 +266,7 @@ function handleViewUser(user) {
 }
 
 function handleEditUser(user) {
-    alert(`Edit User: ${user.name}\nThis would open an edit form.`);
+    alert(`Edit User: ${user.displayName || user.username}\nThis would open an edit form.`);
     // Here you would typically:
     // - Open a modal with edit form
     // - Navigate to user edit page
@@ -630,43 +274,35 @@ function handleEditUser(user) {
 }
 
 function handleDeleteUser(user) {
-    if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
-        // Simulate deletion
-        const currentData = window.userTable.getData();
-        const updatedData = currentData.filter(u => u.id !== user.id);
-        window.userTable.setData(updatedData);
-        
-        alert(`User "${user.name}" has been deleted.`);
-        
+    if (confirm(`Are you sure you want to delete user "${user.displayName || user.username}"?`)) {
         // In a real application, you would:
         // - Make an API call to delete the user
         // - Handle the response
-        // - Update the table with fresh data
-        // - Show appropriate success/error messages
+        // - Reload the table with fresh data
+        alert(`User "${user.displayName || user.username}" deletion would be processed here.`);
+        
+        // Reload data after deletion
+        loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
     }
 }
 
 // Utility functions for demo purposes
-function addSampleUser() {
-    const newUser = {
-        id: Date.now(), // Simple ID generation for demo
-        name: 'New User',
-        username: 'newuser' + Date.now(),
-        email: 'newuser@example.com',
-        role: 'User',
-        status: 'active',
-        registrationDate: new Date().toISOString().split('T')[0],
-        lastLogin: new Date().toISOString().split('T')[0]
-    };
-    
-    const currentData = window.userTable.getData();
-    window.userTable.setData([...currentData, newUser]);
+function refreshUserList() {
+    loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
 }
 
 function simulateLoading() {
-    window.userTable.setLoading(true);
+    userTable.setLoading(true);
     
     setTimeout(() => {
-        window.userTable.setLoading(false);
+        userTable.setLoading(false);
     }, 2000);
 }
+
+// Export functions for console debugging
+window.userManagement = {
+    refreshUserList,
+    simulateLoading,
+    loadUsers,
+    getAuthToken
+};
