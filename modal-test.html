@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/common-modal.css">
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-detail-modal.css">
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-edit-modal.css">
+    <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-delete-modal.css">
     <style>
         body {
             padding: 20px;
@@ -54,11 +55,15 @@
         <button class="test-btn" onclick="testEditModal()">
             <i class="fas fa-user-edit"></i> Test User Edit Modal
         </button>
+        <button class="test-btn" onclick="testDeleteModal()" style="background: #dc2626;">
+            <i class="fas fa-trash-alt"></i> Test User Delete Modal
+        </button>
     </div>
 
     <script src="apps/core/src/assets/shared/components/modal/common-modal.js"></script>
     <script src="apps/core/src/assets/shared/components/modal/user-detail-modal.js"></script>
     <script src="apps/core/src/assets/shared/components/modal/user-edit-modal.js"></script>
+    <script src="apps/core/src/assets/shared/components/modal/user-delete-modal.js"></script>
     
     <script>
         // Sample user data for testing
@@ -110,9 +115,27 @@
             });
         }
 
+        function testDeleteModal() {
+            console.log('Testing User Delete Modal...');
+            UserDeleteModal.show(testUser, {
+                onConfirm: async (userToDelete) => {
+                    console.log('Delete confirmed for:', userToDelete);
+                    
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    alert(`User "${userToDelete.displayName}" has been deleted successfully!`);
+                },
+                onClose: () => {
+                    console.log('Delete modal closed');
+                }
+            });
+        }
+
         console.log('Modal test page loaded');
         console.log('CommonModal:', typeof CommonModal);
         console.log('UserDetailModal:', typeof UserDetailModal);
+        console.log('UserEditModal:', typeof UserEditModal);
+        console.log('UserDeleteModal:', typeof UserDeleteModal);
         console.log('UserEditModal:', typeof UserEditModal);
     </script>
 </body>

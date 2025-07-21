@@ -313,16 +313,32 @@ function handleEditUser(user) {
 }
 
 function handleDeleteUser(user) {
-    if (confirm(`Are you sure you want to delete user "${user.displayName || user.username}"?`)) {
-        // In a real application, you would:
-        // - Make an API call to delete the user
-        // - Handle the response
-        // - Reload the table with fresh data
-        alert(`User "${user.displayName || user.username}" deletion would be processed here.`);
-        
-        // Reload data after deletion
-        loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
-    }
+    // Open user delete confirmation modal
+    UserDeleteModal.show(user, {
+        onConfirm: async (userToDelete) => {
+            try {
+                // In a real application, you would:
+                // - Make an API call to delete the user
+                // - Handle the response
+                // - Reload the table with fresh data
+                console.log('Deleting user:', userToDelete);
+                
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                alert(`User "${userToDelete.displayName || userToDelete.username}" has been deleted successfully.`);
+                
+                // Reload data after deletion
+                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
+            } catch (error) {
+                console.error('Failed to delete user:', error);
+                throw error; // Re-throw to let modal handle the error display
+            }
+        },
+        onClose: () => {
+            console.log('Delete modal closed');
+        }
+    });
 }
 
 // Utility functions for demo purposes
