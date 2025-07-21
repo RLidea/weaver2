@@ -307,7 +307,7 @@ window.WeaverDataTable = class {
           <label>${column.label}</label>
           <select class="form-input glass" data-filter="${column.key}">
             <option value="">All ${column.label}</option>
-            ${this.getUniqueValues(column.key).map(value => 
+            ${this.getFilterOptions(column).map(value => 
               `<option value="${value}" ${this.state.filters[column.key] === value ? 'selected' : ''}>${value}</option>`
             ).join('')}
           </select>
@@ -594,6 +594,15 @@ window.WeaverDataTable = class {
   getUniqueValues(key) {
     const values = this.originalData.map(row => this.getValueFromPath(row, key));
     return [...new Set(values)].filter(Boolean).sort();
+  }
+  
+  getFilterOptions(column) {
+    // If column has predefined filter options, use those instead of data-derived values
+    if (column.filterOptions && Array.isArray(column.filterOptions)) {
+      return column.filterOptions;
+    }
+    // Fallback to unique values from data
+    return this.getUniqueValues(column.key);
   }
   
   formatDate(dateString) {

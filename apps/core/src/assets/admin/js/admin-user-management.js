@@ -55,7 +55,7 @@ async function makeAuthenticatedRequest(url, options = {}) {
 }
 
 // Fetch users from API
-async function fetchUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '') {
+async function fetchUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '', filters = {}) {
     try {
         const params = new URLSearchParams({
             page: page.toString(),
@@ -65,6 +65,13 @@ async function fetchUsers(page = 1, limit = 10, sort = 'createdAt:desc', search 
         
         if (search) {
             params.append('search', search);
+        }
+        
+        // Add filter parameters in the format expected by API: "role:ADMIN,username:admin"
+        const filterEntries = Object.entries(filters).filter(([key, value]) => value);
+        if (filterEntries.length > 0) {
+            const filterString = filterEntries.map(([key, value]) => `${key}:${value}`).join(',');
+            params.append('filter', filterString);
         }
         
         const response = await makeAuthenticatedRequest(`${USERS_ENDPOINT}?${params}`);
@@ -155,14 +162,16 @@ const userColumns = [
         label: 'Role',
         type: 'role',
         sortable: true,
-        filterable: true
+        filterable: true,
+        filterOptions: ['ADMIN', 'USER', 'MODERATOR'] // Define available role options
     },
     {
         key: 'status',
         label: 'Status',
         type: 'status',
         sortable: true,
-        filterable: true
+        filterable: true,
+        filterOptions: ['active', 'inactive'] // Define available status options
     },
     {
         key: 'createdAt',
@@ -226,16 +235,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         onSearch: function(query) {
             console.log('Search:', query);
-            loadUsers(1, userTable.state.perPage, 'createdAt:desc', query);
+            loadUsers(1, userTable.state.perPage, 'createdAt:desc', query, currentFilters);
         },
         onFilter: function(filters) {
             console.log('Filters:', filters);
-            // Implement filtering logic if needed
+            // Store current filters globally and reload data
+            currentFilters = filters;
+            loadUsers(1, userTable.state.perPage, 'createdAt:desc', '', filters);
         },
         onSort: function(column, direction) {
             console.log('Sort:', column, direction);
             const sortParam = `${column}:${direction}`;
-            loadUsers(userTable.state.currentPage, userTable.state.perPage, sortParam);
+            loadUsers(userTable.state.currentPage, userTable.state.perPage, sortParam, '', currentFilters);
         }
     });
 
@@ -246,19 +257,26 @@ document.addEventListener('DOMContentLoaded', async function() {
     }, 100);
 });
 
+// Global variable to store current filters
+let currentFilters = {};
+
 // Load users data from API
-async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '') {
+async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search = '', filters = null) {
     try {
         // Check if table is ready before using it
         if (userTable && userTable.setLoading) {
             userTable.setLoading(true);
         }
         
-        const { users, pagination } = await fetchUsers(page, limit, sort, search);
+        // Use passed filters or current global filters
+        const filtersToUse = filters !== null ? filters : currentFilters;
+        
+        const { users, pagination } = await fetchUsers(page, limit, sort, search, filtersToUse);
         const transformedUsers = transformUserData(users);
         
         console.log('Fetched users:', transformedUsers);
         console.log('Pagination info:', pagination);
+        console.log('Applied filters:', filtersToUse);
         
         if (userTable && userTable.setData) {
             userTable.setData(transformedUsers);
@@ -266,6 +284,11 @@ async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search =
         
     } catch (error) {
         console.error('Failed to load users:', error);
+        console.error('Error details:', error.message);
+        console.error('Filters that caused error:', filtersToUse);
+        const filterEntries = Object.entries(filtersToUse).filter(([key, value]) => value);
+        const filterParam = filterEntries.length > 0 ? `&filter=${filterEntries.map(([k,v]) => `${k}:${v}`).join(',')}` : '';
+        console.error('API URL would be:', `${USERS_ENDPOINT}?page=${page}&limit=${limit}&sort=${sort}${search ? '&search=' + search : ''}${filterParam}`);
         alert('Failed to load users. Please check your connection and try again.');
     } finally {
         if (userTable && userTable.setLoading) {
@@ -300,7 +323,7 @@ function handleEditUser(user) {
                 await updateUser(updatedUser);
                 alert('User updated successfully!');
                 // Refresh the table to show updated data
-                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
+                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc', '', currentFilters);
             } catch (error) {
                 console.error('Failed to update user:', error);
                 throw error; // Re-throw to let modal handle the error display
@@ -329,7 +352,7 @@ function handleDeleteUser(user) {
                 alert(`User "${userToDelete.displayName || userToDelete.username}" has been deleted successfully.`);
                 
                 // Reload data after deletion
-                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
+                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc', '', currentFilters);
             } catch (error) {
                 console.error('Failed to delete user:', error);
                 throw error; // Re-throw to let modal handle the error display
@@ -343,7 +366,7 @@ function handleDeleteUser(user) {
 
 // Utility functions for demo purposes
 function refreshUserList() {
-    loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
+    loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc', '', currentFilters);
 }
 
 function simulateLoading() {
