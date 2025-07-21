@@ -99,6 +99,32 @@ function transformUserData(apiUsers) {
     }));
 }
 
+// Update user via API
+async function updateUser(userData) {
+    try {
+        const updatePayload = {
+            displayName: userData.displayName,
+            username: userData.username,
+            // Note: email and role updates might need separate endpoints or permissions
+            // For now, we'll include them but they may be ignored by the API
+        };
+
+        const response = await makeAuthenticatedRequest(
+            `${USERS_ENDPOINT}/${userData.id}/update-profile`,
+            {
+                method: 'POST',
+                body: JSON.stringify(updatePayload)
+            }
+        );
+
+        console.log('User updated successfully:', response);
+        return response;
+    } catch (error) {
+        console.error('Failed to update user:', error);
+        throw error;
+    }
+}
+
 // Define table columns based on API response structure
 const userColumns = [
     {
@@ -267,11 +293,23 @@ function handleViewUser(user) {
 }
 
 function handleEditUser(user) {
-    alert(`Edit User: ${user.displayName || user.username}\nThis would open an edit form.`);
-    // Here you would typically:
-    // - Open a modal with edit form
-    // - Navigate to user edit page
-    // - Enable inline editing
+    // Open user edit modal
+    UserEditModal.show(user, {
+        onSave: async (updatedUser) => {
+            try {
+                await updateUser(updatedUser);
+                alert('User updated successfully!');
+                // Refresh the table to show updated data
+                loadUsers(userTable.state.currentPage, userTable.state.perPage, 'createdAt:desc');
+            } catch (error) {
+                console.error('Failed to update user:', error);
+                throw error; // Re-throw to let modal handle the error display
+            }
+        },
+        onClose: () => {
+            console.log('User edit modal closed');
+        }
+    });
 }
 
 function handleDeleteUser(user) {

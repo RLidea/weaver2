@@ -28,7 +28,9 @@ apps/core/src/public/shared/
     │   └── data-table.js        # 데이터 테이블 컴포넌트
     ├── modal/
     │   ├── user-detail-modal.css # 사용자 상세 모달 스타일
-    │   └── user-detail-modal.js  # 사용자 상세 모달 컴포넌트
+    │   ├── user-detail-modal.js  # 사용자 상세 모달 컴포넌트
+    │   ├── user-edit-modal.css   # 사용자 편집 모달 스타일
+    │   └── user-edit-modal.js    # 사용자 편집 모달 컴포넌트
     └── utils/
         └── helpers.js           # 유틸리티 함수
 ```
@@ -301,6 +303,95 @@ const userTable = new WeaverDataTable({
 - **🌫️ 자연스러운 배경**: 주변은 그대로, 모달 뒤만 블러 처리
 - **✨ 외부 그림자**: 깔끔한 드롭 샤도우로 깊이감 표현
 - **🎭 호버 효과**: 버튼과 카드에 미묘한 상호작용
+
+### 6. 사용자 편집 모달 (User Edit Modal) ⭐ **NEW**
+
+사용자 정보를 편집할 수 있는 폼 모달 컴포넌트입니다.
+
+```javascript
+// 기본 사용법
+import '/shared/components/modal/user-edit-modal.js';
+
+// 모달 표시
+UserEditModal.show(userData, {
+  onSave: async (updatedUser) => {
+    await updateUserAPI(updatedUser);
+    refreshUserList();
+  },
+  onClose: () => {
+    console.log('편집 모달이 닫혔습니다');
+  }
+});
+```
+
+#### 주요 기능
+- **📝 실시간 폼 검증**: 입력 중 필드별 유효성 검사
+- **💾 자동 저장 상태**: 저장 중 로딩 표시 및 버튼 비활성화
+- **⚠️ 오류 처리**: 서버 오류 시 사용자 친화적 메시지 표시
+- **🔐 보안**: XSS 방지 및 입력 값 검증
+- **📱 반응형**: 모바일 최적화된 폼 레이아웃
+- **♻️ 재사용성**: DetailModal과 동일한 API 패턴
+
+#### 폼 검증 규칙
+```javascript
+// 내장된 검증 규칙
+const validationRules = {
+  displayName: {
+    required: true,
+    minLength: 2,
+    message: 'Display name must be at least 2 characters'
+  },
+  username: {
+    required: true,
+    minLength: 3,
+    pattern: /^[a-zA-Z0-9_]+$/,
+    message: 'Username can only contain letters, numbers, and underscores'
+  },
+  email: {
+    required: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    message: 'Please enter a valid email address'
+  }
+};
+```
+
+#### 통합 사용 예시
+```javascript
+// admin-user-management.js에서 사용
+function handleEditUser(user) {
+  UserEditModal.show(user, {
+    onSave: async (updatedUser) => {
+      try {
+        await updateUser(updatedUser);
+        showSuccessMessage('User updated successfully!');
+        loadUsers(); // 테이블 새로고침
+      } catch (error) {
+        throw error; // 모달이 오류 처리
+      }
+    }
+  });
+}
+
+// API 통합
+async function updateUser(userData) {
+  return await makeAuthenticatedRequest(
+    `/v1/users/${userData.id}/update-profile`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        displayName: userData.displayName,
+        username: userData.username
+      })
+    }
+  );
+}
+```
+
+#### 스타일 특징
+- **🎨 일관된 디자인**: DetailModal과 동일한 glassmorphism
+- **🔍 폼 포커스**: 활성 필드 시각적 강조
+- **⚡ 상태 표시**: 로딩, 오류, 성공 상태별 스타일
+- **🎯 접근성**: 스크린 리더 및 키보드 네비게이션 지원
 
 ## 🔧 새 컴포넌트 추가하기
 
