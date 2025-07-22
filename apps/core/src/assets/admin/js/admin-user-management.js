@@ -19,6 +19,55 @@ function getAuthToken() {
     return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
 }
 
+// Get refresh token helper
+function getRefreshToken() {
+    // Try to get refresh token from cookie first
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'refresh_token') {
+            return value;
+        }
+    }
+    
+    // Try localStorage as fallback
+    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+}
+
+// Refresh access token
+async function refreshAccessToken() {
+    try {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+            throw new Error('No refresh token available');
+        }
+
+        const response = await fetch('/v1/auth/refresh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ refreshToken })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Refresh failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Token refreshed successfully');
+        
+        // The new access token is automatically set in cookies by the server
+        return result.data.accessToken;
+    } catch (error) {
+        console.error('Failed to refresh token:', error);
+        // Redirect to login page if refresh fails
+        window.location.href = '/admin/auth';
+        throw error;
+    }
+}
+
 // API call helper with authentication
 async function makeAuthenticatedRequest(url, options = {}) {
     const token = getAuthToken();
@@ -42,6 +91,41 @@ async function makeAuthenticatedRequest(url, options = {}) {
     
     try {
         const response = await fetch(url, config);
+        
+        // If we get a 401 Unauthorized, try to refresh the token
+        if (response.status === 401) {
+            console.log('Access token expired, attempting to refresh...');
+            
+            try {
+                // Attempt to refresh the access token
+                await refreshAccessToken();
+                
+                // Get the new token and retry the original request
+                const newToken = getAuthToken();
+                if (newToken) {
+                    const newConfig = {
+                        ...config,
+                        headers: {
+                            ...config.headers,
+                            'Authorization': `Bearer ${newToken}`
+                        }
+                    };
+                    
+                    const retryResponse = await fetch(url, newConfig);
+                    
+                    if (!retryResponse.ok) {
+                        throw new Error(`HTTP ${retryResponse.status}: ${retryResponse.statusText}`);
+                    }
+                    
+                    console.log('Request succeeded after token refresh');
+                    return await retryResponse.json();
+                }
+            } catch (refreshError) {
+                console.error('Token refresh failed, redirecting to login:', refreshError);
+                // Refresh failed, redirect will be handled by refreshAccessToken function
+                throw refreshError;
+            }
+        }
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
