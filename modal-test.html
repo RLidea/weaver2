@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-detail-modal.css">
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-edit-modal.css">
     <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-delete-modal.css">
+    <link rel="stylesheet" href="apps/core/src/assets/shared/components/modal/user-create-modal.css">
     <style>
         body {
             padding: 20px;
@@ -58,12 +59,16 @@
         <button class="test-btn" onclick="testDeleteModal()" style="background: #dc2626;">
             <i class="fas fa-trash-alt"></i> Test User Delete Modal
         </button>
+        <button class="test-btn" onclick="testCreateModal()" style="background: #059669;">
+            <i class="fas fa-user-plus"></i> Test User Create Modal
+        </button>
     </div>
 
     <script src="apps/core/src/assets/shared/components/modal/common-modal.js"></script>
     <script src="apps/core/src/assets/shared/components/modal/user-detail-modal.js"></script>
     <script src="apps/core/src/assets/shared/components/modal/user-edit-modal.js"></script>
     <script src="apps/core/src/assets/shared/components/modal/user-delete-modal.js"></script>
+    <script src="apps/core/src/assets/shared/components/modal/user-create-modal.js"></script>
     
     <script>
         // Sample user data for testing
@@ -131,12 +136,28 @@
             });
         }
 
+        function testCreateModal() {
+            console.log('Testing User Create Modal...');
+            UserCreateModal.show({}, {
+                onSave: async (userData) => {
+                    console.log('Create user called with:', userData);
+                    
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    alert(`User \"${userData.displayName}\" has been created successfully!`);
+                },
+                onClose: () => {
+                    console.log('Create modal closed');
+                }
+            });
+        }
+
         console.log('Modal test page loaded');
         console.log('CommonModal:', typeof CommonModal);
         console.log('UserDetailModal:', typeof UserDetailModal);
         console.log('UserEditModal:', typeof UserEditModal);
         console.log('UserDeleteModal:', typeof UserDeleteModal);
-        console.log('UserEditModal:', typeof UserEditModal);
+        console.log('UserCreateModal:', typeof UserCreateModal);
     </script>
 </body>
 </html>

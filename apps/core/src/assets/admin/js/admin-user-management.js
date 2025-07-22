@@ -106,6 +106,32 @@ function transformUserData(apiUsers) {
     }));
 }
 
+// Create new user via API
+async function createUser(userData) {
+    try {
+        const createPayload = {
+            username: userData.username,
+            displayName: userData.displayName,
+            email: userData.email,
+            role: userData.role
+        };
+
+        const response = await makeAuthenticatedRequest(
+            USERS_ENDPOINT,
+            {
+                method: 'POST',
+                body: JSON.stringify(createPayload)
+            }
+        );
+
+        console.log('User created successfully:', response);
+        return response;
+    } catch (error) {
+        console.error('Failed to create user:', error);
+        throw error;
+    }
+}
+
 // Update user via API
 async function updateUser(userData) {
     try {
@@ -258,6 +284,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     setTimeout(async () => {
         // Load initial data after table is ready
         await loadUsers();
+        
+        // Manually bind Add button event as a fallback
+        const addBtn = document.querySelector('#data-table-add-btn');
+        if (addBtn && !addBtn.onclick) {
+            console.log('Manually binding Add button event');
+            addBtn.addEventListener('click', () => {
+                console.log('Add button clicked via manual binding');
+                handleAddUser();
+            });
+        }
     }, 100);
 });
 
@@ -303,11 +339,23 @@ async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search =
 
 // Action handlers
 function handleAddUser() {
-    alert('Add New User clicked! This would open a modal or navigate to add user page.');
-    // Here you would typically:
-    // - Open a modal with user creation form
-    // - Navigate to a dedicated user creation page
-    // - Show an inline form
+    // Open user creation modal
+    UserCreateModal.show({}, {
+        onSave: async (userData) => {
+            try {
+                await createUser(userData);
+                alert('User created successfully!');
+                // Refresh the table to show new user
+                loadUsers(1, userTable.state.perPage, 'createdAt:desc', '', currentFilters);
+            } catch (error) {
+                console.error('Failed to create user:', error);
+                throw error; // Re-throw to let modal handle the error display
+            }
+        },
+        onClose: () => {
+            console.log('User creation modal closed');
+        }
+    });
 }
 
 function handleViewUser(user) {
