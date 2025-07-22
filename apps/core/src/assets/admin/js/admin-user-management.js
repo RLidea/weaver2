@@ -284,16 +284,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     setTimeout(async () => {
         // Load initial data after table is ready
         await loadUsers();
-        
-        // Manually bind Add button event as a fallback
-        const addBtn = document.querySelector('#data-table-add-btn');
-        if (addBtn && !addBtn.onclick) {
-            console.log('Manually binding Add button event');
-            addBtn.addEventListener('click', () => {
-                console.log('Add button clicked via manual binding');
-                handleAddUser();
-            });
-        }
     }, 100);
 });
 

@@ -120,6 +120,9 @@ class UserCreateModal extends CommonModal {
     }
 
     bindEvents() {
+        // Call parent bindEvents first to get common functionality (close buttons, ESC key)
+        super.bindEvents();
+        
         // Form validation
         this.bindFormValidation();
         
