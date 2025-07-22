@@ -313,17 +313,44 @@ window.WeaverDataTable = class {
     // Create filter controls based on column configuration
     const filterHTML = this.columns
       .filter(column => column.filterable)
-      .map(column => `
-        <div class="filter-group">
-          <label>${column.label}</label>
-          <select class="form-input glass" data-filter="${column.key}">
-            <option value="">All ${column.label}</option>
-            ${this.getFilterOptions(column).map(value => 
-              `<option value="${value}" ${this.state.filters[column.key] === value ? 'selected' : ''}>${value}</option>`
-            ).join('')}
-          </select>
-        </div>
-      `).join('');
+      .map(column => {
+        if (column.filterType === 'dateRange') {
+          return `
+            <div class="filter-group date-range-filter">
+              <label>${column.label}</label>
+              <div class="date-range-inputs">
+                <input 
+                  type="date" 
+                  class="form-input glass date-input" 
+                  data-filter="${column.key}-from"
+                  placeholder="From"
+                  value="${this.state.filters[column.key + '-from'] || ''}"
+                >
+                <span class="date-separator">to</span>
+                <input 
+                  type="date" 
+                  class="form-input glass date-input" 
+                  data-filter="${column.key}-to"
+                  placeholder="To"
+                  value="${this.state.filters[column.key + '-to'] || ''}"
+                >
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="filter-group">
+              <label>${column.label}</label>
+              <select class="form-input glass" data-filter="${column.key}">
+                <option value="">All ${column.label}</option>
+                ${this.getFilterOptions(column).map(value => 
+                  `<option value="${value}" ${this.state.filters[column.key] === value ? 'selected' : ''}>${value}</option>`
+                ).join('')}
+              </select>
+            </div>
+          `;
+        }
+      }).join('');
     
     // Add reset button
     const resetHTML = filterHTML ? `
@@ -340,6 +367,13 @@ window.WeaverDataTable = class {
     // Add event listeners to filter controls
     this.elements.filterSection.querySelectorAll('select[data-filter]').forEach(select => {
       select.addEventListener('change', (e) => {
+        this.handleFilter(e.target.dataset.filter, e.target.value);
+      });
+    });
+    
+    // Add event listeners to date inputs
+    this.elements.filterSection.querySelectorAll('input[data-filter]').forEach(input => {
+      input.addEventListener('change', (e) => {
         this.handleFilter(e.target.dataset.filter, e.target.value);
       });
     });
@@ -623,11 +657,13 @@ window.WeaverDataTable = class {
   formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    
+    // Format as yyyy-mm-dd
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   }
   
   escapeHtml(text) {
@@ -659,6 +695,10 @@ window.WeaverDataTable = class {
     
     this.elements.filterSection.querySelectorAll('select').forEach(select => {
       select.value = '';
+    });
+    
+    this.elements.filterSection.querySelectorAll('input[type="date"]').forEach(input => {
+      input.value = '';
     });
     
     this.render();

@@ -68,10 +68,21 @@ async function fetchUsers(page = 1, limit = 10, sort = 'createdAt:desc', search 
         }
         
         // Add filter parameters in the format expected by API: "role:ADMIN,username:admin"
-        const filterEntries = Object.entries(filters).filter(([key, value]) => value);
+        // Exclude date range filters as they are handled separately
+        const filterEntries = Object.entries(filters).filter(([key, value]) => 
+            value && !key.includes('createdAt-')
+        );
         if (filterEntries.length > 0) {
             const filterString = filterEntries.map(([key, value]) => `${key}:${value}`).join(',');
             params.append('filter', filterString);
+        }
+        
+        // Add date range filters as separate parameters
+        if (filters['createdAt-from']) {
+            params.append('createdFrom', filters['createdAt-from']);
+        }
+        if (filters['createdAt-to']) {
+            params.append('createdTo', filters['createdAt-to']);
         }
         
         const response = await makeAuthenticatedRequest(`${USERS_ENDPOINT}?${params}`);
@@ -203,7 +214,9 @@ const userColumns = [
         key: 'createdAt',
         label: 'Created Date',
         type: 'date',
-        sortable: true
+        sortable: true,
+        filterable: true,
+        filterType: 'dateRange' // Special filter type for date ranges
     },
     {
         key: 'lastLoginAt',
@@ -316,9 +329,13 @@ async function loadUsers(page = 1, limit = 10, sort = 'createdAt:desc', search =
         console.error('Failed to load users:', error);
         console.error('Error details:', error.message);
         console.error('Filters that caused error:', filtersToUse);
-        const filterEntries = Object.entries(filtersToUse).filter(([key, value]) => value);
+        const filterEntries = Object.entries(filtersToUse).filter(([key, value]) => value && !key.includes('createdAt-'));
         const filterParam = filterEntries.length > 0 ? `&filter=${filterEntries.map(([k,v]) => `${k}:${v}`).join(',')}` : '';
-        console.error('API URL would be:', `${USERS_ENDPOINT}?page=${page}&limit=${limit}&sort=${sort}${search ? '&search=' + search : ''}${filterParam}`);
+        const dateParams = [];
+        if (filtersToUse['createdAt-from']) dateParams.push(`createdFrom=${filtersToUse['createdAt-from']}`);
+        if (filtersToUse['createdAt-to']) dateParams.push(`createdTo=${filtersToUse['createdAt-to']}`);
+        const dateParam = dateParams.length > 0 ? '&' + dateParams.join('&') : '';
+        console.error('API URL would be:', `${USERS_ENDPOINT}?page=${page}&limit=${limit}&sort=${sort}${search ? '&search=' + search : ''}${filterParam}${dateParam}`);
         alert('Failed to load users. Please check your connection and try again.');
     } finally {
         if (userTable && userTable.setLoading) {

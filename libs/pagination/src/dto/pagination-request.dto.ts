@@ -47,4 +47,20 @@ export class PaginationRequestDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: '생성일 시작 날짜 (YYYY-MM-DD)',
+    example: '2024-01-01',
+  })
+  @IsOptional()
+  @IsString()
+  createdFrom?: string;
+
+  @ApiPropertyOptional({
+    description: '생성일 종료 날짜 (YYYY-MM-DD)',
+    example: '2024-12-31',
+  })
+  @IsOptional()
+  @IsString()
+  createdTo?: string;
 }

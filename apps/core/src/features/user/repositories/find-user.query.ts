@@ -35,12 +35,33 @@ export async function findUserQuery(
       }
     : {};
 
+  // Build date range conditions for createdAt
+  const dateConditions: { createdAt?: { gte?: Date; lte?: Date } } = {};
+  if (options.createdFrom || options.createdTo) {
+    dateConditions.createdAt = {};
+
+    if (options.createdFrom) {
+      // Start of the day (00:00:00)
+      dateConditions.createdAt.gte = new Date(
+        `${options.createdFrom}T00:00:00.000Z`,
+      );
+    }
+
+    if (options.createdTo) {
+      // End of the day (23:59:59.999)
+      dateConditions.createdAt.lte = new Date(
+        `${options.createdTo}T23:59:59.999Z`,
+      );
+    }
+  }
+
   return PaginationService.buildFromPrisma({
     prisma: prisma.user,
     options,
     where: {
       // deletedAt: null,
       ...searchConditions,
+      ...dateConditions,
     },
   });
 }
