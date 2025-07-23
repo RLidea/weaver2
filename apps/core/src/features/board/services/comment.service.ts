@@ -13,6 +13,9 @@ import { FindAllCommentsByPostIdQuery } from '../repositories/find-all-comments-
 import { UpdateCommentCommand } from '../repositories/update-comment.command';
 import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
+import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { PaginationService } from '@weaver2/pagination';
 
 @Injectable()
 export class CommentService {
@@ -41,6 +44,53 @@ export class CommentService {
     // Check if post exists
     await this.postService.findPostById(postId);
     return FindAllCommentsByPostIdQuery(this.prisma, postId);
+  }
+
+  async findCommentsByPostIdWithPagination(
+    postId: string,
+    paginationDto: PaginationRequestDto,
+  ): Promise<PaginationResponseDto<CommentDto>> {
+    // Check if post exists
+    await this.postService.findPostById(postId);
+
+    const { skip, take } = PaginationService.getPaginationParams({
+      page: paginationDto.page,
+      limit: paginationDto.limit,
+    });
+
+    const orderBy = PaginationService.parseSort(paginationDto.sort);
+
+    const [comments, total] = await Promise.all([
+      this.prisma.comment.findMany({
+        skip,
+        take,
+        where: {
+          postId,
+        },
+        orderBy,
+        include: {
+          author: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.comment.count({
+        where: {
+          postId,
+        },
+      }),
+    ]);
+
+    return PaginationService.buildResponse(
+      comments,
+      total,
+      paginationDto.page || 1,
+      paginationDto.limit || 10,
+    );
   }
 
   async findCommentById(id: string): Promise<CommentDto> {

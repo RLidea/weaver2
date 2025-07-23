@@ -8,23 +8,31 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BoardService } from '../services/board.service';
+import { PostService } from '../services/post.service';
 import { CreateBoardDto } from '../dto/create-board.dto';
 import { UpdateBoardDto } from '../dto/update-board.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
+import { PostDto } from '../dto/post.dto';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 
 @ApiTags('Board')
 @Controller({ path: 'boards', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class BoardController {
-  constructor(private readonly boardService: BoardService) {}
+  constructor(
+    private readonly boardService: BoardService,
+    private readonly postService: PostService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -46,6 +54,19 @@ export class BoardController {
   @ApiStandardResponses({ type: BoardDto })
   async findBoardById(@Param('id') id: string): Promise<BoardDto> {
     return this.boardService.findBoardById(id);
+  }
+
+  @Get(':boardId/posts')
+  @ApiOperation({ summary: '특정 게시판의 게시글 목록 조회 (페이지네이션)' })
+  @ApiStandardResponses({ type: PostDto, isArray: true })
+  async getBoardPosts(
+    @Param('boardId') boardId: string,
+    @Query() paginationDto: PaginationRequestDto,
+  ): Promise<PaginationResponseDto<PostDto>> {
+    return this.postService.findPostsByBoardIdWithPagination(
+      boardId,
+      paginationDto,
+    );
   }
 
   @Patch(':id')

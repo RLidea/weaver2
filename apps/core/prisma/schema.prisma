@@ -135,23 +135,32 @@ model Board {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
+  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   posts       Post[]
+  categories  PostCategory[]
 }
 
 model Post {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   title     String
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status    PostStatus @default(PUBLISHED)
+  isSecret  Boolean    @default(false)
+  isPinned  Boolean    @default(false)
+  priority  Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   boardId String
   board   Board  @relation(fields: [boardId], references: [id])
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
+
+  categoryId String?
+  category   PostCategory? @relation(fields: [categoryId], references: [id])
 
   comments Comment[]
 }
@@ -167,6 +176,32 @@ model Comment {
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
+}
+
+model PostCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id])
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardId, name])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
 }
 
 model EmailTemplate {

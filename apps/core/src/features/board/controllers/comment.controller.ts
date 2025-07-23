@@ -44,9 +44,7 @@ export class CommentController {
   @Get()
   @ApiOperation({ summary: '댓글 조회 (postId 쿼리 파라미터로 필터링 가능)' })
   @ApiStandardResponses({ type: CommentDto, isArray: true })
-  async findComments(
-    @Query('postId') postId?: string,
-  ): Promise<CommentDto[]> {
+  async findComments(@Query('postId') postId?: string): Promise<CommentDto[]> {
     if (postId) {
       return this.commentService.findAllCommentsByPostId(postId);
     }
