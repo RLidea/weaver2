@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -20,7 +21,7 @@ import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
 
 @ApiTags('Post')
-@Controller({ path: 'boards/:boardId/posts', version: '1' })
+@Controller({ path: 'posts', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class PostController {
   constructor(private readonly postService: PostService) {}
@@ -30,20 +31,23 @@ export class PostController {
   @ApiOperation({ summary: 'Create a new post' })
   @ApiStandardResponses({ type: PostDto })
   async createPost(
-    @Param('boardId') boardId: string,
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() createPostDto: CreatePostDto,
   ): Promise<PostDto> {
-    return this.postService.createPost(boardId, authUser.id, createPostDto);
+    return this.postService.createPost(createPostDto.boardId, authUser.id, createPostDto);
   }
 
   @Get()
-  @ApiOperation({ summary: '특정 게시판의 모든 게시글 조회' })
+  @ApiOperation({ summary: '게시글 조회 (boardId 쿼리 파라미터로 필터링 가능)' })
   @ApiStandardResponses({ type: PostDto, isArray: true })
-  async findAllPostsByBoardId(
-    @Param('boardId') boardId: string,
+  async findPosts(
+    @Query('boardId') boardId?: string,
   ): Promise<PostDto[]> {
-    return this.postService.findAllPostsByBoardId(boardId);
+    if (boardId) {
+      return this.postService.findAllPostsByBoardId(boardId);
+    }
+    // TODO: 전체 게시글 조회 메서드 구현 필요
+    throw new Error('boardId query parameter is required');
   }
 
   @Get(':postId')

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -20,7 +21,7 @@ import { CommentDto } from '../dto/comment.dto';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 
 @ApiTags('Comment')
-@Controller({ path: 'posts/:postId/comments', version: '1' })
+@Controller({ path: 'comments', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
@@ -30,24 +31,27 @@ export class CommentController {
   @ApiOperation({ summary: 'Create a new comment' })
   @ApiStandardResponses({ type: CommentDto })
   async createComment(
-    @Param('postId') postId: string,
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() createCommentDto: CreateCommentDto,
   ): Promise<CommentDto> {
     return this.commentService.createComment(
-      postId,
+      createCommentDto.postId,
       authUser.id,
       createCommentDto,
     );
   }
 
   @Get()
-  @ApiOperation({ summary: '특정 게시글의 모든 댓글 조회' })
+  @ApiOperation({ summary: '댓글 조회 (postId 쿼리 파라미터로 필터링 가능)' })
   @ApiStandardResponses({ type: CommentDto, isArray: true })
-  async findAllCommentsByPostId(
-    @Param('postId') postId: string,
+  async findComments(
+    @Query('postId') postId?: string,
   ): Promise<CommentDto[]> {
-    return this.commentService.findAllCommentsByPostId(postId);
+    if (postId) {
+      return this.commentService.findAllCommentsByPostId(postId);
+    }
+    // TODO: 전체 댓글 조회 메서드 구현 필요
+    throw new Error('postId query parameter is required');
   }
 
   @Get(':commentId')
