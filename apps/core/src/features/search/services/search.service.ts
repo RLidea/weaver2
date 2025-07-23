@@ -75,12 +75,12 @@ export class SearchService {
       SELECT 
         p.*,
         ts_rank(
-          to_tsvector('korean', p.title || ' ' || p.content), 
-          to_tsquery('korean', $1)
+          to_tsvector('simple', p.title || ' ' || p.content), 
+          to_tsquery('simple', $1)
         ) as rank
       FROM "Post" p
       WHERE 
-        to_tsvector('korean', p.title || ' ' || p.content) @@ to_tsquery('korean', $1)
+        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', $1)
         AND p.status = 'PUBLISHED'
         AND p."isSecret" = false
         ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
@@ -138,7 +138,7 @@ export class SearchService {
       SELECT COUNT(*) as count
       FROM "Post" p
       WHERE 
-        to_tsvector('korean', p.title || ' ' || p.content) @@ to_tsquery('korean', $1)
+        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', $1)
         AND p.status = 'PUBLISHED'
         AND p."isSecret" = false
         ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
@@ -164,13 +164,13 @@ export class SearchService {
       SELECT 
         c.*,
         ts_rank(
-          to_tsvector('korean', c.content), 
-          to_tsquery('korean', $1)
+          to_tsvector('simple', c.content), 
+          to_tsquery('simple', $1)
         ) as rank
       FROM "Comment" c
       ${boardId ? `JOIN "Post" p ON c."postId" = p.id` : ''}
       WHERE 
-        to_tsvector('korean', c.content) @@ to_tsquery('korean', $1)
+        to_tsvector('simple', c.content) @@ to_tsquery('simple', $1)
         ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
       ORDER BY 
         rank DESC,
@@ -226,7 +226,7 @@ export class SearchService {
       FROM "Comment" c
       ${boardId ? `JOIN "Post" p ON c."postId" = p.id` : ''}
       WHERE 
-        to_tsvector('korean', c.content) @@ to_tsquery('korean', $1)
+        to_tsvector('simple', c.content) @@ to_tsquery('simple', $1)
         ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
     `,
       query,

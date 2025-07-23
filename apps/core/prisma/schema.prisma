@@ -165,8 +165,6 @@ model Post {
 
   comments Comment[]
 
-  // Full-text Search 인덱스
-  @@index([title, content], type: Gin, name: "post_fulltext_idx")
   @@index([boardId, status, isPinned, priority, viewCount], name: "post_list_idx")
 }
 
@@ -182,8 +180,6 @@ model Comment {
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
 
-  // Full-text Search 인덱스
-  @@index([content], type: Gin, name: "comment_fulltext_idx")
   @@index([postId, createdAt], name: "comment_list_idx")
 }
 
