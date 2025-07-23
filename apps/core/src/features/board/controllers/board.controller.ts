@@ -25,6 +25,7 @@ import { Role } from '@prisma/client';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 
 @ApiTags('Board')
 @Controller({ path: 'boards', version: '1' })
@@ -52,7 +53,9 @@ export class BoardController {
 
   @Get('public')
   @Public()
-  @ApiOperation({ summary: '공개 게시판 목록 조회 (비로그인 사용자 접근 가능)' })
+  @ApiOperation({
+    summary: '공개 게시판 목록 조회 (비로그인 사용자 접근 가능)',
+  })
   @ApiStandardResponses({ type: BoardDto, isArray: true })
   async findPublicBoards(): Promise<BoardDto[]> {
     return this.boardService.findPublicBoards();
@@ -66,29 +69,20 @@ export class BoardController {
   }
 
   @Get(':boardId/posts')
-  @ApiOperation({ summary: '특정 게시판의 게시글 목록 조회 (페이지네이션, 인증된 사용자)' })
+  @Public()
+  @ApiOperation({
+    summary: '특정 게시판의 게시글 목록 조회 (공개 게시판은 비로그인 접근 가능)',
+  })
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async getBoardPosts(
     @Param('boardId') boardId: string,
     @Query() paginationDto: PaginationRequestDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<PaginationResponseDto<PostDto>> {
     return this.postService.findPostsByBoardIdWithPagination(
       boardId,
       paginationDto,
-    );
-  }
-
-  @Get('public/:boardId/posts')
-  @Public()
-  @ApiOperation({ summary: '공개 게시판의 게시글 목록 조회 (비로그인 사용자 접근 가능)' })
-  @ApiStandardResponses({ type: PostDto, isArray: true })
-  async getPublicBoardPosts(
-    @Param('boardId') boardId: string,
-    @Query() paginationDto: PaginationRequestDto,
-  ): Promise<PaginationResponseDto<PostDto>> {
-    return this.postService.findPublicPostsByBoardIdWithPagination(
-      boardId,
-      paginationDto,
+      authUser,
     );
   }
 

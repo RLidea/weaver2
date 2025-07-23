@@ -62,19 +62,15 @@ export class PostController {
     throw new Error('boardId query parameter is required');
   }
 
-  @Get('public/:postId')
-  @Public()
-  @ApiOperation({ summary: '공개 게시글 조회 (비로그인 사용자 접근 가능, 조회수 증가)' })
-  @ApiStandardResponses({ type: PostDto })
-  async findPublicPostById(@Param('postId') postId: string): Promise<PostDto> {
-    return this.postService.findPublicPostById(postId, true); // 조회수 증가
-  }
-
   @Get(':postId')
-  @ApiOperation({ summary: '특정 게시글 조회 (조회수 증가)' })
+  @Public()
+  @ApiOperation({ summary: '특정 게시글 조회 (공개 게시글은 비로그인 접근 가능, 조회수 증가)' })
   @ApiStandardResponses({ type: PostDto })
-  async findPostById(@Param('postId') postId: string): Promise<PostDto> {
-    return this.postService.findPostById(postId, true); // 조회수 증가
+  async findPostById(
+    @Param('postId') postId: string,
+    @AuthUser() authUser?: CommonAuthUserDto,
+  ): Promise<PostDto> {
+    return this.postService.findPostById(postId, true, authUser); // 조회수 증가
   }
 
   @Get(':postId/comments')
