@@ -98,7 +98,7 @@ export class SearchService {
     );
 
     // 관계 데이터를 포함한 완전한 데이터 조회
-    const postIds = (rawResults as any[]).map((result: any) => result.id);
+    const postIds = (rawResults as { id: string }[]).map((result) => result.id);
 
     if (postIds.length === 0) return [];
 
@@ -146,7 +146,7 @@ export class SearchService {
       query,
     );
 
-    return Number((result as any[])[0].count);
+    return Number((result as { count: number }[])[0].count);
   }
 
   private async searchCommentsWithFullText(
@@ -182,7 +182,9 @@ export class SearchService {
       skip,
     );
 
-    const commentIds = (rawResults as any[]).map((result: any) => result.id);
+    const commentIds = (rawResults as { id: string }[]).map(
+      (result) => result.id,
+    );
 
     if (commentIds.length === 0) return [];
 
@@ -232,6 +234,6 @@ export class SearchService {
       query,
     );
 
-    return Number((result as any[])[0].count);
+    return Number((result as { count: number }[])[0].count);
   }
 }

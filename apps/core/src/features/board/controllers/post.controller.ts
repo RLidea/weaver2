@@ -62,12 +62,24 @@ export class PostController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: '게시글 조회 (boardId 쿼리 파라미터로 필터링 가능)',
   })
   @ApiStandardResponses({ type: PostDto, isArray: true })
-  async findPosts(@Query('boardId') boardId?: string): Promise<PostDto[]> {
+  async findPosts(
+    @Query('boardId') boardId?: string,
+    @AuthUser() authUser?: CommonAuthUserDto,
+  ): Promise<PostDto[]> {
     if (boardId) {
+      // 읽기 권한 체크
+      await this.permissionService.requirePermission(
+        boardId,
+        ActionType.READ,
+        authUser,
+        '게시글 조회 권한이 없습니다.',
+      );
+
       return this.postService.findAllPostsByBoardId(boardId);
     }
     // TODO: 전체 게시글 조회 메서드 구현 필요
@@ -99,12 +111,25 @@ export class PostController {
   }
 
   @Get(':postId/comments')
+  @Public()
   @ApiOperation({ summary: '특정 게시글의 댓글 목록 조회 (페이지네이션)' })
   @ApiStandardResponses({ type: CommentDto, isArray: true })
   async getPostComments(
     @Param('postId') postId: string,
     @Query() paginationDto: PaginationRequestDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<PaginationResponseDto<CommentDto>> {
+    // 게시글 조회해서 boardId 확인
+    const post = await this.postService.findPostById(postId, false, authUser);
+
+    // 읽기 권한 체크 (댓글 조회는 게시글 읽기 권한과 동일)
+    await this.permissionService.requirePermission(
+      post.boardId,
+      ActionType.READ,
+      authUser,
+      '댓글 조회 권한이 없습니다.',
+    );
+
     return this.commentService.findCommentsByPostIdWithPagination(
       postId,
       paginationDto,

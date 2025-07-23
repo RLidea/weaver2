@@ -170,10 +170,7 @@ export class PostService {
     });
   }
 
-  async updatePost(
-    id: string,
-    dto: UpdatePostDto,
-  ): Promise<PostDto> {
+  async updatePost(id: string, dto: UpdatePostDto): Promise<PostDto> {
     const updatedPost = await UpdatePostCommand(this.prisma, id, dto);
     return updatedPost;
   }

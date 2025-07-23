@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
@@ -101,32 +97,14 @@ export class CommentService {
     return comment;
   }
 
-  async updateComment(
-    id: string,
-    authorId: string,
-    dto: UpdateCommentDto,
-  ): Promise<CommentDto> {
-    const comment = await this.findCommentById(id);
-
-    if (comment.authorId !== authorId) {
-      throw new UnauthorizedException(
-        'You are not the author of this comment.',
-      );
-    }
-
+  async updateComment(id: string, dto: UpdateCommentDto): Promise<CommentDto> {
+    // 권한 체크는 controller에서 BoardPermissionService로 처리됨
     const updatedComment = await UpdateCommentCommand(this.prisma, id, dto);
     return updatedComment;
   }
 
-  async deleteComment(id: string, authorId: string): Promise<void> {
-    const comment = await this.findCommentById(id);
-
-    if (comment.authorId !== authorId) {
-      throw new UnauthorizedException(
-        'You are not the author of this comment.',
-      );
-    }
-
+  async deleteComment(id: string): Promise<void> {
+    // 권한 체크는 controller에서 BoardPermissionService로 처리됨
     await DeleteCommentCommand(this.prisma, id);
   }
 }

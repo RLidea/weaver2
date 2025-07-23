@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -11,7 +12,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BoardService } from '../services/board.service';
 import { PostService } from '../services/post.service';
 import { CreateBoardDto } from '../dto/create-board.dto';
@@ -20,8 +21,6 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
 import { PostDto } from '../dto/post.dto';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
@@ -59,7 +58,18 @@ export class BoardController {
   @Public()
   @ApiOperation({ summary: '특정 게시판 조회' })
   @ApiStandardResponses({ type: BoardDto })
-  async findBoardById(@Param('id') id: string): Promise<BoardDto> {
+  async findBoardById(
+    @Param('id') id: string,
+    @AuthUser() authUser?: CommonAuthUserDto,
+  ): Promise<BoardDto> {
+    // 읽기 권한 체크
+    await this.permissionService.requirePermission(
+      id,
+      ActionType.READ,
+      authUser,
+      '게시판 조회 권한이 없습니다.',
+    );
+
     return this.boardService.findBoardById(id);
   }
 
@@ -90,27 +100,39 @@ export class BoardController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
-  @ApiBearerAuth('ACCESS-TOKEN')
+  @Public()
   @ApiOperation({ summary: '게시판 수정 (관리자 전용)' })
   @ApiStandardResponses({ type: BoardDto })
   async updateBoard(
     @Param('id') id: string,
     @Body() updateBoardDto: UpdateBoardDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<BoardDto> {
+    // 관리자 권한 체크 (게시판 수정은 ADMIN만 가능)
+    if (!authUser?.isLogin || authUser.role !== 'ADMIN') {
+      throw new ForbiddenException('게시판 수정은 관리자만 가능합니다.');
+    }
+
     return this.boardService.updateBoard(id, updateBoardDto);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: 'Delete a board (Admin only)' })
   @ApiStandardResponses({
     status: 204,
     description: 'Board deleted successfully',
   })
-  async deleteBoard(@Param('id') id: string): Promise<void> {
+  async deleteBoard(
+    @Param('id') id: string,
+    @AuthUser() authUser?: CommonAuthUserDto,
+  ): Promise<void> {
+    // 관리자 권한 체크 (게시판 삭제는 ADMIN만 가능)
+    if (!authUser?.isLogin || authUser.role !== 'ADMIN') {
+      throw new ForbiddenException('게시판 삭제는 관리자만 가능합니다.');
+    }
+
     await this.boardService.deleteBoard(id);
   }
 }

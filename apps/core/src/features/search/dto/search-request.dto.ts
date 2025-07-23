@@ -40,7 +40,7 @@ export class SearchRequestDto {
     required: false,
   })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(value as string))
   page?: number = 1;
 
   @ApiProperty({
@@ -49,6 +49,6 @@ export class SearchRequestDto {
     required: false,
   })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(value as string))
   limit?: number = 10;
 }

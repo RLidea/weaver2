@@ -46,17 +46,6 @@ export class BoardService {
     return FindAllBoardsQuery(this.prisma);
   }
 
-  async findPublicBoards(): Promise<BoardDto[]> {
-    return this.prisma.board.findMany({
-      where: {
-        isPublic: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-  }
-
   async findBoardById(id: string): Promise<BoardDto> {
     const board = await FindBoardByIdQuery(this.prisma, id);
     if (!board) {
