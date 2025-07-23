@@ -26,6 +26,8 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
+import { BoardPermissionService } from '../services/board-permission.service';
+import { ActionType } from '@prisma/client';
 
 @ApiTags('Board')
 @Controller({ path: 'boards', version: '1' })
@@ -34,6 +36,7 @@ export class BoardController {
   constructor(
     private readonly boardService: BoardService,
     private readonly postService: PostService,
+    private readonly permissionService: BoardPermissionService,
   ) {}
 
   @Post()
@@ -45,23 +48,15 @@ export class BoardController {
   }
 
   @Get()
-  @ApiOperation({ summary: '모든 게시판 조회 (인증된 사용자)' })
+  @Public()
+  @ApiOperation({ summary: '모든 게시판 조회' })
   @ApiStandardResponses({ type: BoardDto, isArray: true })
   async findAllBoards(): Promise<BoardDto[]> {
     return this.boardService.findAllBoards();
   }
 
-  @Get('public')
-  @Public()
-  @ApiOperation({
-    summary: '공개 게시판 목록 조회 (비로그인 사용자 접근 가능)',
-  })
-  @ApiStandardResponses({ type: BoardDto, isArray: true })
-  async findPublicBoards(): Promise<BoardDto[]> {
-    return this.boardService.findPublicBoards();
-  }
-
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: '특정 게시판 조회' })
   @ApiStandardResponses({ type: BoardDto })
   async findBoardById(@Param('id') id: string): Promise<BoardDto> {
@@ -71,7 +66,7 @@ export class BoardController {
   @Get(':boardId/posts')
   @Public()
   @ApiOperation({
-    summary: '특정 게시판의 게시글 목록 조회 (공개 게시판은 비로그인 접근 가능)',
+    summary: '특정 게시판의 게시글 목록 조회',
   })
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async getBoardPosts(
@@ -79,6 +74,14 @@ export class BoardController {
     @Query() paginationDto: PaginationRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<PaginationResponseDto<PostDto>> {
+    // 읽기 권한 체크
+    await this.permissionService.requirePermission(
+      boardId,
+      ActionType.READ,
+      authUser,
+      '게시판 읽기 권한이 없습니다.',
+    );
+
     return this.postService.findPostsByBoardIdWithPagination(
       boardId,
       paginationDto,

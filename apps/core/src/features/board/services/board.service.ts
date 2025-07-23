@@ -12,10 +12,14 @@ import { FindBoardByIdQuery } from '../repositories/find-board-by-id.query';
 import { UpdateBoardDto } from '../dto/update-board.dto';
 import { UpdateBoardCommand } from '../repositories/update-board.command';
 import { DeleteBoardCommand } from '../repositories/delete-board.command';
+import { BoardPermissionService } from './board-permission.service';
 
 @Injectable()
 export class BoardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionService: BoardPermissionService,
+  ) {}
 
   async createBoard(dto: CreateBoardDto): Promise<BoardDto> {
     const existingBoard = await this.prisma.board.findUnique({
@@ -31,6 +35,10 @@ export class BoardService {
       dto.name,
       dto.description,
     );
+
+    // 기본 권한 설정 생성
+    await this.permissionService.createDefaultPermissions(board.id);
+
     return board;
   }
 

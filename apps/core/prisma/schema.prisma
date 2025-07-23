@@ -135,11 +135,30 @@ model Board {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   posts       Post[]
   categories  PostCategory[]
+  permissions BoardPermission[]
+}
+
+model BoardPermission {
+  id      String     @id @default(uuid())
+  boardId String
+  board   Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  
+  action ActionType
+  
+  // 권한 주체들 (OR 조건으로 동작)
+  allowAnonymous Boolean   @default(false)  // 비로그인 허용
+  allowedRoles   Role[]    // 특정 역할들
+  allowedUserIds String[]  // 특정 사용자 ID들
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 같은 보드의 같은 액션은 하나의 권한 설정만
+  @@unique([boardId, action])
 }
 
 model Post {
@@ -207,6 +226,16 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
   DELETED
+}
+
+enum ActionType {
+  READ
+  WRITE
+  EDIT_OWN
+  EDIT_ALL
+  DELETE_OWN
+  DELETE_ALL
+  COMMENT
 }
 
 model EmailTemplate {

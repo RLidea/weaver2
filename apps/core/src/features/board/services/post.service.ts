@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
@@ -24,15 +20,16 @@ export class PostService {
 
   async createPost(
     boardId: string,
-    authorId: string,
+    authorId: string | undefined,
     dto: CreatePostDto,
   ): Promise<PostDto> {
     // Check if board exists
     await this.boardService.findBoardById(boardId);
+
     const post = await this.prisma.post.create({
       data: {
         board: { connect: { id: boardId } },
-        author: { connect: { id: authorId } },
+        author: authorId ? { connect: { id: authorId } } : undefined,
         title: dto.title,
         content: dto.content,
       },
@@ -75,15 +72,7 @@ export class PostService {
     authUser?: CommonAuthUserDto,
   ): Promise<PaginationResponseDto<PostDto>> {
     // Check if board exists
-    const board = await this.boardService.findBoardById(boardId);
-
-    const isLoggedIn = authUser?.isLogin === true;
-    const isPublicBoard = board.isPublic;
-
-    // 비공개 게시판인데 로그인하지 않은 경우
-    if (!isPublicBoard && !isLoggedIn) {
-      throw new NotFoundException(`Board with ID '${boardId}' not found.`);
-    }
+    await this.boardService.findBoardById(boardId);
 
     const { skip, take } = PaginationService.getPaginationParams({
       page: paginationDto.page,
@@ -92,7 +81,8 @@ export class PostService {
 
     const orderBy = PaginationService.parseSort(paginationDto.sort);
 
-    // 로그인하지 않은 사용자는 공개 게시판의 공개 게시글만 조회 가능
+    // 로그인하지 않은 사용자는 비밀글 제외
+    const isLoggedIn = authUser?.isLogin === true;
     const whereCondition = {
       boardId,
       status: 'PUBLISHED' as const,
@@ -129,17 +119,21 @@ export class PostService {
     );
   }
 
-
   async findPostById(
-    id: string, 
-    incrementView = false, 
-    authUser?: CommonAuthUserDto
+    id: string,
+    incrementView = false,
+    authUser?: CommonAuthUserDto,
   ): Promise<PostDto> {
+    const isLoggedIn = authUser?.isLogin === true;
+    const whereCondition = {
+      id,
+      status: 'PUBLISHED' as const,
+      // 로그인하지 않은 사용자는 비밀글 접근 불가
+      ...(!isLoggedIn && { isSecret: false }),
+    };
+
     const post = await this.prisma.post.findUnique({
-      where: { 
-        id,
-        status: 'PUBLISHED',
-      },
+      where: whereCondition,
       include: {
         board: true,
         author: {
@@ -156,21 +150,6 @@ export class PostService {
       throw new NotFoundException(`Post with ID '${id}' not found.`);
     }
 
-    // 접근 권한 검사
-    const isLoggedIn = authUser?.isLogin === true;
-    const isPublicBoard = post.board.isPublic;
-    const isSecretPost = post.isSecret;
-
-    // 비공개 게시판인데 로그인하지 않은 경우
-    if (!isPublicBoard && !isLoggedIn) {
-      throw new NotFoundException(`Post with ID '${id}' not found.`);
-    }
-
-    // 공개 게시판의 비밀글인데 로그인하지 않은 경우
-    if (isPublicBoard && isSecretPost && !isLoggedIn) {
-      throw new NotFoundException(`Post with ID '${id}' not found.`);
-    }
-
     // 조회수 증가 (선택적)
     if (incrementView) {
       await this.incrementViewCount(id);
@@ -179,7 +158,6 @@ export class PostService {
 
     return post;
   }
-
 
   async incrementViewCount(postId: string): Promise<void> {
     await this.prisma.post.update({
@@ -194,26 +172,13 @@ export class PostService {
 
   async updatePost(
     id: string,
-    authorId: string,
     dto: UpdatePostDto,
   ): Promise<PostDto> {
-    const post = await this.findPostById(id, false, { id: authorId, isLogin: true } as CommonAuthUserDto);
-
-    if (post.authorId !== authorId) {
-      throw new UnauthorizedException('You are not the author of this post.');
-    }
-
     const updatedPost = await UpdatePostCommand(this.prisma, id, dto);
     return updatedPost;
   }
 
-  async deletePost(id: string, authorId: string): Promise<void> {
-    const post = await this.findPostById(id, false, { id: authorId, isLogin: true } as CommonAuthUserDto);
-
-    if (post.authorId !== authorId) {
-      throw new UnauthorizedException('You are not the author of this post.');
-    }
-
+  async deletePost(id: string): Promise<void> {
     await DeletePostCommand(this.prisma, id);
   }
 }
