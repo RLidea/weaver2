@@ -62,10 +62,10 @@ export class PostController {
   }
 
   @Get(':postId')
-  @ApiOperation({ summary: '특정 게시글 조회' })
+  @ApiOperation({ summary: '특정 게시글 조회 (조회수 증가)' })
   @ApiStandardResponses({ type: PostDto })
   async findPostById(@Param('postId') postId: string): Promise<PostDto> {
-    return this.postService.findPostById(postId);
+    return this.postService.findPostById(postId, true); // 조회수 증가
   }
 
   @Get(':postId/comments')

@@ -25,4 +25,11 @@ export class CommentDto {
     username: string;
     displayName: string;
   };
+
+  @ApiProperty({ description: 'Post information (for search results)' })
+  post?: {
+    id: string;
+    title: string;
+    boardId: string;
+  };
 }

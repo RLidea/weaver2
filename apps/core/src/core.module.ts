@@ -18,6 +18,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './infrastructure/upload/upload.module';
 import { TermsModule } from './features/terms/terms.module';
 import { BoardModule } from './features/board/board.module';
+import { SearchModule } from './features/search/search.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { BoardModule } from './features/board/board.module';
     UploadModule,
     TermsModule,
     BoardModule,
+    SearchModule,
     HealthModule,
     StaticModule,
   ],

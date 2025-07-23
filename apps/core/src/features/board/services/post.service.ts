@@ -7,9 +7,6 @@ import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
 import { PostDto } from '../dto/post.dto';
-import { CreatePostCommand } from '../repositories/create-post.command';
-import { FindPostByIdQuery } from '../repositories/find-post-by-id.query';
-import { FindAllPostsByBoardIdQuery } from '../repositories/find-all-posts-by-board-id.query';
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
@@ -31,20 +28,44 @@ export class PostService {
   ): Promise<PostDto> {
     // Check if board exists
     await this.boardService.findBoardById(boardId);
-    const post = await CreatePostCommand(
-      this.prisma,
-      boardId,
-      authorId,
-      dto.title,
-      dto.content,
-    );
+    const post = await this.prisma.post.create({
+      data: {
+        board: { connect: { id: boardId } },
+        author: { connect: { id: authorId } },
+        title: dto.title,
+        content: dto.content,
+      },
+      include: {
+        board: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+      },
+    });
     return post;
   }
 
   async findAllPostsByBoardId(boardId: string): Promise<PostDto[]> {
     // Check if board exists
     await this.boardService.findBoardById(boardId);
-    return FindAllPostsByBoardIdQuery(this.prisma, boardId);
+    return this.prisma.post.findMany({
+      where: { boardId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+        board: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findPostsByBoardIdWithPagination(
@@ -97,12 +118,43 @@ export class PostService {
     );
   }
 
-  async findPostById(id: string): Promise<PostDto> {
-    const post = await FindPostByIdQuery(this.prisma, id);
+  async findPostById(id: string, incrementView = false): Promise<PostDto> {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        board: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+      },
+    });
+
     if (!post) {
       throw new NotFoundException(`Post with ID '${id}' not found.`);
     }
+
+    // 조회수 증가 (선택적)
+    if (incrementView) {
+      await this.incrementViewCount(id);
+      post.viewCount = post.viewCount + 1;
+    }
+
     return post;
+  }
+
+  async incrementViewCount(postId: string): Promise<void> {
+    await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        viewCount: {
+          increment: 1,
+        },
+      },
+    });
   }
 
   async updatePost(

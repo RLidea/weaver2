@@ -150,6 +150,7 @@ model Post {
   isSecret  Boolean    @default(false)
   isPinned  Boolean    @default(false)
   priority  Int        @default(0)
+  viewCount Int        @default(0)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -163,6 +164,10 @@ model Post {
   category   PostCategory? @relation(fields: [categoryId], references: [id])
 
   comments Comment[]
+
+  // Full-text Search 인덱스
+  @@index([title, content], type: Gin, name: "post_fulltext_idx")
+  @@index([boardId, status, isPinned, priority, viewCount], name: "post_list_idx")
 }
 
 model Comment {
@@ -176,6 +181,10 @@ model Comment {
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
+
+  // Full-text Search 인덱스
+  @@index([content], type: Gin, name: "comment_fulltext_idx")
+  @@index([postId, createdAt], name: "comment_list_idx")
 }
 
 model PostCategory {

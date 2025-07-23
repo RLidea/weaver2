@@ -11,6 +11,9 @@ export class PostDto {
   @ApiProperty({ description: 'Post content' })
   content: string;
 
+  @ApiProperty({ description: 'View count' })
+  viewCount: number;
+
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 
