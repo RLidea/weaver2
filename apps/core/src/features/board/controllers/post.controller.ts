@@ -20,7 +20,7 @@ import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
 
 @ApiTags('Post')
-@Controller({ path: 'posts', version: '1' })
+@Controller({ path: 'boards/:boardId/posts', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class PostController {
   constructor(private readonly postService: PostService) {}

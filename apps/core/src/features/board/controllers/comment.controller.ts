@@ -20,7 +20,7 @@ import { CommentDto } from '../dto/comment.dto';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 
 @ApiTags('Comment')
-@Controller({ path: 'comments', version: '1' })
+@Controller({ path: 'posts/:postId/comments', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
