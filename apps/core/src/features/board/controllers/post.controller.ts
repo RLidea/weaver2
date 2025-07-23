@@ -23,6 +23,7 @@ import { PostDto } from '../dto/post.dto';
 import { CommentDto } from '../dto/comment.dto';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { Public } from '@weaver2/common/decorator/public.decorator';
 
 @ApiTags('Post')
 @Controller({ path: 'posts', version: '1' })
@@ -59,6 +60,14 @@ export class PostController {
     }
     // TODO: 전체 게시글 조회 메서드 구현 필요
     throw new Error('boardId query parameter is required');
+  }
+
+  @Get('public/:postId')
+  @Public()
+  @ApiOperation({ summary: '공개 게시글 조회 (비로그인 사용자 접근 가능, 조회수 증가)' })
+  @ApiStandardResponses({ type: PostDto })
+  async findPublicPostById(@Param('postId') postId: string): Promise<PostDto> {
+    return this.postService.findPublicPostById(postId, true); // 조회수 증가
   }
 
   @Get(':postId')
