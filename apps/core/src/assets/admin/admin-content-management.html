@@ -7,6 +7,117 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/admin/css/admin-common.css" rel="stylesheet">
     <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
+    <link href="/shared/components/data-table/data-table.css" rel="stylesheet">
+    <link href="/shared/components/modal/common-modal.css" rel="stylesheet">
+    <link href="/shared/components/modal/board-permissions-modal.css" rel="stylesheet">
+    <link href="/shared/components/modal/post-detail-modal.css" rel="stylesheet">
+    <style>
+        .content-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        
+        .content-tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .content-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .content-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-input {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        
+        .permission-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .permission-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .permission-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .permission-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
 </head>
 <body class="bg-pattern">
 <div id="admin-menu-placeholder"></div>
@@ -14,38 +125,71 @@
 <div class="main-content">
     <div class="dashboard-header card">
         <h1 class="text-primary text-shadow"><i class="fas fa-file-alt"></i> Content Management</h1>
-        <p class="text-secondary">Manage articles, pages, and media</p>
+        <p class="text-secondary">Manage boards, posts, comments, and permissions</p>
     </div>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md users">
-                    <i class="fas fa-newspaper"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">Articles</div>
-                    <div class="card-description text-secondary">Manage blog posts and news</div>
-                </div>
-            </div>
-            <div class="card-number text-primary"></div>
-        </div>
+    <!-- Content Statistics -->
+    <div id="content-stats" class="stats-grid">
+        <!-- Stats will be loaded here -->
+    </div>
 
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md search">
-                    <i class="fas fa-images"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">Media Library</div>
-                    <div class="card-description text-secondary">Upload and organize images/videos</div>
-                </div>
-            </div>
-            <div class="card-number text-primary"></div>
+    <!-- Content Tabs -->
+    <div class="content-tabs">
+        <button class="content-tab active" data-tab="boards">
+            <i class="fas fa-clipboard-list"></i> Boards
+        </button>
+        <button class="content-tab" data-tab="posts">
+            <i class="fas fa-file-text"></i> Posts
+        </button>
+        <button class="content-tab" data-tab="comments">
+            <i class="fas fa-comments"></i> Comments
+        </button>
+    </div>
+
+    <!-- Boards Tab -->
+    <div id="boards-tab" class="tab-content active">
+        <div id="boards-table-container">
+            <!-- Boards table will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Posts Tab -->
+    <div id="posts-tab" class="tab-content">
+        <div class="filters">
+            <select id="posts-board-filter" class="filter-input">
+                <option value="">All Boards</option>
+                <!-- Options will be loaded -->
+            </select>
+            <select id="posts-status-filter" class="filter-input">
+                <option value="">All Status</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="DRAFT">Draft</option>
+                <option value="ARCHIVED">Archived</option>
+            </select>
+            <input type="text" id="posts-search" class="filter-input" placeholder="Search posts...">
+        </div>
+        <div id="posts-table-container">
+            <!-- Posts table will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Comments Tab -->
+    <div id="comments-tab" class="tab-content">
+        <div class="filters">
+            <input type="text" id="comments-search" class="filter-input" placeholder="Search comments...">
+        </div>
+        <div id="comments-table-container">
+            <!-- Comments table will be loaded here -->
         </div>
     </div>
 </div>
 
+<!-- Modals will be created dynamically by modal components -->
+
+<script src="/shared/components/data-table/data-table.js"></script>
+<script src="/shared/components/modal/common-modal.js"></script>
+<script src="/shared/components/modal/board-permissions-modal.js"></script>
+<script src="/shared/components/modal/post-detail-modal.js"></script>
 <script src="/admin/js/admin-menu.js"></script>
 <script src="/admin/js/admin-content-management.js"></script>
 </body>

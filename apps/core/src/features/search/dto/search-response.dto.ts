@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PostDto } from '../../board/dto/post.dto';
 import { CommentDto } from '../../board/dto/comment.dto';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 
 export class SearchResultDto {
   @ApiProperty({
@@ -26,7 +25,16 @@ export class SearchResultDto {
   };
 }
 
-export class SearchResponseDto extends PaginationResponseDto<SearchResultDto> {
+export class SearchResponseDto {
   @ApiProperty({ type: SearchResultDto })
   data: SearchResultDto;
+
+  @ApiProperty({
+    description: 'Query that was searched',
+    example: 'hello world',
+  })
+  query: string;
+
+  @ApiProperty({ description: 'Total number of results found', example: 23 })
+  totalCount: number;
 }

@@ -22,7 +22,7 @@ export class CommentService {
 
   async createComment(
     postId: string,
-    authorId: string,
+    authorId: string | null,
     dto: CreateCommentDto,
   ): Promise<CommentDto> {
     // Check if post exists

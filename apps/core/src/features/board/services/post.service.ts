@@ -10,6 +10,7 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { PaginationService } from '@weaver2/pagination';
 import { CommonAuthUserDto } from '@weaver2/common';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PostService {
@@ -20,19 +21,24 @@ export class PostService {
 
   async createPost(
     boardId: string,
-    authorId: string | undefined,
+    authorId: string | null,
     dto: CreatePostDto,
   ): Promise<PostDto> {
     // Check if board exists
     await this.boardService.findBoardById(boardId);
 
+    const baseData = {
+      board: { connect: { id: boardId } },
+      title: dto.title,
+      content: dto.content,
+    };
+
+    const createData = authorId
+      ? { ...baseData, author: { connect: { id: authorId } } }
+      : baseData;
+
     const post = await this.prisma.post.create({
-      data: {
-        board: { connect: { id: boardId } },
-        author: authorId ? { connect: { id: authorId } } : undefined,
-        title: dto.title,
-        content: dto.content,
-      },
+      data: createData as Prisma.PostCreateInput,
       include: {
         board: true,
         author: {
@@ -44,7 +50,7 @@ export class PostService {
         },
       },
     });
-    return post;
+    return post as PostDto;
   }
 
   async findAllPostsByBoardId(boardId: string): Promise<PostDto[]> {

@@ -40,8 +40,8 @@ export class CommentController {
   @ApiOperation({ summary: 'Create a new comment' })
   @ApiStandardResponses({ type: CommentDto })
   async createComment(
-    @AuthUser() authUser?: CommonAuthUserDto,
     @Body() createCommentDto: CreateCommentDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<CommentDto> {
     // 게시글 조회해서 boardId 확인
     const post = await this.postService.findPostById(
@@ -60,7 +60,7 @@ export class CommentController {
 
     return this.commentService.createComment(
       createCommentDto.postId,
-      authUser?.id,
+      authUser?.id || null,
       createCommentDto,
     );
   }
@@ -125,8 +125,8 @@ export class CommentController {
   @ApiStandardResponses({ type: CommentDto })
   async updateComment(
     @Param('commentId') commentId: string,
-    @AuthUser() authUser?: CommonAuthUserDto,
     @Body() updateCommentDto: UpdateCommentDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<CommentDto> {
     const comment = await this.commentService.findCommentById(commentId);
 
