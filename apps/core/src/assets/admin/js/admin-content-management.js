@@ -37,11 +37,7 @@ class ContentManagement {
     }
 
     setupEventListeners() {
-        // Filters
-        document.getElementById('posts-board-filter')?.addEventListener('change', () => this.loadPosts());
-        document.getElementById('posts-status-filter')?.addEventListener('change', () => this.loadPosts());
-        document.getElementById('posts-search')?.addEventListener('input', this.debounce(() => this.loadPosts(), 500));
-        document.getElementById('comments-search')?.addEventListener('input', this.debounce(() => this.loadComments(), 500));
+        // Event listeners for internal table filters will be handled by WeaverDataTable
     }
 
     setupModals() {
@@ -153,44 +149,52 @@ class ContentManagement {
 
     async loadPosts() {
         try {
-            const boardFilter = document.getElementById('posts-board-filter')?.value || '';
-            const statusFilter = document.getElementById('posts-status-filter')?.value || '';
-            const search = document.getElementById('posts-search')?.value || '';
-            
-            const params = new URLSearchParams({
-                page: '1',
-                limit: '20'
-            });
-            
-            if (boardFilter) params.append('boardId', boardFilter);
-            if (statusFilter) params.append('status', statusFilter);
-            if (search) params.append('search', search);
-
-            const response = await fetch(`/v1/admin/content/posts?${params}`);
+            // Get all data without filtering - WeaverDataTable will handle filtering
+            const response = await fetch('/v1/admin/content/posts?page=1&limit=1000');
             const data = await response.json();
             
-            // WeaverDataTable will handle empty data automatically
-
             const tableData = data.data?.items ? data.data.items.map(post => ({
                 id: post.id,
                 title: post.title.length > 50 ? post.title.substring(0, 50) + '...' : post.title,
                 board: post.board.name,
                 author: post.author?.displayName || 'Anonymous',
-                status: `<span class="badge badge-${post.status.toLowerCase()}">${post.status}</span>`,
+                status: post.status,
                 views: post.viewCount,
                 comments: post._count.comments,
                 created: new Date(post.createdAt).toLocaleDateString(),
-                // Remove actions field - WeaverDataTable will handle this automatically
+                createdAt: post.createdAt, // For date filtering
             })) : [];
+
+            // Get unique board names for filter options
+            const boards = [...new Set(tableData.map(post => post.board))];
 
             const postColumns = [
                 { key: 'title', label: 'Title', sortable: true },
-                { key: 'board', label: 'Board', sortable: true },
+                { 
+                    key: 'board', 
+                    label: 'Board', 
+                    sortable: true, 
+                    filterable: true,
+                    filterOptions: boards
+                },
                 { key: 'author', label: 'Author', sortable: true },
-                { key: 'status', label: 'Status', sortable: true },
+                { 
+                    key: 'status', 
+                    label: 'Status', 
+                    sortable: true, 
+                    filterable: true,
+                    filterOptions: ['PUBLISHED', 'DRAFT', 'ARCHIVED']
+                },
                 { key: 'views', label: 'Views', sortable: true },
                 { key: 'comments', label: 'Comments', sortable: true },
-                { key: 'created', label: 'Created', sortable: true },
+                { 
+                    key: 'createdAt', 
+                    label: 'Created Date', 
+                    sortable: true, 
+                    filterable: true,
+                    filterType: 'dateRange',
+                    type: 'date'
+                },
                 { key: 'actions', label: 'Actions', type: 'actions', sortable: false }
             ];
 
@@ -201,8 +205,9 @@ class ContentManagement {
                     data: tableData,
                     columns: postColumns,
                     title: 'Post Management',
-                    searchable: false, // Using external filters
+                    searchable: true,
                     sortable: true,
+                    filterable: true,
                     pagination: true,
                     perPageOptions: [5, 10, 25],
                     defaultPerPage: 10,
@@ -221,34 +226,31 @@ class ContentManagement {
 
     async loadComments() {
         try {
-            const search = document.getElementById('comments-search')?.value || '';
-            
-            const params = new URLSearchParams({
-                page: '1',
-                limit: '20'
-            });
-            
-            if (search) params.append('search', search);
-
-            const response = await fetch(`/v1/admin/content/comments?${params}`);
+            // Get all data without filtering - WeaverDataTable will handle filtering
+            const response = await fetch('/v1/admin/content/comments?page=1&limit=1000');
             const data = await response.json();
             
-            // WeaverDataTable will handle empty data automatically
-
             const tableData = data.data?.items ? data.data.items.map(comment => ({
                 id: comment.id,
                 content: comment.content.length > 100 ? comment.content.substring(0, 100) + '...' : comment.content,
                 post: comment.post.title.length > 30 ? comment.post.title.substring(0, 30) + '...' : comment.post.title,
                 author: comment.author?.displayName || 'Anonymous',
                 created: new Date(comment.createdAt).toLocaleDateString(),
-                // Remove actions field - WeaverDataTable will handle this automatically
+                createdAt: comment.createdAt, // For date filtering
             })) : [];
 
             const commentColumns = [
                 { key: 'content', label: 'Content', sortable: false },
                 { key: 'post', label: 'Post', sortable: true },
                 { key: 'author', label: 'Author', sortable: true },
-                { key: 'created', label: 'Created', sortable: true },
+                { 
+                    key: 'createdAt', 
+                    label: 'Created Date', 
+                    sortable: true, 
+                    filterable: true,
+                    filterType: 'dateRange',
+                    type: 'date'
+                },
                 { key: 'actions', label: 'Actions', type: 'actions', sortable: false }
             ];
 
@@ -259,8 +261,9 @@ class ContentManagement {
                     data: tableData,
                     columns: commentColumns,
                     title: 'Comment Management',
-                    searchable: false, // Using external filters
+                    searchable: true,
                     sortable: true,
+                    filterable: true,
                     pagination: true,
                     perPageOptions: [5, 10, 25],
                     defaultPerPage: 10,

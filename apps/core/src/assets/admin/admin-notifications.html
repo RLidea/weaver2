@@ -3,49 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications</title>
+    <title>Notifications Management</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/admin/css/admin-common.css" rel="stylesheet">
     <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
+    <link href="/shared/components/data-table/data-table.css" rel="stylesheet">
+    <link href="/shared/components/modal/common-modal.css" rel="stylesheet">
+    <link href="/shared/components/modal/email-log-detail-modal.css" rel="stylesheet">
+    <style>
+        .notification-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        
+        .notification-tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .notification-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .notification-tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.sent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge.bounced {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+    </style>
 </head>
 <body class="bg-pattern">
 <div id="admin-menu-placeholder"></div>
 
 <div class="main-content">
     <div class="dashboard-header card">
-        <h1 class="text-primary text-shadow"><i class="fas fa-bell"></i> Notifications</h1>
-        <p class="text-secondary">Manage system notifications and alerts</p>
+        <h1 class="text-primary text-shadow"><i class="fas fa-bell"></i> Notifications Management</h1>
+        <p class="text-secondary">Manage email logs, push notifications, and other notification systems</p>
     </div>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md users">
-                    <i class="fas fa-envelope"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">Email Notifications</div>
-                    <div class="card-description text-secondary">Configure email alerts</div>
-                </div>
-            </div>
-            <div class="card-number text-primary"></div>
-        </div>
+    <!-- Notification Statistics -->
+    <div id="notification-stats" class="stats-grid">
+        <!-- Stats will be loaded here -->
+    </div>
 
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md search">
-                    <i class="fas fa-mobile-alt"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">Push Notifications</div>
-                    <div class="card-description text-secondary">Send mobile push alerts</div>
-                </div>
-            </div>
-            <div class="card-number text-primary"></div>
+    <!-- Notification Tabs -->
+    <div class="notification-tabs">
+        <button class="notification-tab active" data-tab="email-logs">
+            <i class="fas fa-envelope"></i> Email Logs
+        </button>
+        <button class="notification-tab" data-tab="push-notifications" disabled>
+            <i class="fas fa-mobile-alt"></i> Push Notifications
+            <small style="opacity: 0.6; margin-left: 0.5rem;">(Coming Soon)</small>
+        </button>
+        <button class="notification-tab" data-tab="sms-logs" disabled>
+            <i class="fas fa-sms"></i> SMS Logs
+            <small style="opacity: 0.6; margin-left: 0.5rem;">(Coming Soon)</small>
+        </button>
+    </div>
+
+    <!-- Email Logs Tab -->
+    <div id="email-logs-tab" class="tab-content active">
+        <div id="email-logs-table-container">
+            <!-- Email logs table will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Push Notifications Tab (Placeholder) -->
+    <div id="push-notifications-tab" class="tab-content">
+        <div class="card" style="text-align: center; padding: 3rem;">
+            <i class="fas fa-mobile-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+            <h3>Push Notifications</h3>
+            <p class="text-secondary">Push notification management will be available soon.</p>
+        </div>
+    </div>
+
+    <!-- SMS Logs Tab (Placeholder) -->
+    <div id="sms-logs-tab" class="tab-content">
+        <div class="card" style="text-align: center; padding: 3rem;">
+            <i class="fas fa-sms" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+            <h3>SMS Logs</h3>
+            <p class="text-secondary">SMS log management will be available soon.</p>
         </div>
     </div>
 </div>
 
+<!-- Modals will be created dynamically by modal components -->
+
+<script src="/shared/components/data-table/data-table.js"></script>
+<script src="/shared/components/modal/common-modal.js"></script>
+<script src="/shared/components/modal/email-log-detail-modal.js"></script>
 <script src="/admin/js/admin-menu.js"></script>
 <script src="/admin/js/admin-notifications.js"></script>
 </body>

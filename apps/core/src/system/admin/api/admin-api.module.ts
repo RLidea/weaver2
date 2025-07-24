@@ -4,11 +4,22 @@ import { AdminDashboardApiController } from './controllers/admin-dashboard.api.c
 import { AdminDashboardApiService } from './services/admin-dashboard.api.service';
 import { AdminContentApiController } from './controllers/admin-content.api.controller';
 import { AdminContentApiService } from './services/admin-content.api.service';
+import { AdminNotificationsApiController } from './controllers/admin-notifications.api.controller';
+import { AdminNotificationsApiService } from './services/admin-notifications.api.service';
 import { BoardModule } from '../../../features/board/board.module';
+import { EmailModule } from '../../../infrastructure/email/email.module';
 
 @Module({
-  imports: [PrismaModule, BoardModule],
-  controllers: [AdminDashboardApiController, AdminContentApiController],
-  providers: [AdminDashboardApiService, AdminContentApiService],
+  imports: [PrismaModule, BoardModule, EmailModule],
+  controllers: [
+    AdminDashboardApiController, 
+    AdminContentApiController,
+    AdminNotificationsApiController,
+  ],
+  providers: [
+    AdminDashboardApiService, 
+    AdminContentApiService,
+    AdminNotificationsApiService,
+  ],
 })
 export class AdminApiModule {}

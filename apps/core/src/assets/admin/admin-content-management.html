@@ -73,19 +73,6 @@
             font-size: 0.9rem;
         }
         
-        .filters {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .filter-input {
-            padding: 0.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
         
         .permission-grid {
             display: grid;
@@ -155,19 +142,6 @@
 
     <!-- Posts Tab -->
     <div id="posts-tab" class="tab-content">
-        <div class="filters">
-            <select id="posts-board-filter" class="filter-input">
-                <option value="">All Boards</option>
-                <!-- Options will be loaded -->
-            </select>
-            <select id="posts-status-filter" class="filter-input">
-                <option value="">All Status</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="DRAFT">Draft</option>
-                <option value="ARCHIVED">Archived</option>
-            </select>
-            <input type="text" id="posts-search" class="filter-input" placeholder="Search posts...">
-        </div>
         <div id="posts-table-container">
             <!-- Posts table will be loaded here -->
         </div>
@@ -175,9 +149,6 @@
 
     <!-- Comments Tab -->
     <div id="comments-tab" class="tab-content">
-        <div class="filters">
-            <input type="text" id="comments-search" class="filter-input" placeholder="Search comments...">
-        </div>
         <div id="comments-table-container">
             <!-- Comments table will be loaded here -->
         </div>
