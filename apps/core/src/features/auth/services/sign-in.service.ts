@@ -71,6 +71,12 @@ export class SignInService {
       );
     }
 
+    // Update user's last login time
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+
     const payload = { sub: userId, authId: auth.id };
     this.logger.debug(
       `SignInService.login: Signing JWT for userId=${userId}, authId=${auth.id}`,

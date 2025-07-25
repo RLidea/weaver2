@@ -109,6 +109,10 @@ class CommonModal {
         
         try {
             const date = new Date(dateString);
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return 'Never';
+            }
             return date.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -118,7 +122,7 @@ class CommonModal {
             });
         } catch (error) {
             console.error('Error formatting date:', error);
-            return dateString;
+            return 'Never';
         }
     }
 
