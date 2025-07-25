@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics</title>
+    <title>Analytics Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
     <link href="/admin/css/admin-common.css" rel="stylesheet">
     <link href="/admin/css/admin-dashboard.css" rel="stylesheet">
+    <link href="/shared/components/tabs/tabs.css" rel="stylesheet">
+    <link href="/admin/css/admin-analytics.css" rel="stylesheet">
 </head>
 <body class="bg-pattern">
 <div id="admin-menu-placeholder"></div>
@@ -14,38 +17,56 @@
 <div class="main-content">
     <div class="dashboard-header card">
         <h1 class="text-primary text-shadow"><i class="fas fa-chart-bar"></i> Analytics Dashboard</h1>
-        <p class="text-secondary">Detailed insights and data visualization</p>
+        <p class="text-secondary">Detailed insights and system analytics</p>
     </div>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md users">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">Website Traffic</div>
-                    <div class="card-description text-secondary">Overview of site visitors</div>
-                </div>
-            </div>
-            <div class="card-number text-primary"></div>
+    <!-- Date Range Filter -->
+    <div class="card search-filters">
+        <div class="search-section">
+            <h3><i class="fas fa-calendar-alt"></i> Time Range Filter</h3>
         </div>
-
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon icon icon-md search">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div>
-                    <div class="card-title text-primary">User Engagement</div>
-                    <div class="card-description text-secondary">Active users and session duration</div>
+        
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="dateFrom">From Date</label>
+                <input type="date" id="dateFrom" class="form-input">
+            </div>
+            <div class="filter-group">
+                <label for="dateTo">To Date</label>
+                <input type="date" id="dateTo" class="form-input">
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <button id="applyDateFilter" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Apply
+                    </button>
+                    <button id="resetDateFilter" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
                 </div>
             </div>
-            <div class="card-number text-primary"></div>
+        </div>
+    </div>
+
+    <!-- Analytics Tabs Container -->
+    <div class="card">
+        <div id="analytics-tabs-container">
+            <!-- Tabs will be loaded here by JavaScript -->
         </div>
     </div>
 </div>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading analytics data...</p>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="/shared/components/tabs/tabs.js"></script>
 <script src="/admin/js/admin-menu.js"></script>
 <script src="/admin/js/admin-analytics.js"></script>
 </body>
