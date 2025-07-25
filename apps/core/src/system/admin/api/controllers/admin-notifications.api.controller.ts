@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { Role, EmailStatus } from '@prisma/client';
@@ -61,10 +55,7 @@ export class AdminNotificationsApiController {
 
   @Get('stats/email')
   @ApiOperation({ summary: 'Get email statistics' })
-  async getEmailStats(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  async getEmailStats(@Query('from') from?: string, @Query('to') to?: string) {
     return this.adminNotificationsApiService.getEmailStats({
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,

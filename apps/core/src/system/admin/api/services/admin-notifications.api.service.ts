@@ -107,25 +107,20 @@ export class AdminNotificationsApiService {
 
   // ============ Statistics ============
   async getNotificationStats() {
-    const [
-      totalEmails,
-      sentEmails,
-      failedEmails,
-      pendingEmails,
-      recentEmails,
-    ] = await Promise.all([
-      this.prisma.emailLog.count(),
-      this.prisma.emailLog.count({ where: { status: EmailStatus.SENT } }),
-      this.prisma.emailLog.count({ where: { status: EmailStatus.FAILED } }),
-      this.prisma.emailLog.count({ where: { status: EmailStatus.PENDING } }),
-      this.prisma.emailLog.count({
-        where: {
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    const [totalEmails, sentEmails, failedEmails, pendingEmails, recentEmails] =
+      await Promise.all([
+        this.prisma.emailLog.count(),
+        this.prisma.emailLog.count({ where: { status: EmailStatus.SENT } }),
+        this.prisma.emailLog.count({ where: { status: EmailStatus.FAILED } }),
+        this.prisma.emailLog.count({ where: { status: EmailStatus.PENDING } }),
+        this.prisma.emailLog.count({
+          where: {
+            createdAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return {
       overview: {
@@ -150,66 +145,63 @@ export class AdminNotificationsApiService {
       if (to) whereCondition.createdAt.lte = to;
     }
 
-    const [
-      totalEmails,
-      statusStats,
-      topTemplates,
-      recentActivity,
-    ] = await Promise.all([
-      this.prisma.emailLog.count({ where: whereCondition }),
-      
-      // Status별 통계
-      this.prisma.emailLog.groupBy({
-        by: ['status'],
-        where: whereCondition,
-        _count: {
-          status: true,
-        },
-      }),
+    const [totalEmails, statusStats, topTemplates, recentActivity] =
+      await Promise.all([
+        this.prisma.emailLog.count({ where: whereCondition }),
 
-      // 가장 많이 사용된 템플릿
-      this.prisma.emailLog.groupBy({
-        by: ['templateId'],
-        where: {
-          ...whereCondition,
-          templateId: { not: null },
-        },
-        _count: {
-          templateId: true,
-        },
-        orderBy: {
+        // Status별 통계
+        this.prisma.emailLog.groupBy({
+          by: ['status'],
+          where: whereCondition,
           _count: {
-            templateId: 'desc',
+            status: true,
           },
-        },
-        take: 5,
-      }),
+        }),
 
-      // 최근 활동 (일별 이메일 발송량) - 간단한 방식으로 변경
-      this.prisma.emailLog.findMany({
-        where: whereCondition,
-        select: {
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 30,
-      }),
-    ]);
+        // 가장 많이 사용된 템플릿
+        this.prisma.emailLog.groupBy({
+          by: ['templateId'],
+          where: {
+            ...whereCondition,
+            templateId: { not: null },
+          },
+          _count: {
+            templateId: true,
+          },
+          orderBy: {
+            _count: {
+              templateId: 'desc',
+            },
+          },
+          take: 5,
+        }),
+
+        // 최근 활동 (일별 이메일 발송량) - 간단한 방식으로 변경
+        this.prisma.emailLog.findMany({
+          where: whereCondition,
+          select: {
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        }),
+      ]);
 
     // 템플릿 정보 가져오기
     const templateIds = topTemplates
-      .map(t => t.templateId)
+      .map((t) => t.templateId)
       .filter(Boolean) as string[];
-    
-    const templates = templateIds.length > 0 
-      ? await this.prisma.emailTemplate.findMany({
-          where: { id: { in: templateIds } },
-          select: { id: true, name: true },
-        })
-      : [];
 
-    const topTemplatesWithNames = topTemplates.map(stat => {
-      const template = templates.find(t => t.id === stat.templateId);
+    const templates =
+      templateIds.length > 0
+        ? await this.prisma.emailTemplate.findMany({
+            where: { id: { in: templateIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+    const topTemplatesWithNames = topTemplates.map((stat) => {
+      const template = templates.find((t) => t.id === stat.templateId);
       return {
         templateId: stat.templateId,
         templateName: template?.name || 'Unknown',
@@ -219,7 +211,7 @@ export class AdminNotificationsApiService {
 
     return {
       totalEmails,
-      statusStats: statusStats.map(stat => ({
+      statusStats: statusStats.map((stat) => ({
         status: stat.status,
         count: stat._count.status,
       })),

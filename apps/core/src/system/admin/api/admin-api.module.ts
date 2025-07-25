@@ -12,12 +12,12 @@ import { EmailModule } from '../../../infrastructure/email/email.module';
 @Module({
   imports: [PrismaModule, BoardModule, EmailModule],
   controllers: [
-    AdminDashboardApiController, 
+    AdminDashboardApiController,
     AdminContentApiController,
     AdminNotificationsApiController,
   ],
   providers: [
-    AdminDashboardApiService, 
+    AdminDashboardApiService,
     AdminContentApiService,
     AdminNotificationsApiService,
   ],
