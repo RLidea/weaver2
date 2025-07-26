@@ -212,8 +212,6 @@ function createTable(tableId, columns, title, icon = 'fas fa-table') {
 
 // Load data for specific tab
 async function loadTabData(tabId) {
-    showLoading();
-    
     try {
         switch (tabId) {
             case 'overview':
@@ -234,8 +232,6 @@ async function loadTabData(tabId) {
     } catch (error) {
         console.error(`Failed to load ${tabId} data:`, error);
         showError(`Failed to load ${tabId} data. Please try again.`);
-    } finally {
-        hideLoading();
     }
 }
 
@@ -584,19 +580,6 @@ function formatDateTime(dateString) {
     return new Date(dateString).toLocaleString();
 }
 
-function showLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-    }
-}
-
-function hideLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-}
 
 function showError(message) {
     alert(message);
