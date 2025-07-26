@@ -156,7 +156,7 @@ async function fetchAnalyticsData(endpoint, params = {}) {
         const response = await makeAuthenticatedRequest(url);
         console.log(`${endpoint} response:`, response);
         
-        return response.data;
+        return response.data.data;
     } catch (error) {
         console.error(`Failed to fetch ${endpoint} analytics:`, error);
         throw error;
