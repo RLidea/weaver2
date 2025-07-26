@@ -1,0 +1,982 @@
+/* Admin Security Page Styles - Following Weaver2 Design System */
+
+/* =====================================
+   Security Section Base Styles
+   ===================================== */
+.security-section {
+    margin-bottom: var(--spacing-3xl);
+}
+
+.section-header {
+    margin-bottom: var(--spacing-2xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-header h3 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-shadow: var(--text-shadow);
+}
+
+.section-header h3 i {
+    font-size: 1.3rem;
+    color: var(--secondary-blue);
+}
+
+.section-header p {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* =====================================
+   Security Policies Tab Styles
+   ===================================== */
+.policy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--spacing-2xl);
+}
+
+.policy-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    transition: var(--transition);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    position: relative;
+}
+
+.policy-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-heavy), var(--inset-highlight);
+    background: var(--glass-bg-hover);
+}
+
+.policy-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--secondary-blue), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.policy-card:hover::before {
+    opacity: 1;
+}
+
+.policy-card .card-header {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--blur-amount);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-xl);
+}
+
+.policy-card .card-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-shadow: var(--text-shadow);
+}
+
+.policy-card .card-header i {
+    font-size: 1rem;
+    color: var(--secondary-blue);
+}
+
+.policy-card .card-body {
+    padding: var(--card-padding);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-xl);
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.95rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: var(--blur-light);
+    outline: none;
+    color: var(--text-primary);
+    box-shadow: var(--inset-shadow), 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.form-control:focus {
+    border-color: var(--border-color-focus);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06), var(--inset-shadow), 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    font-weight: var(--font-weight-normal);
+    cursor: pointer;
+    margin-bottom: 0;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-small);
+    transition: var(--transition);
+}
+
+.checkbox-group label:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--secondary-blue);
+    cursor: pointer;
+}
+
+/* Weaver Button Styles */
+.btn {
+    padding: var(--spacing-md) var(--spacing-2xl);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    backdrop-filter: var(--blur-light);
+    box-shadow: var(--shadow-light), var(--inset-highlight);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover), var(--inset-highlight);
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-primary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+    color: var(--status-error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.4));
+}
+
+.btn-sm {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 0.85rem;
+    border-radius: 20px;
+}
+
+/* =====================================
+   Access Control Tab Styles
+   ===================================== */
+.access-control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-2xl);
+}
+
+.control-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    transition: var(--transition);
+    position: relative;
+}
+
+.control-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-heavy), var(--inset-highlight);
+    background: var(--glass-bg-hover);
+}
+
+.control-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--status-success), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.control-card:hover::before {
+    opacity: 1;
+}
+
+.control-card .card-header {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--blur-amount);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-xl);
+}
+
+.control-card .card-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.control-card .card-header i {
+    color: var(--status-success);
+}
+
+.control-card .card-body {
+    padding: var(--card-padding);
+}
+
+/* Mini tabs within cards */
+.tabs-mini {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    padding: 4px;
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-mini {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: none;
+    border: none;
+    border-radius: var(--border-radius-small);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tab-mini.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-light);
+    backdrop-filter: var(--blur-light);
+}
+
+.tab-content-mini {
+    display: none;
+}
+
+.tab-content-mini.active {
+    display: block;
+}
+
+/* IP Management */
+.ip-list {
+    margin-bottom: var(--spacing-lg);
+}
+
+.ip-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.ip-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ip-item:last-child {
+    margin-bottom: 0;
+}
+
+.add-ip {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.add-ip .form-control {
+    flex: 1;
+}
+
+/* Role Management */
+.role-list {
+    margin-bottom: var(--spacing-lg);
+}
+
+.role-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.role-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.role-item:last-child {
+    margin-bottom: 0;
+}
+
+.role-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.role-info strong {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.role-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.role-users {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.3));
+    color: var(--secondary-blue);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* =====================================
+   Audit Logs Tab Styles
+   ===================================== */
+.audit-controls {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    margin-bottom: var(--spacing-2xl);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+}
+
+.filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.filter-group label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Audit Table */
+.audit-logs-table {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    margin-bottom: var(--spacing-2xl);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.table thead {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--blur-amount);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+    padding: var(--spacing-lg);
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.9rem;
+    border: none;
+    color: var(--text-primary);
+}
+
+.table td {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Weaver Status Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: 25px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    backdrop-filter: var(--blur-light);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.badge-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+    color: var(--status-success);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.badge-warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+    color: var(--status-warning);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+    color: var(--status-error);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.badge-info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.3));
+    color: var(--status-info);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Text colors */
+.text-success {
+    color: var(--status-success);
+}
+
+.text-danger {
+    color: var(--status-error);
+}
+
+/* Audit Stats */
+.audit-stats {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.stat-item {
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-small);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--secondary-blue);
+    margin-bottom: var(--spacing-sm);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+}
+
+/* =====================================
+   System Status Tab Styles
+   ===================================== */
+.status-overview {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.status-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    transition: var(--transition);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+    position: relative;
+    overflow: hidden;
+}
+
+.status-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-heavy), var(--inset-highlight);
+    background: var(--glass-bg-hover);
+}
+
+.status-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    backdrop-filter: var(--blur-light);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: var(--shadow-light), var(--inset-highlight);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.status-good .status-icon {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+    color: var(--status-success);
+}
+
+.status-warning .status-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+    color: var(--status-warning);
+}
+
+.status-danger .status-icon {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+    color: var(--status-error);
+}
+
+.status-info-content {
+    flex: 1;
+}
+
+.status-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.status-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.status-description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Security Details */
+.security-details {
+    display: grid;
+    gap: var(--spacing-2xl);
+}
+
+.detail-section {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+}
+
+.section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Vulnerability List */
+.vulnerability-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.vulnerability-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    border-left: 4px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.vulnerability-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.vulnerability-item.low {
+    border-left-color: var(--status-warning);
+}
+
+.vulnerability-item.medium {
+    border-left-color: var(--status-error);
+}
+
+.vulnerability-item.high {
+    border-left-color: #dc2626;
+}
+
+.vulnerability-item.critical {
+    border-left-color: #7c2d12;
+}
+
+.vuln-severity {
+    min-width: 80px;
+}
+
+.severity-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    color: white;
+    backdrop-filter: var(--blur-light);
+}
+
+.severity-badge.low {
+    background: var(--status-warning);
+}
+
+.severity-badge.medium {
+    background: var(--status-error);
+}
+
+.severity-badge.high {
+    background: #dc2626;
+}
+
+.severity-badge.critical {
+    background: #7c2d12;
+}
+
+.vuln-info {
+    flex: 1;
+}
+
+.vuln-title {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.vuln-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.vuln-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+/* Health Metrics */
+.health-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.metric-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.metric-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+}
+
+.metric-value {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-right: var(--spacing-sm);
+}
+
+.metric-status {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: var(--font-weight-medium);
+    backdrop-filter: var(--blur-light);
+}
+
+.metric-status.good {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+    color: var(--status-success);
+}
+
+.metric-status.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+    color: var(--status-warning);
+}
+
+.metric-status.danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+    color: var(--status-error);
+}
+
+/* Recommendations */
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.recommendation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    border-left: 4px solid var(--secondary-blue);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.recommendation-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.recommendation-item > i {
+    color: var(--secondary-blue);
+    font-size: 1.2rem;
+    margin-top: 4px;
+}
+
+.recommendation-text {
+    flex: 1;
+}
+
+.recommendation-text strong {
+    display: block;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-sm);
+}
+
+.recommendation-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* =====================================
+   Responsive Design
+   ===================================== */
+@media (max-width: 768px) {
+    .policy-grid,
+    .access-control-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-controls {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .status-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .health-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .audit-logs-table {
+        overflow-x: auto;
+    }
+    
+    .table {
+        min-width: 600px;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-header h3 {
+        font-size: 1.25rem;
+    }
+    
+    .policy-card .card-body,
+    .control-card .card-body,
+    .detail-section {
+        padding: var(--spacing-lg);
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .vulnerability-item,
+    .recommendation-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .vuln-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
