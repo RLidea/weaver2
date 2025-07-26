@@ -18,7 +18,6 @@ export class AdminSecurityApiService {
     };
   }
 
-
   /**
    * Get security overview with scores and vulnerabilities
    */
@@ -29,10 +28,10 @@ export class AdminSecurityApiService {
       sslCertificateStatus,
       lastScanTime,
     ] = await Promise.all([
-      this.calculateSecurityScore(),
-      this.getVulnerabilitiesCount(),
-      this.getSslCertificateStatus(),
-      this.getLastScanTime(),
+      Promise.resolve(this.calculateSecurityScore()),
+      Promise.resolve(this.getVulnerabilitiesCount()),
+      Promise.resolve(this.getSslCertificateStatus()),
+      Promise.resolve(this.getLastScanTime()),
     ]);
 
     const statusCards = [
@@ -68,29 +67,28 @@ export class AdminSecurityApiService {
 
     return {
       statusCards,
-      vulnerabilities: await this.getVulnerabilityDetails(),
-      recommendations: await this.getSecurityRecommendations(),
+      vulnerabilities: this.getVulnerabilityDetails(),
+      recommendations: this.getSecurityRecommendations(),
     };
   }
-
 
   /**
    * Calculate overall security score
    */
-  private async calculateSecurityScore(): Promise<number> {
+  private calculateSecurityScore(): number {
     try {
       let score = 100;
 
       // Check various security factors
-      const vulnerabilities = await this.getVulnerabilitiesCount();
-      const sslStatus = await this.getSslCertificateStatus();
-      
+      const vulnerabilities = this.getVulnerabilitiesCount();
+      const sslStatus = this.getSslCertificateStatus();
+
       // Deduct points based on vulnerabilities
       score -= vulnerabilities.critical * 20;
       score -= vulnerabilities.high * 10;
       score -= vulnerabilities.medium * 5;
       score -= vulnerabilities.low * 2;
-      
+
       // Deduct points for SSL issues
       if (!sslStatus.isValid) score -= 15;
       if (sslStatus.expiryDays < 30) score -= 5;
@@ -105,7 +103,7 @@ export class AdminSecurityApiService {
   /**
    * Get vulnerabilities count
    */
-  private async getVulnerabilitiesCount() {
+  private getVulnerabilitiesCount() {
     // In a real implementation, this would scan for actual vulnerabilities
     return {
       total: 2,
@@ -119,10 +117,10 @@ export class AdminSecurityApiService {
   /**
    * Get SSL certificate status
    */
-  private async getSslCertificateStatus() {
+  private getSslCertificateStatus() {
     // In a real implementation, you'd check the actual SSL certificate
     const expiryDays = 89;
-    
+
     return {
       isValid: true,
       expiryDays,
@@ -134,10 +132,10 @@ export class AdminSecurityApiService {
   /**
    * Get last scan time
    */
-  private async getLastScanTime() {
+  private getLastScanTime() {
     const now = new Date();
     const lastScan = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
-    
+
     return {
       timeAgo: '2h ago',
       description: 'No issues found',
@@ -149,7 +147,7 @@ export class AdminSecurityApiService {
   /**
    * Get detailed vulnerability information
    */
-  private async getVulnerabilityDetails() {
+  private getVulnerabilityDetails() {
     return [
       {
         id: 'vuln_1',
@@ -173,19 +171,21 @@ export class AdminSecurityApiService {
   /**
    * Get security recommendations
    */
-  private async getSecurityRecommendations() {
+  private getSecurityRecommendations() {
     return [
       {
         id: 'rec_1',
         title: 'Enable 2FA for all admin accounts',
-        description: 'Add an extra layer of security to prevent unauthorized access',
+        description:
+          'Add an extra layer of security to prevent unauthorized access',
         priority: 'high',
         category: 'authentication',
       },
       {
         id: 'rec_2',
         title: 'Regular security audits',
-        description: 'Schedule monthly security reviews and vulnerability assessments',
+        description:
+          'Schedule monthly security reviews and vulnerability assessments',
         priority: 'medium',
         category: 'monitoring',
       },
@@ -215,7 +215,13 @@ export class AdminSecurityApiService {
     return 'danger';
   }
 
-  private getVulnerabilityDescription(vulnCount: any): string {
+  private getVulnerabilityDescription(vulnCount: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  }): string {
     if (vulnCount.total === 0) return 'No vulnerabilities';
     if (vulnCount.critical > 0) return 'Critical issues found';
     if (vulnCount.high > 0) return 'High priority issues';
@@ -223,7 +229,13 @@ export class AdminSecurityApiService {
     return 'Low priority issues';
   }
 
-  private getVulnerabilityStatus(vulnCount: any): string {
+  private getVulnerabilityStatus(vulnCount: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  }): string {
     if (vulnCount.critical > 0) return 'danger';
     if (vulnCount.high > 0) return 'danger';
     if (vulnCount.medium > 0) return 'warning';

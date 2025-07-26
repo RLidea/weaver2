@@ -16,7 +16,6 @@ export class AdminSecurityApiController {
     return await this.adminSecurityService.getSystemStatus();
   }
 
-
   @Get('security-overview')
   async getSecurityOverview() {
     return await this.adminSecurityService.getSecurityOverview();
