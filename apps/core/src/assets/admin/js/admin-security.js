@@ -519,10 +519,13 @@ function renderSystemStatusData(data) {
                             <div class="vuln-info">
                                 <div class="vuln-title">${vuln.title}</div>
                                 <div class="vuln-description">${vuln.description}</div>
+                                ${vuln.module ? `<div class="vuln-module"><strong>Module:</strong> ${vuln.module}</div>` : ''}
+                                ${vuln.cve ? `<div class="vuln-cve"><strong>CVE:</strong> ${vuln.cve}</div>` : ''}
+                                ${vuln.cvss_score ? `<div class="vuln-cvss"><strong>CVSS Score:</strong> ${vuln.cvss_score}</div>` : ''}
                             </div>
                             <div class="vuln-actions">
-                                <button class="btn btn-sm btn-secondary" onclick="showVulnerabilityDetails('${vuln.id}')">Details</button>
-                                ${vuln.fixAvailable ? '<button class="btn btn-sm btn-primary" onclick="fixVulnerability(\'' + vuln.id + '\')">Fix</button>' : ''}
+                                ${vuln.url ? `<a href="${vuln.url}" target="_blank" class="btn btn-sm btn-secondary">Details</a>` : ''}
+                                ${vuln.fixAvailable && vuln.recommendation ? `<button class="btn btn-sm btn-primary" onclick="showFixRecommendation('${vuln.id}', '${vuln.recommendation.replace(/'/g, "\\'")}')">Fix</button>` : ''}
                             </div>
                         </div>
                     `).join('')}
@@ -606,7 +609,7 @@ async function refreshSystemStatus() {
 }
 
 /**
- * Run security scan
+ * Run security scan (triggers fresh pnpm audit)
  */
 async function runSecurityScan() {
     try {
@@ -616,10 +619,16 @@ async function runSecurityScan() {
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
         button.disabled = true;
 
-        // Simulate scan (in real implementation, call API)
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Call the API to run fresh security scan
+        const response = await fetch('/api/admin/security/run-scan', {
+            method: 'POST',
+        });
         
-        // Refresh data
+        if (!response.ok) {
+            throw new Error(`Scan failed: ${response.status}`);
+        }
+        
+        // Refresh data to show new results
         await loadSystemStatusData();
         
         // Reset button
@@ -630,17 +639,44 @@ async function runSecurityScan() {
         showNotification('Security scan completed successfully', 'success');
     } catch (error) {
         console.error('Error running security scan:', error);
+        
+        // Reset button
+        const button = event.target;
+        button.innerHTML = 'Run Scan';
+        button.disabled = false;
+        
         showNotification('Failed to run security scan', 'error');
     }
 }
 
 /**
- * Show vulnerability details
+ * Show fix recommendation
  */
-function showVulnerabilityDetails(vulnId) {
-    // In real implementation, show detailed modal
-    console.log('Showing details for vulnerability:', vulnId);
-    showNotification('Vulnerability details would be shown here', 'info');
+function showFixRecommendation(vulnId, recommendation) {
+    // Create a simple modal-like notification with the fix recommendation
+    const notification = document.createElement('div');
+    notification.className = 'fix-recommendation-modal';
+    notification.innerHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Fix Recommendation</h3>
+                    <button class="modal-close" onclick="this.closest('.fix-recommendation-modal').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Vulnerability ID:</strong> ${vulnId}</p>
+                    <p><strong>Recommendation:</strong></p>
+                    <p>${recommendation}</p>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="copyToClipboard('${recommendation}'); showNotification('Recommendation copied to clipboard', 'success')">Copy Command</button>
+                        <button class="btn btn-secondary" onclick="this.closest('.fix-recommendation-modal').remove()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
 }
 
 /**
@@ -698,6 +734,22 @@ function getRecommendationActionText(category) {
         case 'backup': return 'Review';
         default: return 'View';
     }
+}
+
+/**
+ * Copy text to clipboard
+ */
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).catch(err => {
+        console.error('Failed to copy to clipboard:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+    });
 }
 
 /**

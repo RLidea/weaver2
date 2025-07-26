@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../features/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../features/auth/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
@@ -19,5 +19,10 @@ export class AdminSecurityApiController {
   @Get('security-overview')
   async getSecurityOverview() {
     return await this.adminSecurityService.getSecurityOverview();
+  }
+
+  @Post('run-scan')
+  async runSecurityScan() {
+    return await this.adminSecurityService.runSecurityScan();
   }
 }
