@@ -26,6 +26,7 @@ model User {
   posts          Post[] // Inverse relation for Post.author
   comments       Comment[] // Inverse relation for Comment.author
   emailLogs      EmailLog[] // Inverse relation for EmailLog.user
+  pageViews      PageView[] // Inverse relation for PageView.user
 }
 
 model UserSetting {
@@ -226,6 +227,48 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
   DELETED
+}
+
+// Page View Logging for Analytics
+model PageView {
+  id          String   @id @default(uuid())
+  pageUrl     String   @db.VarChar(500)
+  userId      String?  // nullable for anonymous users
+  ipAddress   String?  @db.VarChar(45)
+  referrer    String?  @db.Text
+  userAgent   String?  @db.Text
+  
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([pageUrl, createdAt])
+  @@index([userId, createdAt])
+}
+
+// Monthly Analytics Reports (Aggregated Data)
+model MonthlyAnalyticsReport {
+  id                String   @id @default(uuid())
+  year              Int
+  month             Int
+  
+  // Traffic Statistics
+  totalPageViews    Int      @default(0)
+  uniqueVisitors    Int      @default(0)
+  dailyAvgViews     Float    @default(0)
+  peakDailyViews    Int      @default(0)
+  
+  // JSON Data (stored as JSONB in PostgreSQL)
+  topPages          Json?    // {"'/dashboard': 1500, '/profile': 800}
+  trafficSources    Json?    // {"direct": 40, "search": 30, "social": 20}
+  dailyTrends       Json?    // {"2025-07-01": 150, "2025-07-02": 180}
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([year, month])
 }
 
 enum ActionType {

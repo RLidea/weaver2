@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { Role } from '@prisma/client';
+import { PageViewLoggingService } from '../../../../infrastructure/analytics/page-view-logging.service';
 
 export interface TimeRangeFilter {
   from?: Date;
@@ -15,6 +16,13 @@ export interface AnalyticsOverview {
   totalComments: number;
   todayComments: number;
   activeUsers: number;
+  trafficOverview?: Array<{ date: string; views: number }>;
+  trafficSources?: {
+    direct: number;
+    search: number;
+    social: number;
+    referral: number;
+  };
 }
 
 export interface UserAnalytics {
@@ -50,7 +58,10 @@ export interface SystemAnalytics {
 
 @Injectable()
 export class AdminAnalyticsApiService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pageViewLoggingService: PageViewLoggingService,
+  ) {}
 
   // ============ 핵심 요약 (Dashboard용) ============
   async getOverview(filter?: TimeRangeFilter): Promise<AnalyticsOverview> {
@@ -139,6 +150,12 @@ export class AdminAnalyticsApiService {
       }),
     ]);
 
+    // 실제 트래픽 데이터 가져오기
+    const [trafficOverview, trafficSources] = await Promise.all([
+      this.pageViewLoggingService.getRecentPageViewStats(30),
+      this.pageViewLoggingService.getTrafficSources(),
+    ]);
+
     return {
       totalUsers,
       todaySignups,
@@ -147,6 +164,8 @@ export class AdminAnalyticsApiService {
       totalComments,
       todayComments,
       activeUsers,
+      trafficOverview,
+      trafficSources,
     };
   }
 

@@ -10,9 +10,10 @@ import { AdminAnalyticsApiController } from './controllers/admin-analytics.api.c
 import { AdminAnalyticsApiService } from './services/admin-analytics.api.service';
 import { BoardModule } from '../../../features/board/board.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
+import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
 
 @Module({
-  imports: [PrismaModule, BoardModule, EmailModule],
+  imports: [PrismaModule, BoardModule, EmailModule, AnalyticsModule],
   controllers: [
     AdminDashboardApiController,
     AdminContentApiController,

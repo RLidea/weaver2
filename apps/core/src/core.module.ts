@@ -19,6 +19,7 @@ import { UploadModule } from './infrastructure/upload/upload.module';
 import { TermsModule } from './features/terms/terms.module';
 import { BoardModule } from './features/board/board.module';
 import { SearchModule } from './features/search/search.module';
+import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SearchModule } from './features/search/search.module';
     TermsModule,
     BoardModule,
     SearchModule,
+    AnalyticsModule,
     HealthModule,
     StaticModule,
   ],

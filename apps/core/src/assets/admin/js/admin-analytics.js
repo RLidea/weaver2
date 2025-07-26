@@ -246,27 +246,22 @@ async function loadOverviewData() {
         document.getElementById('overview-newUsers').textContent = formatNumber(data.todaySignups || 0);
         document.getElementById('overview-totalComments').textContent = formatNumber(data.totalComments || 0);
         
-        // Create mock data for charts
-        const mockTrafficData = [];
-        const today = new Date();
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-            mockTrafficData.push({
-                date: date.toISOString().split('T')[0],
-                views: Math.floor(Math.random() * 1000) + 100
-            });
+        // Use real traffic data from API
+        const trafficData = data.trafficOverview || [];
+        const sourcesData = [];
+        
+        if (data.trafficSources) {
+            sourcesData.push(
+                { source: 'Direct', count: data.trafficSources.direct },
+                { source: 'Search', count: data.trafficSources.search },
+                { source: 'Social', count: data.trafficSources.social },
+                { source: 'Referral', count: data.trafficSources.referral }
+            );
         }
         
-        const mockSourcesData = [
-            { source: 'Direct', count: Math.floor(data.totalUsers * 0.4) },
-            { source: 'Search', count: Math.floor(data.totalUsers * 0.3) },
-            { source: 'Social', count: Math.floor(data.totalUsers * 0.2) },
-            { source: 'Referral', count: Math.floor(data.totalUsers * 0.1) }
-        ];
-        
-        // Update charts
-        updateChart('trafficChart', 'line', mockTrafficData, 'date', 'views', 'Page Views');
-        updateChart('sourcesChart', 'doughnut', mockSourcesData, 'source', 'count');
+        // Update charts with real data
+        updateChart('trafficChart', 'line', trafficData, 'date', 'views', 'Page Views');
+        updateChart('sourcesChart', 'doughnut', sourcesData, 'source', 'count');
         
     } catch (error) {
         console.error('Failed to load overview data:', error);
