@@ -8,6 +8,8 @@ import { AdminNotificationsApiController } from './controllers/admin-notificatio
 import { AdminNotificationsApiService } from './services/admin-notifications.api.service';
 import { AdminAnalyticsApiController } from './controllers/admin-analytics.api.controller';
 import { AdminAnalyticsApiService } from './services/admin-analytics.api.service';
+import { AdminSecurityApiController } from './controllers/admin-security.api.controller';
+import { AdminSecurityApiService } from './services/admin-security.api.service';
 import { BoardModule } from '../../../features/board/board.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
 import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
@@ -19,12 +21,14 @@ import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.mod
     AdminContentApiController,
     AdminNotificationsApiController,
     AdminAnalyticsApiController,
+    AdminSecurityApiController,
   ],
   providers: [
     AdminDashboardApiService,
     AdminContentApiService,
     AdminNotificationsApiService,
     AdminAnalyticsApiService,
+    AdminSecurityApiService,
   ],
 })
 export class AdminApiModule {}

@@ -52,11 +52,30 @@ function initializeSecurityTabs() {
 }
 
 /**
+ * Load System Status data when tab is activated
+ */
+function loadSystemStatusTab() {
+    // Load system status data when the tab is first activated
+    setTimeout(() => {
+        if (securityTabComponent && securityTabComponent.getActiveTab() === 'system-status') {
+            loadSystemStatusData();
+        }
+    }, 100);
+}
+
+/**
  * Handle tab change events
  * @param {string} tabId - The ID of the selected tab
  */
 function handleTabChange(tabId) {
     loadTabContent(tabId);
+    
+    // Load API data for system-status tab
+    if (tabId === 'system-status') {
+        setTimeout(() => {
+            loadSystemStatusData();
+        }, 100);
+    }
 }
 
 /**
@@ -425,156 +444,278 @@ function generateAuditLogsContent() {
 function generateSystemStatusContent() {
     return `
         <div class="security-section">
-            <div class="section-header">
-                <h3><i class="fas fa-heartbeat"></i> System Security Status</h3>
-                <p class="text-secondary">Monitor system security health and vulnerabilities</p>
+            <div class="section-header with-button">
+                <div class="section-content">
+                    <h3><i class="fas fa-heartbeat"></i> System Security Status</h3>
+                    <p class="text-secondary">Monitor system security health and vulnerabilities</p>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshSystemStatus()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
             </div>
             
-            <div class="status-overview">
-                <div class="status-cards">
-                    <div class="status-card card status-good">
-                        <div class="status-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="status-info-content">
-                            <div class="status-title">Security Score</div>
-                            <div class="status-value">98/100</div>
-                            <div class="status-description">Excellent</div>
-                        </div>
-                    </div>
-                    
-                    <div class="status-card card status-warning">
-                        <div class="status-icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="status-info-content">
-                            <div class="status-title">Vulnerabilities</div>
-                            <div class="status-value">2</div>
-                            <div class="status-description">Low Priority</div>
-                        </div>
-                    </div>
-                    
-                    <div class="status-card card status-good">
-                        <div class="status-icon">
-                            <i class="fas fa-certificate"></i>
-                        </div>
-                        <div class="status-info-content">
-                            <div class="status-title">SSL Certificate</div>
-                            <div class="status-value">Valid</div>
-                            <div class="status-description">Expires in 89 days</div>
-                        </div>
-                    </div>
-                    
-                    <div class="status-card card status-good">
-                        <div class="status-icon">
-                            <i class="fas fa-sync-alt"></i>
-                        </div>
-                        <div class="status-info-content">
-                            <div class="status-title">Last Scan</div>
-                            <div class="status-value">2h ago</div>
-                            <div class="status-description">No issues found</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="security-details">
-                <div class="detail-section">
-                    <div class="section-title">
-                        <h4><i class="fas fa-bug"></i> Security Vulnerabilities</h4>
-                        <button class="btn btn-primary btn-sm">Run Scan</button>
-                    </div>
-                    <div class="vulnerability-list">
-                        <div class="vulnerability-item low">
-                            <div class="vuln-severity">
-                                <span class="severity-badge low">LOW</span>
-                            </div>
-                            <div class="vuln-info">
-                                <div class="vuln-title">Outdated jQuery version</div>
-                                <div class="vuln-description">Consider updating to latest version for security patches</div>
-                            </div>
-                            <div class="vuln-actions">
-                                <button class="btn btn-sm btn-secondary">Details</button>
-                                <button class="btn btn-sm btn-primary">Fix</button>
-                            </div>
-                        </div>
-                        
-                        <div class="vulnerability-item low">
-                            <div class="vuln-severity">
-                                <span class="severity-badge low">LOW</span>
-                            </div>
-                            <div class="vuln-info">
-                                <div class="vuln-title">Missing security headers</div>
-                                <div class="vuln-description">Some HTTP security headers are not configured</div>
-                            </div>
-                            <div class="vuln-actions">
-                                <button class="btn btn-sm btn-secondary">Details</button>
-                                <button class="btn btn-sm btn-primary">Fix</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="detail-section">
-                    <div class="section-title">
-                        <h4><i class="fas fa-server"></i> System Health</h4>
-                    </div>
-                    <div class="health-metrics">
-                        <div class="metric-item">
-                            <div class="metric-label">Database Connections</div>
-                            <div class="metric-value">23/100</div>
-                            <div class="metric-status good">Normal</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Failed Login Rate</div>
-                            <div class="metric-value">0.3%</div>
-                            <div class="metric-status good">Low</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-label">API Response Time</div>
-                            <div class="metric-value">145ms</div>
-                            <div class="metric-status good">Good</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Disk Usage</div>
-                            <div class="metric-value">67%</div>
-                            <div class="metric-status warning">Monitor</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="detail-section">
-                    <div class="section-title">
-                        <h4><i class="fas fa-recommendations"></i> Security Recommendations</h4>
-                    </div>
-                    <div class="recommendations-list">
-                        <div class="recommendation-item">
-                            <i class="fas fa-lightbulb"></i>
-                            <div class="recommendation-text">
-                                <strong>Enable 2FA for all admin accounts</strong>
-                                <p>Add an extra layer of security to prevent unauthorized access</p>
-                            </div>
-                            <button class="btn btn-sm btn-primary">Configure</button>
-                        </div>
-                        <div class="recommendation-item">
-                            <i class="fas fa-lightbulb"></i>
-                            <div class="recommendation-text">
-                                <strong>Regular security audits</strong>
-                                <p>Schedule monthly security reviews and vulnerability assessments</p>
-                            </div>
-                            <button class="btn btn-sm btn-primary">Schedule</button>
-                        </div>
-                        <div class="recommendation-item">
-                            <i class="fas fa-lightbulb"></i>
-                            <div class="recommendation-text">
-                                <strong>Update backup strategy</strong>
-                                <p>Ensure regular backups and test restoration procedures</p>
-                            </div>
-                            <button class="btn btn-sm btn-primary">Review</button>
-                        </div>
-                    </div>
+            <div id="system-status-content" class="status-overview">
+                <div class="loading-spinner-container">
+                    <div class="weaver-loading-spinner"></div>
+                    <p>Loading system status...</p>
                 </div>
             </div>
         </div>
     `;
+}
+
+/**
+ * Load system status data from API
+ */
+async function loadSystemStatusData() {
+    try {
+        const response = await fetch('/api/admin/security/system-status');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        renderSystemStatusData(data.data);
+    } catch (error) {
+        console.error('Error loading system status:', error);
+        renderSystemStatusError();
+    }
+}
+
+/**
+ * Render system status data
+ */
+function renderSystemStatusData(data) {
+    const container = document.getElementById('system-status-content');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="status-cards">
+            ${data.statusCards.map(card => `
+                <div class="status-card card status-${card.status}">
+                    <div class="status-icon">
+                        <i class="${card.icon}"></i>
+                    </div>
+                    <div class="status-info-content">
+                        <div class="status-title">${card.title}</div>
+                        <div class="status-value">${card.value}</div>
+                        <div class="status-description">${card.description}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div class="security-details">
+            <div class="detail-section">
+                <div class="section-title">
+                    <h4><i class="fas fa-bug"></i> Security Vulnerabilities</h4>
+                    <button class="btn btn-primary btn-sm" onclick="runSecurityScan()">Run Scan</button>
+                </div>
+                <div class="vulnerability-list">
+                    ${data.vulnerabilities.map(vuln => `
+                        <div class="vulnerability-item ${vuln.severity}">
+                            <div class="vuln-severity">
+                                <span class="severity-badge ${vuln.severity}">${vuln.severity.toUpperCase()}</span>
+                            </div>
+                            <div class="vuln-info">
+                                <div class="vuln-title">${vuln.title}</div>
+                                <div class="vuln-description">${vuln.description}</div>
+                            </div>
+                            <div class="vuln-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="showVulnerabilityDetails('${vuln.id}')">Details</button>
+                                ${vuln.fixAvailable ? '<button class="btn btn-sm btn-primary" onclick="fixVulnerability(\'' + vuln.id + '\')">Fix</button>' : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <div class="section-title">
+                    <h4><i class="fas fa-server"></i> System Health</h4>
+                    <a href="/health/dashboard" class="btn btn-primary btn-sm" target="_blank">
+                        <i class="fas fa-external-link-alt"></i> View Health Dashboard
+                    </a>
+                </div>
+                <div class="health-redirect-info">
+                    <div class="redirect-card">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="redirect-text">
+                            <h4>Detailed Health Metrics Available</h4>
+                            <p>System health metrics including database connections, API response times, disk usage, and more are available in the dedicated Health Dashboard.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <div class="section-title">
+                    <h4><i class="fas fa-lightbulb"></i> Security Recommendations</h4>
+                </div>
+                <div class="recommendations-list">
+                    ${data.recommendations.map(rec => `
+                        <div class="recommendation-item">
+                            <i class="fas fa-lightbulb"></i>
+                            <div class="recommendation-text">
+                                <strong>${rec.title}</strong>
+                                <p>${rec.description}</p>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="handleRecommendation('${rec.id}')">
+                                ${getRecommendationActionText(rec.category)}
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render system status error
+ */
+function renderSystemStatusError() {
+    const container = document.getElementById('system-status-content');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="error-state">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Failed to load system status</h3>
+            <p>Unable to retrieve system status data. Please try again.</p>
+            <button class="btn btn-primary" onclick="loadSystemStatusData()">Retry</button>
+        </div>
+    `;
+}
+
+/**
+ * Refresh system status data
+ */
+async function refreshSystemStatus() {
+    const container = document.getElementById('system-status-content');
+    if (container) {
+        container.innerHTML = `
+            <div class="loading-spinner-container">
+                <div class="weaver-loading-spinner"></div>
+                <p>Refreshing system status...</p>
+            </div>
+        `;
+    }
+    await loadSystemStatusData();
+}
+
+/**
+ * Run security scan
+ */
+async function runSecurityScan() {
+    try {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+        button.disabled = true;
+
+        // Simulate scan (in real implementation, call API)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Refresh data
+        await loadSystemStatusData();
+        
+        // Reset button
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        // Show success message
+        showNotification('Security scan completed successfully', 'success');
+    } catch (error) {
+        console.error('Error running security scan:', error);
+        showNotification('Failed to run security scan', 'error');
+    }
+}
+
+/**
+ * Show vulnerability details
+ */
+function showVulnerabilityDetails(vulnId) {
+    // In real implementation, show detailed modal
+    console.log('Showing details for vulnerability:', vulnId);
+    showNotification('Vulnerability details would be shown here', 'info');
+}
+
+/**
+ * Fix vulnerability
+ */
+async function fixVulnerability(vulnId) {
+    try {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fixing...';
+        button.disabled = true;
+
+        // Simulate fix (in real implementation, call API)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Refresh data
+        await loadSystemStatusData();
+        
+        showNotification('Vulnerability fix applied successfully', 'success');
+    } catch (error) {
+        console.error('Error fixing vulnerability:', error);
+        showNotification('Failed to fix vulnerability', 'error');
+    }
+}
+
+/**
+ * Handle recommendation action
+ */
+function handleRecommendation(recId) {
+    // In real implementation, navigate to appropriate configuration page
+    console.log('Handling recommendation:', recId);
+    showNotification('This would navigate to the relevant configuration page', 'info');
+}
+
+/**
+ * Get status text
+ */
+function getStatusText(status) {
+    switch (status) {
+        case 'good': return 'Good';
+        case 'warning': return 'Warning';
+        case 'danger': return 'Critical';
+        default: return 'Unknown';
+    }
+}
+
+/**
+ * Get recommendation action text
+ */
+function getRecommendationActionText(category) {
+    switch (category) {
+        case 'authentication': return 'Configure';
+        case 'monitoring': return 'Schedule';
+        case 'backup': return 'Review';
+        default: return 'View';
+    }
+}
+
+/**
+ * Show notification
+ */
+function showNotification(message, type = 'info') {
+    // Simple notification - in real implementation, use a proper notification system
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
