@@ -6,6 +6,8 @@ import { AdminContentApiController } from './controllers/admin-content.api.contr
 import { AdminContentApiService } from './services/admin-content.api.service';
 import { AdminNotificationsApiController } from './controllers/admin-notifications.api.controller';
 import { AdminNotificationsApiService } from './services/admin-notifications.api.service';
+import { AdminAnalyticsApiController } from './controllers/admin-analytics.api.controller';
+import { AdminAnalyticsApiService } from './services/admin-analytics.api.service';
 import { BoardModule } from '../../../features/board/board.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
 
@@ -15,11 +17,13 @@ import { EmailModule } from '../../../infrastructure/email/email.module';
     AdminDashboardApiController,
     AdminContentApiController,
     AdminNotificationsApiController,
+    AdminAnalyticsApiController,
   ],
   providers: [
     AdminDashboardApiService,
     AdminContentApiService,
     AdminNotificationsApiService,
+    AdminAnalyticsApiService,
   ],
 })
 export class AdminApiModule {}

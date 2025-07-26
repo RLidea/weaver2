@@ -9,7 +9,16 @@ export function setSecurityMiddleware(app: INestApplication): void {
   /*
     HTTP header
    */
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          'script-src': ["'self'", 'https://cdnjs.cloudflare.com'],
+        },
+      },
+    }),
+  );
   app.use(helmet.hidePoweredBy());
 
   /*
