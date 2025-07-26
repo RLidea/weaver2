@@ -49,6 +49,60 @@ function initializeSecurityTabs() {
     
     // Load initial tab content
     loadTabContent('policies');
+    
+    // Add event listeners for security buttons
+    setupEventListeners();
+}
+
+/**
+ * Setup event listeners for security page
+ */
+function setupEventListeners() {
+    // Use event delegation for dynamically created elements
+    document.addEventListener('click', function(event) {
+        const target = event.target;
+        
+        // Refresh status button
+        if (target.id === 'refresh-status-btn' || target.closest('#refresh-status-btn')) {
+            refreshSystemStatus();
+        }
+        
+        // Run scan button
+        if (target.id === 'run-scan-btn' || target.closest('#run-scan-btn')) {
+            runSecurityScan();
+        }
+        
+        // Retry status button
+        if (target.id === 'retry-status-btn' || target.closest('#retry-status-btn')) {
+            loadSystemStatusData();
+        }
+        
+        // Fix vulnerability button
+        if (target.classList.contains('fix-vuln-btn')) {
+            const vulnId = target.dataset.id;
+            const recommendation = target.dataset.recommendation;
+            showFixRecommendation(vulnId, recommendation);
+        }
+        
+        // Handle recommendation button
+        if (target.classList.contains('handle-rec-btn')) {
+            const recId = target.dataset.id;
+            handleRecommendation(recId);
+        }
+        
+        // Copy recommendation button
+        if (target.classList.contains('copy-rec-btn')) {
+            const text = target.dataset.text.replace(/&quot;/g, '"');
+            copyToClipboard(text);
+            showNotification('Recommendation copied to clipboard', 'success');
+        }
+        
+        // Close modal buttons
+        if (target.dataset.action === 'close-modal') {
+            const modal = target.closest('.fix-recommendation-modal');
+            if (modal) modal.remove();
+        }
+    });
 }
 
 /**
@@ -449,7 +503,7 @@ function generateSystemStatusContent() {
                     <h3><i class="fas fa-heartbeat"></i> System Security Status</h3>
                     <p class="text-secondary">Monitor system security health and vulnerabilities</p>
                 </div>
-                <button class="btn btn-secondary" onclick="refreshSystemStatus()">
+                <button class="btn btn-secondary" id="refresh-status-btn">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -508,7 +562,7 @@ function renderSystemStatusData(data) {
             <div class="detail-section">
                 <div class="section-title">
                     <h4><i class="fas fa-bug"></i> Security Vulnerabilities</h4>
-                    <button class="btn btn-primary btn-sm" onclick="runSecurityScan()">Run Scan</button>
+                    <button class="btn btn-primary btn-sm" id="run-scan-btn">Run Scan</button>
                 </div>
                 <div class="vulnerability-list">
                     ${data.vulnerabilities.map(vuln => `
@@ -525,7 +579,7 @@ function renderSystemStatusData(data) {
                             </div>
                             <div class="vuln-actions">
                                 ${vuln.url ? `<a href="${vuln.url}" target="_blank" class="btn btn-sm btn-secondary">Details</a>` : ''}
-                                ${vuln.fixAvailable && vuln.recommendation ? `<button class="btn btn-sm btn-primary" onclick="showFixRecommendation('${vuln.id}', '${vuln.recommendation.replace(/'/g, "\\'")}')">Fix</button>` : ''}
+                                ${vuln.fixAvailable && vuln.recommendation ? `<button class="btn btn-sm btn-primary fix-vuln-btn" data-id="${vuln.id}" data-recommendation="${vuln.recommendation.replace(/"/g, '&quot;')}">Fix</button>` : ''}
                             </div>
                         </div>
                     `).join('')}
@@ -562,7 +616,7 @@ function renderSystemStatusData(data) {
                                 <strong>${rec.title}</strong>
                                 <p>${rec.description}</p>
                             </div>
-                            <button class="btn btn-sm btn-primary" onclick="handleRecommendation('${rec.id}')">
+                            <button class="btn btn-sm btn-primary handle-rec-btn" data-id="${rec.id}">
                                 ${getRecommendationActionText(rec.category)}
                             </button>
                         </div>
@@ -587,7 +641,7 @@ function renderSystemStatusError() {
             </div>
             <h3>Failed to load system status</h3>
             <p>Unable to retrieve system status data. Please try again.</p>
-            <button class="btn btn-primary" onclick="loadSystemStatusData()">Retry</button>
+            <button class="btn btn-primary" id="retry-status-btn">Retry</button>
         </div>
     `;
 }
@@ -661,15 +715,15 @@ function showFixRecommendation(vulnId, recommendation) {
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>Fix Recommendation</h3>
-                    <button class="modal-close" onclick="this.closest('.fix-recommendation-modal').remove()">×</button>
+                    <button class="modal-close" data-action="close-modal">×</button>
                 </div>
                 <div class="modal-body">
                     <p><strong>Vulnerability ID:</strong> ${vulnId}</p>
                     <p><strong>Recommendation:</strong></p>
                     <p>${recommendation}</p>
                     <div class="modal-actions">
-                        <button class="btn btn-primary" onclick="copyToClipboard('${recommendation}'); showNotification('Recommendation copied to clipboard', 'success')">Copy Command</button>
-                        <button class="btn btn-secondary" onclick="this.closest('.fix-recommendation-modal').remove()">Close</button>
+                        <button class="btn btn-primary copy-rec-btn" data-text="${recommendation.replace(/"/g, '&quot;')}">Copy Command</button>
+                        <button class="btn btn-secondary" data-action="close-modal">Close</button>
                     </div>
                 </div>
             </div>
