@@ -918,15 +918,16 @@ export class AdminSecurityApiService {
   }
 
   /**
-   * Safely convert value to Prisma JsonValue
+   * Safely convert value to Prisma InputJsonValue
    */
-  private toJsonValue(value: unknown): Prisma.JsonValue {
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
     try {
       // Convert to JSON and back to ensure it's serializable
-      return JSON.parse(JSON.stringify(value)) as Prisma.JsonValue;
+      const jsonString = JSON.stringify(value);
+      return JSON.parse(jsonString) as Prisma.InputJsonValue;
     } catch (error) {
       console.error('Error converting to JSON value:', error);
-      return null;
+      return {};
     }
   }
 }
