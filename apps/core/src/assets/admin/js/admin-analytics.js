@@ -666,11 +666,15 @@ document.addEventListener('DOMContentLoaded', function() {
         onTabChange: (tabId) => {
             console.log('Tab changed to:', tabId);
             loadTabData(tabId);
-        }
+        },
+        urlStateKey: 'tab',
+        urlStateEnabled: true
     });
     
-    // Load initial data
-    loadTabData('overview');
+    // Load initial data and trigger tab change logic
+    const initialTab = tabComponent.getActiveTab();
+    console.log('Loading initial tab:', initialTab);
+    loadTabData(initialTab);
 });
 
 // Export functions for debugging

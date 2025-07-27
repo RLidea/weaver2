@@ -8,7 +8,11 @@ class TabComponent {
         this.container = options.container;
         this.tabs = options.tabs || [];
         this.onTabChange = options.onTabChange || null;
-        this.activeTab = options.activeTab || (this.tabs.length > 0 ? this.tabs[0].id : null);
+        this.urlStateKey = options.urlStateKey || null; // Key for URL state management
+        this.urlStateEnabled = options.urlStateEnabled !== false; // Default to true
+        
+        // Initialize active tab with URL state if enabled
+        this.activeTab = this.getInitialActiveTab(options.activeTab);
         
         this.init();
     }
@@ -21,6 +25,44 @@ class TabComponent {
         
         this.render();
         this.bindEvents();
+        this.setupUrlStateListener();
+    }
+    
+    /**
+     * Get initial active tab considering URL state
+     */
+    getInitialActiveTab(defaultTab) {
+        if (this.urlStateEnabled && this.urlStateKey && typeof URLStateManager !== 'undefined') {
+            const urlTab = URLStateManager.getParam(this.urlStateKey);
+            if (urlTab && this.tabs.some(tab => tab.id === urlTab)) {
+                return urlTab;
+            }
+        }
+        
+        return defaultTab || (this.tabs.length > 0 ? this.tabs[0].id : null);
+    }
+    
+    /**
+     * Update URL state when tab changes
+     */
+    updateUrlState(tabId) {
+        if (this.urlStateEnabled && this.urlStateKey && typeof URLStateManager !== 'undefined') {
+            URLStateManager.setParam(this.urlStateKey, tabId);
+        }
+    }
+    
+    /**
+     * Setup listener for browser back/forward navigation
+     */
+    setupUrlStateListener() {
+        if (this.urlStateEnabled && this.urlStateKey && typeof URLStateManager !== 'undefined') {
+            URLStateManager.onStateChange(() => {
+                const urlTab = URLStateManager.getParam(this.urlStateKey);
+                if (urlTab && urlTab !== this.activeTab && this.tabs.some(tab => tab.id === urlTab)) {
+                    this.switchTab(urlTab, false); // Don't update URL again
+                }
+            });
+        }
     }
     
     render() {
@@ -60,7 +102,7 @@ class TabComponent {
         });
     }
     
-    switchTab(tabId) {
+    switchTab(tabId, updateUrl = true) {
         // Remove active class from all buttons and contents
         const allButtons = this.container.querySelectorAll('.tab-button');
         const allContents = this.container.querySelectorAll('.tab-content');
@@ -77,6 +119,11 @@ class TabComponent {
         
         // Update active tab
         this.activeTab = tabId;
+        
+        // Update URL state if enabled and requested
+        if (updateUrl) {
+            this.updateUrlState(tabId);
+        }
         
         // Call callback if provided
         if (this.onTabChange && typeof this.onTabChange === 'function') {

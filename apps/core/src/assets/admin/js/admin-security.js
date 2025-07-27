@@ -4,6 +4,9 @@
  */
 
 let securityTabComponent;
+let auditHistoryCache = null; // Cache for audit history data
+let currentReportId = null; // Track currently selected report
+let isHistoryLoading = false; // Prevent duplicate requests
 
 // Security tab configuration
 const securityTabs = [
@@ -44,11 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeSecurityTabs() {
     securityTabComponent = TabComponent.create('security-tabs-container', securityTabs, {
         activeTab: 'policies',
-        onTabChange: handleTabChange
+        onTabChange: handleTabChange,
+        urlStateKey: 'tab',
+        urlStateEnabled: true
     });
     
-    // Load initial tab content
-    loadTabContent('policies');
+    // Load initial tab content and trigger tab change logic
+    const initialTab = securityTabComponent.getActiveTab();
+    handleTabChange(initialTab);
     
     // Add event listeners for security buttons
     setupEventListeners();
@@ -77,10 +83,14 @@ function setupEventListeners() {
             toggleAuditHistory();
         }
         
-        // History report selection
-        if (target.classList.contains('history-report-item')) {
-            const reportId = target.dataset.reportId;
-            loadAuditReport(reportId);
+        // History report selection (improved detection)
+        const reportItem = target.closest('.history-report-item');
+        if (reportItem) {
+            const reportId = reportItem.dataset.reportId;
+            if (reportId) {
+                console.log('Loading report:', reportId);
+                loadAuditReport(reportId);
+            }
         }
         
         // Retry status button
@@ -565,9 +575,28 @@ async function loadSystemStatusData() {
         
         // Handle the response structure { message: "success", data: {...} }
         if (data.data) {
+            // Extract report ID from scan info if available
+            if (data.data.scanInfo && data.data.scanInfo.scanId) {
+                currentReportId = data.data.scanInfo.scanId;
+                console.log('Current report ID from scanInfo:', currentReportId);
+            } else {
+                currentReportId = 'latest';
+                console.log('No scanInfo found, using latest as currentReportId');
+            }
+            updateHistorySelection();
+            
             renderSystemStatusData(data.data);
         } else {
             // Fallback for direct data
+            if (data.scanInfo && data.scanInfo.scanId) {
+                currentReportId = data.scanInfo.scanId;
+                console.log('Current report ID from fallback scanInfo:', currentReportId);
+            } else {
+                currentReportId = 'latest';
+                console.log('No scanInfo in fallback, using latest as currentReportId');
+            }
+            updateHistorySelection();
+            
             renderSystemStatusData(data);
         }
     } catch (error) {
@@ -809,7 +838,8 @@ async function runSecurityScan(event) {
         const scanResult = await response.json();
         console.log('Scan result:', scanResult); // Debug logging
         
-        // Refresh data to show new results
+        // Refresh data to show new results and clear history cache
+        auditHistoryCache = null; // Clear cache so new scan appears in history
         await loadSystemStatusData();
         
         // Reset button
@@ -945,7 +975,22 @@ function toggleAuditHistory() {
         panel.style.display = 'block';
         icon.className = 'fas fa-times';
         button.innerHTML = '<i class="fas fa-times"></i> Close';
-        loadAuditHistory();
+        
+        // Load history with caching
+        if (auditHistoryCache) {
+            console.log('Using cached audit history, currentReportId:', currentReportId);
+            renderAuditHistory(auditHistoryCache);
+            // Update selection state when using cached data
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    console.log('Updating selection from cache');
+                    updateHistorySelection();
+                }, 100);
+            });
+        } else {
+            console.log('Loading fresh audit history');
+            loadAuditHistory();
+        }
     } else {
         panel.style.display = 'none';
         icon.className = 'fas fa-history';
@@ -956,8 +1001,33 @@ function toggleAuditHistory() {
 /**
  * Load audit history from API
  */
-async function loadAuditHistory(offset = 0) {
+async function loadAuditHistory(offset = 0, forceRefresh = false) {
+    // Prevent duplicate requests
+    if (isHistoryLoading) {
+        console.log('History loading already in progress, skipping...');
+        return;
+    }
+    
+    // Use cache if available and not forcing refresh
+    if (!forceRefresh && auditHistoryCache && offset === 0) {
+        renderAuditHistory(auditHistoryCache);
+        return;
+    }
+    
+    isHistoryLoading = true;
+    
     try {
+        // Show loading state
+        const container = document.getElementById('history-content');
+        if (container && offset === 0) {
+            container.innerHTML = `
+                <div class="loading-spinner-container">
+                    <div class="weaver-loading-spinner"></div>
+                    <p>Loading audit history...</p>
+                </div>
+            `;
+        }
+        
         const response = await fetch(`/api/admin/security/audit-history?limit=10&offset=${offset}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -966,14 +1036,24 @@ async function loadAuditHistory(offset = 0) {
         console.log('History API Response:', data); // Debug logging
         
         // Handle the response structure { message: "success", data: {...} }
-        if (data.data) {
-            renderAuditHistory(data.data);
-        } else {
-            renderAuditHistory(data);
+        const historyData = data.data || data;
+        
+        // Cache the data (only for first load)
+        if (offset === 0) {
+            auditHistoryCache = historyData;
         }
+        
+        renderAuditHistory(historyData);
+        
+        // Update selection after rendering
+        setTimeout(() => {
+            updateHistorySelection();
+        }, 100);
     } catch (error) {
         console.error('Error loading audit history:', error);
         renderAuditHistoryError();
+    } finally {
+        isHistoryLoading = false;
     }
 }
 
@@ -1056,6 +1136,21 @@ function renderAuditHistoryError() {
  */
 async function loadAuditReport(reportId) {
     try {
+        // Prevent loading the same report
+        if (currentReportId === reportId) {
+            console.log('Report already loaded:', reportId);
+            return;
+        }
+        
+        // Prevent loading if another report is already loading
+        if (isHistoryLoading) {
+            console.log('Another report is loading, please wait...');
+            showNotification('Please wait, another report is loading...', 'info');
+            return;
+        }
+        
+        isHistoryLoading = true;
+        
         // Show loading state
         const container = document.getElementById('system-status-content');
         container.innerHTML = `
@@ -1065,11 +1160,9 @@ async function loadAuditReport(reportId) {
             </div>
         `;
         
-        // Highlight selected report
-        document.querySelectorAll('.history-report-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-        document.querySelector(`[data-report-id="${reportId}"]`)?.classList.add('selected');
+        // Update current report tracking immediately for visual feedback
+        currentReportId = reportId;
+        updateHistorySelection();
         
         // Load report data
         const response = await fetch(`/api/admin/security/audit-report/${reportId}`);
@@ -1086,12 +1179,81 @@ async function loadAuditReport(reportId) {
             renderSystemStatusData(data);
         }
         
-        showNotification('Audit report loaded successfully', 'success');
+        showNotification('Historical audit report loaded', 'info');
     } catch (error) {
         console.error('Error loading audit report:', error);
         showNotification('Failed to load audit report', 'error');
         renderSystemStatusError();
+        currentReportId = null; // Reset on error
+        updateHistorySelection();
+    } finally {
+        isHistoryLoading = false;
     }
+}
+
+/**
+ * Update history selection visual state
+ */
+function updateHistorySelection() {
+    console.log('Updating history selection, currentReportId:', currentReportId);
+    
+    // Clear all selections
+    const allItems = document.querySelectorAll('.history-report-item');
+    console.log('Found history items:', allItems.length);
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Highlight current selection (including latest reports)
+    if (currentReportId) {
+        const selectedItem = document.querySelector(`[data-report-id="${currentReportId}"]`);
+        console.log('Looking for item with ID:', currentReportId, 'Found:', !!selectedItem);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            console.log('Selected item classes:', selectedItem.className);
+        }
+    }
+    
+    // Update visual indicators
+    updateCurrentReportIndicator();
+}
+
+/**
+ * Update current report indicator in header
+ */
+function updateCurrentReportIndicator() {
+    const scanMetaInfo = document.querySelector('.scan-meta-info');
+    if (scanMetaInfo) {
+        // Remove existing indicator
+        const existingIndicator = scanMetaInfo.querySelector('.current-report-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+        
+        // Add indicator if viewing historical report (not the latest one)
+        const isViewingHistorical = currentReportId && currentReportId !== 'latest' && 
+                                   document.querySelector(`[data-report-id="${currentReportId}"]`);
+        if (isViewingHistorical) {
+            const indicator = document.createElement('div');
+            indicator.className = 'scan-meta-item current-report-indicator';
+            indicator.innerHTML = `
+                <i class="fas fa-history"></i>
+                <span>Historical Report</span>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadSystemStatusData()">
+                    <i class="fas fa-sync"></i> View Latest
+                </button>
+            `;
+            scanMetaInfo.appendChild(indicator);
+        }
+    }
+}
+
+/**
+ * Refresh audit history cache
+ */
+function refreshAuditHistory() {
+    auditHistoryCache = null; // Clear cache
+    loadAuditHistory(0, true); // Force refresh
 }
 
 /**
