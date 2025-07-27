@@ -7,6 +7,8 @@ let securityTabComponent;
 let auditHistoryCache = null; // Cache for audit history data
 let currentReportId = null; // Track currently selected report
 let isHistoryLoading = false; // Prevent duplicate requests
+let isViewingHistoricalReport = false; // Track if viewing historical vs latest report
+let latestReportId = null; // Track the latest report ID
 
 // Security tab configuration
 const securityTabs = [
@@ -573,14 +575,20 @@ async function loadSystemStatusData() {
         const data = await response.json();
         console.log('API Response:', data); // Debug logging
         
+        // Mark as viewing latest report (not historical)
+        isViewingHistoricalReport = false;
+        
         // Handle the response structure { message: "success", data: {...} }
         if (data.data) {
             // Extract report ID from scan info if available
             if (data.data.scanInfo && data.data.scanInfo.scanId) {
                 currentReportId = data.data.scanInfo.scanId;
+                latestReportId = data.data.scanInfo.scanId; // Store as latest
                 console.log('Current report ID from scanInfo:', currentReportId);
+                console.log('Latest report ID set to:', latestReportId);
             } else {
                 currentReportId = 'latest';
+                latestReportId = 'latest'; // Store as latest
                 console.log('No scanInfo found, using latest as currentReportId');
             }
             updateHistorySelection();
@@ -590,9 +598,11 @@ async function loadSystemStatusData() {
             // Fallback for direct data
             if (data.scanInfo && data.scanInfo.scanId) {
                 currentReportId = data.scanInfo.scanId;
+                latestReportId = data.scanInfo.scanId; // Store as latest
                 console.log('Current report ID from fallback scanInfo:', currentReportId);
             } else {
                 currentReportId = 'latest';
+                latestReportId = 'latest'; // Store as latest
                 console.log('No scanInfo in fallback, using latest as currentReportId');
             }
             updateHistorySelection();
@@ -676,6 +686,9 @@ function renderSystemStatusData(data) {
             </div>
         </div>
     `;
+    
+    // Update indicators after DOM rendering
+    updateCurrentReportIndicator();
 }
 
 /**
@@ -1160,6 +1173,10 @@ async function loadAuditReport(reportId) {
             </div>
         `;
         
+        // Check if this is the latest report or a historical one
+        isViewingHistoricalReport = (reportId !== latestReportId);
+        console.log('Loading report:', reportId, 'Latest:', latestReportId, 'Is historical:', isViewingHistoricalReport);
+        
         // Update current report tracking immediately for visual feedback
         currentReportId = reportId;
         updateHistorySelection();
@@ -1185,6 +1202,7 @@ async function loadAuditReport(reportId) {
         showNotification('Failed to load audit report', 'error');
         renderSystemStatusError();
         currentReportId = null; // Reset on error
+        isViewingHistoricalReport = false; // Reset flag on error
         updateHistorySelection();
     } finally {
         isHistoryLoading = false;
@@ -1230,18 +1248,13 @@ function updateCurrentReportIndicator() {
             existingIndicator.remove();
         }
         
-        // Add indicator if viewing historical report (not the latest one)
-        const isViewingHistorical = currentReportId && currentReportId !== 'latest' && 
-                                   document.querySelector(`[data-report-id="${currentReportId}"]`);
-        if (isViewingHistorical) {
+        // Add indicator if viewing historical report
+        if (isViewingHistoricalReport) {
             const indicator = document.createElement('div');
             indicator.className = 'scan-meta-item current-report-indicator';
             indicator.innerHTML = `
                 <i class="fas fa-history"></i>
-                <span>Historical Report</span>
-                <button class="btn btn-sm btn-outline-primary" onclick="loadSystemStatusData()">
-                    <i class="fas fa-sync"></i> View Latest
-                </button>
+                <span>Viewing Historical Report</span>
             `;
             scanMetaInfo.appendChild(indicator);
         }
