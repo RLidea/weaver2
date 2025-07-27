@@ -6,7 +6,7 @@ import { createHash } from 'crypto';
 import { readFile } from 'fs/promises';
 
 // Types for audit data
-interface VulnerabilityCount {
+export interface VulnerabilityCount {
   total: number;
   critical: number;
   high: number;
@@ -15,7 +15,7 @@ interface VulnerabilityCount {
   info?: number;
 }
 
-interface AuditAdvisory {
+export interface AuditAdvisory {
   id: number;
   severity: string;
   title: string;
@@ -29,7 +29,7 @@ interface AuditAdvisory {
   url: string;
 }
 
-interface AuditResult {
+export interface AuditResult {
   metadata?: {
     vulnerabilities: VulnerabilityCount;
     totalDependencies: number;
@@ -37,7 +37,7 @@ interface AuditResult {
   advisories?: Record<string, AuditAdvisory>;
 }
 
-interface SecurityAuditReport {
+export interface SecurityAuditReport {
   id: string;
   createdAt: Date;
   securityScore: number;
@@ -518,11 +518,11 @@ export class AdminSecurityApiService {
           scanType: 'pnpm_audit',
           scanDuration,
           totalDependencies: auditResult.metadata?.totalDependencies || 0,
-          vulnerabilityCount,
+          vulnerabilityCount: vulnerabilityCount as any,
           securityScore,
-          rawAuditData: auditResult,
-          vulnerabilities,
-          recommendations,
+          rawAuditData: auditResult as any,
+          vulnerabilities: vulnerabilities as any,
+          recommendations: recommendations as any,
           packageJsonHash,
           lockfileHash,
         },
