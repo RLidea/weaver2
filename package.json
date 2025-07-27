@@ -34,7 +34,7 @@
     "db:core:reset": "pnpm prisma migrate reset --schema=apps/core/prisma/schema.prisma",
     "db:core:seed": "ts-node --transpile-only apps/core/prisma/seed/seed.ts",
     "---------------------------Security---------------------------": "",
-    "audit:json": "pnpm audit --json",
+    "audit:json": "pnpm audit --json --no-optional",
     "---------------------------OTHERs---------------------------": "",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

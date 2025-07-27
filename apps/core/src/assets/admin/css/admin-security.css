@@ -625,6 +625,251 @@
 /* =====================================
    System Status Tab Styles
    ===================================== */
+
+/* Section Actions */
+.section-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+/* Scan Info Header */
+.scan-info-header {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-amount);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--card-border-radius);
+    padding: var(--card-padding);
+    margin-bottom: var(--spacing-2xl);
+    box-shadow: var(--card-shadow), var(--inset-highlight);
+}
+
+.scan-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.scan-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.scan-time, .scan-id {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.scan-time i {
+    margin-right: var(--spacing-sm);
+    color: var(--secondary-blue);
+}
+
+/* Security Score Display */
+.security-score-display {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 3px solid;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.score-circle.status-good {
+    border-color: var(--status-success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.2));
+}
+
+.score-circle.status-warning {
+    border-color: var(--status-warning);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.2));
+}
+
+.score-circle.status-danger {
+    border-color: var(--status-error);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.2));
+}
+
+.score-value {
+    font-size: 1.8rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.score-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.score-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.score-title {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.score-summary {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Vulnerability Summary */
+.vulnerability-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vuln-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-small);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.vuln-stat:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.vuln-stat.critical {
+    border-left: 4px solid #7c2d12;
+}
+
+.vuln-stat.high {
+    border-left: 4px solid #dc2626;
+}
+
+.vuln-stat.moderate {
+    border-left: 4px solid var(--status-warning);
+}
+
+.vuln-stat.low {
+    border-left: 4px solid var(--status-info);
+}
+
+.vuln-count {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.vuln-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* No Data States */
+.no-vulnerabilities, .no-recommendations {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-vulnerabilities i, .no-recommendations i {
+    font-size: 3rem;
+    color: var(--status-success);
+    margin-bottom: var(--spacing-lg);
+}
+
+.no-vulnerabilities h4, .no-recommendations h4 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.no-vulnerabilities p, .no-recommendations p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Priority Badges */
+.priority-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.priority-badge.critical {
+    background: #7c2d12;
+    color: white;
+}
+
+.priority-badge.high {
+    background: #dc2626;
+    color: white;
+}
+
+.priority-badge.medium {
+    background: var(--status-warning);
+    color: white;
+}
+
+.priority-badge.low {
+    background: var(--status-info);
+    color: white;
+}
+
+/* Recommendation Priority */
+.recommendation-item.priority-critical {
+    border-left: 4px solid #7c2d12;
+}
+
+.recommendation-item.priority-high {
+    border-left: 4px solid #dc2626;
+}
+
+.recommendation-item.priority-medium {
+    border-left: 4px solid var(--status-warning);
+}
+
+.recommendation-item.priority-low {
+    border-left: 4px solid var(--status-info);
+}
+
+.recommendation-priority {
+    display: flex;
+    align-items: center;
+}
+
+.rec-action {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-small);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
 .status-overview {
     margin-bottom: var(--spacing-2xl);
 }

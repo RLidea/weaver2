@@ -69,7 +69,7 @@ function setupEventListeners() {
         
         // Run scan button
         if (target.id === 'run-scan-btn' || target.closest('#run-scan-btn')) {
-            runSecurityScan();
+            runSecurityScan(event);
         }
         
         // Retry status button
@@ -500,18 +500,23 @@ function generateSystemStatusContent() {
         <div class="security-section">
             <div class="section-header with-button">
                 <div class="section-content">
-                    <h3><i class="fas fa-heartbeat"></i> System Security Status</h3>
-                    <p class="text-secondary">Monitor system security health and vulnerabilities</p>
+                    <h3><i class="fas fa-heartbeat"></i> Security Audit Report</h3>
+                    <p class="text-secondary">Comprehensive security analysis of project dependencies</p>
                 </div>
-                <button class="btn btn-secondary" id="refresh-status-btn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" id="refresh-status-btn">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" id="run-scan-btn">
+                        <i class="fas fa-shield-alt"></i> Run New Scan
+                    </button>
+                </div>
             </div>
             
             <div id="system-status-content" class="status-overview">
                 <div class="loading-spinner-container">
                     <div class="weaver-loading-spinner"></div>
-                    <p>Loading system status...</p>
+                    <p>Loading security audit report...</p>
                 </div>
             </div>
         </div>
@@ -542,7 +547,12 @@ function renderSystemStatusData(data) {
     const container = document.getElementById('system-status-content');
     if (!container) return;
 
+    // Check if this is scan info data or regular data
+    const hasScanInfo = data.scanInfo;
+    
     container.innerHTML = `
+        ${hasScanInfo ? renderScanInfoHeader(data.scanInfo) : ''}
+        
         <div class="status-cards">
             ${data.statusCards.map(card => `
                 <div class="status-card card status-${card.status}">
@@ -562,28 +572,15 @@ function renderSystemStatusData(data) {
             <div class="detail-section">
                 <div class="section-title">
                     <h4><i class="fas fa-bug"></i> Security Vulnerabilities</h4>
-                    <button class="btn btn-primary btn-sm" id="run-scan-btn">Run Scan</button>
                 </div>
-                <div class="vulnerability-list">
-                    ${data.vulnerabilities.map(vuln => `
-                        <div class="vulnerability-item ${vuln.severity}">
-                            <div class="vuln-severity">
-                                <span class="severity-badge ${vuln.severity}">${vuln.severity.toUpperCase()}</span>
-                            </div>
-                            <div class="vuln-info">
-                                <div class="vuln-title">${vuln.title}</div>
-                                <div class="vuln-description">${vuln.description}</div>
-                                ${vuln.module ? `<div class="vuln-module"><strong>Module:</strong> ${vuln.module}</div>` : ''}
-                                ${vuln.cve ? `<div class="vuln-cve"><strong>CVE:</strong> ${vuln.cve}</div>` : ''}
-                                ${vuln.cvss_score ? `<div class="vuln-cvss"><strong>CVSS Score:</strong> ${vuln.cvss_score}</div>` : ''}
-                            </div>
-                            <div class="vuln-actions">
-                                ${vuln.url ? `<a href="${vuln.url}" target="_blank" class="btn btn-sm btn-secondary">Details</a>` : ''}
-                                ${vuln.fixAvailable && vuln.recommendation ? `<button class="btn btn-sm btn-primary fix-vuln-btn" data-id="${vuln.id}" data-recommendation="${vuln.recommendation.replace(/"/g, '&quot;')}">Fix</button>` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
+                ${renderVulnerabilityList(data.vulnerabilities)}
+            </div>
+            
+            <div class="detail-section">
+                <div class="section-title">
+                    <h4><i class="fas fa-lightbulb"></i> Security Recommendations</h4>
                 </div>
+                ${renderRecommendationsList(data.recommendations)}
             </div>
             
             <div class="detail-section">
@@ -603,28 +600,137 @@ function renderSystemStatusData(data) {
                     </div>
                 </div>
             </div>
-            
-            <div class="detail-section">
-                <div class="section-title">
-                    <h4><i class="fas fa-lightbulb"></i> Security Recommendations</h4>
+        </div>
+    `;
+}
+
+/**
+ * Render scan info header
+ */
+function renderScanInfoHeader(scanInfo) {
+    const scanTime = new Date(scanInfo.scanTime).toLocaleString();
+    const scoreColor = scanInfo.securityScore >= 80 ? 'good' : scanInfo.securityScore >= 60 ? 'warning' : 'danger';
+    
+    return `
+        <div class="scan-info-header">
+            <div class="scan-summary">
+                <div class="scan-meta">
+                    <span class="scan-time"><i class="fas fa-clock"></i> Scanned: ${scanTime}</span>
+                    <span class="scan-id">Report ID: ${scanInfo.scanId.substring(0, 8)}...</span>
                 </div>
-                <div class="recommendations-list">
-                    ${data.recommendations.map(rec => `
-                        <div class="recommendation-item">
-                            <i class="fas fa-lightbulb"></i>
-                            <div class="recommendation-text">
-                                <strong>${rec.title}</strong>
-                                <p>${rec.description}</p>
-                            </div>
-                            <button class="btn btn-sm btn-primary handle-rec-btn" data-id="${rec.id}">
-                                ${getRecommendationActionText(rec.category)}
-                            </button>
-                        </div>
-                    `).join('')}
+                <div class="security-score-display">
+                    <div class="score-circle status-${scoreColor}">
+                        <span class="score-value">${scanInfo.securityScore}</span>
+                        <span class="score-label">/ 100</span>
+                    </div>
+                    <div class="score-text">
+                        <div class="score-title">Security Score</div>
+                        <div class="score-summary">${getScoreDescription(scanInfo.securityScore)}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="vulnerability-summary">
+                <div class="vuln-stat critical">
+                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.critical}</span>
+                    <span class="vuln-label">Critical</span>
+                </div>
+                <div class="vuln-stat high">
+                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.high}</span>
+                    <span class="vuln-label">High</span>
+                </div>
+                <div class="vuln-stat moderate">
+                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.moderate}</span>
+                    <span class="vuln-label">Moderate</span>
+                </div>
+                <div class="vuln-stat low">
+                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.low}</span>
+                    <span class="vuln-label">Low</span>
                 </div>
             </div>
         </div>
     `;
+}
+
+/**
+ * Render vulnerability list
+ */
+function renderVulnerabilityList(vulnerabilities) {
+    if (!vulnerabilities || vulnerabilities.length === 0) {
+        return `
+            <div class="no-vulnerabilities">
+                <i class="fas fa-shield-alt"></i>
+                <h4>No Vulnerabilities Found</h4>
+                <p>Great! No security vulnerabilities were detected in your dependencies.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="vulnerability-list">
+            ${vulnerabilities.map(vuln => `
+                <div class="vulnerability-item ${vuln.severity}">
+                    <div class="vuln-severity">
+                        <span class="severity-badge ${vuln.severity}">${vuln.severity.toUpperCase()}</span>
+                    </div>
+                    <div class="vuln-info">
+                        <div class="vuln-title">${vuln.title}</div>
+                        <div class="vuln-description">${vuln.description}</div>
+                        ${vuln.module ? `<div class="vuln-module"><strong>Module:</strong> ${vuln.module}</div>` : ''}
+                        ${vuln.cve ? `<div class="vuln-cve"><strong>CVE:</strong> ${vuln.cve}</div>` : ''}
+                        ${vuln.cvss_score ? `<div class="vuln-cvss"><strong>CVSS Score:</strong> ${vuln.cvss_score}</div>` : ''}
+                    </div>
+                    <div class="vuln-actions">
+                        ${vuln.url ? `<a href="${vuln.url}" target="_blank" class="btn btn-sm btn-secondary">Details</a>` : ''}
+                        ${vuln.fixAvailable && vuln.recommendation ? `<button class="btn btn-sm btn-primary fix-vuln-btn" data-id="${vuln.id}" data-recommendation="${vuln.recommendation.replace(/"/g, '&quot;')}">Fix</button>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/**
+ * Render recommendations list
+ */
+function renderRecommendationsList(recommendations) {
+    if (!recommendations || recommendations.length === 0) {
+        return `
+            <div class="no-recommendations">
+                <i class="fas fa-check-circle"></i>
+                <h4>No Specific Recommendations</h4>
+                <p>Keep up the good work! Continue monitoring your dependencies regularly.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="recommendations-list">
+            ${recommendations.map(rec => `
+                <div class="recommendation-item priority-${rec.priority}">
+                    <i class="fas fa-lightbulb"></i>
+                    <div class="recommendation-text">
+                        <strong>${rec.title}</strong>
+                        <p>${rec.description}</p>
+                        ${rec.action ? `<div class="rec-action"><strong>Action:</strong> ${rec.action}</div>` : ''}
+                    </div>
+                    <div class="recommendation-priority">
+                        <span class="priority-badge ${rec.priority}">${rec.priority.toUpperCase()}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/**
+ * Get score description
+ */
+function getScoreDescription(score) {
+    if (score >= 90) return 'Excellent Security';
+    if (score >= 80) return 'Good Security';
+    if (score >= 70) return 'Fair Security';
+    if (score >= 60) return 'Poor Security';
+    return 'Critical Issues';
 }
 
 /**
@@ -665,10 +771,10 @@ async function refreshSystemStatus() {
 /**
  * Run security scan (triggers fresh pnpm audit)
  */
-async function runSecurityScan() {
+async function runSecurityScan(event) {
     try {
         // Show loading state
-        const button = event.target;
+        const button = event ? event.target : document.getElementById('run-scan-btn');
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
         button.disabled = true;
@@ -695,7 +801,7 @@ async function runSecurityScan() {
         console.error('Error running security scan:', error);
         
         // Reset button
-        const button = event.target;
+        const button = event ? event.target : document.getElementById('run-scan-btn');
         button.innerHTML = 'Run Scan';
         button.disabled = false;
         

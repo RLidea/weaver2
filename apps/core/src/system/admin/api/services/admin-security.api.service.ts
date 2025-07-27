@@ -41,9 +41,9 @@ interface SecurityAuditReport {
   id: string;
   createdAt: Date;
   securityScore: number;
-  vulnerabilityCount: VulnerabilityCount;
-  vulnerabilities: unknown[];
-  recommendations: unknown[] | null;
+  vulnerabilityCount: unknown;
+  vulnerabilities: unknown;
+  recommendations: unknown;
 }
 
 const execAsync = promisify(exec);
@@ -75,51 +75,37 @@ export class AdminSecurityApiService {
           recommendations: securityOverview.recommendations,
         };
       } else {
-        // No stored data, fall back to live audit
-        console.log('No stored audit data found, falling back to live audit');
-        const securityOverview = await this.getSecurityOverview();
+        // No stored data, return empty state
+        console.log('No stored audit data found, showing empty state');
         return {
-          statusCards: securityOverview.statusCards,
-          vulnerabilities: securityOverview.vulnerabilities,
-          recommendations: securityOverview.recommendations,
+          statusCards: [
+            {
+              title: 'Security Scan',
+              value: 'Not Available',
+              description: 'Run your first security scan to see results',
+              status: 'warning',
+              icon: 'fas fa-exclamation-triangle',
+            },
+          ],
+          vulnerabilities: [],
+          recommendations: [],
         };
       }
     } catch (error) {
       console.error('Error getting system status:', error);
-      // Return fallback data on error
+      // Return error state
       return {
         statusCards: [
           {
-            title: 'Security Score',
-            value: '85/100',
-            description: 'Good',
-            status: 'good',
-            icon: 'fas fa-shield-alt',
-          },
-          {
-            title: 'Vulnerabilities',
-            value: '0',
-            description: 'No vulnerabilities detected',
-            status: 'good',
+            title: 'Security Status',
+            value: 'Error',
+            description: 'Unable to load security data. Please try again.',
+            status: 'danger',
             icon: 'fas fa-exclamation-triangle',
-          },
-          {
-            title: 'SSL Certificate',
-            value: 'Valid',
-            description: 'Expires in 89 days',
-            status: 'good',
-            icon: 'fas fa-certificate',
-          },
-          {
-            title: 'Last Scan',
-            value: 'Never',
-            description: 'Run scan to check for vulnerabilities',
-            status: 'warning',
-            icon: 'fas fa-sync-alt',
           },
         ],
         vulnerabilities: [],
-        recommendations: this.getSecurityRecommendations(),
+        recommendations: [],
       };
     }
   }
@@ -128,51 +114,84 @@ export class AdminSecurityApiService {
    * Get security overview from stored audit data
    */
   getSecurityOverviewFromStoredData(auditReport: SecurityAuditReport) {
-    const vulnerabilitiesCount = auditReport.vulnerabilityCount;
-    const sslCertificateStatus = this.getSslCertificateStatus();
+    try {
+      // Safely parse vulnerability count from JSON
+      const vulnerabilitiesCount = this.parseVulnerabilityCount(
+        auditReport.vulnerabilityCount,
+      );
 
-    // Calculate time ago for last scan
-    const lastScanTime = this.getTimeAgo(auditReport.createdAt);
+      // Calculate time ago for last scan
+      const lastScanTime = this.getTimeAgo(auditReport.createdAt);
 
-    const statusCards = [
-      {
-        title: 'Security Score',
-        value: `${auditReport.securityScore}/100`,
-        description: this.getSecurityScoreDescription(
-          auditReport.securityScore,
-        ),
-        status: this.getSecurityScoreStatus(auditReport.securityScore),
-        icon: 'fas fa-shield-alt',
-      },
-      {
-        title: 'Vulnerabilities',
-        value: vulnerabilitiesCount.total.toString(),
-        description: this.getVulnerabilityDescription(vulnerabilitiesCount),
-        status: this.getVulnerabilityStatus(vulnerabilitiesCount),
-        icon: 'fas fa-exclamation-triangle',
-      },
-      {
-        title: 'SSL Certificate',
-        value: sslCertificateStatus.isValid ? 'Valid' : 'Invalid',
-        description: sslCertificateStatus.description,
-        status: sslCertificateStatus.isValid ? 'good' : 'danger',
-        icon: 'fas fa-certificate',
-      },
-      {
-        title: 'Last Scan',
-        value: lastScanTime.timeAgo,
-        description: lastScanTime.description,
-        status: lastScanTime.status,
-        icon: 'fas fa-sync-alt',
-      },
-    ];
+      const statusCards = [
+        {
+          title: 'Security Score',
+          value: `${auditReport.securityScore}/100`,
+          description: this.getSecurityScoreDescription(
+            auditReport.securityScore,
+          ),
+          status: this.getSecurityScoreStatus(auditReport.securityScore),
+          icon: 'fas fa-shield-alt',
+        },
+        {
+          title: 'Total Vulnerabilities',
+          value: vulnerabilitiesCount.total.toString(),
+          description: this.getVulnerabilityDescription(vulnerabilitiesCount),
+          status: this.getVulnerabilityStatus(vulnerabilitiesCount),
+          icon: 'fas fa-exclamation-triangle',
+        },
+        {
+          title: 'Critical Issues',
+          value: vulnerabilitiesCount.critical.toString(),
+          description:
+            vulnerabilitiesCount.critical > 0
+              ? 'Immediate action required'
+              : 'No critical issues',
+          status: vulnerabilitiesCount.critical > 0 ? 'danger' : 'good',
+          icon: 'fas fa-skull-crossbones',
+        },
+        {
+          title: 'High Priority',
+          value: vulnerabilitiesCount.high.toString(),
+          description:
+            vulnerabilitiesCount.high > 0
+              ? 'Should be fixed soon'
+              : 'No high priority issues',
+          status: vulnerabilitiesCount.high > 0 ? 'warning' : 'good',
+          icon: 'fas fa-exclamation',
+        },
+        {
+          title: 'Last Scan',
+          value: lastScanTime.timeAgo,
+          description: lastScanTime.description,
+          status: lastScanTime.status,
+          icon: 'fas fa-sync-alt',
+        },
+      ];
 
-    return {
-      statusCards,
-      vulnerabilities: auditReport.vulnerabilities,
-      recommendations:
-        auditReport.recommendations || this.getSecurityRecommendations(),
-    };
+      // Parse vulnerabilities and recommendations
+      const vulnerabilities = this.parseStoredVulnerabilities(
+        auditReport.vulnerabilities,
+      );
+      const recommendations = this.parseStoredRecommendations(
+        auditReport.recommendations,
+      );
+
+      return {
+        statusCards,
+        vulnerabilities,
+        recommendations,
+        scanInfo: {
+          scanTime: auditReport.createdAt,
+          scanId: auditReport.id,
+          securityScore: auditReport.securityScore,
+          vulnerabilitySummary: vulnerabilitiesCount,
+        },
+      };
+    } catch (error) {
+      console.error('Error parsing stored audit data:', error);
+      throw new Error('Failed to parse stored security audit data');
+    }
   }
 
   /**
@@ -476,12 +495,19 @@ export class AdminSecurityApiService {
   private async runPnpmAudit(): Promise<AuditResult> {
     try {
       console.log('Running pnpm audit from directory:', process.cwd());
-      const { stdout } = await execAsync('pnpm run audit:json', {
+      const { stdout } = await execAsync('pnpm audit --json --no-optional', {
         cwd: process.cwd(),
         timeout: 30000, // 30 second timeout
       });
       console.log('pnpm audit completed successfully');
-      return JSON.parse(stdout) as AuditResult;
+
+      // Clean stdout to ensure it's valid JSON
+      const cleanOutput = stdout.trim();
+      if (!cleanOutput.startsWith('{')) {
+        throw new Error('Invalid JSON output from pnpm audit');
+      }
+
+      return JSON.parse(cleanOutput) as AuditResult;
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error) {
         const execError = error as {
@@ -493,7 +519,9 @@ export class AdminSecurityApiService {
 
         console.log('pnpm audit error details:', {
           code: execError.code,
-          stdout: execError.stdout ? 'has stdout' : 'no stdout',
+          stdout: execError.stdout
+            ? execError.stdout.substring(0, 200) + '...'
+            : 'no stdout',
           stderr: execError.stderr,
           message: execError.message,
         });
@@ -501,7 +529,18 @@ export class AdminSecurityApiService {
         // pnpm audit returns non-zero exit code when vulnerabilities are found
         if (execError.stdout) {
           console.log('Parsing stdout from pnpm audit');
-          return JSON.parse(execError.stdout) as AuditResult;
+          const cleanOutput = execError.stdout.trim();
+
+          // Check if output starts with JSON
+          if (cleanOutput.startsWith('{')) {
+            return JSON.parse(cleanOutput) as AuditResult;
+          } else {
+            console.error(
+              'stdout is not valid JSON:',
+              cleanOutput.substring(0, 200),
+            );
+            throw new Error('pnpm audit did not return valid JSON');
+          }
         }
       }
 
@@ -762,5 +801,59 @@ export class AdminSecurityApiService {
       description,
       lastScanDate: date,
     };
+  }
+
+  /**
+   * Parse vulnerability count from stored JSON data
+   */
+  private parseVulnerabilityCount(data: unknown): VulnerabilityCount {
+    try {
+      if (typeof data === 'object' && data !== null) {
+        const vulnData = data as Record<string, number>;
+        return {
+          total: vulnData.total || 0,
+          critical: vulnData.critical || 0,
+          high: vulnData.high || 0,
+          moderate: vulnData.moderate || 0,
+          low: vulnData.low || 0,
+          info: vulnData.info || 0,
+        };
+      }
+      throw new Error('Invalid vulnerability count data');
+    } catch (error) {
+      console.error('Error parsing vulnerability count:', error);
+      return { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 };
+    }
+  }
+
+  /**
+   * Parse stored vulnerabilities from JSON data
+   */
+  private parseStoredVulnerabilities(data: unknown): unknown[] {
+    try {
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error parsing stored vulnerabilities:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Parse stored recommendations from JSON data
+   */
+  private parseStoredRecommendations(data: unknown): unknown[] {
+    try {
+      if (Array.isArray(data)) {
+        return data;
+      }
+      // Return empty array if no data - don't use hardcoded fallback
+      return [];
+    } catch (error) {
+      console.error('Error parsing stored recommendations:', error);
+      return [];
+    }
   }
 }
