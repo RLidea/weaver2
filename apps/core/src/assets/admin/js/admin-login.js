@@ -34,7 +34,11 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const password = document.getElementById('password').value;
     const rememberMe = document.getElementById('rememberMe').checked;
     const errorMessageDiv = document.getElementById('errorMessage');
-    errorMessageDiv.textContent = '';
+    const loginButton = document.querySelector('.login-button');
+    
+    // Clear previous error and show loading state
+    hideError();
+    setLoading(true);
 
     try {
         const response = await fetch('/v1/auth/sign-in', {
@@ -49,12 +53,59 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
             window.location.href = '/admin/dashboard';
         } else {
             const errorData = await response.json();
-            errorMessageDiv.textContent = errorData.error.message || 'Login failed';
+            let errorMessage = 'Login failed. Please check your credentials.';
+            
+            // Handle different error types
+            if (errorData.error && errorData.error.message) {
+                errorMessage = errorData.error.message;
+            } else if (response.status === 401) {
+                errorMessage = 'Invalid email or password. Please try again.';
+            } else if (response.status === 429) {
+                errorMessage = 'Too many login attempts. Please try again later.';
+            } else if (response.status >= 500) {
+                errorMessage = 'Server error. Please try again later.';
+            }
+            
+            showError(errorMessage);
+            setLoading(false);
         }
     } catch (error) {
-        errorMessageDiv.textContent = 'An error occurred. Please try again.';
+        console.error('Login error:', error);
+        showError('Connection error. Please check your internet connection and try again.');
+        setLoading(false);
     }
 });
+
+// Helper functions
+function showError(message) {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = message;
+    errorMessageDiv.classList.add('show');
+}
+
+function hideError() {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = '';
+    errorMessageDiv.classList.remove('show');
+}
+
+function setLoading(isLoading) {
+    const loginButton = document.querySelector('.login-button');
+    const buttonText = loginButton.querySelector('i');
+    const spinner = loginButton.querySelector('.loading-spinner');
+    
+    if (isLoading) {
+        loginButton.disabled = true;
+        loginButton.classList.add('loading');
+        buttonText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+    } else {
+        loginButton.disabled = false;
+        loginButton.classList.remove('loading');
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+    }
+}
 
 // Utility functions for cookie management
 function getCookie(name) {
