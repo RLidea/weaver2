@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
+import { Prisma } from '@prisma/client';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
@@ -518,11 +519,11 @@ export class AdminSecurityApiService {
           scanType: 'pnpm_audit',
           scanDuration,
           totalDependencies: auditResult.metadata?.totalDependencies || 0,
-          vulnerabilityCount: vulnerabilityCount as any,
+          vulnerabilityCount: this.toJsonValue(vulnerabilityCount),
           securityScore,
-          rawAuditData: auditResult as any,
-          vulnerabilities: vulnerabilities as any,
-          recommendations: recommendations as any,
+          rawAuditData: this.toJsonValue(auditResult),
+          vulnerabilities: this.toJsonValue(vulnerabilities),
+          recommendations: this.toJsonValue(recommendations),
           packageJsonHash,
           lockfileHash,
         },
@@ -913,6 +914,19 @@ export class AdminSecurityApiService {
     } catch (error) {
       console.error('Error parsing stored recommendations:', error);
       return [];
+    }
+  }
+
+  /**
+   * Safely convert value to Prisma JsonValue
+   */
+  private toJsonValue(value: unknown): Prisma.JsonValue {
+    try {
+      // Convert to JSON and back to ensure it's serializable
+      return JSON.parse(JSON.stringify(value)) as Prisma.JsonValue;
+    } catch (error) {
+      console.error('Error converting to JSON value:', error);
+      return null;
     }
   }
 }
