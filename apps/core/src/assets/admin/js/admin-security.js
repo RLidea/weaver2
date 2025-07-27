@@ -72,6 +72,17 @@ function setupEventListeners() {
             runSecurityScan(event);
         }
         
+        // History toggle button
+        if (target.id === 'history-toggle-btn' || target.closest('#history-toggle-btn')) {
+            toggleAuditHistory();
+        }
+        
+        // History report selection
+        if (target.classList.contains('history-report-item')) {
+            const reportId = target.dataset.reportId;
+            loadAuditReport(reportId);
+        }
+        
         // Retry status button
         if (target.id === 'retry-status-btn' || target.closest('#retry-status-btn')) {
             loadSystemStatusData();
@@ -504,12 +515,29 @@ function generateSystemStatusContent() {
                     <p class="text-secondary">Comprehensive security analysis of project dependencies</p>
                 </div>
                 <div class="section-actions">
+                    <button class="btn btn-secondary" id="history-toggle-btn">
+                        <i class="fas fa-history"></i> History
+                    </button>
                     <button class="btn btn-secondary" id="refresh-status-btn">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                     <button class="btn btn-primary" id="run-scan-btn">
                         <i class="fas fa-shield-alt"></i> Run New Scan
                     </button>
+                </div>
+            </div>
+            
+            <!-- Audit History Panel -->
+            <div id="audit-history-panel" class="audit-history-panel" style="display: none;">
+                <div class="history-header">
+                    <h4><i class="fas fa-history"></i> Audit Report History</h4>
+                    <input type="text" id="history-search" class="form-control" placeholder="Search reports...">
+                </div>
+                <div id="history-content" class="history-content">
+                    <div class="loading-spinner-container">
+                        <div class="weaver-loading-spinner"></div>
+                        <p>Loading audit history...</p>
+                    </div>
                 </div>
             </div>
             
@@ -533,7 +561,15 @@ async function loadSystemStatusData() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        renderSystemStatusData(data.data);
+        console.log('API Response:', data); // Debug logging
+        
+        // Handle the response structure { message: "success", data: {...} }
+        if (data.data) {
+            renderSystemStatusData(data.data);
+        } else {
+            // Fallback for direct data
+            renderSystemStatusData(data);
+        }
     } catch (error) {
         console.error('Error loading system status:', error);
         renderSystemStatusError();
@@ -547,11 +583,20 @@ function renderSystemStatusData(data) {
     const container = document.getElementById('system-status-content');
     if (!container) return;
 
+    console.log('renderSystemStatusData called with:', data);
+    
+    // Check if data has the required structure
+    if (!data || !data.statusCards || !Array.isArray(data.statusCards)) {
+        console.error('Invalid data structure - statusCards missing or not an array:', data);
+        renderSystemStatusError();
+        return;
+    }
+
     // Check if this is scan info data or regular data
     const hasScanInfo = data.scanInfo;
     
     container.innerHTML = `
-        ${hasScanInfo ? renderScanInfoHeader(data.scanInfo) : ''}
+        ${hasScanInfo ? renderScanMetaInfo(data.scanInfo) : ''}
         
         <div class="status-cards">
             ${data.statusCards.map(card => `
@@ -605,47 +650,20 @@ function renderSystemStatusData(data) {
 }
 
 /**
- * Render scan info header
+ * Render simple scan meta info
  */
-function renderScanInfoHeader(scanInfo) {
+function renderScanMetaInfo(scanInfo) {
     const scanTime = new Date(scanInfo.scanTime).toLocaleString();
-    const scoreColor = scanInfo.securityScore >= 80 ? 'good' : scanInfo.securityScore >= 60 ? 'warning' : 'danger';
     
     return `
-        <div class="scan-info-header">
-            <div class="scan-summary">
-                <div class="scan-meta">
-                    <span class="scan-time"><i class="fas fa-clock"></i> Scanned: ${scanTime}</span>
-                    <span class="scan-id">Report ID: ${scanInfo.scanId.substring(0, 8)}...</span>
-                </div>
-                <div class="security-score-display">
-                    <div class="score-circle status-${scoreColor}">
-                        <span class="score-value">${scanInfo.securityScore}</span>
-                        <span class="score-label">/ 100</span>
-                    </div>
-                    <div class="score-text">
-                        <div class="score-title">Security Score</div>
-                        <div class="score-summary">${getScoreDescription(scanInfo.securityScore)}</div>
-                    </div>
-                </div>
+        <div class="scan-meta-info">
+            <div class="scan-meta-item">
+                <i class="fas fa-clock"></i>
+                <span>Scanned: ${scanTime}</span>
             </div>
-            <div class="vulnerability-summary">
-                <div class="vuln-stat critical">
-                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.critical}</span>
-                    <span class="vuln-label">Critical</span>
-                </div>
-                <div class="vuln-stat high">
-                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.high}</span>
-                    <span class="vuln-label">High</span>
-                </div>
-                <div class="vuln-stat moderate">
-                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.moderate}</span>
-                    <span class="vuln-label">Moderate</span>
-                </div>
-                <div class="vuln-stat low">
-                    <span class="vuln-count">${scanInfo.vulnerabilitySummary.low}</span>
-                    <span class="vuln-label">Low</span>
-                </div>
+            <div class="scan-meta-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Report ID: ${scanInfo.scanId.substring(0, 8)}...</span>
             </div>
         </div>
     `;
@@ -788,6 +806,9 @@ async function runSecurityScan(event) {
             throw new Error(`Scan failed: ${response.status}`);
         }
         
+        const scanResult = await response.json();
+        console.log('Scan result:', scanResult); // Debug logging
+        
         // Refresh data to show new results
         await loadSystemStatusData();
         
@@ -910,6 +931,167 @@ function copyToClipboard(text) {
         document.execCommand('copy');
         document.body.removeChild(textArea);
     });
+}
+
+/**
+ * Toggle audit history panel
+ */
+function toggleAuditHistory() {
+    const panel = document.getElementById('audit-history-panel');
+    const button = document.getElementById('history-toggle-btn');
+    const icon = button.querySelector('i');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        icon.className = 'fas fa-times';
+        button.innerHTML = '<i class="fas fa-times"></i> Close';
+        loadAuditHistory();
+    } else {
+        panel.style.display = 'none';
+        icon.className = 'fas fa-history';
+        button.innerHTML = '<i class="fas fa-history"></i> History';
+    }
+}
+
+/**
+ * Load audit history from API
+ */
+async function loadAuditHistory(offset = 0) {
+    try {
+        const response = await fetch(`/api/admin/security/audit-history?limit=10&offset=${offset}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('History API Response:', data); // Debug logging
+        
+        // Handle the response structure { message: "success", data: {...} }
+        if (data.data) {
+            renderAuditHistory(data.data);
+        } else {
+            renderAuditHistory(data);
+        }
+    } catch (error) {
+        console.error('Error loading audit history:', error);
+        renderAuditHistoryError();
+    }
+}
+
+/**
+ * Render audit history data
+ */
+function renderAuditHistory(data) {
+    const container = document.getElementById('history-content');
+    if (!container) return;
+
+    if (!data.reports || data.reports.length === 0) {
+        container.innerHTML = `
+            <div class="no-history">
+                <i class="fas fa-info-circle"></i>
+                <p>No audit reports found</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="history-list">
+            ${data.reports.map(report => {
+                const scanTime = new Date(report.createdAt).toLocaleString();
+                const scoreColor = report.securityScore >= 80 ? 'good' : report.securityScore >= 60 ? 'warning' : 'danger';
+                const totalVulns = report.vulnerabilityCount.total;
+                
+                return `
+                    <div class="history-report-item" data-report-id="${report.id}">
+                        <div class="report-summary">
+                            <div class="report-time">${scanTime}</div>
+                            <div class="report-score status-${scoreColor}">
+                                <span class="score">${report.securityScore}</span>/100
+                            </div>
+                        </div>
+                        <div class="report-details">
+                            <div class="vuln-summary">
+                                <span class="vuln-count critical">${report.vulnerabilityCount.critical}C</span>
+                                <span class="vuln-count high">${report.vulnerabilityCount.high}H</span>
+                                <span class="vuln-count moderate">${report.vulnerabilityCount.moderate}M</span>
+                                <span class="vuln-count low">${report.vulnerabilityCount.low}L</span>
+                            </div>
+                            <div class="report-meta">
+                                <span class="total-vulns">${totalVulns} total issues</span>
+                                ${report.scanDuration ? `<span class="scan-duration">${Math.round(report.scanDuration / 1000)}s</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        ${data.hasMore ? `
+            <div class="history-pagination">
+                <button class="btn btn-secondary btn-sm" onclick="loadAuditHistory(${data.reports.length})">
+                    Load More
+                </button>
+            </div>
+        ` : ''}
+    `;
+}
+
+/**
+ * Render audit history error
+ */
+function renderAuditHistoryError() {
+    const container = document.getElementById('history-content');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="history-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Failed to load audit history</p>
+            <button class="btn btn-sm btn-primary" onclick="loadAuditHistory()">Retry</button>
+        </div>
+    `;
+}
+
+/**
+ * Load specific audit report by ID
+ */
+async function loadAuditReport(reportId) {
+    try {
+        // Show loading state
+        const container = document.getElementById('system-status-content');
+        container.innerHTML = `
+            <div class="loading-spinner-container">
+                <div class="weaver-loading-spinner"></div>
+                <p>Loading audit report...</p>
+            </div>
+        `;
+        
+        // Highlight selected report
+        document.querySelectorAll('.history-report-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        document.querySelector(`[data-report-id="${reportId}"]`)?.classList.add('selected');
+        
+        // Load report data
+        const response = await fetch(`/api/admin/security/audit-report/${reportId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Report API Response:', data); // Debug logging
+        
+        // Handle the response structure { message: "success", data: {...} }
+        if (data.data) {
+            renderSystemStatusData(data.data);
+        } else {
+            renderSystemStatusData(data);
+        }
+        
+        showNotification('Audit report loaded successfully', 'success');
+    } catch (error) {
+        console.error('Error loading audit report:', error);
+        showNotification('Failed to load audit report', 'error');
+        renderSystemStatusError();
+    }
 }
 
 /**

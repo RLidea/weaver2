@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Query, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../features/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../features/auth/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
@@ -24,5 +24,20 @@ export class AdminSecurityApiController {
   @Post('run-scan')
   async runSecurityScan() {
     return await this.adminSecurityService.runSecurityScan();
+  }
+
+  @Get('audit-history')
+  async getAuditHistory(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+    return await this.adminSecurityService.getAuditHistory(limitNum, offsetNum);
+  }
+
+  @Get('audit-report/:id')
+  async getAuditReportById(@Param('id') id: string) {
+    return await this.adminSecurityService.getAuditReportById(id);
   }
 }

@@ -53,6 +53,64 @@ export class AdminSecurityApiService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Get all audit reports for history selection
+   */
+  async getAuditHistory(limit = 10, offset = 0) {
+    try {
+      const reports = await this.prisma.securityAuditReport.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          createdAt: true,
+          securityScore: true,
+          vulnerabilityCount: true,
+          scanDuration: true,
+        },
+      });
+
+      const total = await this.prisma.securityAuditReport.count();
+
+      return {
+        reports: reports.map((report) => ({
+          ...report,
+          vulnerabilityCount: this.parseVulnerabilityCount(
+            report.vulnerabilityCount,
+          ),
+        })),
+        total,
+        hasMore: offset + limit < total,
+      };
+    } catch (error) {
+      console.error('Error getting audit history:', error);
+      throw new Error('Failed to retrieve audit history');
+    }
+  }
+
+  /**
+   * Get specific audit report by ID
+   */
+  async getAuditReportById(reportId: string) {
+    try {
+      const report = await this.prisma.securityAuditReport.findUnique({
+        where: { id: reportId },
+      });
+
+      if (!report) {
+        throw new Error('Audit report not found');
+      }
+
+      return this.getSecurityOverviewFromStoredData(
+        report as SecurityAuditReport,
+      );
+    } catch (error) {
+      console.error('Error getting audit report by ID:', error);
+      throw new Error('Failed to retrieve audit report');
+    }
+  }
+
+  /**
    * Get comprehensive system status overview
    */
   async getSystemStatus() {
@@ -73,6 +131,7 @@ export class AdminSecurityApiService {
           statusCards: securityOverview.statusCards,
           vulnerabilities: securityOverview.vulnerabilities,
           recommendations: securityOverview.recommendations,
+          scanInfo: securityOverview.scanInfo,
         };
       } else {
         // No stored data, return empty state

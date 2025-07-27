@@ -1,6 +1,215 @@
 /* Admin Security Page Styles - Following Weaver2 Design System */
 
 /* =====================================
+   Audit History Panel Styles
+   ===================================== */
+.audit-history-panel {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.history-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.history-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.history-header h4 i {
+    color: var(--secondary-blue);
+}
+
+.history-header .form-control {
+    max-width: 250px;
+}
+
+.history-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-list {
+    padding: var(--spacing-sm);
+}
+
+.history-report-item {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--surface-light);
+}
+
+.history-report-item:hover {
+    border-color: var(--secondary-blue);
+    background: var(--surface-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.history-report-item.selected {
+    border-color: var(--secondary-blue);
+    background: var(--secondary-blue-light);
+    box-shadow: 0 0 0 2px var(--secondary-blue-alpha);
+}
+
+.report-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-time {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.report-score {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.report-score.status-good {
+    background: var(--success-light);
+    color: var(--success-dark);
+}
+
+.report-score.status-warning {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+}
+
+.report-score.status-danger {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+.report-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.vuln-summary {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.vuln-count {
+    padding: 2px 6px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+}
+
+.vuln-count.critical {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+.vuln-count.high {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+}
+
+.vuln-count.moderate {
+    background: var(--info-light);
+    color: var(--info-dark);
+}
+
+.vuln-count.low {
+    background: var(--muted-light);
+    color: var(--muted-dark);
+}
+
+.report-meta {
+    display: flex;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+}
+
+.history-pagination {
+    padding: var(--spacing-md);
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.no-history,
+.history-error {
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.no-history i,
+.history-error i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--muted-color);
+}
+
+/* =====================================
+   Scan Meta Info Styles
+   ===================================== */
+.scan-meta-info {
+    background: var(--surface-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-xl);
+    align-items: center;
+}
+
+.scan-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.scan-meta-item i {
+    color: var(--secondary-blue);
+    font-size: 0.85rem;
+}
+
+/* =====================================
    Security Section Base Styles
    ===================================== */
 .security-section {

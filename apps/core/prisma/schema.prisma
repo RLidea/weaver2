@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/client"
 }
 
 datasource db {
@@ -9,198 +8,164 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  username        String    @unique
-  displayName     String    @unique
+  id              String               @id @default(uuid())
+  username        String               @unique
+  displayName     String               @unique
   profileImageUrl String?
-  role            Role      @default(USER)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  role            Role                 @default(USER)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
   deletedAt       DateTime?
-  lastLoginAt     DateTime? // Add this line for active user tracking
-
-  // Auth 관련 관계
-  auths          Auth[]
-  userAgreements UserTermsAgreement[]
-  userSetting    UserSetting? // One-to-one relation
-  posts          Post[] // Inverse relation for Post.author
-  comments       Comment[] // Inverse relation for Comment.author
-  emailLogs      EmailLog[] // Inverse relation for EmailLog.user
-  pageViews      PageView[] // Inverse relation for PageView.user
+  lastLoginAt     DateTime?
+  auths           Auth[]
+  comments        Comment[]
+  emailLogs       EmailLog[]
+  pageViews       PageView[]
+  posts           Post[]
+  userSetting     UserSetting?
+  userAgreements  UserTermsAgreement[]
 }
 
 model UserSetting {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
-
-  isMarketingConsentGiven     Boolean @default(false)
-  isNewsletterSubscribed      Boolean @default(false)
-  isEmailNotificationsEnabled Boolean @default(true)
-  isSmsNotificationsEnabled   Boolean @default(false)
-  isPushNotificationsEnabled  Boolean @default(false)
-  prefersDarkMode             Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
-  MODERATOR
-  DEVELOPER
+  id                          String   @id @default(uuid())
+  userId                      String   @unique
+  isMarketingConsentGiven     Boolean  @default(false)
+  isNewsletterSubscribed      Boolean  @default(false)
+  isEmailNotificationsEnabled Boolean  @default(true)
+  isSmsNotificationsEnabled   Boolean  @default(false)
+  isPushNotificationsEnabled  Boolean  @default(false)
+  prefersDarkMode             Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  user                        User     @relation(fields: [userId], references: [id])
 }
 
 model Auth {
-  id                      String    @id @default(uuid())
-  email                   String    @unique
-  password                String? // 비밀번호는 OAuth 사용자에게는 null일 수 있음
-  passwordResetToken      String? // 비밀번호 재설정 토큰
-  resetTokenExpiry        DateTime? // 비밀번호 재설정 토큰 만료 시간
-  verificationToken       String?   @unique // 이메일 인증 토큰
-  verificationTokenExpiry DateTime? // 이메일 인증 토큰 만료 시간
-  isVerified              Boolean   @default(false)
-  twoFactorEnabled        Boolean   @default(false)
-  twoFactorSecret         String? // 2FA 비밀키
-
-  // 사용자 관계
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // OAuth 제공자 관계
-  oauthConnections OAuthConnection[]
-
-  // 세션 및 토큰 관계
-  refreshTokens RefreshToken[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                      String            @id @default(uuid())
+  email                   String            @unique
+  password                String?
+  passwordResetToken      String?
+  resetTokenExpiry        DateTime?
+  verificationToken       String?           @unique
+  verificationTokenExpiry DateTime?
+  isVerified              Boolean           @default(false)
+  twoFactorEnabled        Boolean           @default(false)
+  twoFactorSecret         String?
+  userId                  String
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauthConnections        OAuthConnection[]
+  refreshTokens           RefreshToken[]
 }
 
 model OAuthConnection {
   id           String    @id @default(uuid())
-  provider     String // 'google', 'kakao', 'naver', 'facebook' 등
-  providerId   String // 제공자에서의 사용자 ID
-  accessToken  String? // OAuth 액세스 토큰
-  refreshToken String? // OAuth 리프레시 토큰
+  provider     String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
   tokenExpiry  DateTime?
-
-  // Auth 관계
-  authId String
-  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  authId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  auth         Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
 }
 
 model RefreshToken {
-  id      String   @id @default(uuid())
-  token   String   @unique
-  expires DateTime
-
-  // Auth 관계
-  authId String
-  auth   Auth   @relation(fields: [authId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expires   DateTime
+  authId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  auth      Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
 }
 
 model TermsAndConditions {
-  id          String   @id @default(uuid())
-  version     Int      @unique
-  title       String
-  content     String
-  effectiveAt DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id             String               @id @default(uuid())
+  version        Int                  @unique
+  title          String
+  content        String
+  effectiveAt    DateTime
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
   userAgreements UserTermsAgreement[]
 }
 
 model UserTermsAgreement {
   id                   String             @id @default(uuid())
   userId               String
-  user                 User               @relation(fields: [userId], references: [id])
   termsAndConditionsId String
-  termsAndConditions   TermsAndConditions @relation(fields: [termsAndConditionsId], references: [id])
   agreedAt             DateTime           @default(now())
+  termsAndConditions   TermsAndConditions @relation(fields: [termsAndConditionsId], references: [id])
+  user                 User               @relation(fields: [userId], references: [id])
 
   @@unique([userId, termsAndConditionsId])
 }
 
 model Board {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String            @id @default(uuid())
+  name        String            @unique
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  permissions BoardPermission[]
   posts       Post[]
   categories  PostCategory[]
-  permissions BoardPermission[]
 }
 
 model BoardPermission {
-  id      String     @id @default(uuid())
-  boardId String
-  board   Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  
-  action ActionType
-  
-  // 권한 주체들 (OR 조건으로 동작)
-  allowAnonymous Boolean   @default(false)  // 비로그인 허용
-  allowedRoles   Role[]    // 특정 역할들
-  allowedUserIds String[]  // 특정 사용자 ID들
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // 같은 보드의 같은 액션은 하나의 권한 설정만
+  id             String     @id @default(uuid())
+  boardId        String
+  action         ActionType
+  allowAnonymous Boolean    @default(false)
+  allowedRoles   Role[]
+  allowedUserIds String[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  board          Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
   @@unique([boardId, action])
 }
 
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Post {
-  id        String     @id @default(uuid())
-  title     String
-  content   String
-  status    PostStatus @default(PUBLISHED)
-  isSecret  Boolean    @default(false)
-  isPinned  Boolean    @default(false)
-  priority  Int        @default(0)
-  viewCount Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  boardId String
-  board   Board  @relation(fields: [boardId], references: [id])
-
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id])
-
+  id         String        @id @default(uuid())
+  title      String
+  content    String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  boardId    String
+  authorId   String
   categoryId String?
+  isPinned   Boolean       @default(false)
+  isSecret   Boolean       @default(false)
+  priority   Int           @default(0)
+  status     PostStatus    @default(PUBLISHED)
+  viewCount  Int           @default(0)
+  comments   Comment[]
+  author     User          @relation(fields: [authorId], references: [id])
+  board      Board         @relation(fields: [boardId], references: [id])
   category   PostCategory? @relation(fields: [categoryId], references: [id])
 
-  comments Comment[]
-
-  @@index([boardId, status, isPinned, priority, viewCount], name: "post_list_idx")
+  @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
 }
 
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Comment {
   id        String   @id @default(uuid())
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  postId    String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
 
-  postId String
-  post   Post   @relation(fields: [postId], references: [id])
-
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id])
-
-  @@index([postId, createdAt], name: "comment_list_idx")
+  @@index([postId, createdAt], map: "comment_list_idx")
 }
 
 model PostCategory {
@@ -210,16 +175,101 @@ model PostCategory {
   color       String?
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
-
-  boardId String
-  board   Board  @relation(fields: [boardId], references: [id])
-
-  posts Post[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  boardId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+  board       Board    @relation(fields: [boardId], references: [id])
 
   @@unique([boardId, name])
+}
+
+model PageView {
+  id        String   @id @default(uuid())
+  pageUrl   String   @db.VarChar(500)
+  userId    String?
+  ipAddress String?  @db.VarChar(45)
+  referrer  String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([pageUrl, createdAt])
+  @@index([userId, createdAt])
+}
+
+model MonthlyAnalyticsReport {
+  id             String   @id @default(uuid())
+  year           Int
+  month          Int
+  totalPageViews Int      @default(0)
+  uniqueVisitors Int      @default(0)
+  dailyAvgViews  Float    @default(0)
+  peakDailyViews Int      @default(0)
+  topPages       Json?
+  trafficSources Json?
+  dailyTrends    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model EmailTemplate {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  subject     String
+  htmlContent String
+  textContent String?
+  variables   Json?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  emailLogs   EmailLog[]
+}
+
+model EmailLog {
+  id           String         @id @default(uuid())
+  to           String
+  from         String
+  subject      String
+  htmlContent  String
+  textContent  String?
+  templateId   String?
+  status       EmailStatus    @default(PENDING)
+  sentAt       DateTime?
+  failedAt     DateTime?
+  errorMessage String?
+  metadata     Json?
+  userId       String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  template     EmailTemplate? @relation(fields: [templateId], references: [id])
+  user         User?          @relation(fields: [userId], references: [id])
+}
+
+model SecurityAuditReport {
+  id                 String   @id @default(uuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  scanType           String   @default("pnpm_audit")
+  scanDuration       Int?
+  totalDependencies  Int
+  vulnerabilityCount Json
+  securityScore      Int
+  rawAuditData       Json
+  vulnerabilities    Json
+  recommendations    Json?
+  packageJsonHash    String?
+  lockfileHash       String?
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+  DEVELOPER
 }
 
 enum PostStatus {
@@ -227,48 +277,6 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
   DELETED
-}
-
-// Page View Logging for Analytics
-model PageView {
-  id          String   @id @default(uuid())
-  pageUrl     String   @db.VarChar(500)
-  userId      String?  // nullable for anonymous users
-  ipAddress   String?  @db.VarChar(45)
-  referrer    String?  @db.Text
-  userAgent   String?  @db.Text
-  
-  // Relations
-  user        User?    @relation(fields: [userId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  
-  @@index([createdAt])
-  @@index([pageUrl, createdAt])
-  @@index([userId, createdAt])
-}
-
-// Monthly Analytics Reports (Aggregated Data)
-model MonthlyAnalyticsReport {
-  id                String   @id @default(uuid())
-  year              Int
-  month             Int
-  
-  // Traffic Statistics
-  totalPageViews    Int      @default(0)
-  uniqueVisitors    Int      @default(0)
-  dailyAvgViews     Float    @default(0)
-  peakDailyViews    Int      @default(0)
-  
-  // JSON Data (stored as JSONB in PostgreSQL)
-  topPages          Json?    // {"'/dashboard': 1500, '/profile': 800}
-  trafficSources    Json?    // {"direct": 40, "search": 30, "social": 20}
-  dailyTrends       Json?    // {"2025-07-01": 150, "2025-07-02": 180}
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  @@unique([year, month])
 }
 
 enum ActionType {
@@ -281,70 +289,9 @@ enum ActionType {
   COMMENT
 }
 
-model EmailTemplate {
-  id          String   @id @default(uuid())
-  name        String   @unique // "welcome", "password-reset", "email-verification"
-  subject     String
-  htmlContent String
-  textContent String?
-  variables   Json?    // 템플릿 변수 정의 (예: ["userName", "verificationLink"])
-  isActive    Boolean  @default(true)
-  
-  emailLogs   EmailLog[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model EmailLog {
-  id          String      @id @default(uuid())
-  to          String
-  from        String
-  subject     String
-  htmlContent String
-  textContent String?
-  templateId  String?
-  status      EmailStatus @default(PENDING)
-  sentAt      DateTime?
-  failedAt    DateTime?
-  errorMessage String?
-  metadata    Json?       // 추가 메타데이터 (템플릿 변수값 등)
-  
-  template    EmailTemplate? @relation(fields: [templateId], references: [id])
-  user        User?          @relation(fields: [userId], references: [id])
-  userId      String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 enum EmailStatus {
   PENDING
   SENT
   FAILED
   BOUNCED
-}
-
-model SecurityAuditReport {
-  id                String   @id @default(uuid())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // 스캔 기본 정보
-  scanType          String   @default("pnpm_audit") // 나중에 다른 스캔도 추가 가능
-  scanDuration      Int?     // 스캔 소요 시간 (ms)
-  totalDependencies Int      // 전체 의존성 수
-  
-  // 취약점 요약
-  vulnerabilityCount Json    // { total: 4, critical: 1, high: 2, moderate: 0, low: 1, info: 0 }
-  securityScore      Int     // 계산된 보안 점수 (0-100)
-  
-  // 상세 데이터
-  rawAuditData      Json     // pnpm audit의 전체 raw 결과
-  vulnerabilities   Json     // 파싱된 취약점 리스트
-  recommendations   Json?    // 생성된 권장사항들
-  
-  // 메타데이터
-  packageJsonHash   String?  // package.json 변경 감지용
-  lockfileHash      String?  // lock file 변경 감지용
 }
