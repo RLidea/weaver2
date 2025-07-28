@@ -1,57 +1,43 @@
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
+// Global variables
+let notificationTabComponent = null;
+
 // Notifications management specific JavaScript
 class NotificationsManagement {
     constructor() {
-        this.currentTab = 'email-logs';
         this.init();
     }
 
     async init() {
-        this.setupTabs();
         this.setupEventListeners();
         await this.loadNotificationStats();
-        await this.loadEmailLogs();
-    }
-
-    setupTabs() {
-        const tabs = document.querySelectorAll('.notification-tab');
-        const contents = document.querySelectorAll('.tab-content');
-
-        tabs.forEach(tab => {
-            if (tab.disabled) return;
-            
-            tab.addEventListener('click', () => {
-                const tabId = tab.dataset.tab;
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Update active content
-                contents.forEach(c => c.classList.remove('active'));
-                document.getElementById(`${tabId}-tab`).classList.add('active');
-                
-                this.currentTab = tabId;
-                this.loadTabContent(tabId);
-            });
-        });
     }
 
     setupEventListeners() {
         // Event listeners for internal table filters will be handled by WeaverDataTable
     }
 
-    async loadTabContent(tabId) {
-        switch(tabId) {
-            case 'email-logs':
-                await this.loadEmailLogs();
-                break;
-            // Future tabs will be added here
-        }
-    }
-
     async loadNotificationStats() {
         try {
-            const response = await fetch('/v1/admin/notifications/stats');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/notifications/stats');
             const data = await response.json();
             
             const statsContainer = document.getElementById('notification-stats');
@@ -91,7 +77,8 @@ class NotificationsManagement {
     async loadEmailLogs() {
         try {
             // Get all data without filtering - WeaverDataTable will handle filtering
-            const response = await fetch('/v1/admin/notifications/email-logs?page=1&limit=1000');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/notifications/email-logs', { page: 1, limit: 1000 });
             const data = await response.json();
             
             const tableData = data.data?.items ? data.data.items.map(log => ({
@@ -191,9 +178,8 @@ class NotificationsManagement {
         }
         
         try {
-            const response = await fetch(`/v1/admin/notifications/email-logs/${logId}`, {
-                method: 'DELETE'
-            });
+            await waitForApiClient();
+            const response = await window.ApiClient.delete(`/v1/admin/notifications/email-logs/${logId}`);
             
             if (response.ok) {
                 alert('Email log deleted successfully!');
@@ -221,7 +207,80 @@ class NotificationsManagement {
     }
 }
 
+// Load data for specific tab
+async function loadTabData(tabId) {
+    try {
+        switch (tabId) {
+            case 'email-logs':
+                await window.notificationsManagement.loadEmailLogs();
+                break;
+            case 'push-notifications':
+            case 'sms-logs':
+                // These are placeholder tabs - no data to load
+                break;
+            default:
+                console.warn(`Unknown tab: ${tabId}`);
+        }
+    } catch (error) {
+        console.error(`Failed to load ${tabId} data:`, error);
+        alert(`Failed to load ${tabId} data. Please try again.`);
+    }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize notifications management
     window.notificationsManagement = new NotificationsManagement();
+    
+    // Define tabs
+    const tabs = [
+        {
+            id: 'email-logs',
+            label: 'Email Logs',
+            icon: 'fas fa-envelope',
+            content: `<div id="email-logs-table-container"><!-- Email logs table will be loaded here --></div>`
+        },
+        {
+            id: 'push-notifications',
+            label: 'Push Notifications',
+            icon: 'fas fa-mobile-alt',
+            content: `
+                <div class="card" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-mobile-alt" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <h3>Push Notifications</h3>
+                    <p class="text-secondary">Push notification management will be available soon.</p>
+                </div>
+            `,
+            disabled: true
+        },
+        {
+            id: 'sms-logs',
+            label: 'SMS Logs',
+            icon: 'fas fa-sms',
+            content: `
+                <div class="card" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-sms" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <h3>SMS Logs</h3>
+                    <p class="text-secondary">SMS log management will be available soon.</p>
+                </div>
+            `,
+            disabled: true
+        }
+    ];
+    
+    // Create tab component
+    notificationTabComponent = TabComponent.create('notification-tabs-container', tabs, {
+        activeTab: 'email-logs',
+        onTabChange: (tabId) => {
+            console.log('Notification tab changed to:', tabId);
+            loadTabData(tabId);
+        },
+        urlStateKey: 'tab',
+        urlStateEnabled: true
+    });
+    
+    // Load initial data
+    const initialTab = notificationTabComponent.getActiveTab();
+    console.log('Loading initial notification tab:', initialTab);
+    loadTabData(initialTab);
 });

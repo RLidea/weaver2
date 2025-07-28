@@ -1,39 +1,36 @@
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
+// Global variables
+let contentTabComponent = null;
+let currentBoardId = null;
+
 // Content management specific JavaScript
 class ContentManagement {
     constructor() {
         this.currentBoardId = null;
-        this.currentTab = 'boards';
         this.init();
     }
 
     async init() {
-        this.setupTabs();
         this.setupEventListeners();
         this.setupModals();
         await this.loadContentStats();
-        await this.loadBoards();
-    }
-
-    setupTabs() {
-        const tabs = document.querySelectorAll('.content-tab');
-        const contents = document.querySelectorAll('.tab-content');
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabId = tab.dataset.tab;
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Update active content
-                contents.forEach(c => c.classList.remove('active'));
-                document.getElementById(`${tabId}-tab`).classList.add('active');
-                
-                this.currentTab = tabId;
-                this.loadTabContent(tabId);
-            });
-        });
     }
 
     setupEventListeners() {
@@ -45,23 +42,10 @@ class ContentManagement {
         // No need to setup events here
     }
 
-    async loadTabContent(tabId) {
-        switch(tabId) {
-            case 'boards':
-                await this.loadBoards();
-                break;
-            case 'posts':
-                await this.loadPosts();
-                break;
-            case 'comments':
-                await this.loadComments();
-                break;
-        }
-    }
-
     async loadContentStats() {
         try {
-            const response = await fetch('/v1/admin/content/stats');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/content/stats');
             const data = await response.json();
             
             const statsContainer = document.getElementById('content-stats');
@@ -96,7 +80,8 @@ class ContentManagement {
 
     async loadBoards() {
         try {
-            const response = await fetch('/v1/admin/content/boards');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/content/boards');
             const boards = await response.json();
             
             // WeaverDataTable will handle empty data automatically
@@ -150,7 +135,8 @@ class ContentManagement {
     async loadPosts() {
         try {
             // Get all data without filtering - WeaverDataTable will handle filtering
-            const response = await fetch('/v1/admin/content/posts?page=1&limit=1000');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/content/posts', { page: 1, limit: 1000 });
             const data = await response.json();
             
             const tableData = data.data?.items ? data.data.items.map(post => ({
@@ -227,7 +213,8 @@ class ContentManagement {
     async loadComments() {
         try {
             // Get all data without filtering - WeaverDataTable will handle filtering
-            const response = await fetch('/v1/admin/content/comments?page=1&limit=1000');
+            await waitForApiClient();
+            const response = await window.ApiClient.get('/v1/admin/content/comments', { page: 1, limit: 1000 });
             const data = await response.json();
             
             const tableData = data.data?.items ? data.data.items.map(comment => ({
@@ -311,9 +298,8 @@ class ContentManagement {
         }
         
         try {
-            const response = await fetch(`/v1/admin/content/boards/${boardId}`, {
-                method: 'DELETE'
-            });
+            await waitForApiClient();
+            const response = await window.ApiClient.delete(`/v1/admin/content/boards/${boardId}`);
             
             if (response.ok) {
                 alert('Board deleted successfully!');
@@ -334,9 +320,8 @@ class ContentManagement {
         }
         
         try {
-            const response = await fetch(`/v1/admin/content/posts/${postId}`, {
-                method: 'DELETE'
-            });
+            await waitForApiClient();
+            const response = await window.ApiClient.delete(`/v1/admin/content/posts/${postId}`);
             
             if (response.ok) {
                 alert('Post deleted successfully!');
@@ -357,9 +342,8 @@ class ContentManagement {
         }
         
         try {
-            const response = await fetch(`/v1/admin/content/comments/${commentId}`, {
-                method: 'DELETE'
-            });
+            await waitForApiClient();
+            const response = await window.ApiClient.delete(`/v1/admin/content/comments/${commentId}`);
             
             if (response.ok) {
                 alert('Comment deleted successfully!');
@@ -387,7 +371,68 @@ class ContentManagement {
     }
 }
 
+// Load data for specific tab
+async function loadTabData(tabId) {
+    try {
+        switch (tabId) {
+            case 'boards':
+                await window.contentManagement.loadBoards();
+                break;
+            case 'posts':
+                await window.contentManagement.loadPosts();
+                break;
+            case 'comments':
+                await window.contentManagement.loadComments();
+                break;
+            default:
+                console.warn(`Unknown tab: ${tabId}`);
+        }
+    } catch (error) {
+        console.error(`Failed to load ${tabId} data:`, error);
+        alert(`Failed to load ${tabId} data. Please try again.`);
+    }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize content management
     window.contentManagement = new ContentManagement();
+    
+    // Define tabs
+    const tabs = [
+        {
+            id: 'boards',
+            label: 'Boards',
+            icon: 'fas fa-clipboard-list',
+            content: `<div id="boards-table-container"><!-- Boards table will be loaded here --></div>`
+        },
+        {
+            id: 'posts',
+            label: 'Posts',
+            icon: 'fas fa-file-text',
+            content: `<div id="posts-table-container"><!-- Posts table will be loaded here --></div>`
+        },
+        {
+            id: 'comments',
+            label: 'Comments',
+            icon: 'fas fa-comments',
+            content: `<div id="comments-table-container"><!-- Comments table will be loaded here --></div>`
+        }
+    ];
+    
+    // Create tab component
+    contentTabComponent = TabComponent.create('content-tabs-container', tabs, {
+        activeTab: 'boards',
+        onTabChange: (tabId) => {
+            console.log('Content tab changed to:', tabId);
+            loadTabData(tabId);
+        },
+        urlStateKey: 'tab',
+        urlStateEnabled: true
+    });
+    
+    // Load initial data
+    const initialTab = contentTabComponent.getActiveTab();
+    console.log('Loading initial content tab:', initialTab);
+    loadTabData(initialTab);
 });

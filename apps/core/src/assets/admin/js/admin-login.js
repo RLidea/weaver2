@@ -28,19 +28,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function attemptAutoLogin() {
     try {
-        // Refresh token이 있는지 확인 (쿠키에서)
-        const refreshToken = getCookie('refresh_token');
-        if (!refreshToken) return;
-
-        const response = await window.ApiClient.post('/v1/auth/refresh', { refreshToken });
+        console.log('Attempting auto-login with HttpOnly cookies...');
+        
+        // HttpOnly 쿠키는 JavaScript로 확인할 수 없으므로
+        // 직접 refresh 요청을 보내서 유효한 세션이 있는지 확인
+        // 백엔드에서 HttpOnly 쿠키에서 refresh token을 읽도록 수정됨
+        
+        const response = await fetch('/v1/auth/refresh', {
+            method: 'POST',
+            credentials: 'include', // HttpOnly 쿠키 포함
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
 
         if (response.ok) {
+            console.log('Auto-login successful, redirecting to dashboard...');
             window.location.href = '/admin/dashboard';
+        } else {
+            console.log('No valid session found, staying on login page');
         }
     } catch (error) {
         console.log('Auto-login failed:', error);
-        // 자동 로그인 실패 시 쿠키 삭제
-        deleteCookie('refresh_token');
+        // HttpOnly 쿠키는 JavaScript로 삭제할 수 없음
+        // 백엔드에서 만료된 쿠키 처리 필요
     }
 }
 

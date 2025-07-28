@@ -12,14 +12,13 @@ class ApiClient {
    * Main request method that handles all API calls
    */
   async request(url, options = {}) {
-    // Add access token to headers automatically
-    const token = this.getAccessToken();
+    // Use cookies for authentication (HttpOnly cookies)
     const config = {
       ...options,
+      credentials: 'include', // Important: include cookies in requests
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers
       }
     };
@@ -60,22 +59,15 @@ class ApiClient {
     try {
       console.log('Access token expired, attempting to refresh...');
       
-      // Get refresh token and call refresh endpoint
-      const refreshToken = this.getRefreshToken();
-      console.log('Refresh token found:', refreshToken ? 'YES' : 'NO');
-      if (!refreshToken) {
-        console.error('No refresh token available - redirecting to login');
-        throw new Error('No refresh token available');
-      }
-
-      console.log('Calling refresh endpoint...');
+      // With HttpOnly cookies, browser automatically sends refresh token
+      console.log('Calling refresh endpoint with HttpOnly cookies...');
       const refreshResponse = await fetch('/v1/auth/refresh', {
         method: 'POST',
+        credentials: 'include', // Include HttpOnly cookies
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-        body: JSON.stringify({ refreshToken })
+        }
       });
 
       console.log('Refresh response status:', refreshResponse.status);
@@ -83,32 +75,13 @@ class ApiClient {
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
         console.log('Refresh response data:', result);
-        
-        // Try different possible response structures
-        const newAccessToken = result.data?.accessToken || result.accessToken || result.access_token;
-        
-        if (!newAccessToken) {
-          console.error('No access token in refresh response:', result);
-          throw new Error('Invalid refresh response - no access token');
-        }
-        
-        // Store new access token
-        this.setAccessToken(newAccessToken);
-        console.log('Token refreshed successfully, new token length:', newAccessToken.length);
+        console.log('Token refreshed successfully - new HttpOnly cookies set by backend');
 
-        // Process queued requests with new token
-        this.processQueue(null, newAccessToken);
+        // Process queued requests (no token needed, cookies are automatic)
+        this.processQueue(null);
         
-        // Retry original request with new token
-        const newConfig = {
-          ...originalConfig,
-          headers: {
-            ...originalConfig.headers,
-            'Authorization': `Bearer ${newAccessToken}`
-          }
-        };
-        
-        return fetch(originalUrl, newConfig);
+        // Retry original request (cookies will be included automatically)
+        return fetch(originalUrl, originalConfig);
       } else {
         // Refresh failed - redirect to login
         console.error('Token refresh failed:', refreshResponse.status);
@@ -129,20 +102,13 @@ class ApiClient {
   /**
    * Process queued requests after token refresh
    */
-  processQueue(error, newToken = null) {
+  processQueue(error) {
     this.failedQueue.forEach(({ resolve, reject, url, config }) => {
       if (error) {
         reject(error);
       } else {
-        // Update config with new token and retry
-        const updatedConfig = {
-          ...config,
-          headers: {
-            ...config.headers,
-            'Authorization': `Bearer ${newToken}`
-          }
-        };
-        resolve(fetch(url, updatedConfig));
+        // Retry request with HttpOnly cookies (no manual token needed)
+        resolve(fetch(url, config));
       }
     });
     
@@ -201,21 +167,23 @@ class ApiClient {
     return this.request(url, { method: 'DELETE' });
   }
 
-  // Token management methods
+  // Token management methods (HttpOnly cookies)
   getAccessToken() {
-    // Only use cookies for token storage
-    return this.getCookie('access_token');
+    // HttpOnly cookies cannot be accessed via JavaScript
+    // Return null since we rely on browser sending cookies automatically
+    return null;
   }
 
   setAccessToken(token) {
-    // Store access token in cookie (will be set by backend in real scenario)
-    // This is mainly for temporary storage during refresh
-    document.cookie = `access_token=${token}; path=/; secure; samesite=strict`;
+    // HttpOnly cookies are set by backend, not JavaScript
+    // This method is not needed with HttpOnly cookies
+    console.log('Cannot set HttpOnly cookie from JavaScript');
   }
 
   getRefreshToken() {
-    // Refresh tokens should be stored in httpOnly cookies by backend
-    return this.getCookie('refresh_token');
+    // HttpOnly cookies cannot be accessed via JavaScript
+    // Return null since we rely on browser sending cookies automatically
+    return null;
   }
 
   getCookie(name) {
@@ -232,11 +200,11 @@ class ApiClient {
 
   // Debug function to check current token state
   debugTokenState() {
-    console.log('=== Token Debug Info ===');
-    console.log('All cookies:', document.cookie);
-    console.log('Access token:', this.getAccessToken());
-    console.log('Refresh token:', this.getRefreshToken());
-    console.log('========================');
+    console.log('=== Token Debug Info (HttpOnly Mode) ===');
+    console.log('Visible cookies:', document.cookie || 'None visible');
+    console.log('Note: HttpOnly cookies (access_token, refresh_token) are not visible to JavaScript');
+    console.log('Check Application/Storage tab in DevTools for actual cookies');
+    console.log('=======================================');
   }
 
   clearTokens() {

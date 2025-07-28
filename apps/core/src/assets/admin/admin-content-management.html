@@ -11,6 +11,7 @@
     <link href="/shared/components/modal/common-modal.css" rel="stylesheet">
     <link href="/shared/components/modal/board-permissions-modal.css" rel="stylesheet">
     <link href="/shared/components/modal/post-detail-modal.css" rel="stylesheet">
+    <link href="/shared/components/tabs/tabs.css" rel="stylesheet">
     <style>
         .content-tabs {
             display: flex;
@@ -120,37 +121,10 @@
         <!-- Stats will be loaded here -->
     </div>
 
-    <!-- Content Tabs -->
-    <div class="content-tabs">
-        <button class="content-tab active" data-tab="boards">
-            <i class="fas fa-clipboard-list"></i> Boards
-        </button>
-        <button class="content-tab" data-tab="posts">
-            <i class="fas fa-file-text"></i> Posts
-        </button>
-        <button class="content-tab" data-tab="comments">
-            <i class="fas fa-comments"></i> Comments
-        </button>
-    </div>
-
-    <!-- Boards Tab -->
-    <div id="boards-tab" class="tab-content active">
-        <div id="boards-table-container">
-            <!-- Boards table will be loaded here -->
-        </div>
-    </div>
-
-    <!-- Posts Tab -->
-    <div id="posts-tab" class="tab-content">
-        <div id="posts-table-container">
-            <!-- Posts table will be loaded here -->
-        </div>
-    </div>
-
-    <!-- Comments Tab -->
-    <div id="comments-tab" class="tab-content">
-        <div id="comments-table-container">
-            <!-- Comments table will be loaded here -->
+    <!-- Content Tabs Container -->
+    <div class="card">
+        <div id="content-tabs-container">
+            <!-- Tabs will be loaded here by JavaScript -->
         </div>
     </div>
 </div>
@@ -160,6 +134,8 @@
 <script src="/shared/components/data-table/data-table.js"></script>
 <script src="/shared/components/modal/common-modal.js"></script>
 <script src="/shared/utils/api-client.js"></script>
+<script src="/shared/utils/url-state.js"></script>
+<script src="/shared/components/tabs/tabs.js"></script>
 <script src="/shared/components/modal/board-permissions-modal.js"></script>
 <script src="/shared/components/modal/post-detail-modal.js"></script>
 <script src="/admin/js/admin-menu.js"></script>
