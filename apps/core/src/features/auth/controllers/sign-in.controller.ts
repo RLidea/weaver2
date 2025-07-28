@@ -99,9 +99,10 @@ export class SignInController {
   ) {
     try {
       // HttpOnly 쿠키에서 refresh token 읽기
-      const refreshToken = req.cookies?.refresh_token as string;
+      const cookies = req.cookies as Record<string, string> | undefined;
+      const refreshToken = cookies?.refresh_token;
 
-      if (!refreshToken) {
+      if (!refreshToken || typeof refreshToken !== 'string') {
         throw new Error('Refresh token not found in cookies');
       }
 
