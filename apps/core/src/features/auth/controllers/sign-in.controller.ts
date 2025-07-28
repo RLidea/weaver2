@@ -1,5 +1,13 @@
 // auth.controller.ts
-import { Controller, Post, UseGuards, Body, Logger, Res, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseGuards,
+  Body,
+  Logger,
+  Res,
+  Req,
+} from '@nestjs/common';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
@@ -91,14 +99,16 @@ export class SignInController {
   ) {
     try {
       // HttpOnly 쿠키에서 refresh token 읽기
-      const refreshToken = req.cookies?.refresh_token;
-      
+      const refreshToken = req.cookies?.refresh_token as string;
+
       if (!refreshToken) {
         throw new Error('Refresh token not found in cookies');
       }
 
-      this.logger.debug(`Refreshing token for: ${refreshToken.substring(0, 10)}...`);
-      
+      this.logger.debug(
+        `Refreshing token for: ${refreshToken.substring(0, 10)}...`,
+      );
+
       const { accessToken } = await this.signInService.refresh(refreshToken);
 
       // 새로운 Access Token 쿠키 설정
@@ -114,7 +124,7 @@ export class SignInController {
         data: { accessToken },
       };
     } catch (error) {
-      this.logger.error('Token refresh failed:', error.message);
+      this.logger.error('Token refresh failed:', (error as Error).message);
       // Refresh token이 유효하지 않으면 쿠키 삭제
       res.clearCookie('refresh_token');
       res.clearCookie('access_token');
