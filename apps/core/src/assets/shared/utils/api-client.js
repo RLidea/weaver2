@@ -62,10 +62,13 @@ class ApiClient {
       
       // Get refresh token and call refresh endpoint
       const refreshToken = this.getRefreshToken();
+      console.log('Refresh token found:', refreshToken ? 'YES' : 'NO');
       if (!refreshToken) {
+        console.error('No refresh token available - redirecting to login');
         throw new Error('No refresh token available');
       }
 
+      console.log('Calling refresh endpoint...');
       const refreshResponse = await fetch('/v1/auth/refresh', {
         method: 'POST',
         headers: {
@@ -75,13 +78,23 @@ class ApiClient {
         body: JSON.stringify({ refreshToken })
       });
 
+      console.log('Refresh response status:', refreshResponse.status);
+      
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
-        const newAccessToken = result.data.accessToken;
+        console.log('Refresh response data:', result);
+        
+        // Try different possible response structures
+        const newAccessToken = result.data?.accessToken || result.accessToken || result.access_token;
+        
+        if (!newAccessToken) {
+          console.error('No access token in refresh response:', result);
+          throw new Error('Invalid refresh response - no access token');
+        }
         
         // Store new access token
         this.setAccessToken(newAccessToken);
-        console.log('Token refreshed successfully');
+        console.log('Token refreshed successfully, new token length:', newAccessToken.length);
 
         // Process queued requests with new token
         this.processQueue(null, newAccessToken);
@@ -209,9 +222,21 @@ class ApiClient {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) {
-      return parts.pop().split(';').shift();
+      const cookieValue = parts.pop().split(';').shift();
+      console.log(`Cookie ${name}:`, cookieValue ? `Found (${cookieValue.length} chars)` : 'Not found');
+      return cookieValue;
     }
+    console.log(`Cookie ${name}: Not found`);
     return null;
+  }
+
+  // Debug function to check current token state
+  debugTokenState() {
+    console.log('=== Token Debug Info ===');
+    console.log('All cookies:', document.cookie);
+    console.log('Access token:', this.getAccessToken());
+    console.log('Refresh token:', this.getRefreshToken());
+    console.log('========================');
   }
 
   clearTokens() {
