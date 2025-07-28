@@ -1,6 +1,29 @@
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
 // Auto-login on page load
 document.addEventListener('DOMContentLoaded', async () => {
-    await attemptAutoLogin();
+    try {
+        await waitForApiClient();
+        await attemptAutoLogin();
+    } catch (error) {
+        console.error('Failed to initialize ApiClient:', error);
+    }
 });
 
 async function attemptAutoLogin() {
@@ -9,7 +32,7 @@ async function attemptAutoLogin() {
         const refreshToken = getCookie('refresh_token');
         if (!refreshToken) return;
 
-        const response = await ApiClient.post('/v1/auth/refresh', { refreshToken });
+        const response = await window.ApiClient.post('/v1/auth/refresh', { refreshToken });
 
         if (response.ok) {
             window.location.href = '/admin/dashboard';
@@ -35,7 +58,9 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     setLoading(true);
 
     try {
-        const response = await ApiClient.post('/v1/auth/sign-in', { email, password, rememberMe });
+        // Ensure ApiClient is available
+        await waitForApiClient();
+        const response = await window.ApiClient.post('/v1/auth/sign-in', { email, password, rememberMe });
 
         if (response.ok) {
             window.location.href = '/admin/dashboard';

@@ -14,9 +14,30 @@ let tabComponent = null;
 
 // Note: Token management is now handled by ApiClient
 
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
 // Fetch analytics data from API
 async function fetchAnalyticsData(endpoint, params = {}) {
     try {
+        // Ensure ApiClient is available
+        await waitForApiClient();
+        
         // Combine date filters with additional params
         const allParams = { ...params };
         
@@ -31,7 +52,7 @@ async function fetchAnalyticsData(endpoint, params = {}) {
         const url = `${ANALYTICS_ENDPOINT}/${endpoint}`;
         console.log('Fetching analytics data from:', url, 'with params:', allParams);
         
-        const response = await ApiClient.get(url, allParams);
+        const response = await window.ApiClient.get(url, allParams);
         console.log(`${endpoint} response:`, response);
         
         if (!response.ok) {

@@ -38,6 +38,24 @@ const securityTabs = [
     }
 ];
 
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeSecurityTabs();
@@ -568,7 +586,8 @@ function generateSystemStatusContent() {
  */
 async function loadSystemStatusData() {
     try {
-        const response = await ApiClient.get('/api/admin/security/system-status');
+        await waitForApiClient();
+        const response = await window.ApiClient.get('/api/admin/security/system-status');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -840,7 +859,8 @@ async function runSecurityScan(event) {
         button.disabled = true;
 
         // Call the API to run fresh security scan
-        const response = await ApiClient.post('/api/admin/security/run-scan');
+        await waitForApiClient();
+        const response = await window.ApiClient.post('/api/admin/security/run-scan');
         
         if (!response.ok) {
             throw new Error(`Scan failed: ${response.status}`);
@@ -1039,7 +1059,8 @@ async function loadAuditHistory(offset = 0, forceRefresh = false) {
             `;
         }
         
-        const response = await ApiClient.get('/api/admin/security/audit-history', {
+        await waitForApiClient();
+        const response = await window.ApiClient.get('/api/admin/security/audit-history', {
             limit: 10,
             offset: offset
         });
@@ -1183,7 +1204,8 @@ async function loadAuditReport(reportId) {
         updateHistorySelection();
         
         // Load report data
-        const response = await ApiClient.get(`/api/admin/security/audit-report/${reportId}`);
+        await waitForApiClient();
+        const response = await window.ApiClient.get(`/api/admin/security/audit-report/${reportId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
