@@ -568,7 +568,7 @@ function generateSystemStatusContent() {
  */
 async function loadSystemStatusData() {
     try {
-        const response = await fetch('/api/admin/security/system-status');
+        const response = await ApiClient.get('/api/admin/security/system-status');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -840,9 +840,7 @@ async function runSecurityScan(event) {
         button.disabled = true;
 
         // Call the API to run fresh security scan
-        const response = await fetch('/api/admin/security/run-scan', {
-            method: 'POST',
-        });
+        const response = await ApiClient.post('/api/admin/security/run-scan');
         
         if (!response.ok) {
             throw new Error(`Scan failed: ${response.status}`);
@@ -1041,7 +1039,10 @@ async function loadAuditHistory(offset = 0, forceRefresh = false) {
             `;
         }
         
-        const response = await fetch(`/api/admin/security/audit-history?limit=10&offset=${offset}`);
+        const response = await ApiClient.get('/api/admin/security/audit-history', {
+            limit: 10,
+            offset: offset
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1182,7 +1183,7 @@ async function loadAuditReport(reportId) {
         updateHistorySelection();
         
         // Load report data
-        const response = await fetch(`/api/admin/security/audit-report/${reportId}`);
+        const response = await ApiClient.get(`/api/admin/security/audit-report/${reportId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

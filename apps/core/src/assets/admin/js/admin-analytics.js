@@ -12,151 +12,34 @@ let currentDateFilter = {
 let charts = {};
 let tabComponent = null;
 
-// JWT Token helper
-function getAuthToken() {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'access_token') {
-            return value;
-        }
-    }
-    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-}
+// Note: Token management is now handled by ApiClient
 
-// Get refresh token helper
-function getRefreshToken() {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'refresh_token') {
-            return value;
-        }
-    }
-    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
-}
-
-// Refresh access token
-async function refreshAccessToken() {
+// Fetch analytics data from API
+async function fetchAnalyticsData(endpoint, params = {}) {
     try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        const response = await fetch('/v1/auth/refresh', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ refreshToken })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Refresh failed: ${response.status}`);
-        }
-
-        const result = await response.json();
-        return result.data.accessToken;
-    } catch (error) {
-        console.error('Failed to refresh token:', error);
-        window.location.href = '/admin/auth';
-        throw error;
-    }
-}
-
-// API call helper with authentication
-async function makeAuthenticatedRequest(url, options = {}) {
-    const token = getAuthToken();
-    
-    const defaultHeaders = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    };
-    
-    if (token) {
-        defaultHeaders['Authorization'] = `Bearer ${token}`;
-    }
-    
-    const config = {
-        ...options,
-        headers: {
-            ...defaultHeaders,
-            ...options.headers
-        }
-    };
-    
-    try {
-        const response = await fetch(url, config);
+        // Combine date filters with additional params
+        const allParams = { ...params };
         
-        if (response.status === 401) {
-            console.log('Access token expired, attempting to refresh...');
-            
-            try {
-                await refreshAccessToken();
-                const newToken = getAuthToken();
-                if (newToken) {
-                    const newConfig = {
-                        ...config,
-                        headers: {
-                            ...config.headers,
-                            'Authorization': `Bearer ${newToken}`
-                        }
-                    };
-                    
-                    const retryResponse = await fetch(url, newConfig);
-                    
-                    if (!retryResponse.ok) {
-                        throw new Error(`HTTP ${retryResponse.status}: ${retryResponse.statusText}`);
-                    }
-                    
-                    return await retryResponse.json();
-                }
-            } catch (refreshError) {
-                console.error('Token refresh failed:', refreshError);
-                throw refreshError;
-            }
+        // Add date filters if set
+        if (currentDateFilter.from) {
+            allParams.from = currentDateFilter.from;
         }
+        if (currentDateFilter.to) {
+            allParams.to = currentDateFilter.to;
+        }
+        
+        const url = `${ANALYTICS_ENDPOINT}/${endpoint}`;
+        console.log('Fetching analytics data from:', url, 'with params:', allParams);
+        
+        const response = await ApiClient.get(url, allParams);
+        console.log(`${endpoint} response:`, response);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        return await response.json();
-    } catch (error) {
-        console.error('API Request failed:', error);
-        throw error;
-    }
-}
-
-// Fetch analytics data from API
-async function fetchAnalyticsData(endpoint, params = {}) {
-    try {
-        const queryParams = new URLSearchParams();
-        
-        // Add date filters if set
-        if (currentDateFilter.from) {
-            queryParams.append('from', currentDateFilter.from);
-        }
-        if (currentDateFilter.to) {
-            queryParams.append('to', currentDateFilter.to);
-        }
-        
-        // Add additional params
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                queryParams.append(key, value);
-            }
-        });
-        
-        const url = `${ANALYTICS_ENDPOINT}/${endpoint}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-        console.log('Fetching analytics data from:', url);
-        
-        const response = await makeAuthenticatedRequest(url);
-        console.log(`${endpoint} response:`, response);
-        
-        return response.data.data;
+        const data = await response.json();
+        return data.data.data;
     } catch (error) {
         console.error(`Failed to fetch ${endpoint} analytics:`, error);
         throw error;
@@ -682,6 +565,5 @@ window.analyticsDebug = {
     loadTabData,
     fetchAnalyticsData,
     formatNumber,
-    formatPercentage,
-    getAuthToken
+    formatPercentage
 };

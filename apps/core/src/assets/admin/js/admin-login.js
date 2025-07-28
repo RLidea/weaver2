@@ -9,13 +9,7 @@ async function attemptAutoLogin() {
         const refreshToken = getCookie('refresh_token');
         if (!refreshToken) return;
 
-        const response = await fetch('/v1/auth/refresh', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+        const response = await ApiClient.post('/v1/auth/refresh', { refreshToken });
 
         if (response.ok) {
             window.location.href = '/admin/dashboard';
@@ -41,13 +35,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     setLoading(true);
 
     try {
-        const response = await fetch('/v1/auth/sign-in', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password, rememberMe }),
-        });
+        const response = await ApiClient.post('/v1/auth/sign-in', { email, password, rememberMe });
 
         if (response.ok) {
             window.location.href = '/admin/dashboard';
