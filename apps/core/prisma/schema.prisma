@@ -295,3 +295,23 @@ enum EmailStatus {
   FAILED
   BOUNCED
 }
+
+model SystemSetting {
+  id                   String   @id @default(uuid())
+  
+  // Site Information
+  siteName             String   @default("Weaver2")
+  siteDescription      String   @default("Community Platform")
+  logoUrl              String?
+  
+  // Feature Toggles
+  isRegistrationOpen   Boolean  @default(true)
+  isAnnouncementActive Boolean  @default(false)
+  announcementMessage  String?
+  announcementType     String   @default("info") // info, warning, success, error
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@map("system_settings")
+}
