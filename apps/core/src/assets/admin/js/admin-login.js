@@ -1,28 +1,3 @@
-// UI state management functions
-function showLoadingOverlay() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.classList.remove('hide');
-    }
-}
-
-function hideLoadingOverlay() {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.classList.add('hide');
-        // 완전히 숨긴 후 로그인 폼 표시
-        setTimeout(() => {
-            showLoginForm();
-        }, 300);
-    }
-}
-
-function showLoginForm() {
-    const container = document.getElementById('loginContainer');
-    if (container) {
-        container.classList.add('show');
-    }
-}
 
 // Wait for ApiClient to be available
 function waitForApiClient() {
@@ -42,55 +17,11 @@ function waitForApiClient() {
     });
 }
 
-// Auto-login on page load
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // 로딩 오버레이는 이미 HTML에서 표시되고 있음
-        showLoadingOverlay();
-        
-        await waitForApiClient();
-        await attemptAutoLogin();
-    } catch (error) {
-        console.error('Failed to initialize ApiClient:', error);
-        // 에러 발생 시에도 로그인 폼 표시
-        hideLoadingOverlay();
-    }
+// Initialize page when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Admin login page loaded');
+    // 서버사이드에서 인증 체크를 완료했으므로 클라이언트 로직 불필요
 });
-
-async function attemptAutoLogin() {
-    try {
-        console.log('Attempting auto-login with HttpOnly cookies...');
-        
-        // HttpOnly 쿠키는 JavaScript로 확인할 수 없으므로
-        // 직접 refresh 요청을 보내서 유효한 세션이 있는지 확인
-        // 백엔드에서 HttpOnly 쿠키에서 refresh token을 읽도록 수정됨
-        
-        const response = await fetch('/v1/auth/refresh', {
-            method: 'POST',
-            credentials: 'include', // HttpOnly 쿠키 포함
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            console.log('Auto-login successful, redirecting to dashboard...');
-            // 리다이렉트 전에 잠깐 대기 (사용자가 로딩을 인지할 수 있도록)
-            setTimeout(() => {
-                window.location.href = '/admin/dashboard';
-            }, 500);
-        } else {
-            console.log('No valid session found, showing login form...');
-            hideLoadingOverlay();
-        }
-    } catch (error) {
-        console.log('Auto-login failed:', error);
-        // HttpOnly 쿠키는 JavaScript로 삭제할 수 없음
-        // 백엔드에서 만료된 쿠키 처리 필요
-        hideLoadingOverlay();
-    }
-}
 
 // Login form handler
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
