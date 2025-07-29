@@ -24,11 +24,17 @@ export class AdminSystemSettingsApiController {
   async getSystemSettings() {
     try {
       console.log('AdminSystemSettingsApiController: GET request received');
-      const settings = await this.adminSystemSettingsApiService.getSystemSettings();
-      console.log('AdminSystemSettingsApiController: Settings retrieved successfully');
+      const settings =
+        await this.adminSystemSettingsApiService.getSystemSettings();
+      console.log(
+        'AdminSystemSettingsApiController: Settings retrieved successfully',
+      );
       return settings;
     } catch (error) {
-      console.error('AdminSystemSettingsApiController: Error getting settings:', error);
+      console.error(
+        'AdminSystemSettingsApiController: Error getting settings:',
+        error,
+      );
       throw error;
     }
   }

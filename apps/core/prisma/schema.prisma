@@ -313,5 +313,5 @@ model SystemSetting {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   
-  @@map("system_settings")
+  @@map("SystemSettings")
 }

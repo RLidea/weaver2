@@ -43,12 +43,26 @@ class SystemSettingsManagement {
                 return;
             }
             
-            const data = await response.json();
-            console.log('Response data:', data);
+            const responseData = await response.json();
+            console.log('Response data:', responseData);
             
-            // Direct response from controller
-            currentSystemSettings = data;
+            // Extract data from wrapped response
+            if (responseData && responseData.data) {
+                currentSystemSettings = responseData.data;
+                console.log('Extracted system settings from response.data:', currentSystemSettings);
+            } else {
+                // Fallback for direct response
+                currentSystemSettings = responseData;
+                console.log('Using direct response as system settings:', currentSystemSettings);
+            }
             console.log('System settings loaded successfully:', currentSystemSettings);
+            
+            // Refresh the current tab to show loaded data
+            if (systemSettingsTabComponent) {
+                const activeTab = systemSettingsTabComponent.getActiveTab();
+                console.log('System settings loaded, now loading tab data for:', activeTab);
+                loadTabData(activeTab);
+            }
         } catch (error) {
             console.error('Error loading system settings:', error);
             alert('Error loading system settings: ' + error.message);
@@ -69,10 +83,21 @@ class SystemSettingsManagement {
             };
             
             const response = await window.ApiClient.put('/v1/admin/system-settings', data);
-            const result = await response.json();
+            const responseData = await response.json();
             
             alert('Site information updated successfully!');
-            currentSystemSettings = result;
+            
+            // Extract data from wrapped response
+            if (responseData && responseData.data) {
+                currentSystemSettings = responseData.data;
+                console.log('Updated system settings from response.data:', currentSystemSettings);
+            } else {
+                currentSystemSettings = responseData;
+                console.log('Updated system settings from direct response:', currentSystemSettings);
+            }
+            // Refresh current tab to show updated data
+            const activeTab = systemSettingsTabComponent.getActiveTab();
+            loadTabData(activeTab);
         } catch (error) {
             console.error('Error updating site information:', error);
             alert('Error updating site information');
@@ -91,10 +116,21 @@ class SystemSettingsManagement {
             };
             
             const response = await window.ApiClient.put('/v1/admin/system-settings', data);
-            const result = await response.json();
+            const responseData = await response.json();
             
             alert('Feature settings updated successfully!');
-            currentSystemSettings = result;
+            
+            // Extract data from wrapped response
+            if (responseData && responseData.data) {
+                currentSystemSettings = responseData.data;
+                console.log('Updated feature settings from response.data:', currentSystemSettings);
+            } else {
+                currentSystemSettings = responseData;
+                console.log('Updated feature settings from direct response:', currentSystemSettings);
+            }
+            // Refresh current tab to show updated data
+            const activeTab = systemSettingsTabComponent.getActiveTab();
+            loadTabData(activeTab);
         } catch (error) {
             console.error('Error updating feature settings:', error);
             alert('Error updating feature settings');
@@ -115,10 +151,21 @@ class SystemSettingsManagement {
             };
             
             const response = await window.ApiClient.put('/v1/admin/system-settings', data);
-            const result = await response.json();
+            const responseData = await response.json();
             
             alert('Announcement settings updated successfully!');
-            currentSystemSettings = result;
+            
+            // Extract data from wrapped response
+            if (responseData && responseData.data) {
+                currentSystemSettings = responseData.data;
+                console.log('Updated announcement settings from response.data:', currentSystemSettings);
+            } else {
+                currentSystemSettings = responseData;
+                console.log('Updated announcement settings from direct response:', currentSystemSettings);
+            }
+            // Refresh current tab to show updated data
+            const activeTab = systemSettingsTabComponent.getActiveTab();
+            loadTabData(activeTab);
         } catch (error) {
             console.error('Error updating announcement settings:', error);
             alert('Error updating announcement settings');
@@ -134,10 +181,18 @@ class SystemSettingsManagement {
             await waitForApiClient();
             
             const response = await window.ApiClient.post('/v1/admin/system-settings/reset');
-            const result = await response.json();
+            const responseData = await response.json();
             
             alert('System settings reset to defaults successfully!');
-            currentSystemSettings = result;
+            
+            // Extract data from wrapped response
+            if (responseData && responseData.data) {
+                currentSystemSettings = responseData.data;
+                console.log('Reset system settings from response.data:', currentSystemSettings);
+            } else {
+                currentSystemSettings = responseData;
+                console.log('Reset system settings from direct response:', currentSystemSettings);
+            }
             // Reload the current tab to show updated data
             const activeTab = systemSettingsTabComponent.getActiveTab();
             loadTabData(activeTab);
@@ -174,21 +229,49 @@ async function loadTabData(tabId) {
 }
 
 function setupSiteInfoTab() {
+    console.log('setupSiteInfoTab called with currentSystemSettings:', currentSystemSettings);
+    
     const siteNameInput = document.getElementById('site-name');
     const siteDescriptionInput = document.getElementById('site-description');
     const logoUrlInput = document.getElementById('logo-url');
     
+    console.log('Found DOM elements:', {
+        siteNameInput: !!siteNameInput,
+        siteDescriptionInput: !!siteDescriptionInput,
+        logoUrlInput: !!logoUrlInput
+    });
+    
     if (currentSystemSettings) {
-        if (siteNameInput) siteNameInput.value = currentSystemSettings.siteName || '';
-        if (siteDescriptionInput) siteDescriptionInput.value = currentSystemSettings.siteDescription || '';
-        if (logoUrlInput) logoUrlInput.value = currentSystemSettings.logoUrl || '';
+        console.log('Populating form with system settings data:', {
+            siteName: currentSystemSettings.siteName,
+            siteDescription: currentSystemSettings.siteDescription,
+            logoUrl: currentSystemSettings.logoUrl
+        });
+        
+        if (siteNameInput) {
+            siteNameInput.value = currentSystemSettings.siteName || '';
+            console.log('Set siteName input to:', siteNameInput.value);
+        }
+        if (siteDescriptionInput) {
+            siteDescriptionInput.value = currentSystemSettings.siteDescription || '';
+            console.log('Set siteDescription input to:', siteDescriptionInput.value);
+        }
+        if (logoUrlInput) {
+            logoUrlInput.value = currentSystemSettings.logoUrl || '';
+            console.log('Set logoUrl input to:', logoUrlInput.value);
+        }
     } else {
         console.log('System settings not loaded yet, showing empty form');
+        // Set empty values for form fields
+        if (siteNameInput) siteNameInput.value = '';
+        if (siteDescriptionInput) siteDescriptionInput.value = '';
+        if (logoUrlInput) logoUrlInput.value = '';
     }
 
     const form = document.getElementById('site-info-form');
-    if (form) {
+    if (form && !form.hasAttribute('data-listener-attached')) {
         form.addEventListener('submit', (e) => window.systemSettingsManagement.handleSiteInfoSubmit(e));
+        form.setAttribute('data-listener-attached', 'true');
     }
 }
 
@@ -199,11 +282,14 @@ function setupFeaturesTab() {
         if (registrationToggle) registrationToggle.checked = currentSystemSettings.isRegistrationOpen || false;
     } else {
         console.log('System settings not loaded yet, showing default feature toggles');
+        // Set default values
+        if (registrationToggle) registrationToggle.checked = true; // Default to open
     }
 
     const form = document.getElementById('feature-toggles-form');
-    if (form) {
+    if (form && !form.hasAttribute('data-listener-attached')) {
         form.addEventListener('submit', (e) => window.systemSettingsManagement.handleFeatureTogglesSubmit(e));
+        form.setAttribute('data-listener-attached', 'true');
     }
 }
 
@@ -218,26 +304,29 @@ function setupAnnouncementsTab() {
         if (announcementType) announcementType.value = currentSystemSettings.announcementType || 'info';
     } else {
         console.log('System settings not loaded yet, showing default announcement settings');
+        // Set default values
+        if (announcementToggle) announcementToggle.checked = false;
+        if (announcementMessage) announcementMessage.value = '';
+        if (announcementType) announcementType.value = 'info';
     }
 
     const form = document.getElementById('announcement-form');
-    if (form) {
+    if (form && !form.hasAttribute('data-listener-attached')) {
         form.addEventListener('submit', (e) => window.systemSettingsManagement.handleAnnouncementSubmit(e));
+        form.setAttribute('data-listener-attached', 'true');
     }
 }
 
 function setupSystemActionsTab() {
     const resetButton = document.getElementById('reset-settings-btn');
-    if (resetButton) {
+    if (resetButton && !resetButton.hasAttribute('data-listener-attached')) {
         resetButton.addEventListener('click', () => window.systemSettingsManagement.handleResetSettings());
+        resetButton.setAttribute('data-listener-attached', 'true');
     }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize system settings management
-    window.systemSettingsManagement = new SystemSettingsManagement();
-    
     // Define tabs
     const tabs = [
         {
@@ -390,8 +479,10 @@ document.addEventListener('DOMContentLoaded', () => {
         urlStateEnabled: true
     });
     
-    // Load initial data
-    const initialTab = systemSettingsTabComponent.getActiveTab();
-    console.log('Loading initial system settings tab:', initialTab);
-    loadTabData(initialTab);
+    // Initialize system settings management after tab component is created
+    window.systemSettingsManagement = new SystemSettingsManagement();
+    
+    // Load system settings first, then load initial tab data
+    console.log('Tab component created, now initializing system settings');
+    // Initial tab will be loaded after system settings are fetched
 });
