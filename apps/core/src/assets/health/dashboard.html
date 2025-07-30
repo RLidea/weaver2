@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weaver2 Health Dashboard</title>
-    <link rel="stylesheet" href="/static/shared/styles/design-system.css">
-    <link rel="stylesheet" href="/static/shared/styles/components.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/shared/styles/design-system.css" rel="stylesheet">
+    <link href="/shared/styles/components/cards.css" rel="stylesheet">
+    <link href="/shared/styles/components/buttons.css" rel="stylesheet">
+    <link href="/shared/styles/components/badges.css" rel="stylesheet">
+    <link href="/shared/styles/components/progress.css" rel="stylesheet">
     <link rel="stylesheet" href="/health/dashboard.css">
 </head>
 <body>
@@ -23,8 +27,8 @@
         <div id="error-container"></div>
 
         <div class="refresh-section">
-            <button id="refresh-btn" class="weaver-button primary">
-                🔄 Refresh
+            <button id="refresh-btn" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Refresh
             </button>
         </div>
 
@@ -35,6 +39,8 @@
         <div id="timestamp" class="timestamp"></div>
     </div>
 
-    <script type="module" src="/health/dashboard.js"></script>
+    <script src="/shared/utils/api-client.js"></script>
+    <script type="module" src="/shared/components/card/card.js"></script>
+    <script src="/health/dashboard.js"></script>
 </body>
 </html>

@@ -1,5 +1,38 @@
-// 개별 컴포넌트 import
-import { createHealthCard, createCard } from '/static/shared/components/card/card.js';
+// Wait for ApiClient to be available
+function waitForApiClient() {
+    return new Promise((resolve) => {
+        if (typeof window.ApiClient !== 'undefined') {
+            resolve();
+        } else {
+            console.log('ApiClient not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('ApiClient is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
+
+// Wait for WeaverCard to be available
+function waitForWeaverCard() {
+    return new Promise((resolve) => {
+        if (typeof window.WeaverCard !== 'undefined') {
+            resolve();
+        } else {
+            console.log('WeaverCard not ready, waiting...');
+            const checkInterval = setInterval(() => {
+                if (typeof window.WeaverCard !== 'undefined') {
+                    console.log('WeaverCard is now available');
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 50);
+        }
+    });
+}
 
 let healthData = null;
 let refreshInterval = null;
@@ -7,6 +40,7 @@ let refreshInterval = null;
 // 페이지 로드 시 실행
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - Starting health check');
+    // WeaverCard는 fallback으로 처리하므로 바로 시작
     refreshHealth();
     startAutoRefresh();
 });
@@ -33,16 +67,29 @@ async function refreshHealth() {
     const errorContainer = document.getElementById('error-container');
     
     refreshBtn.disabled = true;
-    refreshBtn.textContent = '🔄 Checking...';
+    refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Checking...';
     loading.style.display = 'block';
     dashboard.style.display = 'none';
     errorContainer.innerHTML = '';
 
     try {
         console.log('Fetching health data from /v1/health/');
-        const response = await fetch('/v1/health/');
+        // Ensure ApiClient is available
+        await waitForApiClient();
+        const response = await window.ApiClient.get('/v1/health/');
         console.log('Response status:', response.status);
-        const data = await response.json();
+        
+        let data;
+        if (response.ok) {
+            data = await response.json();
+        } else {
+            // For error responses, still try to get JSON data
+            try {
+                data = await response.json();
+            } catch {
+                data = { message: 'Unknown error', status: 'error' };
+            }
+        }
         console.log('Health data received:', data);
         
         if (response.ok || response.status === 503) {
@@ -59,7 +106,7 @@ async function refreshHealth() {
         loading.style.display = 'none';
     } finally {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = '🔄 Refresh';
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
         updateTimestamp();
     }
 }
@@ -88,9 +135,37 @@ function renderDashboard(data) {
         healthStatus = healthData.status || 'unknown';
         healthDetails = healthData.details || {};
     } else if (data.success !== undefined) {
-        // 에러 응답 형태
-        healthStatus = data.success ? 'ok' : 'error';
-        healthDetails = data.info || data.details || {};
+        // 에러 응답 형태: { success: false, error: {...} }
+        // 실제 응답에서 details 필드에 헬스체크 데이터가 있음
+        if (data.error && data.error.details) {
+            healthDetails = data.error.details;
+            
+            // 개별 서비스 상태를 확인하여 전체 상태 결정
+            const services = Object.values(healthDetails);
+            const allUp = services.every(service => service.status === 'up');
+            const allDown = services.every(service => service.status === 'down');
+            
+            if (allUp) {
+                healthStatus = 'ok';
+            } else if (allDown) {
+                healthStatus = 'error';
+            } else {
+                // 부분적 장애 - warning으로 표시
+                healthStatus = 'warning';
+            }
+        } else if (data.error && data.error.info) {
+            healthDetails = data.error.info;
+            healthStatus = 'error'; // info 필드는 일반적으로 전체 오류
+        } else {
+            // fallback으로 빈 객체 제공하고 기본 에러 정보 생성
+            healthDetails = {
+                database: {
+                    status: 'down',
+                    message: data.error?.message || 'Database connection failed'
+                }
+            };
+            healthStatus = 'error';
+        }
     } else {
         // 직접 응답 형태
         healthStatus = data.status || 'unknown';
@@ -115,9 +190,21 @@ function renderDashboard(data) {
 
 // 전체 상태 카드 생성
 function createOverallStatusCard(data) {
-    const status = data.status === 'ok' ? 'success' : 'error';
-    const statusText = data.status === 'ok' ? 'Healthy' : 'Error';
-    const statusIcon = data.status === 'ok' ? '✅' : '❌';
+    let status, statusText, statusIcon;
+    
+    if (data.status === 'ok') {
+        status = 'success';
+        statusText = 'Healthy';
+        statusIcon = '✅';
+    } else if (data.status === 'warning') {
+        status = 'warning';
+        statusText = 'Partial Outage';
+        statusIcon = '⚠️';
+    } else {
+        status = 'error';
+        statusText = 'Error';
+        statusIcon = '❌';
+    }
     
     const content = `
         <div class="weaver-metric">
@@ -130,13 +217,32 @@ function createOverallStatusCard(data) {
         </div>
     `;
     
-    return createCard({
-        title: 'Overall System Status',
-        content,
-        status,
-        className: 'overall-status',
-        icon: statusIcon
-    });
+    // Fallback 카드 생성 함수 (WeaverCard 없을 때)
+    if (window.WeaverCard && window.WeaverCard.createCard) {
+        return window.WeaverCard.createCard({
+            title: 'Overall System Status',
+            content,
+            status,
+            className: 'overall-status',
+            icon: statusIcon
+        });
+    } else {
+        // 간단한 HTML 카드 생성
+        const card = document.createElement('div');
+        card.className = `weaver-card ${status} overall-status`;
+        card.innerHTML = `
+            <div class="weaver-card-header">
+                <div class="weaver-status-icon ${status}">
+                    ${statusIcon}
+                </div>
+                <h3 class="weaver-card-title">Overall System Status</h3>
+            </div>
+            <div class="weaver-card-content">
+                ${content}
+            </div>
+        `;
+        return card;
+    }
 }
 
 // 개별 헬스체크 카드 생성 (함수명 변경하여 충돌 방지)
@@ -149,11 +255,56 @@ function createHealthStatusCard(key, data) {
     };
     const title = titles[key] || key;
     
-    return createHealthCard({
-        type: key,
-        title,
-        data
-    });
+    // Fallback 카드 생성 함수 (WeaverCard 없을 때)
+    if (window.WeaverCard && window.WeaverCard.createHealthCard) {
+        return window.WeaverCard.createHealthCard({
+            type: key,
+            title,
+            data
+        });
+    } else {
+        // 간단한 HTML 헬스 카드 생성
+        const status = data.status === 'up' ? 'success' : 'error';
+        const statusText = data.status === 'up' ? 'Healthy' : 'Error';
+        const iconMap = {
+            'database': '🗄️',
+            'memory_heap': '💾',
+            'memory_rss': '📊',
+            'storage': '💿'
+        };
+        const icon = iconMap[key] || '📋';
+        
+        let metricsHtml = `
+            <div class="weaver-metric">
+                <div class="weaver-metric-label">Status</div>
+                <div class="weaver-metric-value">${statusText}</div>
+            </div>
+        `;
+        
+        if (data.message && data.status !== 'up') {
+            metricsHtml += `
+                <div class="weaver-metric">
+                    <div class="weaver-metric-label">Error Message</div>
+                    <div class="weaver-metric-value" style="color: var(--status-error, #ef4444);">${data.message}</div>
+                </div>
+            `;
+        }
+        
+        const card = document.createElement('div');
+        card.className = `weaver-card ${status} health-card`;
+        card.innerHTML = `
+            <div class="weaver-card-header">
+                <div class="weaver-status-icon ${status}">
+                    ${icon}
+                </div>
+                <h3 class="weaver-card-title">${title}</h3>
+            </div>
+            <div class="weaver-card-content">
+                ${metricsHtml}
+            </div>
+        `;
+        return card;
+    }
 }
 
 // 헬스체크 메트릭 렌더링 함수는 공통 컴포넌트로 이동됨

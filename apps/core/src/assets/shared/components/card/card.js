@@ -119,14 +119,14 @@ export function createAdminCard({
 }) {
   const numberHtml = number ? `
     <div class="weaver-metric">
-      <div class="weaver-metric-label">총 개수</div>
+      <div class="weaver-metric-label">Total Count</div>
       <div class="weaver-metric-value" style="font-size: 24px; font-weight: bold;">${number}</div>
     </div>
   ` : '';
   
   const content = `
     <div class="weaver-metric">
-      <div class="weaver-metric-label">설명</div>
+      <div class="weaver-metric-label">Description</div>
       <div class="weaver-metric-value">${description}</div>
     </div>
     ${numberHtml}
@@ -151,16 +151,16 @@ export function createAdminCard({
 function renderHealthMetrics(key, data) {
   let metricsHtml = `
     <div class="weaver-metric">
-      <div class="weaver-metric-label">상태</div>
-      <div class="weaver-metric-value">${data.status === 'up' ? '정상' : '오류'}</div>
+      <div class="weaver-metric-label">Status</div>
+      <div class="weaver-metric-value">${data.status === 'up' ? 'Healthy' : 'Error'}</div>
     </div>
   `;
 
   if (key === 'database') {
     metricsHtml += `
       <div class="weaver-metric">
-        <div class="weaver-metric-label">연결 상태</div>
-        <div class="weaver-metric-value">${data.status === 'up' ? '연결됨' : '연결 실패'}</div>
+        <div class="weaver-metric-label">Connection</div>
+        <div class="weaver-metric-value">${data.status === 'up' ? 'Connected' : 'Connection Failed'}</div>
       </div>
     `;
   } else if (key.includes('memory')) {
@@ -171,7 +171,7 @@ function renderHealthMetrics(key, data) {
       
       metricsHtml += `
         <div class="weaver-metric">
-          <div class="weaver-metric-label">사용량</div>
+          <div class="weaver-metric-label">Usage</div>
           <div class="weaver-metric-value">${usedMB}MB / ${limitMB}MB (${percentage}%)</div>
         </div>
         <div class="weaver-progress-meter">
@@ -189,7 +189,7 @@ function renderHealthMetrics(key, data) {
       
       metricsHtml += `
         <div class="weaver-metric">
-          <div class="weaver-metric-label">사용량</div>
+          <div class="weaver-metric-label">Usage</div>
           <div class="weaver-metric-value">${usedGB}GB / ${totalGB}GB (${percentage}%)</div>
         </div>
         <div class="weaver-progress-meter">
@@ -203,7 +203,7 @@ function renderHealthMetrics(key, data) {
   if (data.message && data.status !== 'up') {
     metricsHtml += `
       <div class="weaver-metric">
-        <div class="weaver-metric-label">오류 메시지</div>
+        <div class="weaver-metric-label">Error Message</div>
         <div class="weaver-metric-value" style="color: var(--status-error);">${data.message}</div>
       </div>
     `;
@@ -211,3 +211,10 @@ function renderHealthMetrics(key, data) {
 
   return metricsHtml;
 }
+
+// Make functions globally available for non-module scripts
+window.WeaverCard = {
+    createCard,
+    createHealthCard,
+    createAdminCard
+};
