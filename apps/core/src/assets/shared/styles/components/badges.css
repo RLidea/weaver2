@@ -1,0 +1,39 @@
+/* ========== 상태 배지 스타일 ========== */
+.weaver-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  backdrop-filter: var(--blur-light);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.weaver-status-badge.success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+  color: var(--status-success);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.weaver-status-badge.warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+  color: var(--status-warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.weaver-status-badge.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+  color: var(--status-error);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.weaver-status-badge.info {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 197, 253, 0.3));
+  color: var(--status-info);
+  border-color: rgba(59, 130, 246, 0.3);
+}

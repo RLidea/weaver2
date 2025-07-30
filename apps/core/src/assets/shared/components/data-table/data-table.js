@@ -533,13 +533,13 @@ window.WeaverDataTable = class {
     const buttons = [];
     
     if (this.callbacks.onView) {
-      buttons.push(`<button class="action-btn-sm view" data-action="view" data-id="${row.id}"><i class="fas fa-eye"></i></button>`);
+      buttons.push(`<button class="action-btn-sm btn btn-sm btn-success" data-action="view" data-id="${row.id}"><i class="fas fa-eye"></i></button>`);
     }
     if (this.callbacks.onEdit) {
-      buttons.push(`<button class="action-btn-sm edit" data-action="edit" data-id="${row.id}"><i class="fas fa-edit"></i></button>`);
+      buttons.push(`<button class="action-btn-sm btn btn-sm btn-primary" data-action="edit" data-id="${row.id}"><i class="fas fa-edit"></i></button>`);
     }
     if (this.callbacks.onDelete) {
-      buttons.push(`<button class="action-btn-sm delete" data-action="delete" data-id="${row.id}"><i class="fas fa-trash"></i></button>`);
+      buttons.push(`<button class="action-btn-sm btn btn-sm btn-danger" data-action="delete" data-id="${row.id}"><i class="fas fa-trash"></i></button>`);
     }
     
     return `<div class="action-buttons">${buttons.join('')}</div>`;

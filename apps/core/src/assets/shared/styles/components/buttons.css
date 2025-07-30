@@ -1,0 +1,231 @@
+/* ========== 공통 버튼 스타일 ========== */
+.weaver-button {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  backdrop-filter: var(--blur-light);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.weaver-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover), var(--inset-highlight);
+}
+
+.weaver-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.weaver-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.weaver-button:hover::before {
+  left: 100%;
+}
+
+/* ========== 표준 버튼 클래스 (기존 btn 스타일과 호환) ========== */
+.btn {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  backdrop-filter: var(--blur-light);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover), var(--inset-highlight);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.8s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+/* Primary 버튼 - 향상된 gradient 스타일 */
+.btn-primary {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
+  box-shadow: var(--shadow-hover), var(--inset-highlight);
+}
+
+/* Secondary 버튼 */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Warning 버튼 */
+.btn-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.7), rgba(217, 119, 6, 0.8));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.9));
+}
+
+/* Success 버튼 */
+.btn-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.8));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.9));
+}
+
+/* Danger 버튼 */
+.btn-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.7), rgba(220, 38, 38, 0.8));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.9));
+}
+
+/* ========== Weaver 버튼 클래스 (하위 호환성) ========== */
+/* 버튼 변형 */
+.weaver-button.primary {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.weaver-button.primary:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
+}
+
+.weaver-button.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.weaver-button.secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ========== 버튼 크기 변형 ========== */
+/* Small 버튼 */
+.btn.btn-sm, .btn-sm {
+  padding: var(--spacing-xs);
+  min-width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: var(--border-radius-small);
+}
+
+/* Primary Small 버튼 */
+.btn-sm.btn-primary {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.2));
+  color: var(--secondary-blue);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.btn-sm.btn-primary:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.3));
+}
+
+/* Success Small 버튼 */
+.btn-sm.btn-success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.2));
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.btn-sm.btn-success:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3));
+}
+
+/* Danger Small 버튼 */
+.btn-sm.btn-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.2));
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.btn-sm.btn-danger:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+}
+
+/* ========== 반응형 스타일 ========== */
+@media (max-width: 768px) {
+  .btn {
+    padding: 14px var(--spacing-md);
+    font-size: 14px;
+  }
+
+  .weaver-button {
+    padding: 14px var(--spacing-md);
+    font-size: 14px;
+  }
+}

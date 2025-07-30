@@ -1,0 +1,68 @@
+/* ========== 상태 아이콘 스타일 ========== */
+.weaver-status-icon {
+  width: var(--component-md);
+  height: var(--component-md);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  backdrop-filter: var(--blur-light);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-light), var(--inset-highlight);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.weaver-status-icon.success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+  color: var(--status-success);
+}
+
+.weaver-status-icon.warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.3));
+  color: var(--status-warning);
+}
+
+.weaver-status-icon.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3));
+  color: var(--status-error);
+}
+
+.weaver-status-icon.info {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.3));
+  color: var(--status-info);
+}
+
+.weaver-status-icon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.weaver-status-icon:hover::before {
+  opacity: 1;
+}
+
+/* ========== 로딩 스피너 스타일 ========== */
+.weaver-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--secondary-blue);
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
