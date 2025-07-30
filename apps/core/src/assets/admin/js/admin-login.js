@@ -26,27 +26,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLoginPageTitle();
 });
 
-// Update login page title with site name from system settings
+// Update login page title with default site name (no API call needed for login page)
 async function updateLoginPageTitle() {
     try {
-        await waitForApiClient();
+        // Use default site name for login page since it's accessed without authentication
+        const siteName = 'Weaver2'; // Default site name
         
-        const response = await window.ApiClient.get('/v1/admin/system-settings');
-        if (response.ok) {
-            const responseData = await response.json();
-            
-            // Extract site name from response
-            let siteName = 'Weaver2'; // Default fallback
-            if (responseData && responseData.data && responseData.data.siteName) {
-                siteName = responseData.data.siteName;
-            } else if (responseData && responseData.siteName) {
-                siteName = responseData.siteName;
-            }
-            
-            // Update title format: "[SiteName] - Admin Login - Secure Access"
-            document.title = `${siteName} - Admin Login - Secure Access`;
-            console.log(`Login page title updated to: ${document.title}`);
-        }
+        // Update title format: "[SiteName] - Admin Login - Secure Access"
+        document.title = `${siteName} - Admin Login - Secure Access`;
+        console.log(`Login page title updated to: ${document.title}`);
     } catch (error) {
         console.error('Error updating login page title:', error);
         // Keep original title on error

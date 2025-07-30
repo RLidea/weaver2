@@ -27,7 +27,9 @@ class ApiClient {
       let response = await fetch(url, config);
       
       // Handle 401 Unauthorized - token might be expired
-      if (response.status === 401 && !this.isRefreshing) {
+      // Skip token refresh for login/auth endpoints
+      const isAuthEndpoint = url.includes('/auth/sign-in') || url.includes('/auth/sign-up') || url.includes('/auth/refresh');
+      if (response.status === 401 && !this.isRefreshing && !isAuthEndpoint) {
         return this.handleTokenRefresh(url, config);
       }
       
@@ -125,7 +127,7 @@ class ApiClient {
     // Redirect based on current path
     const currentPath = window.location.pathname;
     if (currentPath.startsWith('/admin')) {
-      window.location.href = '/admin/auth';
+      window.location.href = '/admin/login';
     } else {
       window.location.href = '/auth/login';
     }
