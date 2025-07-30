@@ -95,6 +95,12 @@ class SystemSettingsManagement {
                 currentSystemSettings = responseData;
                 console.log('Updated system settings from direct response:', currentSystemSettings);
             }
+            
+            // Update page title with new site name if available
+            if (typeof updatePageTitle === 'function') {
+                updatePageTitle('System Settings');
+            }
+            
             // Refresh current tab to show updated data
             const activeTab = systemSettingsTabComponent.getActiveTab();
             loadTabData(activeTab);

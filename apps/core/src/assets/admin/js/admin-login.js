@@ -21,7 +21,37 @@ function waitForApiClient() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Admin login page loaded');
     // 서버사이드에서 인증 체크를 완료했으므로 클라이언트 로직 불필요
+    
+    // Update page title with site name
+    updateLoginPageTitle();
 });
+
+// Update login page title with site name from system settings
+async function updateLoginPageTitle() {
+    try {
+        await waitForApiClient();
+        
+        const response = await window.ApiClient.get('/v1/admin/system-settings');
+        if (response.ok) {
+            const responseData = await response.json();
+            
+            // Extract site name from response
+            let siteName = 'Weaver2'; // Default fallback
+            if (responseData && responseData.data && responseData.data.siteName) {
+                siteName = responseData.data.siteName;
+            } else if (responseData && responseData.siteName) {
+                siteName = responseData.siteName;
+            }
+            
+            // Update title format: "[SiteName] - Admin Login - Secure Access"
+            document.title = `${siteName} - Admin Login - Secure Access`;
+            console.log(`Login page title updated to: ${document.title}`);
+        }
+    } catch (error) {
+        console.error('Error updating login page title:', error);
+        // Keep original title on error
+    }
+}
 
 // Login form handler
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
