@@ -10,16 +10,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px; /* 아이콘과 텍스트 간격 */
   text-decoration: none;
   backdrop-filter: var(--blur-light);
-  box-shadow: var(--shadow-light), var(--inset-highlight);
   position: relative;
   overflow: hidden;
 }
 
 .weaver-button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover), var(--inset-highlight);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .weaver-button:disabled {
@@ -35,7 +35,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   transition: left 0.6s;
 }
 
@@ -55,16 +55,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px; /* 아이콘과 텍스트 간격 */
   text-decoration: none;
   backdrop-filter: var(--blur-light);
-  box-shadow: var(--shadow-light), var(--inset-highlight);
   position: relative;
   overflow: hidden;
 }
 
 .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover), var(--inset-highlight);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .btn:disabled {
@@ -80,7 +80,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   transition: left 0.8s;
 }
 
@@ -88,18 +88,16 @@
   left: 100%;
 }
 
-/* Primary 버튼 - 향상된 gradient 스타일 */
+/* Primary 버튼 - 플랫 gradient 스타일 */
 .btn-primary {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  box-shadow: var(--shadow-light), var(--inset-highlight);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
-  box-shadow: var(--shadow-hover), var(--inset-highlight);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 /* Secondary 버튼 */
@@ -118,36 +116,36 @@
 .btn-warning {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.7), rgba(217, 119, 6, 0.8));
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .btn-warning:hover {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.9));
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 /* Success 버튼 */
 .btn-success {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.8));
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .btn-success:hover {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.9));
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 /* Danger 버튼 */
 .btn-danger {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.7), rgba(220, 38, 38, 0.8));
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.9));
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* ========== Weaver 버튼 클래스 (하위 호환성) ========== */
@@ -155,12 +153,12 @@
 .weaver-button.primary {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(37, 99, 235, 0.8));
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .weaver-button.primary:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9));
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .weaver-button.secondary {
