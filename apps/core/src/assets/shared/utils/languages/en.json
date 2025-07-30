@@ -1,0 +1,95 @@
+{
+  "admin": {
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "welcome": "Welcome to Admin Dashboard",
+      "subtitle": "Complete system management at your fingertips",
+      "badge": "Administrator"
+    },
+    "menu": {
+      "dashboard": "Dashboard",
+      "analytics": "Analytics", 
+      "content": "Content Management",
+      "security": "Security",
+      "notifications": "Notifications",
+      "systemSettings": "System Settings"
+    },
+    "settings": {
+      "title": "System Settings",
+      "subtitle": "Configure global system parameters",
+      "language": {
+        "title": "Language Settings",
+        "description": "Select the display language for admin pages",
+        "current": "Current Language",
+        "change": "Change Language",
+        "korean": "Korean",
+        "english": "English",
+        "japanese": "Japanese"
+      },
+      "general": {
+        "title": "General Settings",
+        "siteName": "Site Name",
+        "siteDescription": "Site Description", 
+        "adminEmail": "Admin Email",
+        "timezone": "Timezone"
+      }
+    },
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "refresh": "Refresh",
+      "edit": "Edit",
+      "delete": "Delete",
+      "create": "Create",
+      "update": "Update"
+    },
+    "status": {
+      "healthy": "Healthy",
+      "error": "Error",
+      "warning": "Warning",
+      "loading": "Loading...",
+      "success": "Success",
+      "failed": "Failed"
+    },
+    "health": {
+      "title": "System Health",
+      "overallStatus": "Overall System Status",
+      "partialOutage": "Partial Outage",
+      "database": "Database",
+      "memoryHeap": "Heap Memory",
+      "memoryRss": "RSS Memory",
+      "storage": "Storage",
+      "connection": "Connection",
+      "usage": "Usage",
+      "connected": "Connected",
+      "connectionFailed": "Connection Failed",
+      "errorMessage": "Error Message",
+      "checkedAt": "Checked At"
+    },
+    "cards": {
+      "totalUsers": "Total Users",
+      "todaySignups": "Today Signups", 
+      "totalPosts": "Total Posts",
+      "totalComments": "Total Comments",
+      "todayPosts": "Today Posts",
+      "todayComments": "Today Comments",
+      "activeUsers": "Active Users"
+    }
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No", 
+    "ok": "OK",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "date": "Date",
+    "time": "Time",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address"
+  }
+}

@@ -213,6 +213,9 @@ class SystemSettingsManagement {
 async function loadTabData(tabId) {
     try {
         switch (tabId) {
+            case 'language-settings':
+                await setupLanguageSettingsTab();
+                break;
             case 'site-info':
                 setupSiteInfoTab();
                 break;
@@ -232,6 +235,35 @@ async function loadTabData(tabId) {
         console.error(`Failed to load ${tabId} data:`, error);
         alert(`Failed to load ${tabId} data. Please try again.`);
     }
+}
+
+// Language Settings Tab Setup
+async function setupLanguageSettingsTab() {
+    console.log('Setting up language settings tab');
+    
+    // Wait for LanguageSettingsManager to be available
+    if (typeof window.LanguageSettingsManager === 'undefined') {
+        console.error('LanguageSettingsManager not available');
+        return;
+    }
+    
+    // Create language settings manager instance
+    const languageManager = new window.LanguageSettingsManager();
+    
+    // Get the tab content container
+    const tabContent = document.getElementById('language-settings-tab');
+    if (!tabContent) {
+        console.error('Language settings tab content container not found');
+        return;
+    }
+    
+    // Populate the content
+    tabContent.innerHTML = languageManager.createLanguageSettingsContent();
+    
+    // Setup event listeners
+    languageManager.setupLanguageSettingsEvents();
+    
+    console.log('Language settings tab setup completed');
 }
 
 function setupSiteInfoTab() {
@@ -369,6 +401,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             </button>
                         </form>
                     </div>
+                </div>
+            `
+        },
+        {
+            id: 'language-settings',
+            label: 'Language Settings',
+            icon: 'fas fa-language',
+            content: `
+                <div class="loading-container">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading language settings...</p>
                 </div>
             `
         },

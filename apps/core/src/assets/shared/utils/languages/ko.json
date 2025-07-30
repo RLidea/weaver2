@@ -1,0 +1,95 @@
+{
+  "admin": {
+    "dashboard": {
+      "title": "관리자 대시보드",
+      "welcome": "관리자 대시보드에 오신 것을 환영합니다",
+      "subtitle": "완전한 시스템 관리가 가능합니다",
+      "badge": "관리자"
+    },
+    "menu": {
+      "dashboard": "대시보드",
+      "analytics": "분석",
+      "content": "콘텐츠 관리",
+      "security": "보안",
+      "notifications": "알림",
+      "systemSettings": "시스템 설정"
+    },
+    "settings": {
+      "title": "시스템 설정",
+      "subtitle": "전역 시스템 매개변수 구성",
+      "language": {
+        "title": "언어 설정",
+        "description": "관리자 페이지의 표시 언어를 선택하세요",
+        "current": "현재 언어",
+        "change": "언어 변경",
+        "korean": "한국어",
+        "english": "영어",
+        "japanese": "일본어"
+      },
+      "general": {
+        "title": "일반 설정",
+        "siteName": "사이트 이름",
+        "siteDescription": "사이트 설명",
+        "adminEmail": "관리자 이메일",
+        "timezone": "시간대"
+      }
+    },
+    "actions": {
+      "save": "저장",
+      "cancel": "취소",
+      "apply": "적용",
+      "refresh": "새로고침",
+      "edit": "편집",
+      "delete": "삭제",
+      "create": "생성",
+      "update": "업데이트"
+    },
+    "status": {
+      "healthy": "정상",
+      "error": "오류",
+      "warning": "경고",
+      "loading": "로딩 중...",
+      "success": "성공",
+      "failed": "실패"
+    },
+    "health": {
+      "title": "시스템 상태",
+      "overallStatus": "전체 시스템 상태",
+      "partialOutage": "부분 장애",
+      "database": "데이터베이스",
+      "memoryHeap": "힙 메모리",
+      "memoryRss": "RSS 메모리", 
+      "storage": "저장소",
+      "connection": "연결",
+      "usage": "사용량",
+      "connected": "연결됨",
+      "connectionFailed": "연결 실패",
+      "errorMessage": "오류 메시지",
+      "checkedAt": "확인 시간"
+    },
+    "cards": {
+      "totalUsers": "전체 사용자",
+      "todaySignups": "오늘 가입자",
+      "totalPosts": "전체 게시물",
+      "totalComments": "전체 댓글",
+      "todayPosts": "오늘 게시물",
+      "todayComments": "오늘 댓글",
+      "activeUsers": "활성 사용자"
+    }
+  },
+  "common": {
+    "yes": "예",
+    "no": "아니오",
+    "ok": "확인",
+    "close": "닫기",
+    "search": "검색",
+    "filter": "필터",
+    "sort": "정렬",
+    "date": "날짜",
+    "time": "시간",
+    "name": "이름",
+    "email": "이메일",
+    "phone": "전화번호",
+    "address": "주소"
+  }
+}

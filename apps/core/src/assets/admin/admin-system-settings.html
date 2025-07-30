@@ -107,6 +107,27 @@
             border-color: var(--border-color-hover);
         }
         
+        /* Loading container styles */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-3xl);
+            color: var(--text-secondary);
+        }
+        
+        .loading-container i {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-md);
+            color: var(--primary-blue);
+        }
+        
+        .loading-container p {
+            margin: 0;
+            font-size: 1rem;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .form-control {
@@ -131,8 +152,11 @@
 </div>
 
 <script src="/shared/utils/api-client.js"></script>
+<script src="/shared/utils/i18n.js"></script>
+<script src="/shared/utils/url-state.js"></script>
 <script src="/shared/components/tabs/tabs.js"></script>
 <script src="/admin/js/admin-menu.js"></script>
+<script src="/admin/js/admin-language-settings.js"></script>
 <script src="/admin/js/admin-system-settings.js"></script>
 </body>
 </html>
