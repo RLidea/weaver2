@@ -7,6 +7,8 @@ import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
+  const startTime = Date.now();
+
   const app = await NestFactory.create<NestExpressApplication>(CoreModule, {
     logger: ['error', 'warn'],
   });
@@ -31,11 +33,19 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
 
+  const bootTime = Date.now() - startTime;
+  const locale = configService.get<string>('APP_LOCALE') ?? 'ko-KR';
+  const timezone = configService.get<string>('APP_TIMEZONE') ?? 'Asia/Seoul';
+  const currentTime = new Date().toLocaleString(locale, {
+    timeZone: timezone,
+    hour12: false,
+  });
+
   const logger = new Logger('Bootstrap');
   logger.log(
     `🟢 ${configService.get<string>(
       'APP_NAME',
-    )} is running on port ${port} (${configService.get<string>('NODE_ENV')})`,
+    )} is running on port ${port} (${configService.get<string>('NODE_ENV')}) - Started in ${bootTime}ms at ${currentTime}`,
   );
 }
 void bootstrap();
