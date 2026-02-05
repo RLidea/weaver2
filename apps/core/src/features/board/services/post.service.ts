@@ -72,6 +72,53 @@ export class PostService {
     });
   }
 
+  async findAllPostsWithPagination(
+    paginationDto: PaginationRequestDto,
+    authUser?: CommonAuthUserDto,
+  ): Promise<PaginationResponseDto<PostDto>> {
+    const { skip, take } = PaginationService.getPaginationParams({
+      page: paginationDto.page,
+      limit: paginationDto.limit,
+    });
+
+    const orderBy = PaginationService.parseSort(paginationDto.sort);
+
+    const isLoggedIn = authUser?.isLogin === true;
+    const whereCondition = {
+      status: 'PUBLISHED' as const,
+      ...(!isLoggedIn && { isSecret: false }),
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        skip,
+        take,
+        where: whereCondition,
+        orderBy,
+        include: {
+          board: true,
+          author: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.post.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    return PaginationService.buildResponse(
+      posts,
+      total,
+      paginationDto.page || 1,
+      paginationDto.limit || 10,
+    );
+  }
+
   async findPostsByBoardIdWithPagination(
     boardId: string,
     paginationDto: PaginationRequestDto,

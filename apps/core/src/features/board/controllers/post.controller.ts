@@ -64,13 +64,14 @@ export class PostController {
   @Get()
   @Public()
   @ApiOperation({
-    summary: '게시글 조회 (boardId 쿼리 파라미터로 필터링 가능)',
+    summary: '게시글 조회 (boardId로 필터링 가능, 없으면 전체 조회)',
   })
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async findPosts(
     @Query('boardId') boardId?: string,
+    @Query() paginationDto?: PaginationRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<PostDto[]> {
+  ): Promise<PostDto[] | PaginationResponseDto<PostDto>> {
     if (boardId) {
       // 읽기 권한 체크
       await this.permissionService.requirePermission(
@@ -82,8 +83,11 @@ export class PostController {
 
       return this.postService.findAllPostsByBoardId(boardId);
     }
-    // TODO: 전체 게시글 조회 메서드 구현 필요
-    throw new Error('boardId query parameter is required');
+
+    return this.postService.findAllPostsWithPagination(
+      paginationDto ?? new PaginationRequestDto(),
+      authUser,
+    );
   }
 
   @Get(':postId')
