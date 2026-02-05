@@ -9,7 +9,7 @@ export function setMiddleware<T extends INestApplication>(app: T): void {
   });
 
   // parsing cookie
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
   app.use(cookieParser());
 
   // Security
