@@ -80,6 +80,7 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.13.2",
     "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.10",
     "@types/csurf": "^1.11.5",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.5.14",

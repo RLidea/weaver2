@@ -29,7 +29,7 @@ export function setSecurityMiddleware(app: INestApplication): void {
     undefined, // for Postman/Insomnia
   ];
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin || whitelist.includes(origin)) {
         callback(null, true);
       } else {
