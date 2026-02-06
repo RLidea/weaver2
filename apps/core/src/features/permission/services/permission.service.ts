@@ -49,8 +49,8 @@ export class PermissionService {
 
     // 캐시 저장 (LRU: 최대 크기 초과 시 가장 오래된 항목 제거)
     if (this.cache.size >= this.maxCacheSize) {
-      const oldestKey = this.cache.keys().next().value;
-      if (oldestKey) {
+      const oldestKey = this.cache.keys().next().value as string | undefined;
+      if (oldestKey !== undefined) {
         this.cache.delete(oldestKey);
       }
     }
