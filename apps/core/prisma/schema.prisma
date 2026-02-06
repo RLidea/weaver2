@@ -330,22 +330,22 @@ model PermissionGroup {
 }
 
 model PermissionGroupPermission {
-  id         String          @id @default(uuid())
-  groupId    String
-  permission String
-  createdAt  DateTime        @default(now())
-  group      PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id                  String          @id @default(uuid())
+  permissionGroupId   String
+  permission          String
+  createdAt           DateTime        @default(now())
+  permissionGroup     PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
-  @@unique([groupId, permission])
+  @@unique([permissionGroupId, permission])
 }
 
 model UserPermissionGroup {
-  id        String          @id @default(uuid())
-  userId    String
-  groupId   String
-  createdAt DateTime        @default(now())
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group     PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id                  String          @id @default(uuid())
+  userId              String
+  permissionGroupId   String
+  createdAt           DateTime        @default(now())
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionGroup     PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, groupId])
+  @@unique([userId, permissionGroupId])
 }

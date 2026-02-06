@@ -75,6 +75,7 @@
 - 공통 컴포넌트 우선
 - 글래스모피즘 디자인
 - ESLint/TypeScript 준수
+- FK 컬럼명: `{참조테이블명}Id` (예: `userId`, `permissionGroupId`)
 
 **🟡 HIGH (강력 권장)**
 - EDGE 방법론
