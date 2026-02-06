@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id              String               @id @default(uuid())
-  username        String               @unique
-  displayName     String               @unique
-  profileImageUrl String?
-  role            Role                 @default(USER)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  deletedAt       DateTime?
-  lastLoginAt     DateTime?
-  auths           Auth[]
-  comments        Comment[]
-  emailLogs       EmailLog[]
-  pageViews       PageView[]
-  posts           Post[]
-  userSetting     UserSetting?
-  userAgreements  UserTermsAgreement[]
+  id               String                @id @default(uuid())
+  username         String                @unique
+  displayName      String                @unique
+  profileImageUrl  String?
+  role             Role                  @default(USER)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  deletedAt        DateTime?
+  lastLoginAt      DateTime?
+  auths            Auth[]
+  comments         Comment[]
+  emailLogs        EmailLog[]
+  pageViews        PageView[]
+  posts            Post[]
+  userSetting      UserSetting?
+  userAgreements   UserTermsAgreement[]
+  permissionGroups UserPermissionGroup[]
 }
 
 model UserSetting {
@@ -133,23 +134,24 @@ model BoardPermission {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Post {
-  id         String        @id @default(uuid())
-  title      String
-  content    String
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  boardId    String
-  authorId   String
-  categoryId String?
-  isPinned   Boolean       @default(false)
-  isSecret   Boolean       @default(false)
-  priority   Int           @default(0)
-  status     PostStatus    @default(PUBLISHED)
-  viewCount  Int           @default(0)
-  comments   Comment[]
-  author     User          @relation(fields: [authorId], references: [id])
-  board      Board         @relation(fields: [boardId], references: [id])
-  category   PostCategory? @relation(fields: [categoryId], references: [id])
+  id                 String        @id @default(uuid())
+  title              String
+  content            String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  boardId            String
+  authorId           String
+  categoryId         String?
+  isPinned           Boolean       @default(false)
+  isSecret           Boolean       @default(false)
+  priority           Int           @default(0)
+  status             PostStatus    @default(PUBLISHED)
+  viewCount          Int           @default(0)
+  requiredPermission String?
+  comments           Comment[]
+  author             User          @relation(fields: [authorId], references: [id])
+  board              Board         @relation(fields: [boardId], references: [id])
+  category           PostCategory? @relation(fields: [categoryId], references: [id])
 
   @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
 }
@@ -297,21 +299,53 @@ enum EmailStatus {
 }
 
 model SystemSetting {
-  id                   String   @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Site Information
-  siteName             String   @default("Weaver2")
-  siteDescription      String   @default("Community Platform")
-  logoUrl              String?
-  
+  siteName        String  @default("Weaver2")
+  siteDescription String  @default("Community Platform")
+  logoUrl         String?
+
   // Feature Toggles
-  isRegistrationOpen   Boolean  @default(true)
-  isAnnouncementActive Boolean  @default(false)
+  isRegistrationOpen   Boolean @default(true)
+  isAnnouncementActive Boolean @default(false)
   announcementMessage  String?
-  announcementType     String   @default("info") // info, warning, success, error
-  
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  
+  announcementType     String  @default("info") // info, warning, success, error
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("SystemSettings")
+}
+
+model PermissionGroup {
+  id          String                      @id @default(uuid())
+  name        String                      @unique
+  description String?
+  isSystem    Boolean                     @default(false)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  permissions PermissionGroupPermission[]
+  users       UserPermissionGroup[]
+}
+
+model PermissionGroupPermission {
+  id         String          @id @default(uuid())
+  groupId    String
+  permission String
+  createdAt  DateTime        @default(now())
+  group      PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, permission])
+}
+
+model UserPermissionGroup {
+  id        String          @id @default(uuid())
+  userId    String
+  groupId   String
+  createdAt DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
 }
