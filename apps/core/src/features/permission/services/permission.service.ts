@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
+
+type CacheStrategy = 'memory' | 'none';
 
 interface CacheEntry {
   permissions: Set<string>;
@@ -9,25 +12,65 @@ interface CacheEntry {
 @Injectable()
 export class PermissionService {
   private readonly cache = new Map<string, CacheEntry>();
-  private readonly cacheTtlMs = 5 * 60 * 1000; // 5분
-  private readonly maxCacheSize = 1000; // 최대 1000명
+  private readonly cacheStrategy: CacheStrategy;
+  private readonly cacheTtlMs: number;
+  private readonly maxCacheSize: number;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.cacheStrategy =
+      (this.configService.get<string>(
+        'PERMISSION_CACHE_STRATEGY',
+      ) as CacheStrategy) || 'memory';
+    this.cacheTtlMs =
+      (this.configService.get<number>('PERMISSION_CACHE_TTL') || 300) * 1000;
+    this.maxCacheSize =
+      this.configService.get<number>('PERMISSION_CACHE_MAX_SIZE') || 1000;
+  }
 
   /**
    * 유저의 모든 권한을 DB에서 로드
    */
   async getUserPermissions(userId: string): Promise<Set<string>> {
-    // 캐시 확인
-    const cached = this.cache.get(userId);
-    if (cached && cached.expiresAt > Date.now()) {
-      // LRU 순서 갱신: 삭제 후 재삽입으로 맨 뒤로 이동
-      this.cache.delete(userId);
-      this.cache.set(userId, cached);
-      return cached.permissions;
+    // 캐시 전략이 memory일 때만 캐시 확인
+    if (this.cacheStrategy === 'memory') {
+      const cached = this.cache.get(userId);
+      if (cached && cached.expiresAt > Date.now()) {
+        // LRU 순서 갱신: 삭제 후 재삽입으로 맨 뒤로 이동
+        this.cache.delete(userId);
+        this.cache.set(userId, cached);
+        return cached.permissions;
+      }
     }
 
     // DB에서 유저의 모든 권한 그룹과 권한 조회
+    const permissions = await this.loadPermissionsFromDb(userId);
+
+    // 캐시 전략이 memory일 때만 캐시 저장
+    if (this.cacheStrategy === 'memory') {
+      // LRU: 최대 크기 초과 시 가장 오래된 항목 제거
+      if (this.cache.size >= this.maxCacheSize) {
+        const oldestKey = this.cache.keys().next().value as string | undefined;
+        if (oldestKey !== undefined) {
+          this.cache.delete(oldestKey);
+        }
+      }
+
+      this.cache.set(userId, {
+        permissions,
+        expiresAt: Date.now() + this.cacheTtlMs,
+      });
+    }
+
+    return permissions;
+  }
+
+  /**
+   * DB에서 유저의 권한을 직접 조회
+   */
+  private async loadPermissionsFromDb(userId: string): Promise<Set<string>> {
     const userGroups = await this.prisma.userPermissionGroup.findMany({
       where: { userId },
       include: {
@@ -39,26 +82,12 @@ export class PermissionService {
       },
     });
 
-    // 모든 권한을 Set으로 수집
     const permissions = new Set<string>();
     for (const userGroup of userGroups) {
       for (const perm of userGroup.permissionGroup.permissions) {
         permissions.add(perm.permission);
       }
     }
-
-    // 캐시 저장 (LRU: 최대 크기 초과 시 가장 오래된 항목 제거)
-    if (this.cache.size >= this.maxCacheSize) {
-      const oldestKey = this.cache.keys().next().value as string | undefined;
-      if (oldestKey !== undefined) {
-        this.cache.delete(oldestKey);
-      }
-    }
-
-    this.cache.set(userId, {
-      permissions,
-      expiresAt: Date.now() + this.cacheTtlMs,
-    });
 
     return permissions;
   }
