@@ -20,6 +20,7 @@ import { TermsModule } from './features/terms/terms.module';
 import { BoardModule } from './features/board/board.module';
 import { SearchModule } from './features/search/search.module';
 import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
+import { PermissionModule } from './features/permission/permission.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
     // }),
     UserModule,
     PrismaModule,
+    PermissionModule,
     AuthModule,
     EmailModule,
     AdminModule,
