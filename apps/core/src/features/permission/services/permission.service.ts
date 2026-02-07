@@ -145,6 +145,78 @@ export class PermissionService {
   }
 
   /**
+   * 리소스별 접근 권한 체크
+   * - 규칙 없으면 기본 거부
+   * - public 리소스는 allowAnonymous: true + allowedGroups 비어있음으로 설정
+   *
+   * @param userId 유저 ID (null이면 비로그인)
+   * @param resourceType 리소스 타입 (예: 'board')
+   * @param resourceId 리소스 ID (예: 게시판 ID)
+   * @param action 액션 (예: 'read', 'write', 'comment')
+   */
+  async hasResourcePermission(
+    userId: string | null,
+    resourceType: string,
+    resourceId: string,
+    action: string,
+  ): Promise<boolean> {
+    // 1. ResourcePermission 규칙 조회
+    const rule = await this.prisma.resourcePermission.findUnique({
+      where: {
+        resourceType_resourceId_action: {
+          resourceType,
+          resourceId,
+          action,
+        },
+      },
+      include: {
+        allowedGroups: true,
+        deniedGroups: true,
+      },
+    });
+
+    // 2. 규칙 없으면 기본 거부
+    if (!rule) {
+      return false;
+    }
+
+    // 3. 비로그인 처리
+    if (!userId) {
+      return rule.allowAnonymous;
+    }
+
+    // 4. 유저의 그룹 목록 조회
+    const userGroupIds = await this.getUserGroupIds(userId);
+
+    // 5. 거부 그룹 체크 (우선)
+    const deniedGroupIds = rule.deniedGroups.map((g) => g.permissionGroupId);
+    if (userGroupIds.some((id) => deniedGroupIds.includes(id))) {
+      return false;
+    }
+
+    // 6. 허용 그룹이 비어있으면 로그인만 하면 허용
+    const allowedGroupIds = rule.allowedGroups.map((g) => g.permissionGroupId);
+    if (allowedGroupIds.length === 0) {
+      return true;
+    }
+
+    // 7. 허용 그룹 체크
+    return userGroupIds.some((id) => allowedGroupIds.includes(id));
+  }
+
+  /**
+   * 유저가 속한 그룹 ID 목록 조회
+   */
+  private async getUserGroupIds(userId: string): Promise<string[]> {
+    const userGroups = await this.prisma.userPermissionGroup.findMany({
+      where: { userId },
+      select: { permissionGroupId: true },
+    });
+
+    return userGroups.map((ug) => ug.permissionGroupId);
+  }
+
+  /**
    * 특정 유저의 캐시 무효화
    */
   invalidateCache(userId: string): void {
