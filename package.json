@@ -32,7 +32,7 @@
     "db:core:generate": "pnpm prisma generate --schema=apps/core/prisma/schema.prisma",
     "db:core:migrate": "npx prisma migrate dev --schema=apps/core/prisma/schema.prisma",
     "db:core:reset": "pnpm prisma migrate reset --schema=apps/core/prisma/schema.prisma",
-    "db:core:seed": "ts-node --transpile-only apps/core/prisma/seed/seed.ts",
+    "db:core:seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts",
     "---------------------------Security---------------------------": "",
     "audit:json": "pnpm audit --json --no-optional",
     "---------------------------OTHERs---------------------------": "",
@@ -108,6 +108,9 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0"
+  },
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [
