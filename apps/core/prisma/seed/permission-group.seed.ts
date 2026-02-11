@@ -30,7 +30,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       // 유저 관리 (삭제 제외)
       PERMISSIONS.USER.READ,
       PERMISSIONS.USER.UPDATE_ALL,
-      PERMISSIONS.USER.BAN,
+      PERMISSIONS.USER.SUSPEND,
       // 운영
       PERMISSIONS.EMAIL.ALL,
       PERMISSIONS.ANALYTICS.ALL,
@@ -59,7 +59,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.BOARD.READ,
       // 유저
       PERMISSIONS.USER.READ,
-      PERMISSIONS.USER.BAN,
+      PERMISSIONS.USER.SUSPEND,
       // 파일
       PERMISSIONS.UPLOAD.READ,
       PERMISSIONS.UPLOAD.DELETE,

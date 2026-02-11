@@ -50,7 +50,7 @@ export const PERMISSIONS = {
     UPDATE_ALL: 'user:update:all',
     DELETE_OWN: 'user:delete:own',
     DELETE_ALL: 'user:delete:all',
-    BAN: 'user:ban',
+    SUSPEND: 'user:suspend',
     ALL: 'user:*',
   },
 
@@ -145,7 +145,7 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: PERMISSIONS.USER.UPDATE_ALL, label: '모든 사용자 정보 수정' },
   { value: PERMISSIONS.USER.DELETE_OWN, label: '본인 계정 삭제' },
   { value: PERMISSIONS.USER.DELETE_ALL, label: '모든 사용자 계정 삭제' },
-  { value: PERMISSIONS.USER.BAN, label: '사용자 차단' },
+  { value: PERMISSIONS.USER.SUSPEND, label: '사용자 정지' },
   { value: PERMISSIONS.USER.ALL, label: '사용자 전체 권한' },
 
   // Admin
