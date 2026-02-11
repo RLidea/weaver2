@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { PERMISSIONS } from '@app/common/constants/permissions.const';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { logSeedResult } from './seed-logger';
 
 interface PermissionGroupSeed {
