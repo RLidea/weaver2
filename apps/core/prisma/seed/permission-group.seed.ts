@@ -35,6 +35,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.EMAIL.ALL,
       PERMISSIONS.ANALYTICS.ALL,
       PERMISSIONS.TERMS.ALL,
+      PERMISSIONS.PERMISSION_GROUP.ALL,
       PERMISSIONS.UPLOAD.ALL,
     ],
   },

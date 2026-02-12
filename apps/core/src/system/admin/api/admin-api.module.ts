@@ -12,6 +12,8 @@ import { AdminSecurityApiController } from './controllers/admin-security.api.con
 import { AdminSecurityApiService } from './services/admin-security.api.service';
 import { AdminSystemSettingsApiController } from './controllers/admin-system-settings.api.controller';
 import { AdminSystemSettingsApiService } from './services/admin-system-settings.api.service';
+import { AdminPermissionApiController } from './controllers/admin-permission.api.controller';
+import { AdminPermissionApiService } from './services/admin-permission.api.service';
 import { BoardModule } from '../../../features/board/board.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
 import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
@@ -25,6 +27,7 @@ import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.mod
     AdminAnalyticsApiController,
     AdminSecurityApiController,
     AdminSystemSettingsApiController,
+    AdminPermissionApiController,
   ],
   providers: [
     AdminDashboardApiService,
@@ -33,6 +36,7 @@ import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.mod
     AdminAnalyticsApiService,
     AdminSecurityApiService,
     AdminSystemSettingsApiService,
+    AdminPermissionApiService,
   ],
 })
 export class AdminApiModule {}

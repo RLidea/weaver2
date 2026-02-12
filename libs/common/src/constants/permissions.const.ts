@@ -85,6 +85,16 @@ export const PERMISSIONS = {
     ALL: 'terms:*',
   },
 
+  /** 권한 그룹 */
+  PERMISSION_GROUP: {
+    READ: 'permission-group:read',
+    CREATE: 'permission-group:create',
+    UPDATE: 'permission-group:update',
+    DELETE: 'permission-group:delete',
+    ASSIGN_USER: 'permission-group:assign-user',
+    ALL: 'permission-group:*',
+  },
+
   /** 파일 업로드 */
   UPLOAD: {
     CREATE: 'upload:create',
@@ -107,6 +117,7 @@ export type Permission =
   | (typeof PERMISSIONS.EMAIL)[keyof typeof PERMISSIONS.EMAIL]
   | (typeof PERMISSIONS.ANALYTICS)[keyof typeof PERMISSIONS.ANALYTICS]
   | (typeof PERMISSIONS.TERMS)[keyof typeof PERMISSIONS.TERMS]
+  | (typeof PERMISSIONS.PERMISSION_GROUP)[keyof typeof PERMISSIONS.PERMISSION_GROUP]
   | (typeof PERMISSIONS.UPLOAD)[keyof typeof PERMISSIONS.UPLOAD]
   | typeof PERMISSIONS.SUPER;
 
@@ -170,6 +181,17 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: PERMISSIONS.TERMS.READ, label: '약관 조회' },
   { value: PERMISSIONS.TERMS.MANAGE, label: '약관 관리' },
   { value: PERMISSIONS.TERMS.ALL, label: '약관 전체 권한' },
+
+  // Permission Group
+  { value: PERMISSIONS.PERMISSION_GROUP.READ, label: '권한 그룹 조회' },
+  { value: PERMISSIONS.PERMISSION_GROUP.CREATE, label: '권한 그룹 생성' },
+  { value: PERMISSIONS.PERMISSION_GROUP.UPDATE, label: '권한 그룹 수정' },
+  { value: PERMISSIONS.PERMISSION_GROUP.DELETE, label: '권한 그룹 삭제' },
+  {
+    value: PERMISSIONS.PERMISSION_GROUP.ASSIGN_USER,
+    label: '사용자 그룹 할당',
+  },
+  { value: PERMISSIONS.PERMISSION_GROUP.ALL, label: '권한 그룹 전체 권한' },
 
   // Upload
   { value: PERMISSIONS.UPLOAD.CREATE, label: '파일 업로드' },
