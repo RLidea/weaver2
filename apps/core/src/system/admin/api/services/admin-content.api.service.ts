@@ -5,8 +5,7 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 import { BoardService } from '../../../../features/board/services/board.service';
 import { PostService } from '../../../../features/board/services/post.service';
 import { CommentService } from '../../../../features/board/services/comment.service';
-import { BoardPermissionService } from '../../../../features/board/services/board-permission.service';
-import { Prisma, ActionType, PostStatus, Role } from '@prisma/client';
+import { Prisma, PostStatus } from '@prisma/client';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 
 interface PostsFilterOptions {
@@ -29,7 +28,6 @@ export class AdminContentApiService {
     private readonly boardService: BoardService,
     private readonly postService: PostService,
     private readonly commentService: CommentService,
-    private readonly boardPermissionService: BoardPermissionService,
   ) {}
 
   // ============ Board Management ============
@@ -41,7 +39,6 @@ export class AdminContentApiService {
             posts: true,
           },
         },
-        permissions: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -90,33 +87,62 @@ export class AdminContentApiService {
   }
 
   async getBoardPermissions(boardId: string) {
-    return this.prisma.boardPermission.findMany({
-      where: { boardId },
+    const resourcePermissions = await this.prisma.resourcePermission.findMany({
+      where: { resourceType: 'board', resourceId: boardId },
+      include: {
+        allowedGroups: {
+          include: { permissionGroup: { select: { id: true, name: true } } },
+        },
+      },
       orderBy: { action: 'asc' },
     });
+
+    return resourcePermissions.map((rp) => ({
+      id: rp.id,
+      action: rp.action,
+      allowAnonymous: rp.allowAnonymous,
+      allowedGroupNames: rp.allowedGroups.map((ag) => ag.permissionGroup.name),
+    }));
   }
 
   async updateBoardPermissions(
     boardId: string,
     permissions: BoardPermissionDto[],
   ) {
-    // 기존 권한 삭제
-    await this.prisma.boardPermission.deleteMany({
-      where: { boardId },
+    // 기존 ResourcePermission 삭제 (cascade로 allowedGroups도 함께 삭제)
+    await this.prisma.resourcePermission.deleteMany({
+      where: { resourceType: 'board', resourceId: boardId },
     });
 
-    // 새 권한 생성
-    const permissionData = permissions.map((permission) => ({
-      boardId,
-      action: permission.action as ActionType,
-      allowAnonymous: permission.allowAnonymous || false,
-      allowedRoles: (permission.allowedRoles || []).map((role) => role as Role),
-      allowedUserIds: permission.allowedUserIds || [],
-    }));
+    // 새 ResourcePermission 생성
+    for (const permission of permissions) {
+      const resourcePermission = await this.prisma.resourcePermission.create({
+        data: {
+          resourceType: 'board',
+          resourceId: boardId,
+          action: permission.action,
+          allowAnonymous: permission.allowAnonymous || false,
+        },
+      });
 
-    await this.prisma.boardPermission.createMany({
-      data: permissionData,
-    });
+      // allowedGroups 연결
+      const groupNames = permission.allowedGroupNames || [];
+      if (groupNames.length > 0) {
+        const groups = await this.prisma.permissionGroup.findMany({
+          where: { name: { in: groupNames } },
+          select: { id: true },
+        });
+
+        for (const group of groups) {
+          await this.prisma.resourcePermissionAllowedGroup.create({
+            data: {
+              resourcePermissionId: resourcePermission.id,
+              permissionGroupId: group.id,
+            },
+          });
+        }
+      }
+    }
 
     return this.getBoardPermissions(boardId);
   }

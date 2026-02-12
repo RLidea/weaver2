@@ -1,8 +1,74 @@
-import { PrismaClient, ActionType, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { logSeedResult } from './seed-logger';
 
+interface BoardResourcePermission {
+  boardId: string;
+  action: string;
+  allowAnonymous: boolean;
+  allowedGroupNames: string[];
+}
+
+/**
+ * ResourcePermission 기반 게시판 권한 시드 헬퍼
+ */
+async function seedResourcePermission(
+  prisma: PrismaClient,
+  perm: BoardResourcePermission,
+  boardName: string,
+) {
+  const existing = await prisma.resourcePermission.findUnique({
+    where: {
+      resourceType_resourceId_action: {
+        resourceType: 'board',
+        resourceId: perm.boardId,
+        action: perm.action,
+      },
+    },
+  });
+
+  if (existing) {
+    logSeedResult(
+      'ResourcePermission',
+      `${boardName} - ${perm.action}`,
+      'exists',
+    );
+    return;
+  }
+
+  const resourcePermission = await prisma.resourcePermission.create({
+    data: {
+      resourceType: 'board',
+      resourceId: perm.boardId,
+      action: perm.action,
+      allowAnonymous: perm.allowAnonymous,
+    },
+  });
+
+  // allowedGroups 연결
+  if (perm.allowedGroupNames.length > 0) {
+    const groups = await prisma.permissionGroup.findMany({
+      where: { name: { in: perm.allowedGroupNames } },
+      select: { id: true },
+    });
+
+    for (const group of groups) {
+      await prisma.resourcePermissionAllowedGroup.create({
+        data: {
+          resourcePermissionId: resourcePermission.id,
+          permissionGroupId: group.id,
+        },
+      });
+    }
+  }
+
+  logSeedResult(
+    'ResourcePermission',
+    `${boardName} - ${perm.action}`,
+    'created',
+  );
+}
+
 export async function seedBoardPermissions(prisma: PrismaClient) {
-  // Board 가져오기
   const noticeBoard = await prisma.board.findUnique({
     where: { name: 'Notice' },
   });
@@ -14,190 +80,141 @@ export async function seedBoardPermissions(prisma: PrismaClient) {
     return;
   }
 
-  // Notice 게시판 권한 (공지사항 - 읽기는 모두, 쓰기는 관리자만)
-  const noticePermissions = [
+  // Notice 게시판 (공지사항 - 읽기는 모두, 쓰기는 관리자만)
+  const noticePermissions: BoardResourcePermission[] = [
     {
       boardId: noticeBoard.id,
-      action: ActionType.READ,
+      action: 'read',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: noticeBoard.id,
-      action: ActionType.WRITE,
+      action: 'write',
       allowAnonymous: false,
-      allowedRoles: [Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Admin'],
     },
     {
       boardId: noticeBoard.id,
-      action: ActionType.EDIT_ALL,
+      action: 'edit_all',
       allowAnonymous: false,
-      allowedRoles: [Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Admin'],
     },
     {
       boardId: noticeBoard.id,
-      action: ActionType.DELETE_ALL,
+      action: 'delete_all',
       allowAnonymous: false,
-      allowedRoles: [Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Admin'],
     },
     {
       boardId: noticeBoard.id,
-      action: ActionType.COMMENT,
+      action: 'comment',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
   ];
 
-  // Free 게시판 권한 (자유게시판 - 모든 작업 허용)
-  const freePermissions = [
+  // Free 게시판 (자유게시판 - 모든 작업 허용)
+  const freePermissions: BoardResourcePermission[] = [
     {
       boardId: freeBoard.id,
-      action: ActionType.READ,
+      action: 'read',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.WRITE,
+      action: 'write',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.EDIT_OWN,
+      action: 'edit_own',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.DELETE_OWN,
+      action: 'delete_own',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.COMMENT,
+      action: 'comment',
       allowAnonymous: true,
-      allowedRoles: [],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.EDIT_ALL,
+      action: 'edit_all',
       allowAnonymous: false,
-      allowedRoles: [Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Moderator', 'Admin'],
     },
     {
       boardId: freeBoard.id,
-      action: ActionType.DELETE_ALL,
+      action: 'delete_all',
       allowAnonymous: false,
-      allowedRoles: [Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Admin'],
     },
   ];
 
-  // Q&A 게시판 권한 (회원만 이용 가능)
-  const qaPermissions = [
+  // Q&A 게시판 (회원만 이용 가능)
+  const qaPermissions: BoardResourcePermission[] = [
     {
       boardId: qaBoard.id,
-      action: ActionType.READ,
+      action: 'read',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.WRITE,
+      action: 'write',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.EDIT_OWN,
+      action: 'edit_own',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.DELETE_OWN,
+      action: 'delete_own',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.COMMENT,
+      action: 'comment',
       allowAnonymous: false,
-      allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: [],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.EDIT_ALL,
+      action: 'edit_all',
       allowAnonymous: false,
-      allowedRoles: [Role.MODERATOR, Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Moderator', 'Admin'],
     },
     {
       boardId: qaBoard.id,
-      action: ActionType.DELETE_ALL,
+      action: 'delete_all',
       allowAnonymous: false,
-      allowedRoles: [Role.ADMIN],
-      allowedUserIds: [],
+      allowedGroupNames: ['Admin'],
     },
   ];
 
-  // 모든 권한을 하나의 배열로 합치기
-  const allPermissions = [
-    ...noticePermissions,
-    ...freePermissions,
-    ...qaPermissions,
+  const seedMap: [BoardResourcePermission[], string][] = [
+    [noticePermissions, noticeBoard.name],
+    [freePermissions, freeBoard.name],
+    [qaPermissions, qaBoard.name],
   ];
 
-  // 권한 시드 실행
-  for (const permission of allPermissions) {
-    const existing = await prisma.boardPermission.findUnique({
-      where: {
-        boardId_action: {
-          boardId: permission.boardId,
-          action: permission.action,
-        },
-      },
-    });
-
-    if (existing) {
-      const boardName = [noticeBoard, freeBoard, qaBoard].find(
-        (b) => b.id === permission.boardId,
-      )?.name;
-      logSeedResult(
-        'BoardPermission',
-        `${boardName} - ${permission.action}`,
-        'exists',
-      );
-    } else {
-      await prisma.boardPermission.create({
-        data: permission,
-      });
-      const boardName = [noticeBoard, freeBoard, qaBoard].find(
-        (b) => b.id === permission.boardId,
-      )?.name;
-      logSeedResult(
-        'BoardPermission',
-        `${boardName} - ${permission.action}`,
-        'created',
-      );
+  for (const [permissions, boardName] of seedMap) {
+    for (const perm of permissions) {
+      await seedResourcePermission(prisma, perm, boardName);
     }
   }
 }

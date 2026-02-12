@@ -1,36 +1,38 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { ActionType, Role } from '@prisma/client';
+import { ActionType } from '@prisma/client';
 import { CommonAuthUserDto } from '@weaver2/common';
+import { PermissionService } from '../../permission/services/permission.service';
+
+/** ActionType enum → ResourcePermission action 문자열 매핑 */
+const ACTION_MAP: Record<ActionType, string> = {
+  READ: 'read',
+  WRITE: 'write',
+  EDIT_OWN: 'edit_own',
+  EDIT_ALL: 'edit_all',
+  DELETE_OWN: 'delete_own',
+  DELETE_ALL: 'delete_all',
+  COMMENT: 'comment',
+};
 
 @Injectable()
 export class BoardPermissionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionService: PermissionService,
+  ) {}
 
   async canPerformAction(
     boardId: string,
     action: ActionType,
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
-    const permission = await this.prisma.boardPermission.findUnique({
-      where: { boardId_action: { boardId, action } },
-    });
-
-    if (!permission) {
-      // 권한 설정이 없으면 기본적으로 거부
-      return false;
-    }
-
-    // 비로그인 사용자 체크
-    if (!user?.isLogin) {
-      return permission.allowAnonymous;
-    }
-
-    // 로그인 사용자 체크
-    return (
-      permission.allowAnonymous || // 익명 허용이면 당연히 로그인 사용자도 허용
-      permission.allowedRoles.includes(user.role as Role) ||
-      permission.allowedUserIds.includes(user.id)
+    const userId = user?.isLogin ? user.id : null;
+    return this.permissionService.hasResourcePermission(
+      userId,
+      'board',
+      boardId,
+      ACTION_MAP[action],
     );
   }
 
@@ -42,12 +44,10 @@ export class BoardPermissionService {
       return this.canPerformAction(item.boardId, ActionType.EDIT_OWN, user);
     }
 
-    // 본인 글인 경우
     if (item.authorId === user.id) {
       return this.canPerformAction(item.boardId, ActionType.EDIT_OWN, user);
     }
 
-    // 다른 사람 글인 경우
     return this.canPerformAction(item.boardId, ActionType.EDIT_ALL, user);
   }
 
@@ -59,12 +59,10 @@ export class BoardPermissionService {
       return this.canPerformAction(item.boardId, ActionType.DELETE_OWN, user);
     }
 
-    // 본인 글인 경우
     if (item.authorId === user.id) {
       return this.canPerformAction(item.boardId, ActionType.DELETE_OWN, user);
     }
 
-    // 다른 사람 글인 경우
     return this.canPerformAction(item.boardId, ActionType.DELETE_ALL, user);
   }
 
@@ -102,108 +100,119 @@ export class BoardPermissionService {
     }
   }
 
-  // 기본 권한 설정을 생성하는 유틸리티 메서드
+  /**
+   * ResourcePermission 기반 게시판 권한 생성 헬퍼
+   */
+  private async createBoardResourcePermission(
+    boardId: string,
+    action: string,
+    options: {
+      allowAnonymous?: boolean;
+      allowedGroupNames?: string[];
+    },
+  ): Promise<void> {
+    const { allowAnonymous = false, allowedGroupNames = [] } = options;
+
+    const resourcePermission = await this.prisma.resourcePermission.upsert({
+      where: {
+        resourceType_resourceId_action: {
+          resourceType: 'board',
+          resourceId: boardId,
+          action,
+        },
+      },
+      update: { allowAnonymous },
+      create: {
+        resourceType: 'board',
+        resourceId: boardId,
+        action,
+        allowAnonymous,
+      },
+    });
+
+    if (allowedGroupNames.length > 0) {
+      const groups = await this.prisma.permissionGroup.findMany({
+        where: { name: { in: allowedGroupNames } },
+        select: { id: true },
+      });
+
+      for (const group of groups) {
+        await this.prisma.resourcePermissionAllowedGroup.upsert({
+          where: {
+            resourcePermissionId_permissionGroupId: {
+              resourcePermissionId: resourcePermission.id,
+              permissionGroupId: group.id,
+            },
+          },
+          update: {},
+          create: {
+            resourcePermissionId: resourcePermission.id,
+            permissionGroupId: group.id,
+          },
+        });
+      }
+    }
+  }
+
+  /** 공개 게시판 기본 권한 설정 */
   async createDefaultPermissions(boardId: string): Promise<void> {
-    const defaultPermissions = [
-      // 공개 게시판 기본 설정
-      { boardId, action: ActionType.READ, allowAnonymous: true },
-      { boardId, action: ActionType.WRITE, allowAnonymous: true },
-      { boardId, action: ActionType.EDIT_OWN, allowAnonymous: true },
-      { boardId, action: ActionType.DELETE_OWN, allowAnonymous: true },
-      { boardId, action: ActionType.COMMENT, allowAnonymous: true },
-      {
-        boardId,
-        action: ActionType.EDIT_ALL,
-        allowedRoles: [Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.DELETE_ALL,
-        allowedRoles: [Role.ADMIN],
-      },
-    ];
-
-    await this.prisma.boardPermission.createMany({
-      data: defaultPermissions,
-      skipDuplicates: true,
+    // 익명 허용
+    await this.createBoardResourcePermission(boardId, 'read', {
+      allowAnonymous: true,
+    });
+    await this.createBoardResourcePermission(boardId, 'write', {
+      allowAnonymous: true,
+    });
+    await this.createBoardResourcePermission(boardId, 'edit_own', {
+      allowAnonymous: true,
+    });
+    await this.createBoardResourcePermission(boardId, 'delete_own', {
+      allowAnonymous: true,
+    });
+    await this.createBoardResourcePermission(boardId, 'comment', {
+      allowAnonymous: true,
+    });
+    // 관리 권한
+    await this.createBoardResourcePermission(boardId, 'edit_all', {
+      allowedGroupNames: ['Moderator', 'Admin'],
+    });
+    await this.createBoardResourcePermission(boardId, 'delete_all', {
+      allowedGroupNames: ['Admin'],
     });
   }
 
-  // 회원 전용 게시판 권한 설정
+  /** 회원 전용 게시판 권한 설정 */
   async createMemberOnlyPermissions(boardId: string): Promise<void> {
-    const memberPermissions = [
-      {
-        boardId,
-        action: ActionType.READ,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.WRITE,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.EDIT_OWN,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.DELETE_OWN,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.COMMENT,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.EDIT_ALL,
-        allowedRoles: [Role.MODERATOR, Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.DELETE_ALL,
-        allowedRoles: [Role.ADMIN],
-      },
-    ];
-
-    await this.prisma.boardPermission.createMany({
-      data: memberPermissions,
-      skipDuplicates: true,
+    // 로그인 사용자만 (allowedGroups 비어있으면 로그인만으로 허용)
+    await this.createBoardResourcePermission(boardId, 'read', {});
+    await this.createBoardResourcePermission(boardId, 'write', {});
+    await this.createBoardResourcePermission(boardId, 'edit_own', {});
+    await this.createBoardResourcePermission(boardId, 'delete_own', {});
+    await this.createBoardResourcePermission(boardId, 'comment', {});
+    // 관리 권한
+    await this.createBoardResourcePermission(boardId, 'edit_all', {
+      allowedGroupNames: ['Moderator', 'Admin'],
+    });
+    await this.createBoardResourcePermission(boardId, 'delete_all', {
+      allowedGroupNames: ['Admin'],
     });
   }
 
-  // 공지사항 게시판 권한 설정
+  /** 공지사항 게시판 권한 설정 */
   async createNoticePermissions(boardId: string): Promise<void> {
-    const noticePermissions = [
-      { boardId, action: ActionType.READ, allowAnonymous: true },
-      {
-        boardId,
-        action: ActionType.WRITE,
-        allowedRoles: [Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.EDIT_ALL,
-        allowedRoles: [Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.DELETE_ALL,
-        allowedRoles: [Role.ADMIN],
-      },
-      {
-        boardId,
-        action: ActionType.COMMENT,
-        allowedRoles: [Role.USER, Role.MODERATOR, Role.ADMIN],
-      },
-    ];
-
-    await this.prisma.boardPermission.createMany({
-      data: noticePermissions,
-      skipDuplicates: true,
+    await this.createBoardResourcePermission(boardId, 'read', {
+      allowAnonymous: true,
     });
+    await this.createBoardResourcePermission(boardId, 'write', {
+      allowedGroupNames: ['Admin'],
+    });
+    await this.createBoardResourcePermission(boardId, 'edit_all', {
+      allowedGroupNames: ['Admin'],
+    });
+    await this.createBoardResourcePermission(boardId, 'delete_all', {
+      allowedGroupNames: ['Admin'],
+    });
+    // 댓글은 로그인 사용자만
+    await this.createBoardResourcePermission(boardId, 'comment', {});
   }
 }

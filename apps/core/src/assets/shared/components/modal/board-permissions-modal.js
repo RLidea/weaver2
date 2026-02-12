@@ -67,45 +67,44 @@ class BoardPermissionsModal extends CommonModal {
     }
 
     generatePermissionsHTML(permissions) {
-        const actionTypes = ['read', 'WRITE', 'EDIT_OWN', 'EDIT_ALL', 'DELETE_OWN', 'DELETE_ALL', 'COMMENT'];
-        const roles = ['USER', 'MODERATOR', 'ADMIN'];
-        
+        const actionTypes = ['read', 'write', 'edit_own', 'edit_all', 'delete_own', 'delete_all', 'comment'];
+        const groupNames = ['User', 'Moderator', 'Admin'];
+
         let html = '<div class="permission-grid">';
-        
+
         actionTypes.forEach(action => {
             const permission = permissions.find(p => p.action === action) || {
                 action,
                 allowAnonymous: false,
-                allowedRoles: [],
-                allowedUserIds: []
+                allowedGroupNames: []
             };
-            
+
             html += `
                 <div class="permission-card">
-                    <div class="permission-header">${action.replace('_', ' ')}</div>
+                    <div class="permission-header">${action.replace(/_/g, ' ').toUpperCase()}</div>
                     <div class="permission-options">
                         <div class="permission-option">
                             <input type="checkbox" id="anon-${action}" ${permission.allowAnonymous ? 'checked' : ''}>
                             <label for="anon-${action}">Allow Anonymous Users</label>
                         </div>
             `;
-            
-            roles.forEach(role => {
-                const checked = permission.allowedRoles.includes(role) ? 'checked' : '';
+
+            groupNames.forEach(group => {
+                const checked = (permission.allowedGroupNames || []).includes(group) ? 'checked' : '';
                 html += `
                     <div class="permission-option">
-                        <input type="checkbox" id="role-${action}-${role}" ${checked}>
-                        <label for="role-${action}-${role}">Allow ${role}</label>
+                        <input type="checkbox" id="group-${action}-${group}" ${checked}>
+                        <label for="group-${action}-${group}">Allow ${group}</label>
                     </div>
                 `;
             });
-            
+
             html += `
                     </div>
                 </div>
             `;
         });
-        
+
         html += '</div>';
         return html;
     }
@@ -157,20 +156,19 @@ class BoardPermissionsModal extends CommonModal {
 
     async savePermissions() {
         try {
-            const actionTypes = ['read', 'WRITE', 'EDIT_OWN', 'EDIT_ALL', 'DELETE_OWN', 'DELETE_ALL', 'COMMENT'];
-            const roles = ['USER', 'MODERATOR', 'ADMIN'];
-            
+            const actionTypes = ['read', 'write', 'edit_own', 'edit_all', 'delete_own', 'delete_all', 'comment'];
+            const groupNames = ['User', 'Moderator', 'Admin'];
+
             const permissions = actionTypes.map(action => {
                 const allowAnonymous = this.modal.querySelector(`#anon-${action}`).checked;
-                const allowedRoles = roles.filter(role => 
-                    this.modal.querySelector(`#role-${action}-${role}`).checked
+                const allowedGroupNames = groupNames.filter(group =>
+                    this.modal.querySelector(`#group-${action}-${group}`).checked
                 );
-                
+
                 return {
                     action,
                     allowAnonymous,
-                    allowedRoles,
-                    allowedUserIds: []
+                    allowedGroupNames,
                 };
             });
             

@@ -2,7 +2,11 @@ import { IsBoolean, IsArray, IsString, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BoardPermissionDto {
-  @ApiProperty({ description: 'Action type', example: 'READ' })
+  @ApiProperty({
+    description:
+      'Action type (e.g. read, write, edit_own, edit_all, delete_own, delete_all, comment)',
+    example: 'read',
+  })
   @IsString()
   action: string;
 
@@ -12,20 +16,14 @@ export class BoardPermissionDto {
   allowAnonymous?: boolean;
 
   @ApiProperty({
-    description: 'Allowed roles',
+    description: 'Allowed permission group names',
     type: [String],
-    example: ['USER', 'MODERATOR'],
+    example: ['Moderator', 'Admin'],
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  allowedRoles?: string[];
-
-  @ApiProperty({ description: 'Allowed user IDs', type: [String], example: [] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  allowedUserIds?: string[];
+  allowedGroupNames?: string[];
 }
 
 export class UpdateBoardPermissionsDto {

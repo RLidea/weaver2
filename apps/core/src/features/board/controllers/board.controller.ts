@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -27,6 +26,8 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { BoardPermissionService } from '../services/board-permission.service';
 import { ActionType } from '@prisma/client';
+import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @ApiTags('Board')
 @Controller({ path: 'boards', version: '1' })
@@ -100,39 +101,25 @@ export class BoardController {
   }
 
   @Patch(':id')
-  @Public()
   @ApiOperation({ summary: '게시판 수정 (관리자 전용)' })
   @ApiStandardResponses({ type: BoardDto })
+  @RequirePermission(PERMISSIONS.BOARD.UPDATE)
   async updateBoard(
     @Param('id') id: string,
     @Body() updateBoardDto: UpdateBoardDto,
-    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<BoardDto> {
-    // 관리자 권한 체크 (게시판 수정은 ADMIN만 가능)
-    if (!authUser?.isLogin || authUser.role !== 'ADMIN') {
-      throw new ForbiddenException('게시판 수정은 관리자만 가능합니다.');
-    }
-
     return this.boardService.updateBoard(id, updateBoardDto);
   }
 
   @Delete(':id')
-  @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a board (Admin only)' })
   @ApiStandardResponses({
     status: 204,
     description: 'Board deleted successfully',
   })
-  async deleteBoard(
-    @Param('id') id: string,
-    @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<void> {
-    // 관리자 권한 체크 (게시판 삭제는 ADMIN만 가능)
-    if (!authUser?.isLogin || authUser.role !== 'ADMIN') {
-      throw new ForbiddenException('게시판 삭제는 관리자만 가능합니다.');
-    }
-
+  @RequirePermission(PERMISSIONS.BOARD.DELETE)
+  async deleteBoard(@Param('id') id: string): Promise<void> {
     await this.boardService.deleteBoard(id);
   }
 }
