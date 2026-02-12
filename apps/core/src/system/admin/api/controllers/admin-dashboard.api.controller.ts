@@ -1,10 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminDashboardApiService } from '../services/admin-dashboard.api.service';
 
 @Controller({ path: 'admin/dashboard', version: '1' })
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.ADMIN.DASHBOARD)
 export class AdminDashboardApiController {
   constructor(
     private readonly adminDashboardApiService: AdminDashboardApiService,

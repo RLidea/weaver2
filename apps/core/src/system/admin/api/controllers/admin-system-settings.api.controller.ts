@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Post, Body } from '@nestjs/common';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminSystemSettingsApiService } from '../services/admin-system-settings.api.service';
 
 interface UpdateSystemSettingsDto {
@@ -14,7 +14,7 @@ interface UpdateSystemSettingsDto {
 }
 
 @Controller({ path: 'admin/system-settings', version: '1' })
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.ADMIN.SYSTEM_SETTINGS)
 export class AdminSystemSettingsApiController {
   constructor(
     private readonly adminSystemSettingsApiService: AdminSystemSettingsApiService,

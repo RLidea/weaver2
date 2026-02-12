@@ -1,14 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 
 @ApiTags('User Admin')
 @Controller({ path: 'admin/users', version: '1' })
 export class UserAdminController {
   @Get('admin-info')
-  @Roles(Role.ADMIN)
+  @RequirePermission(PERMISSIONS.USER.READ)
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: 'Get admin information (ADMIN only)' })
   @ApiStandardResponses()

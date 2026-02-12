@@ -13,7 +13,7 @@ import { ResetPasswordService } from './services/reset-password.service';
 import { PrismaModule } from '@weaver2/prisma';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
+import { PermissionGuard } from '../permission/guards/permission.guard';
 import { SignOutController } from './controllers/sign-out.controller';
 import { SignOutService } from './services/sign-out.service';
 import { TermsService } from '../terms/services/terms.service';
@@ -41,7 +41,7 @@ import { TermsService } from '../terms/services/terms.service';
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: PermissionGuard,
     },
   ],
   exports: [SignInService],

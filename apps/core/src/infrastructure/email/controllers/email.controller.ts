@@ -1,17 +1,7 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../features/auth/guards/roles.guard';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
+import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
-import { Role } from '@prisma/client';
 import { EmailBusinessService } from '../services/email-business.service';
 import { EmailLogService } from '../services/email-log.service';
 import { EmailTemplateService } from '../services/email-template.service';
@@ -26,7 +16,6 @@ import {
 import { FindEmailLogsOptions } from '../repositories/find-email-logs.query';
 
 @Controller({ path: 'email', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class EmailController {
   constructor(
     private readonly emailBusinessService: EmailBusinessService,
@@ -38,8 +27,7 @@ export class EmailController {
    * 일반 이메일 발송
    */
   @Post('send')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async sendEmail(
     @Body() dto: SendBusinessEmailDto,
     @AuthUser() user: CommonAuthUserDto,
@@ -54,8 +42,7 @@ export class EmailController {
    * 템플릿 기반 이메일 발송
    */
   @Post('send-template')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async sendTemplateEmail(
     @Body() dto: SendTemplateEmailDto,
     @AuthUser() user: CommonAuthUserDto,
@@ -70,8 +57,7 @@ export class EmailController {
    * 실패한 이메일 재발송
    */
   @Post('retry/:emailLogId')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async retryFailedEmail(@Param('emailLogId') emailLogId: string) {
     return this.emailBusinessService.retryFailedEmail(emailLogId);
   }
@@ -80,8 +66,7 @@ export class EmailController {
    * 이메일 로그 조회
    */
   @Get('logs')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.LOG_READ)
   async getEmailLogs(@Query() query: FindEmailLogsOptions) {
     return this.emailLogService.findLogs(query);
   }
@@ -101,8 +86,7 @@ export class EmailController {
    * 실패한 이메일 로그 조회
    */
   @Get('logs/failed')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.LOG_READ)
   async getFailedEmailLogs(@Query() query: FindEmailLogsOptions) {
     return this.emailLogService.findFailedEmailLogs(query);
   }
@@ -111,8 +95,7 @@ export class EmailController {
    * 템플릿 목록 조회
    */
   @Get('templates')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async getEmailTemplates(@Query('activeOnly') activeOnly?: boolean) {
     return this.emailTemplateService.findAllTemplates(activeOnly !== false);
   }
@@ -121,8 +104,7 @@ export class EmailController {
    * 템플릿 상세 조회
    */
   @Get('templates/:id')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async getEmailTemplate(@Param('id') id: string) {
     return this.emailTemplateService.findTemplateById(id);
   }
@@ -131,8 +113,7 @@ export class EmailController {
    * 템플릿 생성
    */
   @Post('templates')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async createEmailTemplate(@Body() dto: CreateEmailTemplateDto) {
     return this.emailTemplateService.createTemplate(dto);
   }
@@ -141,8 +122,7 @@ export class EmailController {
    * 템플릿 수정
    */
   @Post('templates/:id')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async updateEmailTemplate(
     @Param('id') id: string,
     @Body() dto: UpdateEmailTemplateDto,

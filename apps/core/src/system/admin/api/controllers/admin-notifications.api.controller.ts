@@ -1,13 +1,14 @@
 import { Controller, Get, Query, Param, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role, EmailStatus } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
+import { EmailStatus } from '@prisma/client';
 import { AdminNotificationsApiService } from '../services/admin-notifications.api.service';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 
 @ApiTags('Admin Notifications')
 @Controller({ path: 'admin/notifications', version: '1' })
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.EMAIL.LOG_READ)
 export class AdminNotificationsApiController {
   constructor(
     private readonly adminNotificationsApiService: AdminNotificationsApiService,

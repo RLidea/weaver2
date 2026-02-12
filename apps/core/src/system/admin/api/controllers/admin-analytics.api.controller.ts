@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import {
   AdminAnalyticsApiService,
   TimeRangeFilter,
@@ -12,7 +12,7 @@ import {
   path: 'admin/analytics',
   version: '1',
 })
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.ANALYTICS.READ)
 export class AdminAnalyticsApiController {
   constructor(
     private readonly adminAnalyticsApiService: AdminAnalyticsApiService,

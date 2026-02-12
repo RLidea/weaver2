@@ -1,11 +1,11 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @Controller({ path: 'admin' })
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.ADMIN.ACCESS)
 export class AdminDashboardViewController {
   @Get()
   toDashboard(@Res() res: Response) {

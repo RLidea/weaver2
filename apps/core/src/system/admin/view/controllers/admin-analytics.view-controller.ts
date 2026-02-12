@@ -1,9 +1,9 @@
 import { Controller, Get, Render } from '@nestjs/common';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @Controller('admin')
-@Roles(Role.ADMIN)
+@RequirePermission(PERMISSIONS.ADMIN.ACCESS)
 export class AdminAnalyticsViewController {
   @Get('analytics')
   @Render('admin/admin-analytics')

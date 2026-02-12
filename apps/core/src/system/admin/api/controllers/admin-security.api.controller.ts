@@ -1,13 +1,10 @@
-import { Controller, Get, Post, UseGuards, Query, Param } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../../features/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../features/auth/guards/roles.guard';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { Controller, Get, Post, Query, Param } from '@nestjs/common';
+import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminSecurityApiService } from '../services/admin-security.api.service';
 
 @Controller('api/admin/security')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@RequirePermission(PERMISSIONS.ADMIN.SECURITY)
 export class AdminSecurityApiController {
   constructor(private readonly adminSecurityService: AdminSecurityApiService) {}
 
