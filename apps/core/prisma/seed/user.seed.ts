@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, Role } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { logSeedResult } from './seed-logger';
 
@@ -7,13 +7,11 @@ const usersToSeed: Prisma.UserCreateInput[] = [
     id: 'cmbyuak4e00001rjcld47s4u9',
     username: 'admin',
     displayName: '관리자',
-    role: Role.ADMIN,
   },
   {
     id: 'cmbyuak4m00011rjce4dkz2m2',
     username: 'weaver',
     displayName: '개발자',
-    role: Role.DEVELOPER,
   },
 ];
 

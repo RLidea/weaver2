@@ -20,8 +20,10 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { CommentDto } from '../dto/comment.dto';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { BoardPermissionService } from '../services/board-permission.service';
-import { ActionType } from '@prisma/client';
+import {
+  BoardPermissionService,
+  BoardActionType,
+} from '../services/board-permission.service';
 import { PostService } from '../services/post.service';
 
 @ApiTags('Comment')
@@ -53,7 +55,7 @@ export class CommentController {
     // 댓글 작성 권한 체크
     await this.permissionService.requirePermission(
       post.boardId,
-      ActionType.COMMENT,
+      BoardActionType.COMMENT,
       authUser,
       '댓글 작성 권한이 없습니다.',
     );
@@ -80,7 +82,7 @@ export class CommentController {
       // 읽기 권한 체크 (댓글 조회는 게시글 읽기 권한과 동일)
       await this.permissionService.requirePermission(
         post.boardId,
-        ActionType.READ,
+        BoardActionType.READ,
         authUser,
         '댓글 조회 권한이 없습니다.',
       );
@@ -111,7 +113,7 @@ export class CommentController {
     // 읽기 권한 체크
     await this.permissionService.requirePermission(
       post.boardId,
-      ActionType.READ,
+      BoardActionType.READ,
       authUser,
       '댓글 조회 권한이 없습니다.',
     );

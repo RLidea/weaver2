@@ -12,7 +12,6 @@ model User {
   username         String                @unique
   displayName      String                @unique
   profileImageUrl  String?
-  role             Role                  @default(USER)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   deletedAt        DateTime?
@@ -113,23 +112,8 @@ model Board {
   description String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  permissions BoardPermission[]
   posts       Post[]
   categories  PostCategory[]
-}
-
-model BoardPermission {
-  id             String     @id @default(uuid())
-  boardId        String
-  action         ActionType
-  allowAnonymous Boolean    @default(false)
-  allowedRoles   Role[]
-  allowedUserIds String[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  board          Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
-
-  @@unique([boardId, action])
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
@@ -267,28 +251,11 @@ model SecurityAuditReport {
   lockfileHash       String?
 }
 
-enum Role {
-  USER
-  ADMIN
-  MODERATOR
-  DEVELOPER
-}
-
 enum PostStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
   DELETED
-}
-
-enum ActionType {
-  READ
-  WRITE
-  EDIT_OWN
-  EDIT_ALL
-  DELETE_OWN
-  DELETE_ALL
-  COMMENT
 }
 
 enum EmailStatus {

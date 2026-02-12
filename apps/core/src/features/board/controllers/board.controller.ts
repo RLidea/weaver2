@@ -24,8 +24,10 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
-import { BoardPermissionService } from '../services/board-permission.service';
-import { ActionType } from '@prisma/client';
+import {
+  BoardPermissionService,
+  BoardActionType,
+} from '../services/board-permission.service';
 import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
@@ -66,7 +68,7 @@ export class BoardController {
     // 읽기 권한 체크
     await this.permissionService.requirePermission(
       id,
-      ActionType.READ,
+      BoardActionType.READ,
       authUser,
       '게시판 조회 권한이 없습니다.',
     );
@@ -88,7 +90,7 @@ export class BoardController {
     // 읽기 권한 체크
     await this.permissionService.requirePermission(
       boardId,
-      ActionType.READ,
+      BoardActionType.READ,
       authUser,
       '게시판 읽기 권한이 없습니다.',
     );

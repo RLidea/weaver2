@@ -15,7 +15,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     return {
       id: user.id,
       username: user.username,
-      role: user.role,
       authId: user.authId,
       isLogin: true,
     };

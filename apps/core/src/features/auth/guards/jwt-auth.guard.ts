@@ -9,14 +9,12 @@ interface JwtPayload {
   sub: string;
   authId: string;
   username: string;
-  role: string;
 }
 
 interface UserContext {
   id?: string;
   authId?: string;
   username?: string;
-  role?: string;
   isLogin: boolean;
 }
 
@@ -54,7 +52,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             id: payload.sub,
             authId: payload.authId,
             username: payload.username,
-            role: payload.role,
             isLogin: true,
           };
           this.logger.debug(

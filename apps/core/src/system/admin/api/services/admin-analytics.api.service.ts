@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { Role } from '@prisma/client';
 import { PageViewLoggingService } from '../../../../infrastructure/analytics/page-view-logging.service';
 
 export interface TimeRangeFilter {
@@ -27,7 +26,7 @@ export interface AnalyticsOverview {
 
 export interface UserAnalytics {
   signupTrends: Array<{ date: string; count: number }>;
-  usersByRole: Array<{ role: Role; count: number }>;
+  usersByGroup: Array<{ group: string; count: number }>;
   userActivity: Array<{ date: string; activeUsers: number }>;
   retentionRate: {
     daily: number;
@@ -177,11 +176,11 @@ export class AdminAnalyticsApiService {
       to: now,
     };
 
-    const [signupTrends, usersByRole, userActivity] = await Promise.all([
+    const [signupTrends, usersByGroup, userActivity] = await Promise.all([
       // 가입 트렌드 (일별)
       this.getSignupTrends(timeFilter),
-      // 역할별 사용자 분포
-      this.getUsersByRole(),
+      // 그룹별 사용자 분포
+      this.getUsersByGroup(),
 
       // 사용자 활동 (일별 활성 사용자)
       this.getUserActivity(timeFilter),
@@ -192,7 +191,7 @@ export class AdminAnalyticsApiService {
 
     return {
       signupTrends,
-      usersByRole,
+      usersByGroup,
       userActivity,
       retentionRate,
     };
@@ -282,20 +281,25 @@ export class AdminAnalyticsApiService {
     return trends;
   }
 
-  private async getUsersByRole() {
-    const users = await this.prisma.user.groupBy({
-      by: ['role'],
+  private async getUsersByGroup() {
+    const groups = await this.prisma.permissionGroup.findMany({
       where: {
-        deletedAt: null,
+        users: { some: {} },
       },
-      _count: {
-        role: true,
+      select: {
+        name: true,
+        _count: {
+          select: { users: true },
+        },
+      },
+      orderBy: {
+        users: { _count: 'desc' },
       },
     });
 
-    return users.map((item) => ({
-      role: item.role,
-      count: item._count.role,
+    return groups.map((item) => ({
+      group: item.name,
+      count: item._count.users,
     }));
   }
 

@@ -24,8 +24,10 @@ import { CommentDto } from '../dto/comment.dto';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { BoardPermissionService } from '../services/board-permission.service';
-import { ActionType } from '@prisma/client';
+import {
+  BoardPermissionService,
+  BoardActionType,
+} from '../services/board-permission.service';
 
 @ApiTags('Post')
 @Controller({ path: 'posts', version: '1' })
@@ -49,7 +51,7 @@ export class PostController {
     // 쓰기 권한 체크
     await this.permissionService.requirePermission(
       createPostDto.boardId,
-      ActionType.WRITE,
+      BoardActionType.WRITE,
       authUser,
       '게시글 작성 권한이 없습니다.',
     );
@@ -76,7 +78,7 @@ export class PostController {
       // 읽기 권한 체크
       await this.permissionService.requirePermission(
         boardId,
-        ActionType.READ,
+        BoardActionType.READ,
         authUser,
         '게시글 조회 권한이 없습니다.',
       );
@@ -105,7 +107,7 @@ export class PostController {
     // 읽기 권한 체크
     await this.permissionService.requirePermission(
       post.boardId,
-      ActionType.READ,
+      BoardActionType.READ,
       authUser,
       '게시글 읽기 권한이 없습니다.',
     );
@@ -129,7 +131,7 @@ export class PostController {
     // 읽기 권한 체크 (댓글 조회는 게시글 읽기 권한과 동일)
     await this.permissionService.requirePermission(
       post.boardId,
-      ActionType.READ,
+      BoardActionType.READ,
       authUser,
       '댓글 조회 권한이 없습니다.',
     );

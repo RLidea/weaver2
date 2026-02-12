@@ -1,19 +1,17 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { ActionType } from '@prisma/client';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { PermissionService } from '../../permission/services/permission.service';
 
-/** ActionType enum → ResourcePermission action 문자열 매핑 */
-const ACTION_MAP: Record<ActionType, string> = {
-  READ: 'read',
-  WRITE: 'write',
-  EDIT_OWN: 'edit_own',
-  EDIT_ALL: 'edit_all',
-  DELETE_OWN: 'delete_own',
-  DELETE_ALL: 'delete_all',
-  COMMENT: 'comment',
-};
+export enum BoardActionType {
+  READ = 'read',
+  WRITE = 'write',
+  EDIT_OWN = 'edit_own',
+  EDIT_ALL = 'edit_all',
+  DELETE_OWN = 'delete_own',
+  DELETE_ALL = 'delete_all',
+  COMMENT = 'comment',
+}
 
 @Injectable()
 export class BoardPermissionService {
@@ -24,7 +22,7 @@ export class BoardPermissionService {
 
   async canPerformAction(
     boardId: string,
-    action: ActionType,
+    action: BoardActionType,
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
     const userId = user?.isLogin ? user.id : null;
@@ -32,7 +30,7 @@ export class BoardPermissionService {
       userId,
       'board',
       boardId,
-      ACTION_MAP[action],
+      action,
     );
   }
 
@@ -41,14 +39,22 @@ export class BoardPermissionService {
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
     if (!user?.isLogin) {
-      return this.canPerformAction(item.boardId, ActionType.EDIT_OWN, user);
+      return this.canPerformAction(
+        item.boardId,
+        BoardActionType.EDIT_OWN,
+        user,
+      );
     }
 
     if (item.authorId === user.id) {
-      return this.canPerformAction(item.boardId, ActionType.EDIT_OWN, user);
+      return this.canPerformAction(
+        item.boardId,
+        BoardActionType.EDIT_OWN,
+        user,
+      );
     }
 
-    return this.canPerformAction(item.boardId, ActionType.EDIT_ALL, user);
+    return this.canPerformAction(item.boardId, BoardActionType.EDIT_ALL, user);
   }
 
   async canDelete(
@@ -56,19 +62,31 @@ export class BoardPermissionService {
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
     if (!user?.isLogin) {
-      return this.canPerformAction(item.boardId, ActionType.DELETE_OWN, user);
+      return this.canPerformAction(
+        item.boardId,
+        BoardActionType.DELETE_OWN,
+        user,
+      );
     }
 
     if (item.authorId === user.id) {
-      return this.canPerformAction(item.boardId, ActionType.DELETE_OWN, user);
+      return this.canPerformAction(
+        item.boardId,
+        BoardActionType.DELETE_OWN,
+        user,
+      );
     }
 
-    return this.canPerformAction(item.boardId, ActionType.DELETE_ALL, user);
+    return this.canPerformAction(
+      item.boardId,
+      BoardActionType.DELETE_ALL,
+      user,
+    );
   }
 
   async requirePermission(
     boardId: string,
-    action: ActionType,
+    action: BoardActionType,
     user?: CommonAuthUserDto,
     errorMessage?: string,
   ): Promise<void> {

@@ -66,7 +66,6 @@ export class SignUpService {
       const createdUser = await SignUpCommand(this.prisma, {
         username,
         displayName,
-        role: 'USER',
         email,
         hashedPassword,
       });
