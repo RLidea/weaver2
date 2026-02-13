@@ -87,7 +87,9 @@ export class SignInController {
 
   @Public()
   @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token using refresh token from HttpOnly cookie' })
+  @ApiOperation({
+    summary: 'Refresh access token using refresh token from HttpOnly cookie',
+  })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
