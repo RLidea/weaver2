@@ -9,8 +9,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { SignInService } from '../services/sign-in.service';
 import { Throttle } from '@nestjs/throttler';
@@ -57,9 +56,7 @@ export class SignInController {
       },
     },
   })
-  @ApiOperationWithPublic({
-    summary: 'Sign in with email and password',
-  })
+  @ApiOperation({ summary: 'Sign in with email and password' })
   async emailLogin(
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() loginDto: { rememberMe?: boolean },
@@ -90,9 +87,7 @@ export class SignInController {
 
   @Public()
   @Post('refresh')
-  @ApiOperationWithPublic({
-    summary: 'Refresh access token using refresh token from HttpOnly cookie',
-  })
+  @ApiOperation({ summary: 'Refresh access token using refresh token from HttpOnly cookie' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

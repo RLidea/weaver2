@@ -2,7 +2,6 @@
 export * from './decorator/auth-user.decorator';
 export * from './decorator/callback-user.decorator';
 export * from './decorator/public.decorator';
-export * from './decorator/swagger/api-operation-with-public.decorator';
 export * from './decorator/swagger/api-standard-responses.decorator';
 
 // Export all global items

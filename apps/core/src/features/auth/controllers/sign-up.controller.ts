@@ -7,9 +7,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { ApiOperationWithPublic } from '@weaver2/common/decorator/swagger/api-operation-with-public.decorator';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import { SignUpService } from '../services/sign-up.service';
 import { Throttle } from '@nestjs/throttler';
@@ -49,14 +48,14 @@ export class SignUpController {
       },
     },
   })
-  @ApiOperationWithPublic({
-    summary: 'Sign up with email and password',
-  })
+  @ApiOperation({ summary: 'Sign up with email and password' })
   emailSignUp(@Body() dto: EmailSignUpDto) {
     return this.signUpService.emailSignUp(dto);
   }
 
+  @Public()
   @Get('verify')
+  @ApiOperation({ summary: 'Verify email address with token' })
   verifyEmail(@Query('token') token: string) {
     return this.signUpService.verifyEmail(token);
   }

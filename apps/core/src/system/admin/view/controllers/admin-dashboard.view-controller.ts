@@ -3,7 +3,9 @@ import { Response } from 'express';
 import { join } from 'path';
 import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @Controller({ path: 'admin' })
 @RequirePermission(PERMISSIONS.ADMIN.ACCESS)
 export class AdminDashboardViewController {

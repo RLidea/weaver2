@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
@@ -15,6 +16,7 @@ import {
 } from '../dto/email-template.dto';
 import { FindEmailLogsOptions } from '../repositories/find-email-logs.query';
 
+@ApiTags('Email')
 @Controller({ path: 'email', version: '1' })
 export class EmailController {
   constructor(
@@ -27,6 +29,7 @@ export class EmailController {
    * 일반 이메일 발송
    */
   @Post('send')
+  @ApiOperation({ summary: 'Send an email' })
   @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async sendEmail(
     @Body() dto: SendBusinessEmailDto,
@@ -42,6 +45,7 @@ export class EmailController {
    * 템플릿 기반 이메일 발송
    */
   @Post('send-template')
+  @ApiOperation({ summary: 'Send a template-based email' })
   @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async sendTemplateEmail(
     @Body() dto: SendTemplateEmailDto,
@@ -57,6 +61,7 @@ export class EmailController {
    * 실패한 이메일 재발송
    */
   @Post('retry/:emailLogId')
+  @ApiOperation({ summary: 'Retry sending a failed email' })
   @RequirePermission(PERMISSIONS.EMAIL.SEND)
   async retryFailedEmail(@Param('emailLogId') emailLogId: string) {
     return this.emailBusinessService.retryFailedEmail(emailLogId);
@@ -66,6 +71,7 @@ export class EmailController {
    * 이메일 로그 조회
    */
   @Get('logs')
+  @ApiOperation({ summary: 'Get email logs' })
   @RequirePermission(PERMISSIONS.EMAIL.LOG_READ)
   async getEmailLogs(@Query() query: FindEmailLogsOptions) {
     return this.emailLogService.findLogs(query);
@@ -75,6 +81,7 @@ export class EmailController {
    * 내 이메일 로그 조회
    */
   @Get('logs/my')
+  @ApiOperation({ summary: 'Get my email logs' })
   async getMyEmailLogs(
     @Query() query: FindEmailLogsOptions,
     @AuthUser() user: CommonAuthUserDto,
@@ -86,6 +93,7 @@ export class EmailController {
    * 실패한 이메일 로그 조회
    */
   @Get('logs/failed')
+  @ApiOperation({ summary: 'Get failed email logs' })
   @RequirePermission(PERMISSIONS.EMAIL.LOG_READ)
   async getFailedEmailLogs(@Query() query: FindEmailLogsOptions) {
     return this.emailLogService.findFailedEmailLogs(query);
@@ -95,6 +103,7 @@ export class EmailController {
    * 템플릿 목록 조회
    */
   @Get('templates')
+  @ApiOperation({ summary: 'Get all email templates' })
   @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async getEmailTemplates(@Query('activeOnly') activeOnly?: boolean) {
     return this.emailTemplateService.findAllTemplates(activeOnly !== false);
@@ -104,6 +113,7 @@ export class EmailController {
    * 템플릿 상세 조회
    */
   @Get('templates/:id')
+  @ApiOperation({ summary: 'Get email template by ID' })
   @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async getEmailTemplate(@Param('id') id: string) {
     return this.emailTemplateService.findTemplateById(id);
@@ -113,6 +123,7 @@ export class EmailController {
    * 템플릿 생성
    */
   @Post('templates')
+  @ApiOperation({ summary: 'Create a new email template' })
   @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async createEmailTemplate(@Body() dto: CreateEmailTemplateDto) {
     return this.emailTemplateService.createTemplate(dto);
@@ -122,6 +133,7 @@ export class EmailController {
    * 템플릿 수정
    */
   @Post('templates/:id')
+  @ApiOperation({ summary: 'Update an email template' })
   @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async updateEmailTemplate(
     @Param('id') id: string,

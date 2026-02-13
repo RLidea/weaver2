@@ -1,10 +1,10 @@
 import { Controller, Get, Res } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { join } from 'path';
 
-@ApiTags('Health Dashboard')
+@ApiExcludeController()
 @Controller('health')
 @Public()
 export class HealthDashboardViewController {

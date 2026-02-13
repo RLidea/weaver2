@@ -587,7 +587,7 @@ function generateSystemStatusContent() {
 async function loadSystemStatusData() {
     try {
         await waitForApiClient();
-        const response = await window.ApiClient.get('/api/admin/security/system-status');
+        const response = await window.ApiClient.get('/v1/admin/security/system-status');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -860,7 +860,7 @@ async function runSecurityScan(event) {
 
         // Call the API to run fresh security scan
         await waitForApiClient();
-        const response = await window.ApiClient.post('/api/admin/security/run-scan');
+        const response = await window.ApiClient.post('/v1/admin/security/run-scan');
         
         if (!response.ok) {
             throw new Error(`Scan failed: ${response.status}`);
@@ -1060,7 +1060,7 @@ async function loadAuditHistory(offset = 0, forceRefresh = false) {
         }
         
         await waitForApiClient();
-        const response = await window.ApiClient.get('/api/admin/security/audit-history', {
+        const response = await window.ApiClient.get('/v1/admin/security/audit-history', {
             limit: 10,
             offset: offset
         });
@@ -1205,7 +1205,7 @@ async function loadAuditReport(reportId) {
         
         // Load report data
         await waitForApiClient();
-        const response = await window.ApiClient.get(`/api/admin/security/audit-report/${reportId}`);
+        const response = await window.ApiClient.get(`/v1/admin/security/audit-report/${reportId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

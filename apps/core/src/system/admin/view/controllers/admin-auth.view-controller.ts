@@ -6,7 +6,9 @@ import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { SignInService } from '../../../../features/auth/services/sign-in.service';
 import { ConfigService } from '@nestjs/config';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @Controller({ path: 'admin' })
 export class AdminAuthViewController {
   private readonly logger = new Logger(AdminAuthViewController.name);

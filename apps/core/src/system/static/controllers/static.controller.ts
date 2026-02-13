@@ -1,16 +1,14 @@
 import { Controller, Get, Res, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { join } from 'path';
 
-@ApiTags('Static')
+@ApiExcludeController()
 @Controller('static')
 @Public()
 export class StaticController {
   @Get('/shared/:type/:file')
-  @ApiOperation({ summary: 'Shared components and styles' })
-  @ApiResponse({ status: 200, description: 'Shared resources' })
   serveSharedFiles(
     @Param('type') type: string,
     @Param('file') file: string,
@@ -33,8 +31,6 @@ export class StaticController {
   }
 
   @Get('/shared/components/:component/:file')
-  @ApiOperation({ summary: 'Shared component files' })
-  @ApiResponse({ status: 200, description: 'Component files' })
   serveComponentFiles(
     @Param('component') component: string,
     @Param('file') file: string,
@@ -57,8 +53,6 @@ export class StaticController {
   }
 
   @Get('/admin/:type/:file')
-  @ApiOperation({ summary: 'Admin assets (CSS, JS)' })
-  @ApiResponse({ status: 200, description: 'Admin asset files' })
   serveAdminAssets(
     @Param('type') type: string,
     @Param('file') file: string,

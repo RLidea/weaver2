@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { SignOutService } from '../services/sign-out.service';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Auth')
 @Controller({
@@ -14,6 +14,7 @@ export class SignOutController {
   constructor(private readonly signOutService: SignOutService) {}
 
   @Post('sign-out')
+  @ApiOperation({ summary: 'Sign out and clear authentication cookies' })
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @AuthUser() authUser: CommonAuthUserDto,

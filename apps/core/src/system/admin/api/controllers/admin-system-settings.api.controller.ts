@@ -1,4 +1,5 @@
 import { Controller, Get, Put, Post, Body } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminSystemSettingsApiService } from '../services/admin-system-settings.api.service';
@@ -13,6 +14,7 @@ interface UpdateSystemSettingsDto {
   announcementType?: string;
 }
 
+@ApiTags('Admin System Settings')
 @Controller({ path: 'admin/system-settings', version: '1' })
 @RequirePermission(PERMISSIONS.ADMIN.SYSTEM_SETTINGS)
 export class AdminSystemSettingsApiController {
@@ -21,6 +23,7 @@ export class AdminSystemSettingsApiController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get all system settings' })
   async getSystemSettings() {
     try {
       console.log('AdminSystemSettingsApiController: GET request received');
@@ -40,11 +43,13 @@ export class AdminSystemSettingsApiController {
   }
 
   @Put()
+  @ApiOperation({ summary: 'Update system settings' })
   async updateSystemSettings(@Body() updateDto: UpdateSystemSettingsDto) {
     return this.adminSystemSettingsApiService.updateSystemSettings(updateDto);
   }
 
   @Post('reset')
+  @ApiOperation({ summary: 'Reset all system settings to defaults' })
   async resetToDefaults() {
     return this.adminSystemSettingsApiService.resetToDefaults();
   }
