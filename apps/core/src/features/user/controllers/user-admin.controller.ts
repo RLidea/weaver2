@@ -10,7 +10,7 @@ export class UserAdminController {
   @Get('admin-info')
   @RequirePermission(PERMISSIONS.USER.READ)
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: 'Get admin information (ADMIN only)' })
+  @ApiOperation({ summary: '관리자 정보 조회 (관리자 전용)' })
   @ApiStandardResponses()
   getAdminInfo() {
     return { message: 'Welcome, Admin!' };

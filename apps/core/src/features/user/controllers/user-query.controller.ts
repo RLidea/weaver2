@@ -29,7 +29,7 @@ export class UserQueryController {
   @Public()
   @Get(':username')
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: 'Find user by username' })
+  @ApiOperation({ summary: '사용자명으로 사용자 조회' })
   @ApiStandardResponses({ type: UserDto })
   async findUserByUsername(
     @Param('username') username: string,

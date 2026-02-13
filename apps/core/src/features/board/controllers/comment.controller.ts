@@ -39,7 +39,7 @@ export class CommentController {
   @Post()
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new comment' })
+  @ApiOperation({ summary: '댓글 생성' })
   @ApiStandardResponses({ type: CommentDto })
   async createComment(
     @Body() createCommentDto: CreateCommentDto,
@@ -151,7 +151,7 @@ export class CommentController {
   @Delete(':commentId')
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a comment' })
+  @ApiOperation({ summary: '댓글 삭제' })
   @ApiStandardResponses({
     status: 204,
     description: 'Comment deleted successfully',

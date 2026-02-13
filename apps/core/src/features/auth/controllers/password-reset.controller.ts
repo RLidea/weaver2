@@ -19,7 +19,7 @@ export class PasswordResetController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('request-reset')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request a password reset' })
+  @ApiOperation({ summary: '비밀번호 재설정 요청' })
   @ApiResponse({
     status: 200,
     description:
@@ -39,7 +39,7 @@ export class PasswordResetController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('reset')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password with a token' })
+  @ApiOperation({ summary: '토큰으로 비밀번호 재설정' })
   @ApiResponse({
     status: 200,
     description: 'Password has been successfully reset.',

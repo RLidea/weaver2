@@ -16,7 +16,7 @@ export class AdminNotificationsApiController {
 
   // ============ Email Logs ============
   @Get('email-logs')
-  @ApiOperation({ summary: 'Get email logs with filtering and pagination' })
+  @ApiOperation({ summary: '이메일 로그 조회 (필터링, 페이지네이션)' })
   async getEmailLogs(
     @Query() paginationDto: PaginationRequestDto,
     @Query('status') status?: EmailStatus,
@@ -36,26 +36,26 @@ export class AdminNotificationsApiController {
   }
 
   @Get('email-logs/:logId')
-  @ApiOperation({ summary: 'Get email log details' })
+  @ApiOperation({ summary: '이메일 로그 상세 조회' })
   async getEmailLogDetails(@Param('logId') logId: string) {
     return this.adminNotificationsApiService.getEmailLogDetails(logId);
   }
 
   @Delete('email-logs/:logId')
-  @ApiOperation({ summary: 'Delete email log (Admin only)' })
+  @ApiOperation({ summary: '이메일 로그 삭제 (관리자 전용)' })
   async deleteEmailLog(@Param('logId') logId: string) {
     return this.adminNotificationsApiService.deleteEmailLog(logId);
   }
 
   // ============ Statistics ============
   @Get('stats')
-  @ApiOperation({ summary: 'Get notification statistics' })
+  @ApiOperation({ summary: '알림 통계 조회' })
   async getNotificationStats() {
     return this.adminNotificationsApiService.getNotificationStats();
   }
 
   @Get('stats/email')
-  @ApiOperation({ summary: 'Get email statistics' })
+  @ApiOperation({ summary: '이메일 통계 조회' })
   async getEmailStats(@Query('from') from?: string, @Query('to') to?: string) {
     return this.adminNotificationsApiService.getEmailStats({
       from: from ? new Date(from) : undefined,

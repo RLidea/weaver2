@@ -99,7 +99,7 @@ export class UserProfileController {
 
   @Post('profile-image')
   @ApiBearerAuth('ACCESS-TOKEN')
-  @ApiOperation({ summary: 'Upload my profile image' })
+  @ApiOperation({ summary: '프로필 이미지 업로드' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

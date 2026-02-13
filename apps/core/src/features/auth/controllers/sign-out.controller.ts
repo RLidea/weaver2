@@ -14,7 +14,7 @@ export class SignOutController {
   constructor(private readonly signOutService: SignOutService) {}
 
   @Post('sign-out')
-  @ApiOperation({ summary: 'Sign out and clear authentication cookies' })
+  @ApiOperation({ summary: '로그아웃 및 인증 쿠키 삭제' })
   async signOut(
     @Res({ passthrough: true }) res: Response,
     @AuthUser() authUser: CommonAuthUserDto,

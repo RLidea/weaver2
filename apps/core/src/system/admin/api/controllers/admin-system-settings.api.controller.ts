@@ -23,7 +23,7 @@ export class AdminSystemSettingsApiController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all system settings' })
+  @ApiOperation({ summary: '시스템 설정 전체 조회' })
   async getSystemSettings() {
     try {
       console.log('AdminSystemSettingsApiController: GET request received');
@@ -43,13 +43,13 @@ export class AdminSystemSettingsApiController {
   }
 
   @Put()
-  @ApiOperation({ summary: 'Update system settings' })
+  @ApiOperation({ summary: '시스템 설정 수정' })
   async updateSystemSettings(@Body() updateDto: UpdateSystemSettingsDto) {
     return this.adminSystemSettingsApiService.updateSystemSettings(updateDto);
   }
 
   @Post('reset')
-  @ApiOperation({ summary: 'Reset all system settings to defaults' })
+  @ApiOperation({ summary: '시스템 설정 기본값으로 초기화' })
   async resetToDefaults() {
     return this.adminSystemSettingsApiService.resetToDefaults();
   }

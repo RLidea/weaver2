@@ -42,7 +42,7 @@ export class PostController {
   @Post()
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new post' })
+  @ApiOperation({ summary: '게시글 생성' })
   @ApiStandardResponses({ type: PostDto })
   async createPost(
     @AuthUser() authUser: CommonAuthUserDto,
@@ -162,7 +162,7 @@ export class PostController {
   @Delete(':postId')
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a post' })
+  @ApiOperation({ summary: '게시글 삭제' })
   @ApiStandardResponses({
     status: 204,
     description: 'Post deleted successfully',

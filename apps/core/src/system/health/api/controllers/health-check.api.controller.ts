@@ -23,7 +23,7 @@ export class HealthCheckApiController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get application health status' })
+  @ApiOperation({ summary: '애플리케이션 헬스 상태 조회' })
   @ApiResponse({ status: 200, description: 'Health check successful' })
   @ApiResponse({ status: 503, description: 'Service unavailable' })
   @HealthCheck()
@@ -41,7 +41,7 @@ export class HealthCheckApiController {
   }
 
   @Get('/ready')
-  @ApiOperation({ summary: 'Readiness probe for Kubernetes' })
+  @ApiOperation({ summary: 'Kubernetes Readiness 프로브' })
   @ApiResponse({ status: 200, description: 'Application is ready' })
   @ApiResponse({ status: 503, description: 'Application is not ready' })
   @HealthCheck()
@@ -52,7 +52,7 @@ export class HealthCheckApiController {
   }
 
   @Get('/live')
-  @ApiOperation({ summary: 'Liveness probe for Kubernetes' })
+  @ApiOperation({ summary: 'Kubernetes Liveness 프로브' })
   @ApiResponse({ status: 200, description: 'Application is alive' })
   @ApiResponse({ status: 503, description: 'Application is not alive' })
   @HealthCheck()

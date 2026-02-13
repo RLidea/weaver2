@@ -11,25 +11,25 @@ export class AdminSecurityApiController {
   constructor(private readonly adminSecurityService: AdminSecurityApiService) {}
 
   @Get('system-status')
-  @ApiOperation({ summary: 'Get system security status' })
+  @ApiOperation({ summary: '시스템 보안 상태 조회' })
   async getSystemStatus() {
     return this.adminSecurityService.getSystemStatus();
   }
 
   @Get('security-overview')
-  @ApiOperation({ summary: 'Get security overview with key metrics' })
+  @ApiOperation({ summary: '보안 개요 및 핵심 지표 조회' })
   async getSecurityOverview() {
     return this.adminSecurityService.getSecurityOverview();
   }
 
   @Post('run-scan')
-  @ApiOperation({ summary: 'Run a security scan' })
+  @ApiOperation({ summary: '보안 스캔 실행' })
   async runSecurityScan() {
     return this.adminSecurityService.runSecurityScan();
   }
 
   @Get('audit-history')
-  @ApiOperation({ summary: 'Get audit history with pagination' })
+  @ApiOperation({ summary: '감사 이력 조회 (페이지네이션)' })
   async getAuditHistory(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -40,7 +40,7 @@ export class AdminSecurityApiController {
   }
 
   @Get('audit-report/:id')
-  @ApiOperation({ summary: 'Get specific audit report by ID' })
+  @ApiOperation({ summary: '특정 감사 보고서 조회' })
   async getAuditReportById(@Param('id') id: string) {
     return this.adminSecurityService.getAuditReportById(id);
   }

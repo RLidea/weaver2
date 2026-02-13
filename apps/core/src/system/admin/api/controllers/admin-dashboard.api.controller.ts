@@ -13,7 +13,7 @@ export class AdminDashboardApiController {
   ) {}
 
   @Get('summary')
-  @ApiOperation({ summary: 'Get admin dashboard summary statistics' })
+  @ApiOperation({ summary: '관리자 대시보드 요약 통계 조회' })
   async getSummary() {
     return this.adminDashboardApiService.getSummary();
   }

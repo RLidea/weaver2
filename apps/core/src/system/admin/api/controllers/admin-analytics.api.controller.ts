@@ -19,7 +19,7 @@ export class AdminAnalyticsApiController {
   ) {}
 
   @Get('overview')
-  @ApiOperation({ summary: 'Get analytics overview (for dashboard)' })
+  @ApiOperation({ summary: '분석 개요 조회 (대시보드용)' })
   @ApiQuery({
     name: 'from',
     required: false,
@@ -45,7 +45,7 @@ export class AdminAnalyticsApiController {
   }
 
   @Get('users')
-  @ApiOperation({ summary: 'Get detailed user analytics' })
+  @ApiOperation({ summary: '사용자 분석 상세 조회' })
   @ApiQuery({
     name: 'from',
     required: false,
@@ -74,7 +74,7 @@ export class AdminAnalyticsApiController {
   }
 
   @Get('content')
-  @ApiOperation({ summary: 'Get detailed content analytics' })
+  @ApiOperation({ summary: '콘텐츠 분석 상세 조회' })
   @ApiQuery({
     name: 'from',
     required: false,
@@ -104,7 +104,7 @@ export class AdminAnalyticsApiController {
   }
 
   @Get('system')
-  @ApiOperation({ summary: 'Get system performance analytics' })
+  @ApiOperation({ summary: '시스템 성능 분석 조회' })
   getSystemAnalytics() {
     const data = this.adminAnalyticsApiService.getSystemAnalytics();
 
@@ -116,7 +116,7 @@ export class AdminAnalyticsApiController {
   }
 
   @Get('summary')
-  @ApiOperation({ summary: 'Get comprehensive analytics summary' })
+  @ApiOperation({ summary: '종합 분석 요약 조회' })
   @ApiQuery({
     name: 'from',
     required: false,

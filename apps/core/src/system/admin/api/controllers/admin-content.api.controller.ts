@@ -24,28 +24,28 @@ export class AdminContentApiController {
 
   // ============ Board Management ============
   @Get('boards')
-  @ApiOperation({ summary: 'Get all boards with statistics' })
+  @ApiOperation({ summary: '게시판 목록 조회 (통계 포함)' })
   @RequirePermission(PERMISSIONS.BOARD.READ)
   async getBoards() {
     return this.adminContentApiService.getBoardsWithStats();
   }
 
   @Get('boards/:boardId')
-  @ApiOperation({ summary: 'Get board details with permissions' })
+  @ApiOperation({ summary: '게시판 상세 조회 (권한 포함)' })
   @RequirePermission(PERMISSIONS.BOARD.READ)
   async getBoardDetails(@Param('boardId') boardId: string) {
     return this.adminContentApiService.getBoardDetails(boardId);
   }
 
   @Get('boards/:boardId/permissions')
-  @ApiOperation({ summary: 'Get board permissions' })
+  @ApiOperation({ summary: '게시판 권한 조회' })
   @RequirePermission(PERMISSIONS.BOARD.MANAGE)
   async getBoardPermissions(@Param('boardId') boardId: string) {
     return this.adminContentApiService.getBoardPermissions(boardId);
   }
 
   @Patch('boards/:boardId/permissions')
-  @ApiOperation({ summary: 'Update board permissions' })
+  @ApiOperation({ summary: '게시판 권한 수정' })
   @RequirePermission(PERMISSIONS.BOARD.MANAGE)
   async updateBoardPermissions(
     @Param('boardId') boardId: string,
@@ -58,7 +58,7 @@ export class AdminContentApiController {
   }
 
   @Delete('boards/:boardId')
-  @ApiOperation({ summary: 'Delete board (Admin only)' })
+  @ApiOperation({ summary: '게시판 삭제 (관리자 전용)' })
   @RequirePermission(PERMISSIONS.BOARD.DELETE)
   async deleteBoard(@Param('boardId') boardId: string) {
     return this.adminContentApiService.deleteBoard(boardId);
@@ -66,7 +66,7 @@ export class AdminContentApiController {
 
   // ============ Post Management ============
   @Get('posts')
-  @ApiOperation({ summary: 'Get posts with filtering and pagination' })
+  @ApiOperation({ summary: '게시글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.POST.READ_ALL)
   async getPosts(
     @Query() paginationDto: PaginationRequestDto,
@@ -83,14 +83,14 @@ export class AdminContentApiController {
   }
 
   @Get('posts/:postId')
-  @ApiOperation({ summary: 'Get post details' })
+  @ApiOperation({ summary: '게시글 상세 조회' })
   @RequirePermission(PERMISSIONS.POST.READ_ALL)
   async getPostDetails(@Param('postId') postId: string) {
     return this.adminContentApiService.getPostDetails(postId);
   }
 
   @Patch('posts/:postId/status')
-  @ApiOperation({ summary: 'Update post status (hide/show)' })
+  @ApiOperation({ summary: '게시글 상태 변경 (숨김/표시)' })
   @RequirePermission(PERMISSIONS.POST.UPDATE_ALL)
   async updatePostStatus(
     @Param('postId') postId: string,
@@ -100,7 +100,7 @@ export class AdminContentApiController {
   }
 
   @Delete('posts/:postId')
-  @ApiOperation({ summary: 'Delete post (Admin only)' })
+  @ApiOperation({ summary: '게시글 삭제 (관리자 전용)' })
   @RequirePermission(PERMISSIONS.POST.DELETE_ALL)
   async deletePost(@Param('postId') postId: string) {
     return this.adminContentApiService.deletePost(postId);
@@ -108,7 +108,7 @@ export class AdminContentApiController {
 
   // ============ Comment Management ============
   @Get('comments')
-  @ApiOperation({ summary: 'Get comments with filtering and pagination' })
+  @ApiOperation({ summary: '댓글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.COMMENT.READ)
   async getComments(
     @Query() paginationDto: PaginationRequestDto,
@@ -123,7 +123,7 @@ export class AdminContentApiController {
   }
 
   @Delete('comments/:commentId')
-  @ApiOperation({ summary: 'Delete comment (Admin only)' })
+  @ApiOperation({ summary: '댓글 삭제 (관리자 전용)' })
   @RequirePermission(PERMISSIONS.COMMENT.DELETE_ALL)
   async deleteComment(@Param('commentId') commentId: string) {
     return this.adminContentApiService.deleteComment(commentId);
@@ -131,14 +131,14 @@ export class AdminContentApiController {
 
   // ============ Statistics ============
   @Get('stats')
-  @ApiOperation({ summary: 'Get content statistics' })
+  @ApiOperation({ summary: '콘텐츠 통계 조회' })
   @RequirePermission(PERMISSIONS.ANALYTICS.READ)
   async getContentStats() {
     return this.adminContentApiService.getContentStats();
   }
 
   @Get('stats/boards/:boardId')
-  @ApiOperation({ summary: 'Get specific board statistics' })
+  @ApiOperation({ summary: '특정 게시판 통계 조회' })
   @RequirePermission(PERMISSIONS.ANALYTICS.READ)
   async getBoardStats(@Param('boardId') boardId: string) {
     return this.adminContentApiService.getBoardStats(boardId);

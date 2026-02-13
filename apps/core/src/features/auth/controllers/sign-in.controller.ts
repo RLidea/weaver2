@@ -56,7 +56,7 @@ export class SignInController {
       },
     },
   })
-  @ApiOperation({ summary: 'Sign in with email and password' })
+  @ApiOperation({ summary: '이메일/비밀번호 로그인' })
   async emailLogin(
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() loginDto: { rememberMe?: boolean },
@@ -88,7 +88,7 @@ export class SignInController {
   @Public()
   @Post('refresh')
   @ApiOperation({
-    summary: 'Refresh access token using refresh token from HttpOnly cookie',
+    summary: 'HttpOnly 쿠키의 리프레시 토큰으로 액세스 토큰 갱신',
   })
   async refresh(
     @Req() req: Request,

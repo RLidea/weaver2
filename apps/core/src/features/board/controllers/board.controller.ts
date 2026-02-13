@@ -43,7 +43,7 @@ export class BoardController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new board' })
+  @ApiOperation({ summary: '게시판 생성' })
   @ApiStandardResponses({ type: BoardDto })
   async createBoard(@Body() createBoardDto: CreateBoardDto): Promise<BoardDto> {
     return this.boardService.createBoard(createBoardDto);
@@ -115,7 +115,7 @@ export class BoardController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a board (Admin only)' })
+  @ApiOperation({ summary: '게시판 삭제 (관리자 전용)' })
   @ApiStandardResponses({
     status: 204,
     description: 'Board deleted successfully',

@@ -48,14 +48,14 @@ export class SignUpController {
       },
     },
   })
-  @ApiOperation({ summary: 'Sign up with email and password' })
+  @ApiOperation({ summary: '이메일/비밀번호 회원가입' })
   emailSignUp(@Body() dto: EmailSignUpDto) {
     return this.signUpService.emailSignUp(dto);
   }
 
   @Public()
   @Get('verify')
-  @ApiOperation({ summary: 'Verify email address with token' })
+  @ApiOperation({ summary: '이메일 인증 토큰 검증' })
   verifyEmail(@Query('token') token: string) {
     return this.signUpService.verifyEmail(token);
   }
