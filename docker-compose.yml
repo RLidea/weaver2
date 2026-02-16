@@ -1,0 +1,55 @@
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-weaver}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-weaver1234}
+      POSTGRES_DB: ${DB_NAME:-weaver2}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-weaver} -d ${DB_NAME:-weaver2}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================
+  # Weaver2 Application (Development)
+  # ============================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    restart: unless-stopped
+    command: >
+      sh -c "
+        pnpm db:migrate &&
+        pnpm db:seed &&
+        pnpm dev:core
+      "
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${DB_USER:-weaver}:${DB_PASSWORD:-weaver1234}@db:5432/${DB_NAME:-weaver2}
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  uploads:

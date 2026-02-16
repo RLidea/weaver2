@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+dist
+build
+coverage
+.nyc_output
+
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.sublime-workspace
+.project
+.classpath
+.settings
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# AI / Agent
+.claude
+.cursor
+.gemini
+.opencode
+.agents
+CLAUDE.md
+CLAUDE.md.backup
+
+# Documentation
+docs
+
+# Temp
+.temp
+.tmp
+
+# Docker
+Dockerfile
+docker-compose*.yml
