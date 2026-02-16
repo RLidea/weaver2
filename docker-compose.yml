@@ -28,12 +28,14 @@ services:
       context: .
       dockerfile: Dockerfile
       target: build
+      args:
+        APP_NAME: ${DOCKER_APP_TARGET:-core}
     restart: unless-stopped
     command: >
       sh -c "
         pnpm db:migrate &&
         pnpm db:seed &&
-        pnpm dev:core
+        pnpm dev:${DOCKER_APP_TARGET:-core}
       "
     environment:
       NODE_ENV: development

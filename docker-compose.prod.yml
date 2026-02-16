@@ -27,11 +27,13 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+      args:
+        APP_NAME: ${DOCKER_APP_TARGET:-core}
     restart: always
     command: >
       sh -c "
-        npx prisma migrate deploy --schema=apps/core/prisma/schema.prisma &&
-        node dist/apps/core/main
+        npx prisma migrate deploy --schema=apps/${DOCKER_APP_TARGET:-core}/prisma/schema.prisma &&
+        node dist/apps/${DOCKER_APP_TARGET:-core}/main
       "
     environment:
       NODE_ENV: production
