@@ -1,0 +1,284 @@
+---
+name: weaver-ui-patterns
+description: Weaver2 frontend UI patterns including glassmorphism design, common components (TabComponent, WeaverDataTable), and URL state management. Apply when building frontend views, components, or pages.
+license: UNLICENSED
+metadata:
+  author: Weaver2 Team
+  version: "1.0.0"
+  project: weaver2
+---
+
+# Weaver2 UI Patterns
+
+프로젝트 특화 프론트엔드 UI/UX 패턴 가이드
+
+## When to Apply
+
+이 규칙은 다음 상황에서 적용:
+- 새로운 페이지/뷰 작성
+- UI 컴포넌트 개발
+- 기존 UI 리팩토링
+- 디자인 시스템 일관성 검토
+
+---
+
+## 🔴 CRITICAL - 공통 컴포넌트 우선
+
+### TabComponent 사용
+
+**규칙:** 탭 UI는 반드시 `TabComponent` 사용
+
+```typescript
+// ✅ CORRECT
+import { TabComponent } from '@/components/common/TabComponent';
+
+function UserDashboard() {
+  return (
+    <TabComponent
+      tabs={[
+        { id: 'profile', label: '프로필', content: <ProfileTab /> },
+        { id: 'settings', label: '설정', content: <SettingsTab /> },
+      ]}
+    />
+  );
+}
+
+// ❌ WRONG - 커스텀 탭 구현
+function UserDashboard() {
+  const [activeTab, setActiveTab] = useState('profile');
+  return (
+    <div className="tabs">
+      <button onClick={() => setActiveTab('profile')}>프로필</button>
+      {/* 커스텀 구현 금지 */}
+    </div>
+  );
+}
+```
+
+### WeaverDataTable 사용
+
+**규칙:** 데이터 테이블은 `WeaverDataTable` 사용
+
+```typescript
+// ✅ CORRECT
+import { WeaverDataTable } from '@/components/common/WeaverDataTable';
+
+function UserList() {
+  return (
+    <WeaverDataTable
+      columns={columns}
+      data={users}
+      pagination={true}
+      searchable={true}
+    />
+  );
+}
+
+// ❌ WRONG - 일반 table 태그 사용
+function UserList() {
+  return (
+    <table>
+      <thead>...</thead>
+      <tbody>...</tbody>
+    </table>
+  );
+}
+```
+
+**이유:**
+- 일관된 스타일링
+- 내장된 페이지네이션/검색
+- 글래스모피즘 디자인 자동 적용
+- 반응형 지원
+
+---
+
+## 🔴 CRITICAL - 글래스모피즘 디자인
+
+### 디자인 시스템
+
+**규칙:** 모든 카드/패널은 글래스모피즘 스타일 유지
+
+**CSS 패턴:**
+```css
+/* ✅ CORRECT - 글래스모피즘 */
+.card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* ❌ WRONG - 일반 배경 */
+.card {
+  background: #ffffff;
+  border: 1px solid #ddd;
+}
+```
+
+**Tailwind 클래스 (권장):**
+```tsx
+// ✅ CORRECT
+<div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-glass">
+  {content}
+</div>
+
+// ❌ WRONG
+<div className="bg-white border border-gray-300 rounded">
+  {content}
+</div>
+```
+
+### 컬러 팔레트
+
+**규칙:**
+- Primary: Gradient (blue → purple)
+- Background: Dark with transparency
+- Text: White/Light gray
+
+```css
+/* 프라이머리 그라데이션 */
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+/* 다크 배경 */
+background: rgba(0, 0, 0, 0.05);
+
+/* 텍스트 */
+color: rgba(255, 255, 255, 0.9);
+```
+
+---
+
+## 🟡 HIGH - URL 상태 관리
+
+### 쿼리 파라미터 활용
+
+**규칙:** 필터/검색/페이지네이션 상태는 URL에 저장
+
+```typescript
+// ✅ CORRECT
+import { useSearchParams } from 'next/navigation';
+
+function UserList() {
+  const searchParams = useSearchParams();
+  const page = searchParams.get('page') || '1';
+  const search = searchParams.get('search') || '';
+
+  // URL: /users?page=2&search=john
+}
+
+// ❌ WRONG - 로컬 state만 사용
+function UserList() {
+  const [page, setPage] = useState(1);
+  // 새로고침 시 상태 손실
+}
+```
+
+**이유:**
+- 북마크 가능
+- 뒤로가기 지원
+- 공유 가능한 URL
+
+---
+
+## 🟡 HIGH - 반응형 디자인
+
+### 브레이크포인트
+
+```tsx
+// ✅ CORRECT - Tailwind 반응형
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {items.map(item => <Card key={item.id} />)}
+</div>
+
+// 모바일: 1열
+// 태블릿: 2열
+// 데스크탑: 3열
+```
+
+---
+
+## 🟢 MEDIUM - 애니메이션
+
+### 부드러운 전환
+
+```css
+/* ✅ CORRECT */
+.card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+```
+
+---
+
+## 🟢 MEDIUM - 접근성
+
+### 시맨틱 HTML
+
+```tsx
+// ✅ CORRECT
+<nav>
+  <ul>
+    <li><a href="/dashboard">대시보드</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>사용자 관리</h1>
+  <section>...</section>
+</main>
+
+// ❌ WRONG
+<div>
+  <div onClick={...}>대시보드</div>
+</div>
+```
+
+### ARIA 속성
+
+```tsx
+// ✅ CORRECT
+<button
+  aria-label="사용자 삭제"
+  aria-pressed={isPressed}
+>
+  <TrashIcon />
+</button>
+```
+
+---
+
+## 체크리스트
+
+UI 작업 전 확인:
+- [ ] TabComponent/WeaverDataTable 사용 가능한지 확인
+- [ ] 글래스모피즘 스타일 적용
+- [ ] URL 상태 관리 (필터/검색)
+- [ ] 반응형 디자인 (Tailwind breakpoints)
+- [ ] 부드러운 애니메이션
+- [ ] 시맨틱 HTML & ARIA
+
+---
+
+## 공통 컴포넌트 위치
+
+```
+apps/core/src/system/static/views/components/
+  ├── TabComponent.tsx
+  ├── WeaverDataTable.tsx
+  └── (기타 공통 컴포넌트)
+```
+
+새로운 공통 컴포넌트가 필요한 경우, 먼저 기존 컴포넌트를 확인하세요.
+
+---
+
+## 참고
+
+이 규칙은 `/CLAUDE.md`의 UI 규칙을 상세화한 것입니다.
