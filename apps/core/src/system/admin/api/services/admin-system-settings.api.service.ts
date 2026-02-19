@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 
 interface UpdateSystemSettingsDto {
@@ -13,77 +13,44 @@ interface UpdateSystemSettingsDto {
 
 @Injectable()
 export class AdminSystemSettingsApiService {
+  private readonly logger = new Logger(AdminSystemSettingsApiService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getSystemSettings() {
     try {
-      console.log('AdminSystemSettingsApiService: Getting system settings');
       let settings = await this.prisma.systemSetting.findFirst();
 
       if (!settings) {
-        console.log(
-          'AdminSystemSettingsApiService: No settings found, creating defaults',
-        );
+        this.logger.debug('No settings found, creating defaults');
         settings = await this.createDefaultSettings();
       }
 
-      console.log(
-        'AdminSystemSettingsApiService: Returning settings:',
-        settings,
-      );
       return settings;
     } catch (error) {
-      console.error(
-        'AdminSystemSettingsApiService: Error getting system settings:',
-        error,
-      );
+      this.logger.error('Error getting system settings', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
 
   async updateSystemSettings(data: UpdateSystemSettingsDto) {
     try {
-      console.log(
-        'AdminSystemSettingsApiService: Updating system settings with data:',
-        data,
-      );
-
       const existingSettings = await this.prisma.systemSetting.findFirst();
-      console.log(
-        'AdminSystemSettingsApiService: Existing settings:',
-        existingSettings,
-      );
 
       if (existingSettings) {
-        console.log(
-          'AdminSystemSettingsApiService: Updating existing settings',
-        );
-
-        const result = await this.prisma.systemSetting.update({
+        return await this.prisma.systemSetting.update({
           where: { id: existingSettings.id },
           data: {
             ...data,
             updatedAt: new Date(),
           },
         });
-
-        console.log(
-          'AdminSystemSettingsApiService: Settings updated successfully:',
-          result,
-        );
-
-        return result;
       } else {
-        console.log(
-          'AdminSystemSettingsApiService: No existing settings, creating new with data',
-        );
+        this.logger.debug('No existing settings, creating new with data');
         return await this.createDefaultSettings(data);
       }
     } catch (error) {
-      console.error(
-        'AdminSystemSettingsApiService: Error updating system settings:',
-        error,
-      );
+      this.logger.error('Error updating system settings', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
@@ -92,11 +59,6 @@ export class AdminSystemSettingsApiService {
     overrides: Partial<UpdateSystemSettingsDto> = {},
   ) {
     try {
-      console.log(
-        'AdminSystemSettingsApiService: Creating default settings with overrides:',
-        overrides,
-      );
-
       const defaultData = {
         siteName: overrides.siteName || 'Weaver2',
         siteDescription: overrides.siteDescription || 'Community Platform',
@@ -107,46 +69,19 @@ export class AdminSystemSettingsApiService {
         announcementType: overrides.announcementType || 'info',
       };
 
-      console.log(
-        'AdminSystemSettingsApiService: Creating settings with data:',
-        defaultData,
-      );
-
-      const result = await this.prisma.systemSetting.create({
-        data: defaultData,
-      });
-
-      console.log(
-        'AdminSystemSettingsApiService: Default settings created successfully:',
-        result,
-      );
-
-      return result;
+      return await this.prisma.systemSetting.create({ data: defaultData });
     } catch (error) {
-      console.error(
-        'AdminSystemSettingsApiService: Error creating default settings:',
-        error,
-      );
+      this.logger.error('Error creating default settings', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
 
   async resetToDefaults() {
     try {
-      console.log('AdminSystemSettingsApiService: Resetting to defaults');
-
       const existingSettings = await this.prisma.systemSetting.findFirst();
-      console.log(
-        'AdminSystemSettingsApiService: Existing settings for reset:',
-        existingSettings,
-      );
 
       if (existingSettings) {
-        console.log(
-          'AdminSystemSettingsApiService: Updating existing settings to defaults',
-        );
-
-        const result = await this.prisma.systemSetting.update({
+        return await this.prisma.systemSetting.update({
           where: { id: existingSettings.id },
           data: {
             siteName: 'Weaver2',
@@ -159,24 +94,12 @@ export class AdminSystemSettingsApiService {
             updatedAt: new Date(),
           },
         });
-
-        console.log(
-          'AdminSystemSettingsApiService: Settings reset successfully:',
-          result,
-        );
-
-        return result;
       } else {
-        console.log(
-          'AdminSystemSettingsApiService: No existing settings, creating defaults',
-        );
+        this.logger.debug('No existing settings, creating defaults');
         return await this.createDefaultSettings();
       }
     } catch (error) {
-      console.error(
-        'AdminSystemSettingsApiService: Error resetting to defaults:',
-        error,
-      );
+      this.logger.error('Error resetting to defaults', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }
