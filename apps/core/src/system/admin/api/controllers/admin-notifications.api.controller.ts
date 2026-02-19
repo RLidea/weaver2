@@ -4,7 +4,7 @@ import { RequirePermission } from '../../../../features/permission/decorators/re
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { EmailStatus } from '@prisma/client';
 import { AdminNotificationsApiService } from '../services/admin-notifications.api.service';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { OffsetRequestDto } from '@weaver2/pagination';
 
 @ApiTags('Admin Notifications')
 @Controller({ path: 'admin/notifications', version: '1' })
@@ -18,7 +18,7 @@ export class AdminNotificationsApiController {
   @Get('email-logs')
   @ApiOperation({ summary: '이메일 로그 조회 (필터링, 페이지네이션)' })
   async getEmailLogs(
-    @Query() paginationDto: PaginationRequestDto,
+    @Query() paginationDto: OffsetRequestDto,
     @Query('status') status?: EmailStatus,
     @Query('userId') userId?: string,
     @Query('from') from?: string,

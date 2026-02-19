@@ -1,7 +1,7 @@
 import { Controller, Get, Query, Param, Post, Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { OffsetResponseDto } from '@weaver2/pagination';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { UserDto } from '../dto/user.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
@@ -21,7 +21,7 @@ export class UserQueryController {
   @Public()
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '사용자 목록 조회 (Admin/Developer only)' })
-  @ApiStandardResponses({ type: PaginationResponseDto })
+  @ApiStandardResponses({ type: OffsetResponseDto })
   findAll(@Query() query: PaginationRequestDto) {
     return this.findUserService.findUsers(query);
   }

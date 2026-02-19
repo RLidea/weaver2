@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { PaginationService } from '@weaver2/pagination';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
 import { EmailLogService } from '../../../../infrastructure/email/services/email-log.service';
 import { Prisma, EmailStatus } from '@prisma/client';
 
 interface EmailLogsFilterOptions {
-  pagination: PaginationRequestDto;
+  pagination: OffsetRequestDto;
   status?: EmailStatus;
   userId?: string;
   from?: Date;
@@ -29,56 +28,32 @@ export class AdminNotificationsApiService {
   // ============ Email Logs Management ============
   async getEmailLogs(options: EmailLogsFilterOptions) {
     const { pagination, status, userId, from, to, search } = options;
-    const { skip, take } = PaginationService.getPaginationParams(pagination);
 
-    const whereCondition: Prisma.EmailLogWhereInput = {};
-
-    if (status) {
-      whereCondition.status = status;
-    }
-
-    if (userId) {
-      whereCondition.userId = userId;
-    }
-
+    const where: Prisma.EmailLogWhereInput = {};
+    if (status) where.status = status;
+    if (userId) where.userId = userId;
     if (from || to) {
-      whereCondition.createdAt = {};
-      if (from) whereCondition.createdAt.gte = from;
-      if (to) whereCondition.createdAt.lte = to;
+      where.createdAt = {};
+      if (from) where.createdAt.gte = from;
+      if (to) where.createdAt.lte = to;
     }
-
     if (search) {
-      whereCondition.OR = [
+      where.OR = [
         { to: { contains: search, mode: 'insensitive' } },
         { subject: { contains: search, mode: 'insensitive' } },
         { from: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    const [emailLogs, total] = await Promise.all([
-      this.prisma.emailLog.findMany({
-        where: whereCondition,
-        include: {
-          template: {
-            select: { id: true, name: true },
-          },
-          user: {
-            select: { id: true, username: true, displayName: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.emailLog.count({ where: whereCondition }),
-    ]);
-
-    return PaginationService.buildResponse(
-      emailLogs,
-      total,
-      pagination.page || 1,
-      pagination.limit || 10,
-    );
+    return OffsetPaginationService.buildFromPrisma({
+      prisma: this.prisma.emailLog,
+      options: pagination,
+      where,
+      include: {
+        template: { select: { id: true, name: true } },
+        user: { select: { id: true, username: true, displayName: true } },
+      },
+    });
   }
 
   async getEmailLogDetails(logId: string) {

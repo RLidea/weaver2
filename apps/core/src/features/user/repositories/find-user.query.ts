@@ -1,7 +1,7 @@
 import { User } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
-import { PaginationService } from '@weaver2/pagination';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { OffsetPaginationService } from '@weaver2/pagination';
+import { OffsetResponseDto } from '@weaver2/pagination';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 
 /**
@@ -14,7 +14,7 @@ import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request
 export async function findUserQuery(
   prisma: PrismaService,
   options: PaginationRequestDto,
-): Promise<PaginationResponseDto<User>> {
+): Promise<OffsetResponseDto<User>> {
   // Build search conditions if search parameter exists
   const searchConditions = options.search
     ? {
@@ -55,7 +55,7 @@ export async function findUserQuery(
     }
   }
 
-  return PaginationService.buildFromPrisma({
+  return OffsetPaginationService.buildFromPrisma({
     prisma: prisma.user,
     options,
     where: {

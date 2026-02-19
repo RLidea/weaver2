@@ -12,7 +12,7 @@ import { RequirePermission } from '../../../../features/permission/decorators/re
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { PostStatus } from '@prisma/client';
 import { AdminContentApiService } from '../services/admin-content.api.service';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { OffsetRequestDto } from '@weaver2/pagination';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 
 @ApiTags('Admin Content')
@@ -69,7 +69,7 @@ export class AdminContentApiController {
   @ApiOperation({ summary: '게시글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.POST.READ_ALL)
   async getPosts(
-    @Query() paginationDto: PaginationRequestDto,
+    @Query() paginationDto: OffsetRequestDto,
     @Query('boardId') boardId?: string,
     @Query('status') status?: PostStatus,
     @Query('search') search?: string,
@@ -111,7 +111,7 @@ export class AdminContentApiController {
   @ApiOperation({ summary: '댓글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.COMMENT.READ)
   async getComments(
-    @Query() paginationDto: PaginationRequestDto,
+    @Query() paginationDto: OffsetRequestDto,
     @Query('postId') postId?: string,
     @Query('search') search?: string,
   ) {

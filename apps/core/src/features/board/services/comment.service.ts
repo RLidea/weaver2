@@ -9,9 +9,21 @@ import { FindAllCommentsByPostIdQuery } from '../repositories/find-all-comments-
 import { UpdateCommentCommand } from '../repositories/update-comment.command';
 import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
-import { PaginationService } from '@weaver2/pagination';
+import {
+  KeysetPaginationService,
+  KeysetRequestDto,
+  KeysetResponseDto,
+} from '@weaver2/pagination';
+import { KeysetPreset } from '@weaver2/pagination';
+
+// 댓글은 시간순(오름차순) 고정 정렬 — 전역 KEYSET_PRESETS에 등록하지 않음
+const COMMENT_PRESET: KeysetPreset = {
+  name: 'created-at',
+  fields: [
+    { field: 'createdAt', direction: 'asc', type: 'date' },
+    { field: 'id', direction: 'asc', type: 'string' },
+  ],
+};
 
 @Injectable()
 export class CommentService {
@@ -42,51 +54,22 @@ export class CommentService {
     return FindAllCommentsByPostIdQuery(this.prisma, postId);
   }
 
-  async findCommentsByPostIdWithPagination(
+  async findCommentsByPostIdWithKeyset(
     postId: string,
-    paginationDto: PaginationRequestDto,
-  ): Promise<PaginationResponseDto<CommentDto>> {
-    // Check if post exists
+    dto: KeysetRequestDto,
+  ): Promise<KeysetResponseDto<CommentDto>> {
     await this.postService.findPostById(postId);
 
-    const { skip, take } = PaginationService.getPaginationParams({
-      page: paginationDto.page,
-      limit: paginationDto.limit,
+    return KeysetPaginationService.paginate<CommentDto>({
+      prisma: this.prisma.comment,
+      preset: COMMENT_PRESET,
+      cursor: dto.cursor,
+      limit: dto.limit,
+      where: { postId },
+      include: {
+        author: { select: { id: true, username: true, displayName: true } },
+      },
     });
-
-    const orderBy = PaginationService.parseSort(paginationDto.sort);
-
-    const [comments, total] = await Promise.all([
-      this.prisma.comment.findMany({
-        skip,
-        take,
-        where: {
-          postId,
-        },
-        orderBy,
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-            },
-          },
-        },
-      }),
-      this.prisma.comment.count({
-        where: {
-          postId,
-        },
-      }),
-    ]);
-
-    return PaginationService.buildResponse(
-      comments,
-      total,
-      paginationDto.page || 1,
-      paginationDto.limit || 10,
-    );
   }
 
   async findCommentById(id: string): Promise<CommentDto> {

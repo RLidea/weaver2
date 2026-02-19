@@ -21,8 +21,7 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
 import { CommentDto } from '../dto/comment.dto';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { KeysetRequestDto, KeysetResponseDto } from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import {
   BoardPermissionService,
@@ -66,30 +65,27 @@ export class PostController {
   @Get()
   @Public()
   @ApiOperation({
-    summary: '게시글 조회 (boardId로 필터링 가능, 없으면 전체 조회)',
+    summary: '게시글 목록 조회 (boardId로 필터링 가능, preset으로 정렬 선택)',
   })
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async findPosts(
     @Query('boardId') boardId?: string,
-    @Query() paginationDto?: PaginationRequestDto,
+    @Query() keysetDto?: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<PostDto[] | PaginationResponseDto<PostDto>> {
+  ): Promise<KeysetResponseDto<PostDto>> {
+    const dto = keysetDto ?? new KeysetRequestDto();
+
     if (boardId) {
-      // 읽기 권한 체크
       await this.permissionService.requirePermission(
         boardId,
         BoardActionType.READ,
         authUser,
         '게시글 조회 권한이 없습니다.',
       );
-
-      return this.postService.findAllPostsByBoardId(boardId);
+      return this.postService.findPostsByBoardIdWithKeyset(boardId, dto, authUser);
     }
 
-    return this.postService.findAllPostsWithPagination(
-      paginationDto ?? new PaginationRequestDto(),
-      authUser,
-    );
+    return this.postService.findAllPostsWithKeyset(dto, authUser);
   }
 
   @Get(':postId')
@@ -118,13 +114,13 @@ export class PostController {
 
   @Get(':postId/comments')
   @Public()
-  @ApiOperation({ summary: '특정 게시글의 댓글 목록 조회 (페이지네이션)' })
+  @ApiOperation({ summary: '특정 게시글의 댓글 목록 조회 (시간순 무한스크롤)' })
   @ApiStandardResponses({ type: CommentDto, isArray: true })
   async getPostComments(
     @Param('postId') postId: string,
-    @Query() paginationDto: PaginationRequestDto,
+    @Query() keysetDto: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<PaginationResponseDto<CommentDto>> {
+  ): Promise<KeysetResponseDto<CommentDto>> {
     // 게시글 조회해서 boardId 확인
     const post = await this.postService.findPostById(postId, false, authUser);
 
@@ -136,9 +132,9 @@ export class PostController {
       '댓글 조회 권한이 없습니다.',
     );
 
-    return this.commentService.findCommentsByPostIdWithPagination(
+    return this.commentService.findCommentsByPostIdWithKeyset(
       postId,
-      paginationDto,
+      keysetDto,
     );
   }
 

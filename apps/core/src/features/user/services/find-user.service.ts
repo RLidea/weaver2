@@ -3,7 +3,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { User } from '@prisma/client';
 
 import { findUserQuery } from '../repositories/find-user.query';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { OffsetResponseDto } from '@weaver2/pagination';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
 import { CheckExistingUserQuery } from '../repositories/check-existing-user.query';
 import { FindUserByIdQuery } from '../repositories/find-user-by-id.query';
@@ -13,7 +13,7 @@ import { FindUserByUsernameQuery } from '../repositories/find-user-by-username.q
 export class FindUserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findUsers(query: PaginationRequestDto): Promise<PaginationResponseDto<User>> {
+  findUsers(query: PaginationRequestDto): Promise<OffsetResponseDto<User>> {
     return findUserQuery(this.prisma, query);
   }
 

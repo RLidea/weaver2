@@ -20,8 +20,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
 import { PostDto } from '../dto/post.dto';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
-import { PaginationResponseDto } from '@weaver2/pagination/dto/pagination-response.dto';
+import { KeysetRequestDto, KeysetResponseDto } from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import {
@@ -79,15 +78,14 @@ export class BoardController {
   @Get(':boardId/posts')
   @Public()
   @ApiOperation({
-    summary: '특정 게시판의 게시글 목록 조회',
+    summary: '특정 게시판의 게시글 목록 조회 (preset으로 정렬 선택)',
   })
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async getBoardPosts(
     @Param('boardId') boardId: string,
-    @Query() paginationDto: PaginationRequestDto,
+    @Query() keysetDto: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<PaginationResponseDto<PostDto>> {
-    // 읽기 권한 체크
+  ): Promise<KeysetResponseDto<PostDto>> {
     await this.permissionService.requirePermission(
       boardId,
       BoardActionType.READ,
@@ -95,11 +93,7 @@ export class BoardController {
       '게시판 읽기 권한이 없습니다.',
     );
 
-    return this.postService.findPostsByBoardIdWithPagination(
-      boardId,
-      paginationDto,
-      authUser,
-    );
+    return this.postService.findPostsByBoardIdWithKeyset(boardId, keysetDto, authUser);
   }
 
   @Patch(':id')

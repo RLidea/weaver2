@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { PaginationService } from '@weaver2/pagination';
-import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
+import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
 import { BoardService } from '../../../../features/board/services/board.service';
 import { PostService } from '../../../../features/board/services/post.service';
 import { CommentService } from '../../../../features/board/services/comment.service';
@@ -9,14 +8,14 @@ import { Prisma, PostStatus } from '@prisma/client';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 
 interface PostsFilterOptions {
-  pagination: PaginationRequestDto;
+  pagination: OffsetRequestDto;
   boardId?: string;
   status?: PostStatus;
   search?: string;
 }
 
 interface CommentsFilterOptions {
-  pagination: PaginationRequestDto;
+  pagination: OffsetRequestDto;
   postId?: string;
   search?: string;
 }
@@ -154,52 +153,27 @@ export class AdminContentApiService {
   // ============ Post Management ============
   async getPosts(options: PostsFilterOptions) {
     const { pagination, boardId, status, search } = options;
-    const { skip, take } = PaginationService.getPaginationParams(pagination);
 
-    const whereCondition: Prisma.PostWhereInput = {};
-
-    if (boardId) {
-      whereCondition.boardId = boardId;
-    }
-
-    if (status) {
-      whereCondition.status = status;
-    }
-
+    const where: Prisma.PostWhereInput = {};
+    if (boardId) where.boardId = boardId;
+    if (status) where.status = status;
     if (search) {
-      whereCondition.OR = [
+      where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { content: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where: whereCondition,
-        include: {
-          board: {
-            select: { id: true, name: true },
-          },
-          author: {
-            select: { id: true, username: true, displayName: true },
-          },
-          _count: {
-            select: { comments: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.post.count({ where: whereCondition }),
-    ]);
-
-    return PaginationService.buildResponse(
-      posts,
-      total,
-      pagination.page || 1,
-      pagination.limit || 10,
-    );
+    return OffsetPaginationService.buildFromPrisma({
+      prisma: this.prisma.post,
+      options: pagination,
+      where,
+      include: {
+        board: { select: { id: true, name: true } },
+        author: { select: { id: true, username: true, displayName: true } },
+        _count: { select: { comments: true } },
+      },
+    });
   }
 
   async getPostDetails(postId: string) {
@@ -236,42 +210,20 @@ export class AdminContentApiService {
   // ============ Comment Management ============
   async getComments(options: CommentsFilterOptions) {
     const { pagination, postId, search } = options;
-    const { skip, take } = PaginationService.getPaginationParams(pagination);
 
-    const whereCondition: Prisma.CommentWhereInput = {};
+    const where: Prisma.CommentWhereInput = {};
+    if (postId) where.postId = postId;
+    if (search) where.content = { contains: search, mode: 'insensitive' };
 
-    if (postId) {
-      whereCondition.postId = postId;
-    }
-
-    if (search) {
-      whereCondition.content = { contains: search, mode: 'insensitive' };
-    }
-
-    const [comments, total] = await Promise.all([
-      this.prisma.comment.findMany({
-        where: whereCondition,
-        include: {
-          post: {
-            select: { id: true, title: true },
-          },
-          author: {
-            select: { id: true, username: true, displayName: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.comment.count({ where: whereCondition }),
-    ]);
-
-    return PaginationService.buildResponse(
-      comments,
-      total,
-      pagination.page || 1,
-      pagination.limit || 10,
-    );
+    return OffsetPaginationService.buildFromPrisma({
+      prisma: this.prisma.comment,
+      options: pagination,
+      where,
+      include: {
+        post: { select: { id: true, title: true } },
+        author: { select: { id: true, username: true, displayName: true } },
+      },
+    });
   }
 
   async deleteComment(commentId: string) {

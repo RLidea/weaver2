@@ -1,7 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { DEFAULT_LIMIT, MAX_LIMIT } from '../../common/constants';
+import { KEYSET_PRESET_NAMES } from '../keyset.presets';
 
 export class KeysetRequestDto {
   @ApiPropertyOptional({ description: '다음 페이지 커서 (불투명 문자열)' })
@@ -9,7 +10,10 @@ export class KeysetRequestDto {
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: '페이지당 아이템 수', default: DEFAULT_LIMIT })
+  @ApiPropertyOptional({
+    description: '페이지당 아이템 수',
+    default: DEFAULT_LIMIT,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -18,11 +22,12 @@ export class KeysetRequestDto {
   limit?: number = DEFAULT_LIMIT;
 
   @ApiPropertyOptional({
-    description: 'Keyset preset (created-at | view-count)',
+    description: `정렬 preset (${KEYSET_PRESET_NAMES.join(' | ')})`,
     default: 'created-at',
-    enum: ['created-at', 'view-count'],
+    enum: KEYSET_PRESET_NAMES,
   })
   @IsOptional()
   @IsString()
+  @IsIn(KEYSET_PRESET_NAMES)
   preset?: string = 'created-at';
 }
