@@ -9,8 +9,9 @@ import { AuthModule } from './features/auth/auth.module';
 import { EmailModule } from './infrastructure/email/email.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-// import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-// import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { DevThrottlerGuard } from './common/guards/dev-throttler.guard';
 import { AdminModule } from './system/admin/admin.module';
 import { HealthModule } from './system/health/health.module';
 import { StaticModule } from './system/static/static.module';
@@ -42,14 +43,14 @@ import { PermissionModule } from './features/permission/permission.module';
       }),
       inject: [ConfigService],
     }),
-    // ThrottlerModule.forRoot({
-    //   throttlers: [
-    //     {
-    //       ttl: 60000,
-    //       limit: 30,
-    //     },
-    //   ],
-    // }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 100,
+        },
+      ],
+    }),
     UserModule,
     PrismaModule,
     PermissionModule,
@@ -67,10 +68,10 @@ import { PermissionModule } from './features/permission/permission.module';
   controllers: [CoreController],
   providers: [
     CoreService,
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerGuard,
-    // },
+    {
+      provide: APP_GUARD,
+      useClass: DevThrottlerGuard,
+    },
   ],
 })
 export class CoreModule implements NestModule {
