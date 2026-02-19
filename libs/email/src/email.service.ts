@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { SendEmailOptions, EmailResult } from './interfaces/email.interface';
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
@@ -36,7 +37,7 @@ export class EmailService {
       await new Promise<void>((resolve, reject) => {
         this.transporter.verify((err) => {
           if (err) {
-            console.error('SMTP 연결 실패:', err);
+            this.logger.error('SMTP 연결 실패', err instanceof Error ? err.stack : String(err));
             reject(
               new InternalServerErrorException(
                 'Failed to connect SMTP server.',
@@ -66,7 +67,7 @@ export class EmailService {
         response: String(result.response || ''),
       };
     } catch (err) {
-      console.error('이메일 전송 실패:', err);
+      this.logger.error('이메일 전송 실패', err instanceof Error ? err.stack : String(err));
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to send email.';
       return {
@@ -92,7 +93,7 @@ export class EmailService {
       });
       return true;
     } catch (err) {
-      console.error('SMTP 연결 검증 실패:', err);
+      this.logger.error('SMTP 연결 검증 실패', err instanceof Error ? err.stack : String(err));
       return false;
     }
   }

@@ -1,11 +1,12 @@
 /* eslint-disable */
 import helmet from 'helmet';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import * as csurf from 'csurf';
 import * as process from 'process';
 import { Request, Response, NextFunction } from 'express'; // Import Request, Response, NextFunction
 
 export function setSecurityMiddleware(app: INestApplication): void {
+  const logger = new Logger('Security');
   /*
     HTTP header
    */
@@ -36,7 +37,7 @@ export function setSecurityMiddleware(app: INestApplication): void {
       if (!origin || whitelist.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn('❌ CORS blocked for:', origin);
+        logger.warn(`CORS blocked for: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -76,13 +77,7 @@ export function setSecurityMiddleware(app: INestApplication): void {
       'code' in err &&
       err.code === 'EBADCSRFTOKEN'
     ) {
-      console.warn('🚫 CSRF BLOCKED:', {
-        url: req.originalUrl,
-        method: req.method,
-        origin: req.headers.origin,
-        referer: req.headers.referer,
-        ip: req.ip,
-      });
+      logger.warn(`CSRF blocked: ${req.method} ${req.originalUrl} origin=${req.headers.origin} ip=${req.ip}`);
 
       return res.status(403).json({
         success: false,
