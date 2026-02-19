@@ -77,7 +77,9 @@ export function setSecurityMiddleware(app: INestApplication): void {
       'code' in err &&
       err.code === 'EBADCSRFTOKEN'
     ) {
-      logger.warn(`CSRF blocked: ${req.method} ${req.originalUrl} origin=${req.headers.origin} ip=${req.ip}`);
+      logger.warn(
+        `CSRF blocked: ${req.method} ${req.originalUrl} origin=${req.headers.origin} ip=${req.ip}`,
+      );
 
       return res.status(403).json({
         success: false,

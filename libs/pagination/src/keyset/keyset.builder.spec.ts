@@ -35,7 +35,10 @@ describe('buildKeysetWhere', () => {
     expect(result).toEqual({
       OR: [
         { createdAt: { lt: new Date('2024-01-15T09:00:00.000Z') } },
-        { createdAt: new Date('2024-01-15T09:00:00.000Z'), id: { gt: 'uuid-123' } },
+        {
+          createdAt: new Date('2024-01-15T09:00:00.000Z'),
+          id: { gt: 'uuid-123' },
+        },
       ],
     });
   });
@@ -49,7 +52,10 @@ describe('buildKeysetWhere', () => {
     const result = buildKeysetWhere(fields, cursorValues);
     expect(result.OR).toHaveLength(3);
     expect(result.OR[0]).toEqual({ viewCount: { lt: 42 } });
-    expect(result.OR[1]).toEqual({ viewCount: 42, createdAt: { lt: new Date('2024-01-15T09:00:00.000Z') } });
+    expect(result.OR[1]).toEqual({
+      viewCount: 42,
+      createdAt: { lt: new Date('2024-01-15T09:00:00.000Z') },
+    });
     expect(result.OR[2]).toEqual({
       viewCount: 42,
       createdAt: new Date('2024-01-15T09:00:00.000Z'),
@@ -70,7 +76,9 @@ describe('buildKeysetWhere', () => {
     const fields: KeysetFieldDef[] = [
       { field: 'createdAt', direction: 'desc', type: 'date' },
     ];
-    const result = buildKeysetWhere(fields, { createdAt: '2024-01-15T09:00:00.000Z' });
+    const result = buildKeysetWhere(fields, {
+      createdAt: '2024-01-15T09:00:00.000Z',
+    });
     expect(result.createdAt.lt).toBeInstanceOf(Date);
   });
 });

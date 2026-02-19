@@ -20,7 +20,9 @@ describe('cursor.utils', () => {
     });
 
     it('should throw on invalid cursor string', () => {
-      expect(() => decodeCursor('!!invalid!!')).toThrow('Invalid cursor format');
+      expect(() => decodeCursor('!!invalid!!')).toThrow(
+        'Invalid cursor format',
+      );
     });
 
     it('should throw on valid base64 but invalid JSON', () => {

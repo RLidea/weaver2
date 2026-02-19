@@ -93,7 +93,11 @@ export class BoardController {
       '게시판 읽기 권한이 없습니다.',
     );
 
-    return this.postService.findPostsByBoardIdWithKeyset(boardId, keysetDto, authUser);
+    return this.postService.findPostsByBoardIdWithKeyset(
+      boardId,
+      keysetDto,
+      authUser,
+    );
   }
 
   @Patch(':id')

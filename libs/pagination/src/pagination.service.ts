@@ -19,7 +19,12 @@ export class PaginationService {
     page: number,
     limit: number,
   ): PaginationResponseDto<T> {
-    return OffsetPaginationService.buildResponse(items, totalItems, page, limit);
+    return OffsetPaginationService.buildResponse(
+      items,
+      totalItems,
+      page,
+      limit,
+    );
   }
 
   /** @deprecated Use parseSort from '@weaver2/pagination' */
@@ -33,7 +38,11 @@ export class PaginationService {
   }
 
   /** @deprecated Use OffsetPaginationService.buildFromPrisma */
-  static buildFromPrisma<T, WhereInput = any>(params: Parameters<typeof OffsetPaginationService.buildFromPrisma<T, WhereInput>>[0]) {
+  static buildFromPrisma<T, WhereInput = any>(
+    params: Parameters<
+      typeof OffsetPaginationService.buildFromPrisma<T, WhereInput>
+    >[0],
+  ) {
     return OffsetPaginationService.buildFromPrisma(params);
   }
 }

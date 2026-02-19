@@ -28,7 +28,10 @@ export class AdminSystemSettingsApiService {
 
       return settings;
     } catch (error) {
-      this.logger.error('Error getting system settings', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        'Error getting system settings',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -50,7 +53,10 @@ export class AdminSystemSettingsApiService {
         return await this.createDefaultSettings(data);
       }
     } catch (error) {
-      this.logger.error('Error updating system settings', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        'Error updating system settings',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -71,7 +77,10 @@ export class AdminSystemSettingsApiService {
 
       return await this.prisma.systemSetting.create({ data: defaultData });
     } catch (error) {
-      this.logger.error('Error creating default settings', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        'Error creating default settings',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -99,7 +108,10 @@ export class AdminSystemSettingsApiService {
         return await this.createDefaultSettings();
       }
     } catch (error) {
-      this.logger.error('Error resetting to defaults', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        'Error resetting to defaults',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }

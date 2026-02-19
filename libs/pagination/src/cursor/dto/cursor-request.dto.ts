@@ -9,7 +9,10 @@ export class CursorRequestDto {
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: '페이지당 아이템 수', default: DEFAULT_LIMIT })
+  @ApiPropertyOptional({
+    description: '페이지당 아이템 수',
+    default: DEFAULT_LIMIT,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

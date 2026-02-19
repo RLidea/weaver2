@@ -82,7 +82,11 @@ export class PostController {
         authUser,
         '게시글 조회 권한이 없습니다.',
       );
-      return this.postService.findPostsByBoardIdWithKeyset(boardId, dto, authUser);
+      return this.postService.findPostsByBoardIdWithKeyset(
+        boardId,
+        dto,
+        authUser,
+      );
     }
 
     return this.postService.findAllPostsWithKeyset(dto, authUser);

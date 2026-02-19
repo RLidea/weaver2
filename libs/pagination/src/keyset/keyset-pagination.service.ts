@@ -1,5 +1,9 @@
 import { DEFAULT_LIMIT } from '../common/constants';
-import { encodeCursor, decodeCursor, CursorPayload } from '../cursor/cursor.utils';
+import {
+  encodeCursor,
+  decodeCursor,
+  CursorPayload,
+} from '../cursor/cursor.utils';
 import { buildKeysetWhere } from './keyset.builder';
 import { getKeysetPreset, KeysetPreset } from './keyset.presets';
 import { KeysetResponseDto } from './dto/keyset-response.dto';

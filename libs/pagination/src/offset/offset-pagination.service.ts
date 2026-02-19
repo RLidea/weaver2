@@ -50,7 +50,13 @@ export class OffsetPaginationService {
   static async buildFromPrisma<T, WhereInput = any>(
     params: PrismaPaginationOptions<T, WhereInput>,
   ): Promise<OffsetResponseDto<T>> {
-    const { prisma, options, where = {} as WhereInput, include, select } = params;
+    const {
+      prisma,
+      options,
+      where = {} as WhereInput,
+      include,
+      select,
+    } = params;
     const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = options;
     const { skip, take } = this.getPaginationParams({ page, limit });
     const orderBy = parseSort(options.sort);
