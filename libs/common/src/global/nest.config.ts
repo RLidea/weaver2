@@ -4,7 +4,6 @@ import { setMiddleware } from './middleware';
 import { setPipe } from './pipe';
 import { setInterceptor } from '@weaver2/common/global/interceptor';
 import { setExceptionFilter } from '@weaver2/common/global/exception-filter';
-import { CustomLogger } from '@weaver2/common/global/logger/custom.logger';
 
 export function setNestApp<T extends INestApplication>(app: T): void {
   /* Request lifecycle */
@@ -13,7 +12,6 @@ export function setNestApp<T extends INestApplication>(app: T): void {
   setInterceptor(app);
   setPipe(app);
   setExceptionFilter(app);
-  app.useLogger(new CustomLogger());
 
   // 앱 종료시 이벤트 후크 설정
   app.enableShutdownHooks();

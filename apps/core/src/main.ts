@@ -5,12 +5,14 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, VersioningType } from '@nestjs/common';
 import { join } from 'path';
 import { ConfigService } from '@nestjs/config';
+import { WinstonModule } from 'nest-winston';
+import { winstonLoggerConfig } from '@weaver2/common/global/logger/winston.config';
 
 async function bootstrap() {
   const startTime = Date.now();
 
   const app = await NestFactory.create<NestExpressApplication>(CoreModule, {
-    logger: ['error', 'warn'],
+    logger: WinstonModule.createLogger(winstonLoggerConfig),
   });
   const configService = app.get(ConfigService);
 
