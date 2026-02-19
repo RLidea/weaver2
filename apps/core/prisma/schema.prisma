@@ -138,6 +138,8 @@ model Post {
   category           PostCategory? @relation(fields: [categoryId], references: [id])
 
   @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
+  @@index([createdAt(sort: Desc), id], map: "post_cursor_idx")
+  @@index([viewCount(sort: Desc), id], map: "post_viewcount_cursor_idx")
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.

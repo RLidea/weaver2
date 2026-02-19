@@ -1,11 +1,1 @@
-export class PaginationResponseDto<T> {
-  total: number;
-  limit: number;
-  currentItemCount: number;
-  currentPage: number;
-  firstPage: number;
-  lastPage: number;
-  nextPage: number | null;
-  prevPage: number | null;
-  data: T[];
-}
+export { OffsetResponseDto as PaginationResponseDto } from '../offset/dto/offset-response.dto';
