@@ -33,6 +33,11 @@ export class PostService {
       board: { connect: { id: boardId } },
       title: dto.title,
       content: dto.content,
+      ...(dto.status !== undefined && { status: dto.status }),
+      ...(dto.isPinned !== undefined && { isPinned: dto.isPinned }),
+      ...(dto.isSecret !== undefined && { isSecret: dto.isSecret }),
+      ...(dto.priority !== undefined && { priority: dto.priority }),
+      ...(dto.categoryId && { category: { connect: { id: dto.categoryId } } }),
     };
 
     const createData = authorId

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -89,8 +90,7 @@ export class CommentController {
 
       return this.commentService.findAllCommentsByPostId(postId);
     }
-    // TODO: 전체 댓글 조회 메서드 구현 필요
-    throw new Error('postId query parameter is required');
+    throw new BadRequestException('postId query parameter is required');
   }
 
   @Get(':commentId')
