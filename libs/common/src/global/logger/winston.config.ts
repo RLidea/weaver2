@@ -42,6 +42,6 @@ const prodTransports = [
 ];
 
 export const winstonLoggerConfig: winston.LoggerOptions = {
-  level: isDevelopment ? 'debug' : 'warn',
+  level: isDevelopment ? 'debug' : 'info',
   transports: isDevelopment ? [devTransport] : prodTransports,
 };

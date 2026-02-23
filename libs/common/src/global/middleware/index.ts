@@ -1,6 +1,6 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
 import { setSecurityMiddleware } from './security.middleware';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 
 export function setMiddleware<T extends INestApplication>(app: T): void {
   // Versioning

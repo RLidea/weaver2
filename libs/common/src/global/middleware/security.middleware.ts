@@ -1,7 +1,7 @@
 /* eslint-disable */
 import helmet from 'helmet';
 import { INestApplication, Logger } from '@nestjs/common';
-import * as csurf from 'csurf';
+import csurf from 'csurf';
 import * as process from 'process';
 import { Request, Response, NextFunction } from 'express'; // Import Request, Response, NextFunction
 
