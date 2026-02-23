@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { SignUpCommand } from '../repositories/sign-up.command';
 import { CreateValidationTokenCommand } from '../repositories/create-validation-token.command';
 import { FindAuthByTokenQuery } from '../repositories/find-auth-by-token.query';
+import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
 import { FindUserService } from '../../user/services/find-user.service';
 import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
 import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
@@ -120,6 +121,34 @@ export class SignUpService {
         'Failed to complete sign-up process.',
       );
     }
+  }
+
+  async resendVerificationEmail(email: string): Promise<{ message: string }> {
+    const auth = await FindAuthByEmailQuery(this.prisma, email);
+
+    // 계정 존재 여부를 노출하지 않기 위해 동일한 응답 반환
+    if (!auth || auth.isVerified) {
+      return {
+        message:
+          'If the email address exists and is unverified, a new verification email has been sent.',
+      };
+    }
+
+    const token = await CreateValidationTokenCommand(this.prisma, {
+      userId: auth.userId,
+      email,
+    });
+
+    await this.emailBusinessService.sendVerificationEmail(
+      email,
+      `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
+      auth.userId,
+    );
+
+    return {
+      message:
+        'If the email address exists and is unverified, a new verification email has been sent.',
+    };
   }
 
   async verifyEmail(token: string) {

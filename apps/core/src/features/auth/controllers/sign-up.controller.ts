@@ -12,6 +12,7 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import { SignUpService } from '../services/sign-up.service';
 import { Throttle } from '@nestjs/throttler';
+import { RequestPasswordResetDto } from '../dto/request-password-reset.dto';
 
 @ApiTags('Auth')
 @Controller({
@@ -51,6 +52,15 @@ export class SignUpController {
   @ApiOperation({ summary: '이메일/비밀번호 회원가입' })
   emailSignUp(@Body() dto: EmailSignUpDto) {
     return this.signUpService.emailSignUp(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('verify/resend')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '이메일 인증 메일 재발송' })
+  resendVerificationEmail(@Body() dto: RequestPasswordResetDto) {
+    return this.signUpService.resendVerificationEmail(dto.email);
   }
 
   @Public()
