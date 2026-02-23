@@ -99,7 +99,7 @@ export class SignUpService {
       // send verification email using template
       await this.emailBusinessService.sendVerificationEmail(
         email,
-        `${this.configService.get('FRONTEND_URL')}/auth/verify?token=${token.verificationToken}`,
+        `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
         createdUser.id,
       );
 

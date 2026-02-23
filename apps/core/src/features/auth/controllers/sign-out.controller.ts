@@ -23,6 +23,7 @@ export class SignOutController {
       await this.signOutService.signOut(authUser.authId);
     } finally {
       res.clearCookie('access_token');
+      res.clearCookie('refresh_token');
     }
     return { message: 'Successfully signed out' };
   }
