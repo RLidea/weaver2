@@ -42,8 +42,9 @@ export class BoardController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: '게시판 생성' })
+  @ApiOperation({ summary: '게시판 생성 (관리자 전용)' })
   @ApiStandardResponses({ type: BoardDto })
+  @RequirePermission(PERMISSIONS.BOARD.CREATE)
   async createBoard(@Body() createBoardDto: CreateBoardDto): Promise<BoardDto> {
     return this.boardService.createBoard(createBoardDto);
   }
