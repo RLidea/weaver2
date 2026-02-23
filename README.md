@@ -149,6 +149,9 @@ POST /auth/refresh              # 토큰 갱신
 POST /auth/password/request-reset # 비밀번호 재설정 요청
 POST /auth/password/reset       # 비밀번호 재설정
 POST /auth/sign-out             # 로그아웃
+
+GET  /auth/oauth/:provider          # OAuth 로그인 페이지 리다이렉트 (google | kakao | naver)
+GET  /auth/oauth/:provider/callback # OAuth 콜백 처리 및 JWT 발급
 ```
 
 ### 사용자 (Users)
@@ -222,6 +225,25 @@ GET  /terms/latest             # 최신 약관 조회
 - 이메일 인증 및 비밀번호 재설정
 - 리프레시 토큰 관리
 - 레이트 리미팅 적용
+- **OAuth 소셜 로그인**: Google, Kakao, Naver 지원 (passport 없이 native fetch 방식)
+  - 동일 이메일 계정 자동 연동
+  - 신규 사용자 자동 회원가입
+
+**새 OAuth 프로바이더 추가 방법:**
+
+1. `apps/core/src/features/auth/oauth/providers/` 에 새 파일 생성 (`github.provider.ts` 등)
+2. `OAuthProvider` 인터페이스 구현 (`name`, `getAuthorizationUrl`, `exchangeCodeForTokens`, `getUserProfile`)
+3. `oauth.module.ts`의 `providers` 배열에 등록하고 `OAUTH_PROVIDERS_INIT` factory의 `inject`에 추가
+4. `.env`에 환경변수 3개 추가 (`{PROVIDER}_CLIENT_ID`, `{PROVIDER}_CLIENT_SECRET`, `{PROVIDER}_CALLBACK_URL`)
+
+```typescript
+// 예시: github.provider.ts
+@Injectable()
+export class GithubOAuthProvider implements OAuthProvider {
+  readonly name = 'github';
+  // getAuthorizationUrl, exchangeCodeForTokens, getUserProfile 구현
+}
+```
 
 #### 👤 User 모듈
 - 사용자 프로필 관리
