@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   OAuthProvider,
@@ -54,6 +58,14 @@ export class KakaoOAuthProvider implements OAuthProvider {
         grant_type: 'authorization_code',
       }),
     });
+    if (!res.ok) {
+      const error = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new UnauthorizedException(
+        `Kakao token exchange failed: ${error.error ?? res.statusText}`,
+      );
+    }
     const data = (await res.json()) as KakaoTokenResponse;
     return {
       accessToken: data.access_token,
@@ -68,6 +80,11 @@ export class KakaoOAuthProvider implements OAuthProvider {
     const res = await fetch('https://kapi.kakao.com/v2/user/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    if (!res.ok) {
+      throw new UnauthorizedException(
+        `Failed to fetch Kakao user profile: ${res.statusText}`,
+      );
+    }
     const data = (await res.json()) as KakaoUserResponse;
 
     const email = data.kakao_account?.email;

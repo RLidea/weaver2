@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   OAuthProvider,
@@ -52,6 +52,14 @@ export class GoogleOAuthProvider implements OAuthProvider {
         grant_type: 'authorization_code',
       }),
     });
+    if (!res.ok) {
+      const error = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new UnauthorizedException(
+        `Google token exchange failed: ${error.error ?? res.statusText}`,
+      );
+    }
     const data = (await res.json()) as GoogleTokenResponse;
     return {
       accessToken: data.access_token,
@@ -66,6 +74,11 @@ export class GoogleOAuthProvider implements OAuthProvider {
     const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    if (!res.ok) {
+      throw new UnauthorizedException(
+        `Failed to fetch Google user profile: ${res.statusText}`,
+      );
+    }
     const data = (await res.json()) as GoogleUserResponse;
     return {
       provider: this.name,

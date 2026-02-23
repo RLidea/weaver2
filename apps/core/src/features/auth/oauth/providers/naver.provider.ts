@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   OAuthProvider,
@@ -53,6 +57,14 @@ export class NaverOAuthProvider implements OAuthProvider {
         grant_type: 'authorization_code',
       }),
     });
+    if (!res.ok) {
+      const error = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new UnauthorizedException(
+        `Naver token exchange failed: ${error.error ?? res.statusText}`,
+      );
+    }
     const data = (await res.json()) as NaverTokenResponse;
     return {
       accessToken: data.access_token,
@@ -67,6 +79,11 @@ export class NaverOAuthProvider implements OAuthProvider {
     const res = await fetch('https://openapi.naver.com/v1/nid/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    if (!res.ok) {
+      throw new UnauthorizedException(
+        `Failed to fetch Naver user profile: ${res.statusText}`,
+      );
+    }
     const data = (await res.json()) as NaverUserResponse;
 
     const email = data.response?.email;
