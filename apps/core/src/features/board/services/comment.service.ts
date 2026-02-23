@@ -1,20 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
 import { CommentDto } from '../dto/comment.dto';
 import { CreateCommentCommand } from '../repositories/create-comment.command';
 import { FindCommentByIdQuery } from '../repositories/find-comment-by-id.query';
-import { FindAllCommentsByPostIdQuery } from '../repositories/find-all-comments-by-post-id.query';
+import {
+  FindAllCommentsByPostIdQuery,
+  COMMENT_CHILDREN_INCLUDE,
+} from '../repositories/find-all-comments-by-post-id.query';
 import { UpdateCommentCommand } from '../repositories/update-comment.command';
 import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
 import {
   KeysetPaginationService,
+  KeysetPreset,
   KeysetRequestDto,
   KeysetResponseDto,
 } from '@weaver2/pagination';
-import { KeysetPreset } from '@weaver2/pagination';
 
 // 댓글은 시간순(오름차순) 고정 정렬 — 전역 KEYSET_PRESETS에 등록하지 않음
 const COMMENT_PRESET: KeysetPreset = {
@@ -37,21 +44,42 @@ export class CommentService {
     authorId: string | null,
     dto: CreateCommentDto,
   ): Promise<CommentDto> {
-    // Check if post exists
     await this.postService.findPostById(postId);
+
+    // parentId 유효성 검증: 같은 게시글의 댓글인지, 삭제되지 않았는지 확인
+    if (dto.parentId) {
+      const parentComment = await this.prisma.comment.findUnique({
+        where: { id: dto.parentId },
+        select: { postId: true, isDeleted: true },
+      });
+      if (!parentComment) {
+        throw new NotFoundException(
+          `Parent comment with ID '${dto.parentId}' not found.`,
+        );
+      }
+      if (parentComment.isDeleted) {
+        throw new BadRequestException('삭제된 댓글에는 답글을 작성할 수 없습니다.');
+      }
+      if (parentComment.postId !== postId) {
+        throw new BadRequestException(
+          '답글 대상 댓글이 같은 게시글에 속하지 않습니다.',
+        );
+      }
+    }
+
     const comment = await CreateCommentCommand(
       this.prisma,
       postId,
       authorId,
       dto.content,
+      dto.parentId,
     );
-    return comment;
+    return comment as CommentDto;
   }
 
   async findAllCommentsByPostId(postId: string): Promise<CommentDto[]> {
-    // Check if post exists
     await this.postService.findPostById(postId);
-    return FindAllCommentsByPostIdQuery(this.prisma, postId);
+    return FindAllCommentsByPostIdQuery(this.prisma, postId) as Promise<CommentDto[]>;
   }
 
   async findCommentsByPostIdWithKeyset(
@@ -60,14 +88,16 @@ export class CommentService {
   ): Promise<KeysetResponseDto<CommentDto>> {
     await this.postService.findPostById(postId);
 
+    // 루트 댓글(parentId: null)만 페이지네이션, children은 include로 함께 로드
     return KeysetPaginationService.paginate<CommentDto>({
-      prisma: this.prisma.comment,
+      prisma: this.prisma.comment as any,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
-      where: { postId },
+      where: { postId, parentId: null },
       include: {
         author: { select: { id: true, username: true, displayName: true } },
+        ...COMMENT_CHILDREN_INCLUDE,
       },
     });
   }
@@ -77,17 +107,15 @@ export class CommentService {
     if (!comment) {
       throw new NotFoundException(`Comment with ID '${id}' not found.`);
     }
-    return comment;
+    return comment as CommentDto;
   }
 
   async updateComment(id: string, dto: UpdateCommentDto): Promise<CommentDto> {
-    // 권한 체크는 controller에서 BoardPermissionService로 처리됨
     const updatedComment = await UpdateCommentCommand(this.prisma, id, dto);
-    return updatedComment;
+    return updatedComment as CommentDto;
   }
 
   async deleteComment(id: string): Promise<void> {
-    // 권한 체크는 controller에서 BoardPermissionService로 처리됨
     await DeleteCommentCommand(this.prisma, id);
   }
 }

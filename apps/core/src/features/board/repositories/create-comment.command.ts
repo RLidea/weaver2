@@ -5,10 +5,12 @@ export async function CreateCommentCommand(
   postId: string,
   authorId: string | null,
   content: string,
+  parentId?: string | null,
 ) {
   const baseData = {
     post: { connect: { id: postId } },
     content,
+    ...(parentId && { parent: { connect: { id: parentId } } }),
   };
 
   const createData = authorId
@@ -17,5 +19,8 @@ export async function CreateCommentCommand(
 
   return prisma.comment.create({
     data: createData as Prisma.CommentCreateInput,
+    include: {
+      author: { select: { id: true, username: true, displayName: true } },
+    },
   });
 }

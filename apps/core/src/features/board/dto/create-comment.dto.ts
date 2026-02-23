@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCommentDto {
   @ApiProperty({ description: 'Post ID' })
@@ -11,4 +11,9 @@ export class CreateCommentDto {
   @IsString()
   @IsNotEmpty()
   content: string;
+
+  @ApiPropertyOptional({ description: '답글 대상 댓글 ID (대댓글 작성 시)' })
+  @IsOptional()
+  @IsString()
+  parentId?: string;
 }

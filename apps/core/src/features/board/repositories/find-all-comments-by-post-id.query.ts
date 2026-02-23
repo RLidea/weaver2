@@ -1,13 +1,48 @@
 import { PrismaClient } from '@prisma/client';
 
+const AUTHOR_SELECT = { select: { id: true, username: true, displayName: true } };
+
+// Prisma는 무제한 재귀를 지원하지 않으므로 4단계 depth까지 중첩
+export const COMMENT_CHILDREN_INCLUDE = {
+  children: {
+    where: { isDeleted: false },
+    orderBy: { createdAt: 'asc' as const },
+    include: {
+      author: AUTHOR_SELECT,
+      children: {
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'asc' as const },
+        include: {
+          author: AUTHOR_SELECT,
+          children: {
+            where: { isDeleted: false },
+            orderBy: { createdAt: 'asc' as const },
+            include: {
+              author: AUTHOR_SELECT,
+              children: {
+                where: { isDeleted: false },
+                orderBy: { createdAt: 'asc' as const },
+                include: {
+                  author: AUTHOR_SELECT,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export async function FindAllCommentsByPostIdQuery(
   prisma: PrismaClient,
   postId: string,
 ) {
   return prisma.comment.findMany({
-    where: { postId },
+    where: { postId, parentId: null },
     include: {
-      author: { select: { id: true, username: true, displayName: true } },
+      author: AUTHOR_SELECT,
+      ...COMMENT_CHILDREN_INCLUDE,
     },
     orderBy: { createdAt: 'asc' },
   });

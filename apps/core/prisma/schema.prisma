@@ -142,18 +142,21 @@ model Post {
   @@index([viewCount(sort: Desc), id], map: "post_viewcount_cursor_idx")
 }
 
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Comment {
   id        String   @id @default(uuid())
   content   String
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   postId    String
   authorId  String
+  parentId  String?
   author    User     @relation(fields: [authorId], references: [id])
   post      Post     @relation(fields: [postId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  children  Comment[] @relation("CommentReplies")
 
-  @@index([postId, createdAt], map: "comment_list_idx")
+  @@index([postId, parentId, createdAt], map: "comment_list_idx")
 }
 
 model PostCategory {
