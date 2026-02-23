@@ -173,8 +173,7 @@ export class EmailBusinessService {
    * 실패한 이메일 재발송
    */
   async retryFailedEmail(emailLogId: string) {
-    const logs = await this.emailLogService.findLogs({ page: 1, limit: 1 });
-    const emailLog = logs.data.find((log) => log.id === emailLogId);
+    const emailLog = await this.emailLogService.findById(emailLogId);
 
     if (!emailLog) {
       throw new Error('Email log not found');

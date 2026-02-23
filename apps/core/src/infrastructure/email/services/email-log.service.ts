@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailStatus } from '@prisma/client';
+import { PrismaService } from '@weaver2/prisma';
 import {
   CreateEmailLogCommand,
   CreateEmailLogData,
@@ -13,10 +14,15 @@ import { UpdateEmailLogStatusCommand } from '../repositories/update-email-log-st
 @Injectable()
 export class EmailLogService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly createEmailLogCommand: CreateEmailLogCommand,
     private readonly findEmailLogsQuery: FindEmailLogsQuery,
     private readonly updateEmailLogStatusCommand: UpdateEmailLogStatusCommand,
   ) {}
+
+  async findById(id: string) {
+    return this.prisma.emailLog.findUnique({ where: { id } });
+  }
 
   async createLog(data: CreateEmailLogData) {
     return this.createEmailLogCommand.execute(data);

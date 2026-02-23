@@ -53,12 +53,10 @@ export function setSecurityMiddleware(app: INestApplication): void {
   app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
     const referer = req.headers.referer;
-    const userAgent = req.headers['user-agent'];
 
     const isSwagger =
       (origin && origin.includes(process.env.ORIGIN_URL || '')) ||
-      (referer && referer.includes('/docs')) ||
-      (userAgent && userAgent.includes('Swagger'));
+      (referer && referer.includes('/docs'));
 
     if (isSwagger) return next(); // ✅ Swagger는 CSRF 제외
 
