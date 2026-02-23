@@ -9,6 +9,8 @@ export function logSeedResult(
   } else if (status === 'exists') {
     console.warn(`⚠️ ${entityName} '${identifier}' already exists.`);
   } else if (status === 'skipped') {
-    console.warn(`⏭️ ${entityName} '${identifier}' skipped${reason ? ` (${reason})` : ''}.`);
+    console.warn(
+      `⏭️ ${entityName} '${identifier}' skipped${reason ? ` (${reason})` : ''}.`,
+    );
   }
 }
