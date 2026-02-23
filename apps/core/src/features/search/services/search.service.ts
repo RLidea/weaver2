@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
 import { SearchRequestDto, SearchType } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
@@ -70,35 +71,32 @@ export class SearchService {
       return [];
     }
 
-    const rawResults = await this.prisma.$queryRawUnsafe(
-      `
-      SELECT 
+    const rawResults = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`
+      SELECT
         p.*,
         ts_rank(
-          to_tsvector('simple', p.title || ' ' || p.content), 
-          to_tsquery('simple', $1)
+          to_tsvector('simple', p.title || ' ' || p.content),
+          to_tsquery('simple', ${query})
         ) as rank
       FROM "Post" p
-      WHERE 
-        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', $1)
+      WHERE
+        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
         AND p.status = 'PUBLISHED'
         AND p."isSecret" = false
-        ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
-      ORDER BY 
+        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
+      ORDER BY
         p."isPinned" DESC,
         p.priority DESC,
         rank DESC,
         p."viewCount" DESC,
         p."createdAt" DESC
-      LIMIT $2 OFFSET $3
+      LIMIT ${limit} OFFSET ${skip}
     `,
-      query,
-      limit,
-      skip,
     );
 
     // 관계 데이터를 포함한 완전한 데이터 조회
-    const postIds = (rawResults as { id: string }[]).map((result) => result.id);
+    const postIds = rawResults.map((result) => result.id);
 
     if (postIds.length === 0) return [];
 
@@ -133,20 +131,19 @@ export class SearchService {
       return 0;
     }
 
-    const result = await this.prisma.$queryRawUnsafe(
-      `
+    const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
+      Prisma.sql`
       SELECT COUNT(*) as count
       FROM "Post" p
-      WHERE 
-        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', $1)
+      WHERE
+        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
         AND p.status = 'PUBLISHED'
         AND p."isSecret" = false
-        ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
+        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
     `,
-      query,
     );
 
-    return Number((result as { count: number }[])[0].count);
+    return Number(result[0].count);
   }
 
   private async searchCommentsWithFullText(
@@ -159,32 +156,27 @@ export class SearchService {
       return [];
     }
 
-    const rawResults = await this.prisma.$queryRawUnsafe(
-      `
-      SELECT 
+    const rawResults = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`
+      SELECT
         c.*,
         ts_rank(
-          to_tsvector('simple', c.content), 
-          to_tsquery('simple', $1)
+          to_tsvector('simple', c.content),
+          to_tsquery('simple', ${query})
         ) as rank
       FROM "Comment" c
-      ${boardId ? `JOIN "Post" p ON c."postId" = p.id` : ''}
-      WHERE 
-        to_tsvector('simple', c.content) @@ to_tsquery('simple', $1)
-        ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
-      ORDER BY 
+      ${boardId ? Prisma.sql`JOIN "Post" p ON c."postId" = p.id` : Prisma.empty}
+      WHERE
+        to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
+        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
+      ORDER BY
         rank DESC,
         c."createdAt" DESC
-      LIMIT $2 OFFSET $3
+      LIMIT ${limit} OFFSET ${skip}
     `,
-      query,
-      limit,
-      skip,
     );
 
-    const commentIds = (rawResults as { id: string }[]).map(
-      (result) => result.id,
-    );
+    const commentIds = rawResults.map((result) => result.id);
 
     if (commentIds.length === 0) return [];
 
@@ -222,18 +214,17 @@ export class SearchService {
       return 0;
     }
 
-    const result = await this.prisma.$queryRawUnsafe(
-      `
+    const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
+      Prisma.sql`
       SELECT COUNT(*) as count
       FROM "Comment" c
-      ${boardId ? `JOIN "Post" p ON c."postId" = p.id` : ''}
-      WHERE 
-        to_tsvector('simple', c.content) @@ to_tsquery('simple', $1)
-        ${boardId ? `AND p."boardId" = '${boardId}'` : ''}
+      ${boardId ? Prisma.sql`JOIN "Post" p ON c."postId" = p.id` : Prisma.empty}
+      WHERE
+        to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
+        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
     `,
-      query,
     );
 
-    return Number((result as { count: number }[])[0].count);
+    return Number(result[0].count);
   }
 }
