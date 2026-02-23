@@ -1,9 +1,21 @@
-import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { OAuthService } from '../oauth/oauth.service';
+import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
+import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10분
@@ -15,6 +27,23 @@ export class OAuthController {
     private readonly oauthService: OAuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Get('connections')
+  @ApiOperation({ summary: '내 소셜 계정 연동 목록 조회' })
+  getMyConnections(@AuthUser() authUser: CommonAuthUserDto) {
+    return this.oauthService.getMyConnections(authUser.authId);
+  }
+
+  @Delete('connections/:provider')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '소셜 계정 연동 해제' })
+  async disconnectProvider(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Param('provider') provider: string,
+  ) {
+    await this.oauthService.disconnectProvider(authUser.authId, provider);
+    return { message: `${provider} connection has been disconnected.` };
+  }
 
   @Public()
   @Get(':provider')

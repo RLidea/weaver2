@@ -930,4 +930,16 @@ export class AdminSecurityApiService {
       return {};
     }
   }
+
+  async getUserOAuthConnections(userId: string) {
+    return this.prisma.oAuthConnection.findMany({
+      where: { auth: { userId } },
+      select: {
+        provider: true,
+        providerId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
 }

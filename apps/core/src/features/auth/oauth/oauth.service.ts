@@ -12,9 +12,11 @@ import { Response } from 'express';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
 import { FindOAuthConnectionQuery } from '../repositories/find-oauth-connection.query';
+import { FindOAuthConnectionsByAuthIdQuery } from '../repositories/find-oauth-connections-by-auth-id.query';
 import { UpsertOAuthConnectionCommand } from '../repositories/upsert-oauth-connection.command';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
+import { DeleteOAuthConnectionCommand } from '../repositories/delete-oauth-connection.command';
 import {
   OAuthTokens,
   OAuthUserProfile,
@@ -96,6 +98,30 @@ export class OAuthService {
       );
       res.redirect(failureUrl);
     }
+  }
+
+  async getMyConnections(authId: string) {
+    return FindOAuthConnectionsByAuthIdQuery(this.prisma, authId);
+  }
+
+  async disconnectProvider(authId: string, provider: string): Promise<void> {
+    const auth = await this.prisma.auth.findUnique({ where: { id: authId } });
+    if (!auth) throw new BadRequestException('Auth record not found.');
+
+    // 비밀번호가 없는 OAuth 전용 계정인 경우 마지막 연동은 해제 불가
+    if (!auth.password) {
+      const connections = await FindOAuthConnectionsByAuthIdQuery(
+        this.prisma,
+        authId,
+      );
+      if (connections.length <= 1) {
+        throw new BadRequestException(
+          'Cannot disconnect the last OAuth provider. Set a password first.',
+        );
+      }
+    }
+
+    await DeleteOAuthConnectionCommand(this.prisma, authId, provider);
   }
 
   private async generateRefreshToken(

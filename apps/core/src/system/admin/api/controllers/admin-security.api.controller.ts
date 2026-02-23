@@ -44,4 +44,10 @@ export class AdminSecurityApiController {
   async getAuditReportById(@Param('id') id: string) {
     return this.adminSecurityService.getAuditReportById(id);
   }
+
+  @Get('users/:userId/oauth-connections')
+  @ApiOperation({ summary: '특정 유저의 소셜 계정 연동 목록 조회' })
+  async getUserOAuthConnections(@Param('userId') userId: string) {
+    return this.adminSecurityService.getUserOAuthConnections(userId);
+  }
 }
