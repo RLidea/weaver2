@@ -229,6 +229,10 @@ GET  /terms/latest             # 최신 약관 조회
   - 동일 이메일 계정 자동 연동
   - 신규 사용자 자동 회원가입
 
+**OAuth 보안 처리:**
+- **CSRF 방어**: 로그인 시작 시 `state` 값을 생성해 `oauth_state` HttpOnly 쿠키에 저장. 콜백에서 쿠키 값과 query `state`를 비교 검증 후 쿠키 삭제.
+- **에러/거부 처리**: provider가 `error` 파라미터를 반환하거나 `code`/`state`가 없으면 `OAUTH_FAILURE_REDIRECT_URL`로 리다이렉트. 토큰 교환/프로필 조회 중 예외 발생 시에도 동일하게 처리.
+
 **새 OAuth 프로바이더 추가 방법:**
 
 1. `apps/core/src/features/auth/oauth/providers/` 에 새 파일 생성 (`github.provider.ts` 등)
