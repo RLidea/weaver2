@@ -21,7 +21,8 @@ export async function seedUserPermissionGroups(prisma: PrismaClient) {
       logSeedResult(
         'UserPermissionGroup',
         `${assignment.username} → ${assignment.groupName}`,
-        'skipped (user not found)',
+        'skipped',
+        'user not found',
       );
       continue;
     }
@@ -34,7 +35,8 @@ export async function seedUserPermissionGroups(prisma: PrismaClient) {
       logSeedResult(
         'UserPermissionGroup',
         `${assignment.username} → ${assignment.groupName}`,
-        'skipped (group not found)',
+        'skipped',
+        'group not found',
       );
       continue;
     }
