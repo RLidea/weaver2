@@ -138,9 +138,13 @@ export class SignInService {
       where: { id: stored.auth.userId },
     });
 
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
     return {
       accessToken: this.jwtService.sign({
-        sub: user?.id,
+        sub: user.id,
         authId: stored.auth.id,
       }),
       refreshToken: newRefreshToken,
