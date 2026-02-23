@@ -17,14 +17,17 @@ import { PermissionGuard } from '../permission/guards/permission.guard';
 import { SignOutController } from './controllers/sign-out.controller';
 import { SignOutService } from './services/sign-out.service';
 import { TermsService } from '../terms/services/terms.service';
+import { OAuthModule } from './oauth/oauth.module';
+import { OAuthController } from './controllers/oauth.controller';
 
 @Module({
-  imports: [PrismaModule, UserModule, EmailModule],
+  imports: [PrismaModule, UserModule, EmailModule, OAuthModule],
   controllers: [
     SignInController,
     SignUpController,
     PasswordResetController,
     SignOutController,
+    OAuthController,
   ],
   providers: [
     SignInService,

@@ -56,18 +56,20 @@ export class SignInService {
     return auth.user;
   }
 
-  async login(userId: string, provider: string, rememberMe = false) {
+  async login(userId: string, provider: string, rememberMe = false, authId?: string) {
     let auth: Auth | null = null;
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
     );
-    if (provider === 'email') {
+    if (authId) {
+      auth = await this.prisma.auth.findUnique({ where: { id: authId } });
+    } else if (provider === 'email') {
       auth = await FindAuthByUserIdQuery(this.prisma, userId);
     }
 
     if (!auth) {
       throw new UnauthorizedException(
-        ' Authentication record not found for user.',
+        'Authentication record not found for user.',
       );
     }
 
