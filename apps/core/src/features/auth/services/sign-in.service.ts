@@ -125,8 +125,14 @@ export class SignInService {
     await DeleteRefreshTokenCommand(this.prisma, refreshToken);
 
     const remainingMs = stored.expires.getTime() - Date.now();
-    const remainingDays = Math.max(1, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
-    const newRefreshToken = await this.generateRefreshToken(stored.auth.id, remainingDays);
+    const remainingDays = Math.max(
+      1,
+      Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
+    );
+    const newRefreshToken = await this.generateRefreshToken(
+      stored.auth.id,
+      remainingDays,
+    );
 
     const user = await this.prisma.user.findUnique({
       where: { id: stored.auth.userId },
