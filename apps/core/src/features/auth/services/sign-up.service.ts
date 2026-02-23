@@ -18,16 +18,6 @@ import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { TermsService } from '../../terms/services/terms.service';
 
-interface TermsItem {
-  id: string;
-  title: string;
-  content: string;
-  version: number;
-  effectiveAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 @Injectable()
 export class SignUpService {
   constructor(
@@ -51,8 +41,7 @@ export class SignUpService {
 
     try {
       // Validate terms agreement
-      const latestTerms =
-        (await this.termsService.getLatestTerms()) as TermsItem[];
+      const latestTerms = await this.termsService.getLatestTerms();
       const requiredTermsIds = latestTerms.map((term) => term.id);
 
       const missingTerms = requiredTermsIds.filter(
