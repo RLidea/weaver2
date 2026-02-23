@@ -7,6 +7,7 @@ import {
   Logger,
   Res,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -100,7 +101,7 @@ export class SignInController {
       const refreshToken = cookies?.refresh_token;
 
       if (!refreshToken || typeof refreshToken !== 'string') {
-        throw new Error('Refresh token not found in cookies');
+        throw new UnauthorizedException('Refresh token not found in cookies');
       }
 
       this.logger.debug(
