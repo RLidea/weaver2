@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OAuthProvider, OAuthTokens, OAuthUserProfile } from '../interfaces/oauth-provider.interface';
+import {
+  OAuthProvider,
+  OAuthTokens,
+  OAuthUserProfile,
+} from '../interfaces/oauth-provider.interface';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -41,8 +45,10 @@ export class GoogleOAuthProvider implements OAuthProvider {
       body: new URLSearchParams({
         code,
         client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
-        client_secret: this.configService.get<string>('GOOGLE_CLIENT_SECRET') ?? '',
-        redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
+        client_secret:
+          this.configService.get<string>('GOOGLE_CLIENT_SECRET') ?? '',
+        redirect_uri:
+          this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
         grant_type: 'authorization_code',
       }),
     });
@@ -50,7 +56,9 @@ export class GoogleOAuthProvider implements OAuthProvider {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      tokenExpiry: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
+      tokenExpiry: data.expires_in
+        ? new Date(Date.now() + data.expires_in * 1000)
+        : undefined,
     };
   }
 

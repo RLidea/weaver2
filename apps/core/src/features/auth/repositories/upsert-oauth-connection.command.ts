@@ -11,10 +11,24 @@ export function UpsertOAuthConnectionCommand(
     tokenExpiry?: Date;
   },
 ) {
-  const { authId, provider, providerId, accessToken, refreshToken, tokenExpiry } = options;
+  const {
+    authId,
+    provider,
+    providerId,
+    accessToken,
+    refreshToken,
+    tokenExpiry,
+  } = options;
   return prisma.oAuthConnection.upsert({
     where: { provider_providerId: { provider, providerId } },
-    create: { authId, provider, providerId, accessToken, refreshToken, tokenExpiry },
+    create: {
+      authId,
+      provider,
+      providerId,
+      accessToken,
+      refreshToken,
+      tokenExpiry,
+    },
     update: { accessToken, refreshToken, tokenExpiry },
   });
 }

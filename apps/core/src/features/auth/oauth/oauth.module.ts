@@ -26,7 +26,12 @@ import { NaverOAuthProvider } from './providers/naver.provider';
         registry.register(kakao);
         registry.register(naver);
       },
-      inject: [OAuthProviderRegistry, GoogleOAuthProvider, KakaoOAuthProvider, NaverOAuthProvider],
+      inject: [
+        OAuthProviderRegistry,
+        GoogleOAuthProvider,
+        KakaoOAuthProvider,
+        NaverOAuthProvider,
+      ],
     },
   ],
   exports: [OAuthService],

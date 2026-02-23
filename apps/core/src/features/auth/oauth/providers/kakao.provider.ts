@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OAuthProvider, OAuthTokens, OAuthUserProfile } from '../interfaces/oauth-provider.interface';
+import {
+  OAuthProvider,
+  OAuthTokens,
+  OAuthUserProfile,
+} from '../interfaces/oauth-provider.interface';
 
 interface KakaoTokenResponse {
   access_token: string;
@@ -43,8 +47,10 @@ export class KakaoOAuthProvider implements OAuthProvider {
       body: new URLSearchParams({
         code,
         client_id: this.configService.get<string>('KAKAO_CLIENT_ID') ?? '',
-        client_secret: this.configService.get<string>('KAKAO_CLIENT_SECRET') ?? '',
-        redirect_uri: this.configService.get<string>('KAKAO_CALLBACK_URL') ?? '',
+        client_secret:
+          this.configService.get<string>('KAKAO_CLIENT_SECRET') ?? '',
+        redirect_uri:
+          this.configService.get<string>('KAKAO_CALLBACK_URL') ?? '',
         grant_type: 'authorization_code',
       }),
     });
@@ -52,7 +58,9 @@ export class KakaoOAuthProvider implements OAuthProvider {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      tokenExpiry: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
+      tokenExpiry: data.expires_in
+        ? new Date(Date.now() + data.expires_in * 1000)
+        : undefined,
     };
   }
 
@@ -64,14 +72,17 @@ export class KakaoOAuthProvider implements OAuthProvider {
 
     const email = data.kakao_account?.email;
     if (!email) {
-      throw new BadRequestException('카카오 로그인에는 이메일 동의가 필요합니다.');
+      throw new BadRequestException(
+        '카카오 로그인에는 이메일 동의가 필요합니다.',
+      );
     }
 
     return {
       provider: this.name,
       providerId: String(data.id),
       email,
-      displayName: data.kakao_account?.profile?.nickname ?? `kakao_${String(data.id)}`,
+      displayName:
+        data.kakao_account?.profile?.nickname ?? `kakao_${String(data.id)}`,
       profileImageUrl: data.kakao_account?.profile?.profile_image_url,
     };
   }

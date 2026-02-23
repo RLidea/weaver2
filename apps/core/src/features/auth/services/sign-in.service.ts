@@ -56,7 +56,12 @@ export class SignInService {
     return auth.user;
   }
 
-  async login(userId: string, provider: string, rememberMe = false, authId?: string) {
+  async login(
+    userId: string,
+    provider: string,
+    rememberMe = false,
+    authId?: string,
+  ) {
     let auth: Auth | null = null;
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,

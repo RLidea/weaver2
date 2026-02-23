@@ -51,7 +51,9 @@ export class OAuthService {
 
     try {
       if (!cookieState || cookieState !== callbackState) {
-        throw new UnauthorizedException('OAuth state mismatch. Possible CSRF attack.');
+        throw new UnauthorizedException(
+          'OAuth state mismatch. Possible CSRF attack.',
+        );
       }
 
       const provider = this.providerRegistry.get(providerName);
