@@ -10,6 +10,7 @@ import { FindAuthByUserIdAndAuthIdQuery } from '../repositories/find-auth-by-use
 import { FindAuthByUserIdQuery } from '../repositories/find-auth-by-user-id.query';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
 import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
+import { DeleteRefreshTokenCommand } from '../repositories/delete-refresh-token.command';
 
 @Injectable()
 export class SignInService {
@@ -120,6 +121,13 @@ export class SignInService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
+    // Rotation: 기존 토큰 삭제 후 새 토큰 발급
+    await DeleteRefreshTokenCommand(this.prisma, refreshToken);
+
+    const remainingMs = stored.expires.getTime() - Date.now();
+    const remainingDays = Math.max(1, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+    const newRefreshToken = await this.generateRefreshToken(stored.auth.id, remainingDays);
+
     const user = await this.prisma.user.findUnique({
       where: { id: stored.auth.userId },
     });
@@ -129,6 +137,8 @@ export class SignInService {
         sub: user?.id,
         authId: stored.auth.id,
       }),
+      refreshToken: newRefreshToken,
+      tokenExpiry: remainingMs,
     };
   }
 }

@@ -107,14 +107,28 @@ export class SignInController {
         `Refreshing token for: ${refreshToken.substring(0, 10)}...`,
       );
 
-      const { accessToken } = await this.signInService.refresh(refreshToken);
+      const {
+        accessToken,
+        refreshToken: newRefreshToken,
+        tokenExpiry,
+      } = await this.signInService.refresh(refreshToken);
+
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
 
       // 새로운 Access Token 쿠키 설정
       res.cookie('access_token', accessToken, {
         httpOnly: true,
-        secure: this.configService.get('NODE_ENV') === 'production',
+        secure: isProduction,
         path: '/',
         maxAge: 15 * 60 * 1000, // 15분
+      });
+
+      // Rotation: 새로운 Refresh Token 쿠키로 교체
+      res.cookie('refresh_token', newRefreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        path: '/',
+        maxAge: tokenExpiry,
       });
 
       return {
