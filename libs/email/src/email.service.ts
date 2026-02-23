@@ -13,14 +13,24 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
+    const host = this.configService.get<string>('SMTP_HOST');
+    const portRaw = this.configService.get<string>('SMTP_PORT');
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+
+    if (!host || !portRaw || !user || !pass) {
+      throw new Error(
+        'Missing required SMTP environment variables: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS',
+      );
+    }
+
+    const port = parseInt(portRaw, 10);
+
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get('SMTP_HOST'),
-      port: this.configService.get('SMTP_PORT'),
-      secure: this.configService.get('SMTP_PORT') === 465,
-      auth: {
-        user: this.configService.get('SMTP_USER'),
-        pass: this.configService.get('SMTP_PASS'),
-      },
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
     });
   }
 
@@ -29,13 +39,6 @@ export class EmailService {
    * 비즈니스 로직 없이 순수하게 이메일만 발송
    */
   async sendMail(options: SendEmailOptions): Promise<EmailResult> {
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-
-    if (!user || !pass) {
-      throw new Error('SMTP credentials are missing!');
-    }
-
     try {
       // SMTP 연결 검증
       await new Promise<void>((resolve, reject) => {
