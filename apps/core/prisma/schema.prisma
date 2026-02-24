@@ -273,23 +273,8 @@ enum EmailStatus {
 }
 
 model SystemSetting {
-  id String @id @default(uuid())
-
-  // Site Information
-  siteName        String @default("Weaver2")
-  siteDescription String @default("Community Platform")
-
-  // Content Purge (null = 자동 삭제 안함)
-  contentPurgeRetentionDays Int?
-  logoUrl                   String?
-
-  // Feature Toggles
-  isRegistrationOpen   Boolean @default(true)
-  isAnnouncementActive Boolean @default(false)
-  announcementMessage  String?
-  announcementType     String  @default("info") // info, warning, success, error
-
-  createdAt DateTime @default(now())
+  key       String   @id
+  value     String
   updatedAt DateTime @updatedAt
 
   @@map("SystemSettings")

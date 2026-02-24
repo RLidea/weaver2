@@ -3,16 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminSystemSettingsApiService } from '../services/admin-system-settings.api.service';
-
-interface UpdateSystemSettingsDto {
-  siteName?: string;
-  siteDescription?: string;
-  logoUrl?: string;
-  isRegistrationOpen?: boolean;
-  isAnnouncementActive?: boolean;
-  announcementMessage?: string;
-  announcementType?: string;
-}
+import { UpdateSystemSettingDto } from '../../../../infrastructure/config/system-setting.service';
 
 @ApiTags('Admin System Settings')
 @Controller({ path: 'admin/system-settings', version: '1' })
@@ -25,26 +16,12 @@ export class AdminSystemSettingsApiController {
   @Get()
   @ApiOperation({ summary: '시스템 설정 전체 조회' })
   async getSystemSettings() {
-    try {
-      console.log('AdminSystemSettingsApiController: GET request received');
-      const settings =
-        await this.adminSystemSettingsApiService.getSystemSettings();
-      console.log(
-        'AdminSystemSettingsApiController: Settings retrieved successfully',
-      );
-      return settings;
-    } catch (error) {
-      console.error(
-        'AdminSystemSettingsApiController: Error getting settings:',
-        error,
-      );
-      throw error;
-    }
+    return this.adminSystemSettingsApiService.getSystemSettings();
   }
 
   @Put()
   @ApiOperation({ summary: '시스템 설정 수정' })
-  async updateSystemSettings(@Body() updateDto: UpdateSystemSettingsDto) {
+  async updateSystemSettings(@Body() updateDto: UpdateSystemSettingDto) {
     return this.adminSystemSettingsApiService.updateSystemSettings(updateDto);
   }
 

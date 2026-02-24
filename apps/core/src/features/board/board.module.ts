@@ -11,9 +11,10 @@ import { BoardPermissionService } from './services/board-permission.service';
 import { CategoryService } from './services/category.service';
 import { ContentPurgeService } from './services/content-purge.service';
 import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
+import { SystemSettingModule } from '../../infrastructure/config/system-setting.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SystemSettingModule],
   controllers: [
     BoardController,
     PostController,

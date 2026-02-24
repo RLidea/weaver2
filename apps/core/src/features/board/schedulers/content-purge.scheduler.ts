@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '@weaver2/prisma';
+import { Cron } from '@nestjs/schedule';
+import {
+  SystemSettingService,
+  CONFIG_KEYS,
+} from '../../../infrastructure/config/system-setting.service';
 import { ContentPurgeService } from '../services/content-purge.service';
 
 @Injectable()
@@ -8,26 +11,37 @@ export class ContentPurgeScheduler {
   private readonly logger = new Logger(ContentPurgeScheduler.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly systemSettingService: SystemSettingService,
     private readonly contentPurgeService: ContentPurgeService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  @Cron('0 * * * *')
   async handleAutoPurge() {
-    const settings = await this.prisma.systemSetting.findFirst({
-      select: { contentPurgeRetentionDays: true },
-    });
+    const retentionDaysRaw = await this.systemSettingService.getRaw(
+      CONFIG_KEYS.CONTENT_PURGE_RETENTION_DAYS,
+    );
 
-    const retentionDays = settings?.contentPurgeRetentionDays;
-
-    if (!retentionDays) {
+    if (!retentionDaysRaw) {
       this.logger.debug(
         'Auto purge skipped: contentPurgeRetentionDays is not set.',
       );
       return;
     }
 
-    this.logger.log(`Auto purge started. retentionDays=${retentionDays}`);
+    const scheduleHourRaw = await this.systemSettingService.getRaw(
+      CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR,
+    );
+    const scheduleHour = parseInt(scheduleHourRaw ?? '3', 10);
+    const currentHour = new Date().getHours();
+
+    if (currentHour !== scheduleHour) {
+      return;
+    }
+
+    const retentionDays = parseInt(retentionDaysRaw, 10);
+    this.logger.log(
+      `Auto purge started. retentionDays=${retentionDays}, scheduleHour=${scheduleHour}`,
+    );
 
     try {
       const result =
