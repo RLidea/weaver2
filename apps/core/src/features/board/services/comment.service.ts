@@ -94,6 +94,7 @@ export class CommentService {
 
     // 루트 댓글(parentId: null)만 페이지네이션, children은 include로 함께 로드
     return KeysetPaginationService.paginate<CommentDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: this.prisma.comment as any,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,

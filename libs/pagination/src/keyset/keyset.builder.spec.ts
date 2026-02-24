@@ -1,6 +1,9 @@
 import { buildKeysetWhere } from './keyset.builder';
 import { KeysetFieldDef } from './keyset.presets';
 
+type FieldCondition = Record<string, unknown>;
+type WhereWithOR = { OR: FieldCondition[] };
+
 describe('buildKeysetWhere', () => {
   const cursorValues = {
     createdAt: '2024-01-15T09:00:00.000Z',
@@ -49,7 +52,7 @@ describe('buildKeysetWhere', () => {
       { field: 'createdAt', direction: 'desc', type: 'date' },
       { field: 'id', direction: 'asc', type: 'string' },
     ];
-    const result = buildKeysetWhere(fields, cursorValues);
+    const result = buildKeysetWhere(fields, cursorValues) as WhereWithOR;
     expect(result.OR).toHaveLength(3);
     expect(result.OR[0]).toEqual({ viewCount: { lt: 42 } });
     expect(result.OR[1]).toEqual({
@@ -69,7 +72,8 @@ describe('buildKeysetWhere', () => {
     ];
     const result = buildKeysetWhere(fields, { viewCount: '42' });
     expect(result).toEqual({ viewCount: { lt: 42 } });
-    expect(typeof result.viewCount.lt).toBe('number');
+    const viewCountCond = result.viewCount as { lt: number };
+    expect(typeof viewCountCond.lt).toBe('number');
   });
 
   it('date 타입 캐스팅 - 문자열을 Date 객체로 변환', () => {
@@ -79,6 +83,7 @@ describe('buildKeysetWhere', () => {
     const result = buildKeysetWhere(fields, {
       createdAt: '2024-01-15T09:00:00.000Z',
     });
-    expect(result.createdAt.lt).toBeInstanceOf(Date);
+    const createdAtCond = result.createdAt as { lt: Date };
+    expect(createdAtCond.lt).toBeInstanceOf(Date);
   });
 });

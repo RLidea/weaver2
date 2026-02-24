@@ -10,14 +10,15 @@ import { KeysetResponseDto } from './dto/keyset-response.dto';
 
 interface KeysetPaginationOptions<T> {
   prisma: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     findMany: (args: any) => Promise<T[]>;
   };
   preset?: string | KeysetPreset;
   cursor?: string;
   limit?: number;
-  where?: any;
-  include?: any;
-  select?: any;
+  where?: Record<string, unknown>;
+  include?: Record<string, unknown>;
+  select?: Record<string, unknown>;
 }
 
 export class KeysetPaginationService {
@@ -47,14 +48,14 @@ export class KeysetPaginationService {
 
     const orderBy = preset.fields.map((f) => ({ [f.field]: f.direction }));
 
-    let finalWhere = { ...where };
+    let finalWhere: Record<string, unknown> = { ...where };
     if (cursor) {
       const cursorValues = decodeCursor(cursor);
       const keysetCondition = buildKeysetWhere(preset.fields, cursorValues);
       finalWhere = { AND: [finalWhere, keysetCondition] };
     }
 
-    const findManyArgs: any = {
+    const findManyArgs: Record<string, unknown> = {
       take: limit + 1,
       where: finalWhere,
       orderBy,
@@ -70,10 +71,10 @@ export class KeysetPaginationService {
 
     let nextCursor: string | null = null;
     if (hasNextPage && data.length > 0) {
-      const lastItem = data[data.length - 1] as any;
+      const lastItem = data[data.length - 1] as Record<string, unknown>;
       const payload: CursorPayload = {};
       for (const f of preset.fields) {
-        payload[f.field] = lastItem[f.field];
+        payload[f.field] = lastItem[f.field] as string | number | Date;
       }
       nextCursor = encodeCursor(payload);
     }

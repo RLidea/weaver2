@@ -78,6 +78,7 @@ export class PostService {
     };
 
     return KeysetPaginationService.paginate<PostDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: this.prisma.post as any,
       preset: dto.preset,
       cursor: dto.cursor,
@@ -111,6 +112,7 @@ export class PostService {
 
     // 일반 게시글: 고정 제외, keyset 페이지네이션
     const paginated = await KeysetPaginationService.paginate<PostDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: this.prisma.post as any,
       preset: dto.preset,
       cursor: dto.cursor,

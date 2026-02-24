@@ -5,7 +5,9 @@ import { OffsetResponseDto } from './dto/offset-response.dto';
 
 interface PrismaPaginationOptions<T, WhereInput> {
   prisma: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     findMany: (args: any) => Promise<T[]>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     count: (args: any) => Promise<number>;
   };
   options: {
@@ -15,8 +17,8 @@ interface PrismaPaginationOptions<T, WhereInput> {
     filter?: string;
   };
   where?: WhereInput;
-  include?: any;
-  select?: any;
+  include?: Record<string, unknown>;
+  select?: Record<string, unknown>;
 }
 
 export class OffsetPaginationService {
@@ -47,7 +49,7 @@ export class OffsetPaginationService {
     };
   }
 
-  static async buildFromPrisma<T, WhereInput = any>(
+  static async buildFromPrisma<T, WhereInput = Record<string, unknown>>(
     params: PrismaPaginationOptions<T, WhereInput>,
   ): Promise<OffsetResponseDto<T>> {
     const {
@@ -64,7 +66,12 @@ export class OffsetPaginationService {
 
     const finalWhere = { ...where, ...parsedFilter };
 
-    const findManyArgs: any = { skip, take, where: finalWhere, orderBy };
+    const findManyArgs: Record<string, unknown> = {
+      skip,
+      take,
+      where: finalWhere,
+      orderBy,
+    };
     if (include) findManyArgs.include = include;
     if (select) findManyArgs.select = select;
 

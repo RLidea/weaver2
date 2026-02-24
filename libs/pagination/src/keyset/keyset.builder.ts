@@ -14,11 +14,11 @@ import { KeysetFieldDef } from './keyset.presets';
 export function buildKeysetWhere(
   fields: KeysetFieldDef[],
   cursorValues: CursorPayload,
-): any {
-  const conditions: any[] = [];
+): Record<string, unknown> {
+  const conditions: Record<string, unknown>[] = [];
 
   for (let i = 0; i < fields.length; i++) {
-    const condition: any = {};
+    const condition: Record<string, unknown> = {};
 
     // 앞 필드들은 동등 조건
     for (let j = 0; j < i; j++) {
@@ -39,10 +39,13 @@ export function buildKeysetWhere(
   return conditions.length === 1 ? conditions[0] : { OR: conditions };
 }
 
-function castValue(value: any, type: KeysetFieldDef['type']): any {
+function castValue(
+  value: unknown,
+  type: KeysetFieldDef['type'],
+): string | number | Date {
   switch (type) {
     case 'date':
-      return value instanceof Date ? value : new Date(value as string);
+      return value instanceof Date ? value : new Date(String(value));
     case 'number':
       return typeof value === 'number' ? value : Number(value);
     default:
