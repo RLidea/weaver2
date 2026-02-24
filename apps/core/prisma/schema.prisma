@@ -21,6 +21,7 @@ model User {
   emailLogs        EmailLog[]
   pageViews        PageView[]
   posts            Post[]
+  reactions        PostReaction[]
   userSetting      UserSetting?
   userAgreements   UserTermsAgreement[]
   permissionGroups UserPermissionGroup[]
@@ -135,6 +136,7 @@ model Post {
   requiredPermission String?
   deletedAt          DateTime?
   comments           Comment[]
+  reactions          PostReaction[]
   author             User          @relation(fields: [authorId], references: [id])
   board              Board         @relation(fields: [boardId], references: [id])
   category           PostCategory? @relation(fields: [categoryId], references: [id])
@@ -256,6 +258,36 @@ model SecurityAuditReport {
   recommendations    Json?
   packageJsonHash    String?
   lockfileHash       String?
+}
+
+model Emoji {
+  id        String         @id @default(uuid())
+  code      String         @unique
+  name      String
+  unicode   String?
+  imageUrl  String?
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  reactions PostReaction[]
+
+  @@map("emojis")
+}
+
+model PostReaction {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  postId    String
+  userId    String
+  emojiId   String
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  emoji     Emoji    @relation(fields: [emojiId], references: [id])
+
+  @@unique([postId, userId, emojiId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_reactions")
 }
 
 enum PostStatus {

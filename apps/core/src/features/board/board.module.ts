@@ -8,6 +8,10 @@ import { PostAdminController } from './controllers/post-admin.controller';
 import { UserPostsController } from './controllers/user-posts.controller';
 import { CommentAdminController } from './controllers/comment-admin.controller';
 import { UserCommentsController } from './controllers/user-comments.controller';
+import { EmojiAdminController } from './controllers/emoji-admin.controller';
+import { PostReactionController } from './controllers/post-reaction.controller';
+import { EmojiService } from './services/emoji.service';
+import { ReactionService } from './services/reaction.service';
 import { BoardService } from './services/board.service';
 import { PostService } from './services/post.service';
 import { CommentService } from './services/comment.service';
@@ -28,6 +32,8 @@ import { SystemSettingModule } from '../../infrastructure/config/system-setting.
     CommentAdminController,
     UserCommentsController,
     CategoryController,
+    EmojiAdminController,
+    PostReactionController,
   ],
   providers: [
     BoardService,
@@ -37,6 +43,8 @@ import { SystemSettingModule } from '../../infrastructure/config/system-setting.
     CategoryService,
     ContentPurgeService,
     ContentPurgeScheduler,
+    EmojiService,
+    ReactionService,
   ],
   exports: [
     BoardService,

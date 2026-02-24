@@ -11,6 +11,7 @@ export const CONFIG_KEYS = {
   FEATURE_ANNOUNCEMENT_TYPE: 'feature.announcementType',
   CONTENT_PURGE_RETENTION_DAYS: 'content.purgeRetentionDays',
   CONTENT_PURGE_SCHEDULE_HOUR: 'content.purgeScheduleHour',
+  REACTION_MAX_PER_USER_PER_POST: 'reaction.maxPerUserPerPost',
 } as const;
 
 type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -25,6 +26,7 @@ const DEFAULTS: Record<ConfigKey, string | null> = {
   [CONFIG_KEYS.FEATURE_ANNOUNCEMENT_TYPE]: 'info',
   [CONFIG_KEYS.CONTENT_PURGE_RETENTION_DAYS]: null,
   [CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR]: '3',
+  [CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST]: '1',
 };
 
 export interface SystemSettingValues {
@@ -37,6 +39,7 @@ export interface SystemSettingValues {
   announcementType: string;
   contentPurgeRetentionDays: number | null;
   contentPurgeScheduleHour: number;
+  reactionMaxPerUserPerPost: number;
 }
 
 export interface UpdateSystemSettingDto {
@@ -49,6 +52,7 @@ export interface UpdateSystemSettingDto {
   announcementType?: string;
   contentPurgeRetentionDays?: number | null;
   contentPurgeScheduleHour?: number;
+  reactionMaxPerUserPerPost?: number;
 }
 
 @Injectable()
@@ -93,6 +97,10 @@ export class SystemSettingService {
         : null,
       contentPurgeScheduleHour: parseInt(
         get(CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR) ?? '3',
+        10,
+      ),
+      reactionMaxPerUserPerPost: parseInt(
+        get(CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST) ?? '1',
         10,
       ),
     };
@@ -145,6 +153,11 @@ export class SystemSettingService {
       entries.push({
         key: CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR,
         value: String(data.contentPurgeScheduleHour),
+      });
+    if (data.reactionMaxPerUserPerPost !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST,
+        value: String(data.reactionMaxPerUserPerPost),
       });
 
     await this.prisma.$transaction(
