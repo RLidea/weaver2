@@ -88,6 +88,30 @@ export class PostService {
     });
   }
 
+  async findPostsByUserId(
+    userId: string,
+    dto: KeysetRequestDto,
+    authUser?: CommonAuthUserDto,
+  ): Promise<KeysetResponseDto<PostDto>> {
+    const isSelf = authUser?.isLogin === true && authUser.id === userId;
+    const where: Record<string, unknown> = {
+      authorId: userId,
+      status: 'PUBLISHED',
+      deletedAt: null,
+      ...(!isSelf && { isSecret: false }),
+    };
+
+    return KeysetPaginationService.paginate<PostDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      prisma: this.prisma.post as any,
+      preset: dto.preset,
+      cursor: dto.cursor,
+      limit: dto.limit,
+      where,
+      include: POST_INCLUDE,
+    });
+  }
+
   async findAllPostsWithKeyset(
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
