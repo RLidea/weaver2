@@ -9,6 +9,7 @@ interface UpdateSystemSettingsDto {
   isAnnouncementActive?: boolean;
   announcementMessage?: string;
   announcementType?: string;
+  contentPurgeRetentionDays?: number | null;
 }
 
 @Injectable()
@@ -73,6 +74,7 @@ export class AdminSystemSettingsApiService {
         isAnnouncementActive: overrides.isAnnouncementActive ?? false,
         announcementMessage: overrides.announcementMessage || null,
         announcementType: overrides.announcementType || 'info',
+        contentPurgeRetentionDays: overrides.contentPurgeRetentionDays ?? null,
       };
 
       return await this.prisma.systemSetting.create({ data: defaultData });
@@ -100,6 +102,7 @@ export class AdminSystemSettingsApiService {
             isAnnouncementActive: false,
             announcementMessage: null,
             announcementType: 'info',
+            contentPurgeRetentionDays: null,
             updatedAt: new Date(),
           },
         });

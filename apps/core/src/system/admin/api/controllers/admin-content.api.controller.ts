@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -127,6 +128,18 @@ export class AdminContentApiController {
   @RequirePermission(PERMISSIONS.COMMENT.DELETE_ALL)
   async deleteComment(@Param('commentId') commentId: string) {
     return this.adminContentApiService.deleteComment(commentId);
+  }
+
+  // ============ Content Purge ============
+  @Post('purge')
+  @ApiOperation({
+    summary: '소프트 삭제된 콘텐츠 영구 삭제',
+    description:
+      'olderThanDays 미지정 시 소프트 삭제된 모든 콘텐츠를 영구 삭제합니다.',
+  })
+  @RequirePermission(PERMISSIONS.ADMIN.SYSTEM_SETTINGS)
+  async purgeDeletedContent(@Body('olderThanDays') olderThanDays?: number) {
+    return this.adminContentApiService.purgeDeletedContent(olderThanDays);
   }
 
   // ============ Statistics ============

@@ -9,6 +9,8 @@ import { PostService } from './services/post.service';
 import { CommentService } from './services/comment.service';
 import { BoardPermissionService } from './services/board-permission.service';
 import { CategoryService } from './services/category.service';
+import { ContentPurgeService } from './services/content-purge.service';
+import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
 
 @Module({
   imports: [PrismaModule],
@@ -24,6 +26,8 @@ import { CategoryService } from './services/category.service';
     CommentService,
     BoardPermissionService,
     CategoryService,
+    ContentPurgeService,
+    ContentPurgeScheduler,
   ],
   exports: [
     BoardService,
@@ -31,6 +35,7 @@ import { CategoryService } from './services/category.service';
     CommentService,
     BoardPermissionService,
     CategoryService,
+    ContentPurgeService,
   ],
 })
 export class BoardModule {}

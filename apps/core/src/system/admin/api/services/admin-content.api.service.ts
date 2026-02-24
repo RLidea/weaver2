@@ -4,6 +4,10 @@ import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
 import { BoardService } from '../../../../features/board/services/board.service';
 import { PostService } from '../../../../features/board/services/post.service';
 import { CommentService } from '../../../../features/board/services/comment.service';
+import {
+  ContentPurgeService,
+  PurgeResult,
+} from '../../../../features/board/services/content-purge.service';
 import { Prisma, PostStatus } from '@prisma/client';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 
@@ -27,6 +31,7 @@ export class AdminContentApiService {
     private readonly boardService: BoardService,
     private readonly postService: PostService,
     private readonly commentService: CommentService,
+    private readonly contentPurgeService: ContentPurgeService,
   ) {}
 
   // ============ Board Management ============
@@ -339,5 +344,10 @@ export class AdminContentApiService {
         commentCount: post._count.comments,
       })),
     };
+  }
+
+  // ============ Content Purge ============
+  async purgeDeletedContent(olderThanDays?: number): Promise<PurgeResult> {
+    return this.contentPurgeService.purgeDeletedContent(olderThanDays);
   }
 }

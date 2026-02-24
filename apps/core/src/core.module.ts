@@ -2,6 +2,7 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { CoreController } from './core.controller';
 import { CoreService } from './core.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UserModule } from './features/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
 import { RequestLoggerMiddleware } from '@weaver2/common/global/middleware/request-logger.middleware';
@@ -28,6 +29,7 @@ import { PermissionModule } from './features/permission/permission.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, 'public'),
     }),
