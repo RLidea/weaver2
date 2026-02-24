@@ -4,6 +4,7 @@ import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
 import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
+import { AdminPostsQueryDto } from '../dto/admin-posts-query.dto';
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
@@ -64,6 +65,27 @@ export class PostService {
       },
     });
     return post as PostDto;
+  }
+
+  async findAllPostsForAdmin(
+    dto: AdminPostsQueryDto,
+  ): Promise<KeysetResponseDto<PostDto>> {
+    const where: Record<string, unknown> = {};
+
+    if (dto.boardId) where.boardId = dto.boardId;
+    if (dto.authorId) where.authorId = dto.authorId;
+    if (dto.status) where.status = dto.status;
+    if (!dto.includeDeleted) where.deletedAt = null;
+
+    return KeysetPaginationService.paginate<PostDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      prisma: this.prisma.post as any,
+      preset: dto.preset,
+      cursor: dto.cursor,
+      limit: dto.limit,
+      where,
+      include: POST_INCLUDE,
+    });
   }
 
   async findAllPostsWithKeyset(
