@@ -10,7 +10,6 @@ import { KeysetResponseDto } from './dto/keyset-response.dto';
 
 interface KeysetPaginationOptions<T> {
   prisma: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     findMany: (args: any) => Promise<T[]>;
   };
   preset?: string | KeysetPreset;

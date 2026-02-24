@@ -5,9 +5,8 @@ import { OffsetResponseDto } from './dto/offset-response.dto';
 
 interface PrismaPaginationOptions<T, WhereInput> {
   prisma: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     findMany: (args: any) => Promise<T[]>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     count: (args: any) => Promise<number>;
   };
   options: {
