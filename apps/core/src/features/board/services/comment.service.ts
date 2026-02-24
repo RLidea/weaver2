@@ -80,6 +80,24 @@ export class CommentService {
     return comment as CommentDto;
   }
 
+  async findCommentsByUserId(
+    userId: string,
+    dto: KeysetRequestDto,
+  ): Promise<KeysetResponseDto<CommentDto>> {
+    return KeysetPaginationService.paginate<CommentDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      prisma: this.prisma.comment as any,
+      preset: COMMENT_PRESET,
+      cursor: dto.cursor,
+      limit: dto.limit,
+      where: { authorId: userId, deletedAt: null },
+      include: {
+        author: { select: { id: true, username: true, displayName: true } },
+        post: { select: { id: true, title: true, boardId: true } },
+      },
+    });
+  }
+
   async findAllCommentsForAdmin(
     dto: AdminCommentsQueryDto,
   ): Promise<KeysetResponseDto<CommentDto>> {
