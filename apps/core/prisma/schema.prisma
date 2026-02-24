@@ -107,11 +107,11 @@ model UserTermsAgreement {
 }
 
 model Board {
-  id          String            @id @default(uuid())
-  name        String            @unique
+  id          String         @id @default(uuid())
+  name        String         @unique
   description String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   posts       Post[]
   categories  PostCategory[]
 }
@@ -143,16 +143,16 @@ model Post {
 }
 
 model Comment {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   content   String
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   postId    String
   authorId  String
   parentId  String?
-  author    User     @relation(fields: [authorId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  author    User      @relation(fields: [authorId], references: [id])
+  post      Post      @relation(fields: [postId], references: [id])
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   children  Comment[] @relation("CommentReplies")
 
@@ -291,47 +291,47 @@ model SystemSetting {
 }
 
 model PermissionGroup {
-  id                     String                            @id @default(uuid())
-  name                   String                            @unique
-  description            String?
-  isSystem               Boolean                           @default(false)
-  createdAt              DateTime                          @default(now())
-  updatedAt              DateTime                          @updatedAt
-  permissions            PermissionGroupPermission[]
-  users                  UserPermissionGroup[]
-  allowedResourceRules   ResourcePermissionAllowedGroup[]
-  deniedResourceRules    ResourcePermissionDeniedGroup[]
+  id                   String                           @id @default(uuid())
+  name                 String                           @unique
+  description          String?
+  isSystem             Boolean                          @default(false)
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+  permissions          PermissionGroupPermission[]
+  users                UserPermissionGroup[]
+  allowedResourceRules ResourcePermissionAllowedGroup[]
+  deniedResourceRules  ResourcePermissionDeniedGroup[]
 }
 
 model PermissionGroupPermission {
-  id                  String          @id @default(uuid())
-  permissionGroupId   String
-  permission          String
-  createdAt           DateTime        @default(now())
-  permissionGroup     PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+  id                String          @id @default(uuid())
+  permissionGroupId String
+  permission        String
+  createdAt         DateTime        @default(now())
+  permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([permissionGroupId, permission])
 }
 
 model UserPermissionGroup {
-  id                  String          @id @default(uuid())
-  userId              String
-  permissionGroupId   String
-  createdAt           DateTime        @default(now())
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissionGroup     PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+  id                String          @id @default(uuid())
+  userId            String
+  permissionGroupId String
+  createdAt         DateTime        @default(now())
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, permissionGroupId])
 }
 
 model ResourcePermission {
-  id             String                            @id @default(uuid())
+  id             String                           @id @default(uuid())
   resourceType   String
   resourceId     String
   action         String
-  allowAnonymous Boolean                           @default(false)
-  createdAt      DateTime                          @default(now())
-  updatedAt      DateTime                          @updatedAt
+  allowAnonymous Boolean                          @default(false)
+  createdAt      DateTime                         @default(now())
+  updatedAt      DateTime                         @updatedAt
   allowedGroups  ResourcePermissionAllowedGroup[]
   deniedGroups   ResourcePermissionDeniedGroup[]
 

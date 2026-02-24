@@ -7,8 +7,10 @@ export class CommentDto {
   @ApiProperty({ description: 'Comment content' })
   content: string;
 
-  @ApiProperty({ description: '삭제 여부' })
-  isDeleted: boolean;
+  @ApiPropertyOptional({
+    description: '소프트 삭제 시각 (null이면 삭제되지 않음)',
+  })
+  deletedAt: Date | null;
 
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;

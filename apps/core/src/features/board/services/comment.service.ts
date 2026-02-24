@@ -50,14 +50,14 @@ export class CommentService {
     if (dto.parentId) {
       const parentComment = await this.prisma.comment.findUnique({
         where: { id: dto.parentId },
-        select: { postId: true, isDeleted: true },
+        select: { postId: true, deletedAt: true },
       });
       if (!parentComment) {
         throw new NotFoundException(
           `Parent comment with ID '${dto.parentId}' not found.`,
         );
       }
-      if (parentComment.isDeleted) {
+      if (parentComment.deletedAt !== null) {
         throw new BadRequestException(
           '삭제된 댓글에는 답글을 작성할 수 없습니다.',
         );
