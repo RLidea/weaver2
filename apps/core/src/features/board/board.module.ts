@@ -12,7 +12,12 @@ import { CategoryService } from './services/category.service';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [BoardController, PostController, CommentController, CategoryController],
+  controllers: [
+    BoardController,
+    PostController,
+    CommentController,
+    CategoryController,
+  ],
   providers: [
     BoardService,
     PostService,
@@ -20,6 +25,12 @@ import { CategoryService } from './services/category.service';
     BoardPermissionService,
     CategoryService,
   ],
-  exports: [BoardService, PostService, CommentService, BoardPermissionService, CategoryService],
+  exports: [
+    BoardService,
+    PostService,
+    CommentService,
+    BoardPermissionService,
+    CategoryService,
+  ],
 })
 export class BoardModule {}

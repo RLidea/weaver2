@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PostStatus } from '@prisma/client';
 import { BoardDto } from './board.dto';
 
 export class PostDto {
@@ -13,6 +14,21 @@ export class PostDto {
 
   @ApiProperty({ description: 'View count' })
   viewCount: number;
+
+  @ApiProperty({ description: '게시글 상태', enum: PostStatus })
+  status: PostStatus;
+
+  @ApiProperty({ description: '고정 여부' })
+  isPinned: boolean;
+
+  @ApiProperty({ description: '비밀글 여부' })
+  isSecret: boolean;
+
+  @ApiProperty({ description: '우선순위' })
+  priority: number;
+
+  @ApiPropertyOptional({ description: '카테고리 ID' })
+  categoryId: string | null;
 
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;

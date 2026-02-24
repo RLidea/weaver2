@@ -73,7 +73,10 @@ export class CategoryController {
   @Delete(':categoryId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '카테고리 삭제 (관리자 전용)' })
-  @ApiStandardResponses({ status: 204, description: 'Category deleted successfully' })
+  @ApiStandardResponses({
+    status: 204,
+    description: 'Category deleted successfully',
+  })
   @RequirePermission(PERMISSIONS.BOARD.MANAGE)
   async delete(
     @Param('boardId') boardId: string,

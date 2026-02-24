@@ -44,7 +44,10 @@ export class UpdatePostDto {
   @Min(0)
   priority?: number;
 
-  @ApiPropertyOptional({ description: '카테고리 ID (null 전송 시 카테고리 해제)', nullable: true })
+  @ApiPropertyOptional({
+    description: '카테고리 ID (null 전송 시 카테고리 해제)',
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   categoryId?: string | null;

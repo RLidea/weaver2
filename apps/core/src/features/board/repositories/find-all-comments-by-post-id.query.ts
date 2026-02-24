@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
-const AUTHOR_SELECT = { select: { id: true, username: true, displayName: true } };
+const AUTHOR_SELECT = {
+  select: { id: true, username: true, displayName: true },
+};
 
 // Prisma는 무제한 재귀를 지원하지 않으므로 4단계 depth까지 중첩
 export const COMMENT_CHILDREN_INCLUDE = {

@@ -3,6 +3,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
 import { PostDto } from '../dto/post.dto';
+import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
@@ -13,6 +14,11 @@ import {
 } from '@weaver2/pagination';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { Prisma } from '@prisma/client';
+
+const POST_INCLUDE = {
+  board: true,
+  author: { select: { id: true, username: true, displayName: true } },
+} as const;
 
 @Injectable()
 export class PostService {
@@ -76,10 +82,7 @@ export class PostService {
       cursor: dto.cursor,
       limit: dto.limit,
       where,
-      include: {
-        board: true,
-        author: { select: { id: true, username: true, displayName: true } },
-      },
+      include: POST_INCLUDE,
     });
   }
 
@@ -87,27 +90,37 @@ export class PostService {
     boardId: string,
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
-  ): Promise<KeysetResponseDto<PostDto>> {
+  ): Promise<BoardPostsResponseDto> {
     await this.boardService.findBoardById(boardId);
 
     const isLoggedIn = authUser?.isLogin === true;
-    const where = {
+    const baseWhere = {
       boardId,
       status: 'PUBLISHED' as const,
       ...(!isLoggedIn && { isSecret: false }),
     };
 
-    return KeysetPaginationService.paginate<PostDto>({
+    // 고정 게시글: priority 내림차순 → 최신순 정렬
+    const pinnedPosts = await this.prisma.post.findMany({
+      where: { ...baseWhere, isPinned: true },
+      include: POST_INCLUDE,
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    // 일반 게시글: 고정 제외, keyset 페이지네이션
+    const paginated = await KeysetPaginationService.paginate<PostDto>({
       prisma: this.prisma.post as any,
       preset: dto.preset,
       cursor: dto.cursor,
       limit: dto.limit,
-      where,
-      include: {
-        board: true,
-        author: { select: { id: true, username: true, displayName: true } },
-      },
+      where: { ...baseWhere, isPinned: false },
+      include: POST_INCLUDE,
     });
+
+    return {
+      ...paginated,
+      pinnedPosts: pinnedPosts as PostDto[],
+    };
   }
 
   async findPostById(

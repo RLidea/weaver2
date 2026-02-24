@@ -58,7 +58,9 @@ export class CommentService {
         );
       }
       if (parentComment.isDeleted) {
-        throw new BadRequestException('삭제된 댓글에는 답글을 작성할 수 없습니다.');
+        throw new BadRequestException(
+          '삭제된 댓글에는 답글을 작성할 수 없습니다.',
+        );
       }
       if (parentComment.postId !== postId) {
         throw new BadRequestException(
@@ -79,7 +81,9 @@ export class CommentService {
 
   async findAllCommentsByPostId(postId: string): Promise<CommentDto[]> {
     await this.postService.findPostById(postId);
-    return FindAllCommentsByPostIdQuery(this.prisma, postId) as Promise<CommentDto[]>;
+    return FindAllCommentsByPostIdQuery(this.prisma, postId) as Promise<
+      CommentDto[]
+    >;
   }
 
   async findCommentsByPostIdWithKeyset(

@@ -26,7 +26,11 @@ export class CreatePostDto {
   @IsNotEmpty()
   content: string;
 
-  @ApiPropertyOptional({ description: '게시글 상태', enum: PostStatus, default: PostStatus.PUBLISHED })
+  @ApiPropertyOptional({
+    description: '게시글 상태',
+    enum: PostStatus,
+    default: PostStatus.PUBLISHED,
+  })
   @IsOptional()
   @IsEnum(PostStatus)
   status?: PostStatus;
@@ -41,7 +45,10 @@ export class CreatePostDto {
   @IsBoolean()
   isSecret?: boolean;
 
-  @ApiPropertyOptional({ description: '우선순위 (높을수록 상단 노출)', default: 0 })
+  @ApiPropertyOptional({
+    description: '우선순위 (높을수록 상단 노출)',
+    default: 0,
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

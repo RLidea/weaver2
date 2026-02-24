@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
+import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { CommentDto } from '../dto/comment.dto';
 import { KeysetRequestDto, KeysetResponseDto } from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
@@ -72,7 +73,7 @@ export class PostController {
     @Query('boardId') boardId?: string,
     @Query() keysetDto?: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
-  ): Promise<KeysetResponseDto<PostDto>> {
+  ): Promise<BoardPostsResponseDto | KeysetResponseDto<PostDto>> {
     const dto = keysetDto ?? new KeysetRequestDto();
 
     if (boardId) {
