@@ -132,6 +132,7 @@ model Post {
   status             PostStatus    @default(PUBLISHED)
   viewCount          Int           @default(0)
   requiredPermission String?
+  deletedAt          DateTime?
   comments           Comment[]
   author             User          @relation(fields: [authorId], references: [id])
   board              Board         @relation(fields: [boardId], references: [id])

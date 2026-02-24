@@ -462,6 +462,7 @@ export class AdminAnalyticsApiService {
         },
       },
       where: {
+        deletedAt: null,
         createdAt: filter.from
           ? { gte: filter.from, lte: filter.to }
           : undefined,

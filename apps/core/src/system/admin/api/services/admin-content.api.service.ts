@@ -154,7 +154,7 @@ export class AdminContentApiService {
   async getPosts(options: PostsFilterOptions) {
     const { pagination, boardId, status, search } = options;
 
-    const where: Prisma.PostWhereInput = {};
+    const where: Prisma.PostWhereInput = { deletedAt: null };
     if (boardId) where.boardId = boardId;
     if (status) where.status = status;
     if (search) {
@@ -292,13 +292,14 @@ export class AdminContentApiService {
     const [board, totalPosts, totalComments, recentActivity, topPosts] =
       await Promise.all([
         this.prisma.board.findUnique({ where: { id: boardId } }),
-        this.prisma.post.count({ where: { boardId } }),
+        this.prisma.post.count({ where: { boardId, deletedAt: null } }),
         this.prisma.comment.count({
-          where: { post: { boardId } },
+          where: { post: { boardId, deletedAt: null } },
         }),
         this.prisma.post.findMany({
           where: {
             boardId,
+            deletedAt: null,
             createdAt: {
               gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
             },
@@ -309,7 +310,7 @@ export class AdminContentApiService {
           orderBy: { createdAt: 'desc' },
         }),
         this.prisma.post.findMany({
-          where: { boardId },
+          where: { boardId, deletedAt: null },
           include: {
             _count: {
               select: { comments: true },

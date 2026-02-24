@@ -36,6 +36,11 @@ export class PostDto {
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
 
+  @ApiPropertyOptional({
+    description: '소프트 삭제 시각 (null이면 삭제되지 않음)',
+  })
+  deletedAt: Date | null;
+
   @ApiProperty({ description: 'Board ID' })
   boardId: string;
 

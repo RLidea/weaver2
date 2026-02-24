@@ -103,6 +103,7 @@ export class SearchService {
     return this.prisma.post.findMany({
       where: {
         id: { in: postIds },
+        deletedAt: null,
       },
       include: {
         board: true,

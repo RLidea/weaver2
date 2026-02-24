@@ -73,6 +73,7 @@ export class PostService {
     const isLoggedIn = authUser?.isLogin === true;
     const where = {
       status: 'PUBLISHED' as const,
+      deletedAt: null,
       ...(!isLoggedIn && { isSecret: false }),
     };
 
@@ -97,6 +98,7 @@ export class PostService {
     const baseWhere = {
       boardId,
       status: 'PUBLISHED' as const,
+      deletedAt: null,
       ...(!isLoggedIn && { isSecret: false }),
     };
 
@@ -132,6 +134,7 @@ export class PostService {
     const whereCondition = {
       id,
       status: 'PUBLISHED' as const,
+      deletedAt: null,
       // 로그인하지 않은 사용자는 비밀글 접근 불가
       ...(!isLoggedIn && { isSecret: false }),
     };

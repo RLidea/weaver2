@@ -5,7 +5,7 @@ export async function FindAllPostsByBoardIdQuery(
   boardId: string,
 ) {
   return prisma.post.findMany({
-    where: { boardId },
+    where: { boardId, deletedAt: null },
     include: {
       author: { select: { id: true, username: true, displayName: true } },
       board: {
