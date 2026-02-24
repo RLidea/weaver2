@@ -404,6 +404,7 @@ export class AdminAnalyticsApiService {
 
   private async getTopBoards(filter: TimeRangeFilter) {
     const boards = await this.prisma.board.findMany({
+      where: { deletedAt: null },
       select: {
         name: true,
         _count: {

@@ -32,6 +32,7 @@ export class AdminContentApiService {
   // ============ Board Management ============
   async getBoardsWithStats() {
     const boards = await this.prisma.board.findMany({
+      where: { deletedAt: null },
       include: {
         _count: {
           select: {
@@ -258,6 +259,7 @@ export class AdminContentApiService {
         },
       }),
       this.prisma.board.findMany({
+        where: { deletedAt: null },
         include: {
           _count: {
             select: { posts: true },
@@ -291,7 +293,9 @@ export class AdminContentApiService {
   async getBoardStats(boardId: string) {
     const [board, totalPosts, totalComments, recentActivity, topPosts] =
       await Promise.all([
-        this.prisma.board.findUnique({ where: { id: boardId } }),
+        this.prisma.board.findUnique({
+          where: { id: boardId, deletedAt: null },
+        }),
         this.prisma.post.count({ where: { boardId, deletedAt: null } }),
         this.prisma.comment.count({
           where: { post: { boardId, deletedAt: null } },

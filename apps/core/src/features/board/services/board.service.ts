@@ -22,8 +22,8 @@ export class BoardService {
   ) {}
 
   async createBoard(dto: CreateBoardDto): Promise<BoardDto> {
-    const existingBoard = await this.prisma.board.findUnique({
-      where: { name: dto.name },
+    const existingBoard = await this.prisma.board.findFirst({
+      where: { name: dto.name, deletedAt: null },
     });
     if (existingBoard) {
       throw new ConflictException(
@@ -61,8 +61,8 @@ export class BoardService {
     }
 
     if (dto.name && dto.name !== existingBoard.name) {
-      const nameConflict = await this.prisma.board.findUnique({
-        where: { name: dto.name },
+      const nameConflict = await this.prisma.board.findFirst({
+        where: { name: dto.name, deletedAt: null },
       });
       if (nameConflict) {
         throw new ConflictException(
