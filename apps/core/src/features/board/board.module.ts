@@ -6,6 +6,7 @@ import { CommentController } from './controllers/comment.controller';
 import { CategoryController } from './controllers/category.controller';
 import { PostAdminController } from './controllers/post-admin.controller';
 import { UserPostsController } from './controllers/user-posts.controller';
+import { CommentAdminController } from './controllers/comment-admin.controller';
 import { BoardService } from './services/board.service';
 import { PostService } from './services/post.service';
 import { CommentService } from './services/comment.service';
@@ -23,6 +24,7 @@ import { SystemSettingModule } from '../../infrastructure/config/system-setting.
     PostAdminController,
     UserPostsController,
     CommentController,
+    CommentAdminController,
     CategoryController,
   ],
   providers: [

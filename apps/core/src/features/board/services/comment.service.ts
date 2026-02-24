@@ -22,6 +22,7 @@ import {
   KeysetRequestDto,
   KeysetResponseDto,
 } from '@weaver2/pagination';
+import { AdminCommentsQueryDto } from '../dto/admin-comments-query.dto';
 
 // 댓글은 시간순(오름차순) 고정 정렬 — 전역 KEYSET_PRESETS에 등록하지 않음
 const COMMENT_PRESET: KeysetPreset = {
@@ -77,6 +78,29 @@ export class CommentService {
       dto.parentId,
     );
     return comment as CommentDto;
+  }
+
+  async findAllCommentsForAdmin(
+    dto: AdminCommentsQueryDto,
+  ): Promise<KeysetResponseDto<CommentDto>> {
+    const where: Record<string, unknown> = {};
+
+    if (dto.postId) where.postId = dto.postId;
+    if (dto.authorId) where.authorId = dto.authorId;
+    if (!dto.includeDeleted) where.deletedAt = null;
+
+    return KeysetPaginationService.paginate<CommentDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      prisma: this.prisma.comment as any,
+      preset: COMMENT_PRESET,
+      cursor: dto.cursor,
+      limit: dto.limit,
+      where,
+      include: {
+        author: { select: { id: true, username: true, displayName: true } },
+        post: { select: { id: true, title: true, boardId: true } },
+      },
+    });
   }
 
   async findAllCommentsByPostId(postId: string): Promise<CommentDto[]> {
