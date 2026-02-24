@@ -74,10 +74,9 @@ describe('CursorPaginationService', () => {
       limit: 10,
     });
 
-    const args = prismaMock.findMany.mock.calls[0][0] as {
-      cursor: Record<string, unknown>;
-      skip: number;
-    };
+    const [[args]] = prismaMock.findMany.mock.calls as [
+      { cursor: Record<string, unknown>; skip: number },
+    ][];
     expect(args.cursor).toEqual({ id: 'id-9' });
     expect(args.skip).toBe(1);
   });

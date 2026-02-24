@@ -24,9 +24,9 @@ describe('KeysetPaginationService', () => {
     expect(result.nextCursor).not.toBeNull();
 
     // WHERE 조건에 keyset 없어야 함 (첫 페이지)
-    const args = prismaMock.findMany.mock.calls[0][0] as {
-      where: Record<string, unknown>;
-    };
+    const [[args]] = prismaMock.findMany.mock.calls as [
+      { where: Record<string, unknown> },
+    ][];
     expect(args.where).not.toHaveProperty('AND');
   });
 
@@ -44,9 +44,9 @@ describe('KeysetPaginationService', () => {
       limit: 10,
     });
 
-    const args = prismaMock.findMany.mock.calls[0][0] as {
-      where: Record<string, unknown>;
-    };
+    const [[args]] = prismaMock.findMany.mock.calls as [
+      { where: Record<string, unknown> },
+    ][];
     expect(args.where).toHaveProperty('AND');
   });
 
@@ -61,9 +61,9 @@ describe('KeysetPaginationService', () => {
     });
 
     // orderBy에 viewCount 포함
-    const args = prismaMock.findMany.mock.calls[0][0] as {
-      orderBy: Array<Record<string, string>>;
-    };
+    const [[args]] = prismaMock.findMany.mock.calls as [
+      { orderBy: Array<Record<string, string>> },
+    ][];
     expect(args.orderBy[0]).toEqual({ viewCount: 'desc' });
     expect(result.hasNextPage).toBe(false);
   });
@@ -80,9 +80,9 @@ describe('KeysetPaginationService', () => {
       limit: 10,
     });
 
-    const args = prismaMock.findMany.mock.calls[0][0] as {
-      orderBy: Array<Record<string, string>>;
-    };
+    const [[args]] = prismaMock.findMany.mock.calls as [
+      { orderBy: Array<Record<string, string>> },
+    ][];
     expect(args.orderBy[0]).toEqual({ priority: 'desc' });
   });
 
