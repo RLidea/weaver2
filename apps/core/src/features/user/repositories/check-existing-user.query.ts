@@ -8,9 +8,8 @@ export async function CheckExistingUserQuery(
   const { username, displayName, email } = options;
   const existingUser = await prisma.user.findFirst({
     where: {
-      OR: [{ username }, { displayName }, { auths: { some: { email } } }],
+      OR: [{ username }, { displayName }, { email }],
     },
-    include: { auths: true },
   });
   if (existingUser) {
     throw new ConflictException('User already exist.');

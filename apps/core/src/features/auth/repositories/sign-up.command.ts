@@ -16,12 +16,12 @@ export function SignUpCommand(
       data: {
         username,
         displayName,
+        email,
       },
     });
 
-    await tx.auth.create({
+    await tx.localCredential.create({
       data: {
-        email,
         password: hashedPassword,
         userId: user.id,
       },

@@ -10,13 +10,13 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { Response } from 'express';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
-import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
-import { FindOAuthConnectionQuery } from '../repositories/find-oauth-connection.query';
-import { FindOAuthConnectionsByAuthIdQuery } from '../repositories/find-oauth-connections-by-auth-id.query';
-import { UpsertOAuthConnectionCommand } from '../repositories/upsert-oauth-connection.command';
+import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
+import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
+import { FindOAuthAccountsByUserIdQuery } from '../repositories/find-oauth-accounts-by-user-id.query';
+import { UpsertOAuthAccountCommand } from '../repositories/upsert-oauth-account.command';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
-import { DeleteOAuthConnectionCommand } from '../repositories/delete-oauth-connection.command';
+import { DeleteOAuthAccountCommand } from '../repositories/delete-oauth-account.command';
 import {
   OAuthTokens,
   OAuthUserProfile,
@@ -66,15 +66,15 @@ export class OAuthService {
         `OAuth profile: provider=${profile.provider}, email=${profile.email}`,
       );
 
-      const { userId, authId } = await this.findOrCreateUser(profile, tokens);
+      const { userId } = await this.findOrCreateUser(profile, tokens);
 
       await this.prisma.user.update({
         where: { id: userId },
         data: { lastLoginAt: new Date() },
       });
 
-      const accessToken = this.jwtService.sign({ sub: userId, authId });
-      const refreshToken = await this.generateRefreshToken(authId, 7);
+      const accessToken = this.jwtService.sign({ sub: userId });
+      const refreshToken = await this.generateRefreshToken(userId, 7);
       const tokenExpiry = 7 * 24 * 60 * 60 * 1000;
 
       const isProduction = this.configService.get('NODE_ENV') === 'production';
@@ -100,19 +100,20 @@ export class OAuthService {
     }
   }
 
-  async getMyConnections(authId: string) {
-    return FindOAuthConnectionsByAuthIdQuery(this.prisma, authId);
+  async getMyConnections(userId: string) {
+    return FindOAuthAccountsByUserIdQuery(this.prisma, userId);
   }
 
-  async disconnectProvider(authId: string, provider: string): Promise<void> {
-    const auth = await this.prisma.auth.findUnique({ where: { id: authId } });
-    if (!auth) throw new BadRequestException('Auth record not found.');
+  async disconnectProvider(userId: string, provider: string): Promise<void> {
+    const localCredential = await this.prisma.localCredential.findUnique({
+      where: { userId },
+    });
 
     // 비밀번호가 없는 OAuth 전용 계정인 경우 마지막 연동은 해제 불가
-    if (!auth.password) {
-      const connections = await FindOAuthConnectionsByAuthIdQuery(
+    if (!localCredential) {
+      const connections = await FindOAuthAccountsByUserIdQuery(
         this.prisma,
-        authId,
+        userId,
       );
       if (connections.length <= 1) {
         throw new BadRequestException(
@@ -121,53 +122,53 @@ export class OAuthService {
       }
     }
 
-    await DeleteOAuthConnectionCommand(this.prisma, authId, provider);
+    await DeleteOAuthAccountCommand(this.prisma, userId, provider);
   }
 
   private async generateRefreshToken(
-    authId: string,
+    userId: string,
     expiryDays: number,
   ): Promise<string> {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
-    await CreateRefreshTokenCommand(this.prisma, authId, token, expires);
+    await CreateRefreshTokenCommand(this.prisma, userId, token, expires);
     return token;
   }
 
   private async findOrCreateUser(
     profile: OAuthUserProfile,
     tokens: OAuthTokens,
-  ): Promise<{ userId: string; authId: string }> {
-    // 1. 기존 OAuthConnection으로 조회
-    const existing = await FindOAuthConnectionQuery(
+  ): Promise<{ userId: string }> {
+    // 1. 기존 OAuthAccount으로 조회
+    const existing = await FindOAuthAccountQuery(
       this.prisma,
       profile.provider,
       profile.providerId,
     );
     if (existing) {
-      await UpsertOAuthConnectionCommand(this.prisma, {
-        authId: existing.authId,
+      await UpsertOAuthAccountCommand(this.prisma, {
+        userId: existing.userId,
         provider: profile.provider,
         providerId: profile.providerId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         tokenExpiry: tokens.tokenExpiry,
       });
-      return { userId: existing.auth.userId, authId: existing.authId };
+      return { userId: existing.userId };
     }
 
-    // 2. 같은 이메일 Auth 조회 → 자동 연동
-    const existingAuth = await FindAuthByEmailQuery(this.prisma, profile.email);
-    if (existingAuth) {
-      await UpsertOAuthConnectionCommand(this.prisma, {
-        authId: existingAuth.id,
+    // 2. 같은 이메일 User 조회 → 자동 연동
+    const existingUser = await FindUserByEmailQuery(this.prisma, profile.email);
+    if (existingUser) {
+      await UpsertOAuthAccountCommand(this.prisma, {
+        userId: existingUser.id,
         provider: profile.provider,
         providerId: profile.providerId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         tokenExpiry: tokens.tokenExpiry,
       });
-      return { userId: existingAuth.userId, authId: existingAuth.id };
+      return { userId: existingUser.id };
     }
 
     // 3. 신규 사용자 생성

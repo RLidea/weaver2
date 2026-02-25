@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
-export function UpsertOAuthConnectionCommand(
+export function UpsertOAuthAccountCommand(
   prisma: PrismaClient,
   options: {
-    authId: string;
+    userId: string;
     provider: string;
     providerId: string;
     accessToken?: string;
@@ -12,17 +12,17 @@ export function UpsertOAuthConnectionCommand(
   },
 ) {
   const {
-    authId,
+    userId,
     provider,
     providerId,
     accessToken,
     refreshToken,
     tokenExpiry,
   } = options;
-  return prisma.oAuthConnection.upsert({
+  return prisma.oAuthAccount.upsert({
     where: { provider_providerId: { provider, providerId } },
     create: {
-      authId,
+      userId,
       provider,
       providerId,
       accessToken,

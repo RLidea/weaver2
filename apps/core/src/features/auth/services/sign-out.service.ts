@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { DeleteRefreshTokensByAuthIdCommand } from '../repositories/delete-refresh-tokens-by-auth-id.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 
 @Injectable()
 export class SignOutService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async signOut(authId: string): Promise<void> {
-    await DeleteRefreshTokensByAuthIdCommand(this.prisma, authId);
+  async signOut(userId: string): Promise<void> {
+    await DeleteRefreshTokensByUserIdCommand(this.prisma, userId);
   }
 }

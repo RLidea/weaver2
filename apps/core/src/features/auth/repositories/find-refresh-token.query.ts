@@ -6,6 +6,6 @@ export async function FindRefreshTokenQuery(
 ) {
   return prisma.refreshToken.findUnique({
     where: { token: token },
-    include: { auth: true },
+    include: { user: true },
   });
 }

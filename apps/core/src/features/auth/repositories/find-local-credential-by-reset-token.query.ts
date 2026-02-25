@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
-export async function FindAuthByPasswordResetTokenQuery(
+export async function FindLocalCredentialByResetTokenQuery(
   prisma: PrismaClient,
   token: string,
 ) {
-  return prisma.auth.findFirst({
+  return prisma.localCredential.findFirst({
     where: {
       passwordResetToken: token,
       resetTokenExpiry: {

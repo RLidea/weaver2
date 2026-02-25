@@ -8,9 +8,8 @@ export const AuthUser = createParamDecorator((data, ctx: ExecutionContext) => {
     return {
       id: request.user.sub || request.user.id,
       username: request.user.username,
-      role: request.user.role,
-      authId: request.user.authId,
       isLogin: request.user.isLogin,
+      userSetting: request.user.userSetting,
     };
   } else {
     return undefined;

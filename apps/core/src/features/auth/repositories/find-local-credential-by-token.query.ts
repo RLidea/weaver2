@@ -1,12 +1,12 @@
 import { PrismaService } from '@weaver2/prisma';
 
-export function FindAuthByTokenQuery(
+export function FindLocalCredentialByTokenQuery(
   prisma: PrismaService,
   options: {
     verificationToken: string;
   },
 ) {
-  return prisma.auth.findUnique({
+  return prisma.localCredential.findUnique({
     where: { verificationToken: options.verificationToken },
   });
 }

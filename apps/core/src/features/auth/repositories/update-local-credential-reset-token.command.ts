@@ -1,13 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 
-export async function UpdateAuthPasswordResetTokenCommand(
+export async function UpdateLocalCredentialResetTokenCommand(
   prisma: PrismaClient,
-  authId: string,
+  userId: string,
   token: string,
   expiry: Date,
 ) {
-  return prisma.auth.update({
-    where: { id: authId },
+  return prisma.localCredential.update({
+    where: { userId },
     data: {
       passwordResetToken: token,
       resetTokenExpiry: expiry,

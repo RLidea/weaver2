@@ -13,7 +13,7 @@ export async function CreateOAuthUserCommand(
     refreshToken?: string;
     tokenExpiry?: Date;
   },
-): Promise<{ userId: string; authId: string }> {
+): Promise<{ userId: string }> {
   const {
     username,
     displayName,
@@ -27,29 +27,20 @@ export async function CreateOAuthUserCommand(
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
-      data: { username, displayName },
+      data: { username, displayName, email },
     });
 
-    const auth = await tx.auth.create({
-      data: {
-        email,
-        password: null,
-        isVerified: true,
-        userId: user.id,
-      },
-    });
-
-    await tx.oAuthConnection.create({
+    await tx.oAuthAccount.create({
       data: {
         provider,
         providerId,
         accessToken,
         refreshToken,
         tokenExpiry,
-        authId: auth.id,
+        userId: user.id,
       },
     });
 
-    return { userId: user.id, authId: auth.id };
+    return { userId: user.id };
   });
 }

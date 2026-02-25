@@ -2,8 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { ChangePasswordDto } from '../dto/change-password.dto';
-import { FindAuthByUserIdQuery } from '../../auth/repositories/find-auth-by-user-id.query';
-import { UpdateAuthPasswordByUserIdCommand } from '../../auth/repositories/update-auth-password-by-user-id.command';
+import { FindLocalCredentialByUserIdQuery } from '../../auth/repositories/find-local-credential-by-user-id.query';
+import { UpdateLocalCredentialPasswordCommand } from '../../auth/repositories/update-local-credential-password.command';
 
 @Injectable()
 export class ChangePasswordService {
@@ -15,9 +15,12 @@ export class ChangePasswordService {
   ): Promise<void> {
     const { currentPassword, newPassword } = changePasswordDto;
 
-    const auth = await FindAuthByUserIdQuery(this.prisma, userId);
+    const credential = await FindLocalCredentialByUserIdQuery(
+      this.prisma,
+      userId,
+    );
 
-    if (!auth || !auth.password) {
+    if (!credential || !credential.password) {
       throw new UnauthorizedException(
         'Authentication record not found or password not set.',
       );
@@ -25,7 +28,7 @@ export class ChangePasswordService {
 
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      auth.password,
+      credential.password,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid current password.');
@@ -33,7 +36,7 @@ export class ChangePasswordService {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    await UpdateAuthPasswordByUserIdCommand(
+    await UpdateLocalCredentialPasswordCommand(
       this.prisma,
       userId,
       hashedNewPassword,

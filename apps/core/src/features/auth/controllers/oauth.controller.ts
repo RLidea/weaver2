@@ -31,7 +31,7 @@ export class OAuthController {
   @Get('connections')
   @ApiOperation({ summary: '내 소셜 계정 연동 목록 조회' })
   getMyConnections(@AuthUser() authUser: CommonAuthUserDto) {
-    return this.oauthService.getMyConnections(authUser.authId);
+    return this.oauthService.getMyConnections(authUser.id);
   }
 
   @Delete('connections/:provider')
@@ -41,7 +41,7 @@ export class OAuthController {
     @AuthUser() authUser: CommonAuthUserDto,
     @Param('provider') provider: string,
   ) {
-    await this.oauthService.disconnectProvider(authUser.authId, provider);
+    await this.oauthService.disconnectProvider(authUser.id, provider);
     return { message: `${provider} connection has been disconnected.` };
   }
 

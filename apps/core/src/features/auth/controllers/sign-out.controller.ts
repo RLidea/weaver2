@@ -20,7 +20,7 @@ export class SignOutController {
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
     try {
-      await this.signOutService.signOut(authUser.authId);
+      await this.signOutService.signOut(authUser.id);
     } finally {
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');

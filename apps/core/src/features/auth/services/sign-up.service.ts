@@ -10,8 +10,8 @@ import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import * as bcrypt from 'bcrypt';
 import { SignUpCommand } from '../repositories/sign-up.command';
 import { CreateValidationTokenCommand } from '../repositories/create-validation-token.command';
-import { FindAuthByTokenQuery } from '../repositories/find-auth-by-token.query';
-import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
+import { FindLocalCredentialByTokenQuery } from '../repositories/find-local-credential-by-token.query';
+import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { FindUserService } from '../../user/services/find-user.service';
 import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
 import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
@@ -83,7 +83,6 @@ export class SignUpService {
       // create validation token
       const token = await CreateValidationTokenCommand(this.prisma, {
         userId: createdUser.id,
-        email,
       });
 
       // send verification email using template
@@ -113,10 +112,10 @@ export class SignUpService {
   }
 
   async resendVerificationEmail(email: string): Promise<{ message: string }> {
-    const auth = await FindAuthByEmailQuery(this.prisma, email);
+    const user = await FindUserByEmailQuery(this.prisma, email);
 
     // 계정 존재 여부를 노출하지 않기 위해 동일한 응답 반환
-    if (!auth || auth.isVerified) {
+    if (!user || !user.localCredential || user.localCredential.isVerified) {
       return {
         message:
           'If the email address exists and is unverified, a new verification email has been sent.',
@@ -124,14 +123,13 @@ export class SignUpService {
     }
 
     const token = await CreateValidationTokenCommand(this.prisma, {
-      userId: auth.userId,
-      email,
+      userId: user.id,
     });
 
     await this.emailBusinessService.sendVerificationEmail(
       email,
       `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
-      auth.userId,
+      user.id,
     );
 
     return {
@@ -141,23 +139,23 @@ export class SignUpService {
   }
 
   async verifyEmail(token: string) {
-    const auth = await FindAuthByTokenQuery(this.prisma, {
+    const credential = await FindLocalCredentialByTokenQuery(this.prisma, {
       verificationToken: token,
     });
     // check valid token
-    if (!auth) {
+    if (!credential) {
       throw new BadRequestException('Invalid verification token.');
     }
     // check token expiry
     if (
-      !auth?.verificationTokenExpiry ||
-      auth?.verificationTokenExpiry < new Date()
+      !credential?.verificationTokenExpiry ||
+      credential?.verificationTokenExpiry < new Date()
     ) {
       throw new BadRequestException('Verification token has expired.');
     }
-    // remove token and update isValidate
-    await this.prisma.auth.update({
-      where: { id: auth.id },
+    // remove token and update isVerified
+    await this.prisma.localCredential.update({
+      where: { id: credential.id },
       data: {
         isVerified: true,
         verificationToken: null,
@@ -166,12 +164,12 @@ export class SignUpService {
     });
     // send welcome email using template
     const user = await this.prisma.user.findUnique({
-      where: { id: auth.userId },
+      where: { id: credential.userId },
     });
 
     if (user) {
       await this.emailBusinessService.sendWelcomeEmail(
-        auth.email,
+        user.email,
         user.displayName,
         user.id,
       );

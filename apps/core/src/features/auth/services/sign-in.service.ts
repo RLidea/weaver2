@@ -3,11 +3,7 @@ import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import { Auth } from '@prisma/client';
-import { FindUserService } from '../../user/services/find-user.service';
-import { FindAuthByEmailQuery } from '../repositories/find-auth-by-email.query';
-import { FindAuthByUserIdAndAuthIdQuery } from '../repositories/find-auth-by-user-id-and-auth-id.query';
-import { FindAuthByUserIdQuery } from '../repositories/find-auth-by-user-id.query';
+import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
 import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
 import { DeleteRefreshTokenCommand } from '../repositories/delete-refresh-token.command';
@@ -19,65 +15,31 @@ export class SignInService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly findUserService: FindUserService,
   ) {}
 
   async validateUserByEmail(email: string, password: string) {
-    const auth = await FindAuthByEmailQuery(this.prisma, email);
+    const user = await FindUserByEmailQuery(this.prisma, email);
 
     this.logger.debug(
-      `validateUserByEmail: Found auth: ${JSON.stringify(auth?.id)}, user: ${JSON.stringify(auth?.user?.id)}`,
+      `validateUserByEmail: Found user: ${JSON.stringify(user?.id)}`,
     );
 
-    if (!auth || !auth.password)
+    if (!user || !user.localCredential || !user.localCredential.password)
       throw new UnauthorizedException('Invalid credentials');
 
-    const match = await bcrypt.compare(password, auth.password);
+    const match = await bcrypt.compare(password, user.localCredential.password);
     if (!match) throw new UnauthorizedException('Invalid credentials');
 
     this.logger.debug(
-      `validateUserByEmail: Returning user: ${JSON.stringify(auth.user)}`,
+      `validateUserByEmail: Returning user: ${JSON.stringify(user.id)}`,
     );
-    return { ...auth.user, authId: auth.id };
+    return user;
   }
 
-  async validateUserById(userId: string, authId: string) {
-    this.logger.debug(
-      `SignInService.validateUserById: Validating userId=${userId}, authId=${authId}`,
-    );
-    const auth = await FindAuthByUserIdAndAuthIdQuery(
-      this.prisma,
-      userId,
-      authId,
-    );
-    this.logger.debug(
-      `SignInService.validateUserById: Found auth=${JSON.stringify(auth?.id)}, user=${JSON.stringify(auth?.user?.id)}`,
-    );
-    if (!auth) throw new UnauthorizedException('Invalid credentials');
-    return auth.user;
-  }
-
-  async login(
-    userId: string,
-    provider: string,
-    rememberMe = false,
-    authId?: string,
-  ) {
-    let auth: Auth | null = null;
+  async login(userId: string, _provider: string, rememberMe = false) {
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
     );
-    if (authId) {
-      auth = await this.prisma.auth.findUnique({ where: { id: authId } });
-    } else if (provider === 'email') {
-      auth = await FindAuthByUserIdQuery(this.prisma, userId);
-    }
-
-    if (!auth) {
-      throw new UnauthorizedException(
-        'Authentication record not found for user.',
-      );
-    }
 
     // Update user's last login time
     await this.prisma.user.update({
@@ -85,17 +47,15 @@ export class SignInService {
       data: { lastLoginAt: new Date() },
     });
 
-    const payload = { sub: userId, authId: auth.id };
-    this.logger.debug(
-      `SignInService.login: Signing JWT for userId=${userId}, authId=${auth.id}`,
-    );
+    const payload = { sub: userId };
+    this.logger.debug(`SignInService.login: Signing JWT for userId=${userId}`);
 
     // Remember me에 따라 토큰 만료 기간 설정
     const expiryDays = rememberMe ? 30 : 7;
     const tokenExpiry = expiryDays * 24 * 60 * 60 * 1000; // 밀리초
 
     const generatedRefreshToken = await this.generateRefreshToken(
-      auth.id,
+      userId,
       expiryDays,
     );
     return {
@@ -105,11 +65,11 @@ export class SignInService {
     };
   }
 
-  async generateRefreshToken(authId: string, expiryDays: number) {
+  async generateRefreshToken(userId: string, expiryDays: number) {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
 
-    await CreateRefreshTokenCommand(this.prisma, authId, token, expires);
+    await CreateRefreshTokenCommand(this.prisma, userId, token, expires);
 
     return token;
   }
@@ -130,23 +90,12 @@ export class SignInService {
       Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
     );
     const newRefreshToken = await this.generateRefreshToken(
-      stored.auth.id,
+      stored.user.id,
       remainingDays,
     );
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: stored.auth.userId },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
     return {
-      accessToken: this.jwtService.sign({
-        sub: user.id,
-        authId: stored.auth.id,
-      }),
+      accessToken: this.jwtService.sign({ sub: stored.user.id }),
       refreshToken: newRefreshToken,
       tokenExpiry: remainingMs,
     };

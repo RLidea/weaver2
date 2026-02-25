@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
-export async function DeleteRefreshTokensByAuthIdCommand(
+export async function DeleteRefreshTokensByUserIdCommand(
   prisma: PrismaClient,
-  authId: string,
+  userId: string,
 ) {
   return prisma.refreshToken.deleteMany({
-    where: { authId },
+    where: { userId },
   });
 }

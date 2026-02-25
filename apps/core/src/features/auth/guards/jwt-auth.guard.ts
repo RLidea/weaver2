@@ -7,13 +7,11 @@ import { JwtService } from '@nestjs/jwt';
 
 interface JwtPayload {
   sub: string;
-  authId: string;
   username: string;
 }
 
 interface UserContext {
   id?: string;
-  authId?: string;
   username?: string;
   isLogin: boolean;
 }
@@ -50,7 +48,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           const payload: JwtPayload = this.jwtService.verify(accessToken);
           request.user = {
             id: payload.sub,
-            authId: payload.authId,
             username: payload.username,
             isLogin: true,
           };

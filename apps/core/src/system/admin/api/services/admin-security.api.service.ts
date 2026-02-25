@@ -932,8 +932,8 @@ export class AdminSecurityApiService {
   }
 
   async getUserOAuthConnections(userId: string) {
-    return this.prisma.oAuthConnection.findMany({
-      where: { auth: { userId } },
+    return this.prisma.oAuthAccount.findMany({
+      where: { userId },
       select: {
         provider: true,
         providerId: true,

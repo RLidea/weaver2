@@ -8,15 +8,18 @@ datasource db {
 }
 
 model User {
-  id               String                @id @default(uuid())
-  username         String                @unique
-  displayName      String                @unique
+  id               String               @id @default(uuid())
+  email            String               @unique
+  username         String               @unique
+  displayName      String               @unique
   profileImageUrl  String?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   deletedAt        DateTime?
   lastLoginAt      DateTime?
-  auths            Auth[]
+  localCredential  LocalCredential?
+  oauthAccounts    OAuthAccount[]
+  refreshTokens    RefreshToken[]
   comments         Comment[]
   emailLogs        EmailLog[]
   pageViews        PageView[]
@@ -26,6 +29,8 @@ model User {
   userAgreements   UserTermsAgreement[]
   permissionGroups UserPermissionGroup[]
   files            PostFile[]
+
+  @@map("users")
 }
 
 model UserSetting {
@@ -40,50 +45,54 @@ model UserSetting {
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
   user                        User     @relation(fields: [userId], references: [id])
+
+  @@map("user_settings")
 }
 
-model Auth {
-  id                      String            @id @default(uuid())
-  email                   String            @unique
-  password                String?
-  passwordResetToken      String?
+model LocalCredential {
+  id                      String    @id @default(uuid())
+  password                String
+  passwordResetToken      String?   @unique
   resetTokenExpiry        DateTime?
-  verificationToken       String?           @unique
+  verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
-  isVerified              Boolean           @default(false)
-  twoFactorEnabled        Boolean           @default(false)
+  isVerified              Boolean   @default(false)
+  twoFactorEnabled        Boolean   @default(false)
   twoFactorSecret         String?
-  userId                  String
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
-  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  oauthConnections        OAuthConnection[]
-  refreshTokens           RefreshToken[]
+  userId                  String    @unique
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("local_credentials")
 }
 
-model OAuthConnection {
+model OAuthAccount {
   id           String    @id @default(uuid())
   provider     String
   providerId   String
   accessToken  String?
   refreshToken String?
   tokenExpiry  DateTime?
-  authId       String
+  userId       String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  auth         Auth      @relation(fields: [authId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
+  @@map("oauth_accounts")
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
   expires   DateTime
-  authId    String
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  auth      Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
 
 model TermsAndConditions {
@@ -95,6 +104,8 @@ model TermsAndConditions {
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   userAgreements UserTermsAgreement[]
+
+  @@map("terms_and_conditions")
 }
 
 model UserTermsAgreement {
@@ -106,6 +117,7 @@ model UserTermsAgreement {
   user                 User               @relation(fields: [userId], references: [id])
 
   @@unique([userId, termsAndConditionsId])
+  @@map("user_terms_agreements")
 }
 
 model Board {
@@ -117,6 +129,8 @@ model Board {
   updatedAt   DateTime       @updatedAt
   posts       Post[]
   categories  PostCategory[]
+
+  @@map("boards")
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
@@ -146,6 +160,7 @@ model Post {
   @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
   @@index([createdAt(sort: Desc), id], map: "post_cursor_idx")
   @@index([viewCount(sort: Desc), id], map: "post_viewcount_cursor_idx")
+  @@map("posts")
 }
 
 model Comment {
@@ -163,6 +178,7 @@ model Comment {
   children  Comment[] @relation("CommentReplies")
 
   @@index([postId, parentId, createdAt], map: "comment_list_idx")
+  @@map("comments")
 }
 
 model PostCategory {
@@ -179,6 +195,7 @@ model PostCategory {
   board       Board    @relation(fields: [boardId], references: [id])
 
   @@unique([boardId, name])
+  @@map("post_categories")
 }
 
 model PageView {
@@ -194,6 +211,7 @@ model PageView {
   @@index([createdAt])
   @@index([pageUrl, createdAt])
   @@index([userId, createdAt])
+  @@map("page_views")
 }
 
 model MonthlyAnalyticsReport {
@@ -211,6 +229,7 @@ model MonthlyAnalyticsReport {
   updatedAt      DateTime @updatedAt
 
   @@unique([year, month])
+  @@map("monthly_analytics_reports")
 }
 
 model EmailTemplate {
@@ -224,6 +243,8 @@ model EmailTemplate {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   emailLogs   EmailLog[]
+
+  @@map("email_templates")
 }
 
 model EmailLog {
@@ -244,6 +265,8 @@ model EmailLog {
   updatedAt    DateTime       @updatedAt
   template     EmailTemplate? @relation(fields: [templateId], references: [id])
   user         User?          @relation(fields: [userId], references: [id])
+
+  @@map("email_logs")
 }
 
 model SecurityAuditReport {
@@ -260,6 +283,8 @@ model SecurityAuditReport {
   recommendations    Json?
   packageJsonHash    String?
   lockfileHash       String?
+
+  @@map("security_audit_reports")
 }
 
 model Emoji {
@@ -333,7 +358,7 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 
-  @@map("SystemSettings")
+  @@map("system_settings")
 }
 
 model PermissionGroup {
@@ -347,6 +372,8 @@ model PermissionGroup {
   users                UserPermissionGroup[]
   allowedResourceRules ResourcePermissionAllowedGroup[]
   deniedResourceRules  ResourcePermissionDeniedGroup[]
+
+  @@map("permission_groups")
 }
 
 model PermissionGroupPermission {
@@ -357,6 +384,7 @@ model PermissionGroupPermission {
   permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([permissionGroupId, permission])
+  @@map("permission_group_permissions")
 }
 
 model UserPermissionGroup {
@@ -368,6 +396,7 @@ model UserPermissionGroup {
   permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, permissionGroupId])
+  @@map("user_permission_groups")
 }
 
 model ResourcePermission {
@@ -382,6 +411,7 @@ model ResourcePermission {
   deniedGroups   ResourcePermissionDeniedGroup[]
 
   @@unique([resourceType, resourceId, action])
+  @@map("resource_permissions")
 }
 
 model ResourcePermissionAllowedGroup {
@@ -393,6 +423,7 @@ model ResourcePermissionAllowedGroup {
   permissionGroup      PermissionGroup    @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([resourcePermissionId, permissionGroupId])
+  @@map("resource_permission_allowed_groups")
 }
 
 model ResourcePermissionDeniedGroup {
@@ -404,4 +435,5 @@ model ResourcePermissionDeniedGroup {
   permissionGroup      PermissionGroup    @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
 
   @@unique([resourcePermissionId, permissionGroupId])
+  @@map("resource_permission_denied_groups")
 }

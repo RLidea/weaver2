@@ -1,12 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
-export function FindOAuthConnectionQuery(
+export function FindOAuthAccountQuery(
   prisma: PrismaClient,
   provider: string,
   providerId: string,
 ) {
-  return prisma.oAuthConnection.findUnique({
+  return prisma.oAuthAccount.findUnique({
     where: { provider_providerId: { provider, providerId } },
-    include: { auth: { include: { user: true } } },
+    include: { user: true },
   });
 }

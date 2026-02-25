@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
-export async function FindOAuthConnectionsByAuthIdQuery(
+export async function FindOAuthAccountsByUserIdQuery(
   prisma: PrismaClient,
-  authId: string,
+  userId: string,
 ) {
-  return prisma.oAuthConnection.findMany({
-    where: { authId },
+  return prisma.oAuthAccount.findMany({
+    where: { userId },
     select: {
       provider: true,
       providerId: true,

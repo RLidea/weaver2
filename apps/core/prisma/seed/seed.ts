@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { seedAuths, seedUsers } from './user.seed';
+import { seedLocalCredentials, seedUsers } from './user.seed';
 import { seedEmailTemplates } from './email-templates.seed';
 import { seedBoardPermissions } from './board-permission.seed';
 import { seedPermissionGroups } from './permission-group.seed';
@@ -85,7 +85,7 @@ async function main() {
   }
 
   await seedUsers(prisma);
-  await seedAuths(prisma);
+  await seedLocalCredentials(prisma);
   await seedPermissionGroups(prisma);
   await seedUserPermissionGroups(prisma);
   await seedBoardPermissions(prisma);

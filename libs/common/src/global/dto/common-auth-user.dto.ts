@@ -1,7 +1,6 @@
 class CommonAuthUserDto {
   id: string;
   username: string;
-  authId: string;
   isLogin: boolean;
   userSetting?: {
     isMarketingConsentGiven: boolean;

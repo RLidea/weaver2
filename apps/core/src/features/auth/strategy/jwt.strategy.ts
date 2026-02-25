@@ -1,16 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { SignInService } from '../services/sign-in.service';
 import { JwtPayload } from './jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '@weaver2/prisma';
+import { FindUserByIdQuery } from '../../user/repositories/find-user-by-id.query';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
   constructor(
-    private signInService: SignInService,
+    private prisma: PrismaService,
     private configService: ConfigService,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
@@ -37,16 +38,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     this.logger.debug(`Validating payload: ${JSON.stringify(payload)}`);
-    const user = await this.signInService.validateUserById(
-      payload.sub,
-      payload.authId,
-    );
-    this.logger.debug(`User from validateUserById: ${JSON.stringify(user)}`);
+    const user = await FindUserByIdQuery(this.prisma, payload.sub);
+    this.logger.debug(`User from findUserById: ${JSON.stringify(user?.id)}`);
+    if (!user) {
+      return null;
+    }
     // The returned value is attached to the request object as req.user
     return {
       id: user.id,
       username: user.username,
-      authId: payload.authId,
       isLogin: true,
       userSetting: user.userSetting ?? undefined,
     };

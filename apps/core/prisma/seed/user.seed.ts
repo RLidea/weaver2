@@ -1,28 +1,28 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { logSeedResult } from './seed-logger';
 
-const usersToSeed: Prisma.UserCreateInput[] = [
+const usersToSeed = [
   {
     id: 'cmbyuak4e00001rjcld47s4u9',
     username: 'admin',
     displayName: '관리자',
+    email: 'admin@weaver.com',
   },
   {
     id: 'cmbyuak4m00011rjce4dkz2m2',
     username: 'weaver',
     displayName: '개발자',
+    email: 'weaver@weaver.com',
   },
 ];
 
-const authsToSeed = [
+const localCredentialsToSeed = [
   {
-    email: 'admin@weaver.com',
     password: 'secret!!',
     userId: 'cmbyuak4e00001rjcld47s4u9',
   },
   {
-    email: 'weaver@weaver.com',
     password: 'secret!!',
     userId: 'cmbyuak4m00011rjce4dkz2m2',
   },
@@ -47,39 +47,36 @@ export async function seedUsers(prisma: PrismaClient) {
   await Promise.all(creationPromises);
 }
 
-export async function seedAuths(prisma: PrismaClient) {
-  const creationPromises = authsToSeed.map(async (authData) => {
-    const existingAuth = await prisma.auth.findUnique({
-      where: { email: authData.email },
+export async function seedLocalCredentials(prisma: PrismaClient) {
+  const creationPromises = localCredentialsToSeed.map(async (credData) => {
+    const existingCredential = await prisma.localCredential.findUnique({
+      where: { userId: credData.userId },
     });
 
-    if (!existingAuth) {
-      const passwordHash = await bcrypt.hash(authData.password, 10);
+    if (!existingCredential) {
+      const passwordHash = await bcrypt.hash(credData.password, 10);
 
-      await prisma.auth.create({
+      await prisma.localCredential.create({
         data: {
-          email: authData.email,
           password: passwordHash,
           isVerified: true,
-          user: {
-            connect: { id: authData.userId },
-          },
+          userId: credData.userId,
         },
       });
 
       // Create UserSetting for the newly created user
       await prisma.userSetting.upsert({
-        where: { userId: authData.userId },
+        where: { userId: credData.userId },
         update: {},
         create: {
-          userId: authData.userId,
+          userId: credData.userId,
           // Default values will be applied by Prisma
         },
       });
 
-      logSeedResult('Auth', authData.email, 'created');
+      logSeedResult('LocalCredential', credData.userId, 'created');
     } else {
-      logSeedResult('Auth', authData.email, 'exists');
+      logSeedResult('LocalCredential', credData.userId, 'exists');
     }
   });
 
