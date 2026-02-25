@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@weaver2/prisma';
+import { UploadModule as UploadLibModule } from '@weaver2/upload';
 import { BoardController } from './controllers/board.controller';
 import { PostController } from './controllers/post.controller';
 import { CommentController } from './controllers/comment.controller';
@@ -22,7 +23,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
 import { SystemSettingModule } from '../../infrastructure/config/system-setting.module';
 
 @Module({
-  imports: [PrismaModule, SystemSettingModule],
+  imports: [PrismaModule, SystemSettingModule, UploadLibModule],
   controllers: [
     BoardController,
     PostController,

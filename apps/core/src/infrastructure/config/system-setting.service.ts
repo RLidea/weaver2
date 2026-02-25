@@ -16,6 +16,7 @@ export const CONFIG_KEYS = {
   UPLOAD_ALLOWED_MIME_TYPES: 'upload.allowedMimeTypes',
   UPLOAD_THUMBNAIL_WIDTH: 'upload.thumbnailWidth',
   UPLOAD_THUMBNAIL_HEIGHT: 'upload.thumbnailHeight',
+  UPLOAD_ORPHAN_RETENTION_HOURS: 'upload.orphanRetentionHours',
 } as const;
 
 type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -36,6 +37,7 @@ const DEFAULTS: Record<ConfigKey, string | null> = {
     'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip',
   [CONFIG_KEYS.UPLOAD_THUMBNAIL_WIDTH]: '300',
   [CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT]: '300',
+  [CONFIG_KEYS.UPLOAD_ORPHAN_RETENTION_HOURS]: null,
 };
 
 export interface SystemSettingValues {
@@ -53,6 +55,7 @@ export interface SystemSettingValues {
   uploadAllowedMimeTypes: string[];
   uploadThumbnailWidth: number;
   uploadThumbnailHeight: number;
+  uploadOrphanRetentionHours: number | null;
 }
 
 export interface UpdateSystemSettingDto {
@@ -70,6 +73,7 @@ export interface UpdateSystemSettingDto {
   uploadAllowedMimeTypes?: string[];
   uploadThumbnailWidth?: number;
   uploadThumbnailHeight?: number;
+  uploadOrphanRetentionHours?: number | null;
 }
 
 @Injectable()
@@ -139,6 +143,10 @@ export class SystemSettingService {
         get(CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT) ?? '300',
         10,
       ),
+      uploadOrphanRetentionHours: (() => {
+        const raw = get(CONFIG_KEYS.UPLOAD_ORPHAN_RETENTION_HOURS);
+        return raw ? parseInt(raw, 10) : null;
+      })(),
     };
   }
 
@@ -214,6 +222,14 @@ export class SystemSettingService {
       entries.push({
         key: CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT,
         value: String(data.uploadThumbnailHeight),
+      });
+    if (data.uploadOrphanRetentionHours !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_ORPHAN_RETENTION_HOURS,
+        value:
+          data.uploadOrphanRetentionHours != null
+            ? String(data.uploadOrphanRetentionHours)
+            : '',
       });
 
     await this.prisma.$transaction(

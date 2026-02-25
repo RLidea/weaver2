@@ -174,6 +174,30 @@ export class UploadService {
     return this.toDto(updated);
   }
 
+  async purgeOrphanedFiles(retentionHours: number): Promise<number> {
+    const cutoff = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
+
+    const orphans = await this.prisma.file.findMany({
+      where: { postId: null, deletedAt: null, createdAt: { lte: cutoff } },
+      select: { id: true, path: true, thumbnailPath: true },
+    });
+
+    for (const file of orphans) {
+      await this.storage.delete(file.path);
+      if (file.thumbnailPath) {
+        await this.storage.delete(file.thumbnailPath);
+      }
+    }
+
+    if (orphans.length > 0) {
+      await this.prisma.file.deleteMany({
+        where: { id: { in: orphans.map((f) => f.id) } },
+      });
+    }
+
+    return orphans.length;
+  }
+
   async hardDeleteFile(id: string): Promise<void> {
     const file = await this.prisma.file.findUnique({ where: { id } });
     if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
