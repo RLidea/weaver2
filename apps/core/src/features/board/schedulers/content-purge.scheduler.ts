@@ -25,11 +25,10 @@ export class ContentPurgeScheduler {
     const scheduleHour = parseInt(scheduleHourRaw ?? '3', 10);
     const currentHour = new Date().getHours();
 
-    if (currentHour !== scheduleHour) {
-      return;
+    if (currentHour === scheduleHour) {
+      await this.purgeContent();
     }
 
-    await this.purgeContent();
     await this.purgeOrphanFiles();
   }
 
