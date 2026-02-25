@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -61,19 +62,25 @@ export class UploadController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({
-    summary: '파일 업로드 (최대 10개)',
+    summary: '파일 업로드',
     description:
-      'multipart/form-data로 최대 10개의 파일을 업로드합니다. postId를 지정하면 게시글과 연결됩니다.',
+      'multipart/form-data로 파일을 업로드합니다. 최대 업로드 개수는 시스템 설정을 따릅니다. postId를 지정하면 게시글과 연결됩니다.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiStandardResponses({ type: FileDto, isArray: true })
-  @UseInterceptors(FilesInterceptor('files', 10, { storage: memoryStorage() }))
+  @UseInterceptors(FilesInterceptor('files', 50, { storage: memoryStorage() }))
   async uploadFiles(
     @UploadedFiles() files: Express.Multer.File[],
     @Query() dto: UploadFileDto,
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<FileDto[]> {
     const settings = await this.systemSettingService.getAll();
+
+    if (files.length > settings.uploadMaxFileCount) {
+      throw new BadRequestException(
+        `한 번에 최대 ${settings.uploadMaxFileCount}개의 파일만 업로드할 수 있습니다.`,
+      );
+    }
 
     return this.uploadService.uploadFiles(files, authUser?.id, {
       postId: dto.postId,

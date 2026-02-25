@@ -12,6 +12,7 @@ export const CONFIG_KEYS = {
   CONTENT_PURGE_RETENTION_DAYS: 'content.purgeRetentionDays',
   CONTENT_PURGE_SCHEDULE_HOUR: 'content.purgeScheduleHour',
   REACTION_MAX_PER_USER_PER_POST: 'reaction.maxPerUserPerPost',
+  UPLOAD_MAX_FILE_COUNT: 'upload.maxFileCount',
   UPLOAD_MAX_FILE_SIZE: 'upload.maxFileSize',
   UPLOAD_ALLOWED_MIME_TYPES: 'upload.allowedMimeTypes',
   UPLOAD_THUMBNAIL_WIDTH: 'upload.thumbnailWidth',
@@ -32,6 +33,7 @@ const DEFAULTS: Record<ConfigKey, string | null> = {
   [CONFIG_KEYS.CONTENT_PURGE_RETENTION_DAYS]: null,
   [CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR]: '3',
   [CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST]: '1',
+  [CONFIG_KEYS.UPLOAD_MAX_FILE_COUNT]: '10',
   [CONFIG_KEYS.UPLOAD_MAX_FILE_SIZE]: '10485760',
   [CONFIG_KEYS.UPLOAD_ALLOWED_MIME_TYPES]:
     'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip',
@@ -51,6 +53,7 @@ export interface SystemSettingValues {
   contentPurgeRetentionDays: number | null;
   contentPurgeScheduleHour: number;
   reactionMaxPerUserPerPost: number;
+  uploadMaxFileCount: number;
   uploadMaxFileSize: number;
   uploadAllowedMimeTypes: string[];
   uploadThumbnailWidth: number;
@@ -69,6 +72,7 @@ export interface UpdateSystemSettingDto {
   contentPurgeRetentionDays?: number | null;
   contentPurgeScheduleHour?: number;
   reactionMaxPerUserPerPost?: number;
+  uploadMaxFileCount?: number;
   uploadMaxFileSize?: number;
   uploadAllowedMimeTypes?: string[];
   uploadThumbnailWidth?: number;
@@ -122,6 +126,10 @@ export class SystemSettingService {
       ),
       reactionMaxPerUserPerPost: parseInt(
         get(CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST) ?? '1',
+        10,
+      ),
+      uploadMaxFileCount: parseInt(
+        get(CONFIG_KEYS.UPLOAD_MAX_FILE_COUNT) ?? '10',
         10,
       ),
       uploadMaxFileSize: parseInt(
@@ -202,6 +210,11 @@ export class SystemSettingService {
       entries.push({
         key: CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST,
         value: String(data.reactionMaxPerUserPerPost),
+      });
+    if (data.uploadMaxFileCount !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_MAX_FILE_COUNT,
+        value: String(data.uploadMaxFileCount),
       });
     if (data.uploadMaxFileSize !== undefined)
       entries.push({
