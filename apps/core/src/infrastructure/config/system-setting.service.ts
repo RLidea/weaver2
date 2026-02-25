@@ -12,6 +12,10 @@ export const CONFIG_KEYS = {
   CONTENT_PURGE_RETENTION_DAYS: 'content.purgeRetentionDays',
   CONTENT_PURGE_SCHEDULE_HOUR: 'content.purgeScheduleHour',
   REACTION_MAX_PER_USER_PER_POST: 'reaction.maxPerUserPerPost',
+  UPLOAD_MAX_FILE_SIZE: 'upload.maxFileSize',
+  UPLOAD_ALLOWED_MIME_TYPES: 'upload.allowedMimeTypes',
+  UPLOAD_THUMBNAIL_WIDTH: 'upload.thumbnailWidth',
+  UPLOAD_THUMBNAIL_HEIGHT: 'upload.thumbnailHeight',
 } as const;
 
 type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -27,6 +31,11 @@ const DEFAULTS: Record<ConfigKey, string | null> = {
   [CONFIG_KEYS.CONTENT_PURGE_RETENTION_DAYS]: null,
   [CONFIG_KEYS.CONTENT_PURGE_SCHEDULE_HOUR]: '3',
   [CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST]: '1',
+  [CONFIG_KEYS.UPLOAD_MAX_FILE_SIZE]: '10485760',
+  [CONFIG_KEYS.UPLOAD_ALLOWED_MIME_TYPES]:
+    'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip',
+  [CONFIG_KEYS.UPLOAD_THUMBNAIL_WIDTH]: '300',
+  [CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT]: '300',
 };
 
 export interface SystemSettingValues {
@@ -40,6 +49,10 @@ export interface SystemSettingValues {
   contentPurgeRetentionDays: number | null;
   contentPurgeScheduleHour: number;
   reactionMaxPerUserPerPost: number;
+  uploadMaxFileSize: number;
+  uploadAllowedMimeTypes: string[];
+  uploadThumbnailWidth: number;
+  uploadThumbnailHeight: number;
 }
 
 export interface UpdateSystemSettingDto {
@@ -53,6 +66,10 @@ export interface UpdateSystemSettingDto {
   contentPurgeRetentionDays?: number | null;
   contentPurgeScheduleHour?: number;
   reactionMaxPerUserPerPost?: number;
+  uploadMaxFileSize?: number;
+  uploadAllowedMimeTypes?: string[];
+  uploadThumbnailWidth?: number;
+  uploadThumbnailHeight?: number;
 }
 
 @Injectable()
@@ -101,6 +118,25 @@ export class SystemSettingService {
       ),
       reactionMaxPerUserPerPost: parseInt(
         get(CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST) ?? '1',
+        10,
+      ),
+      uploadMaxFileSize: parseInt(
+        get(CONFIG_KEYS.UPLOAD_MAX_FILE_SIZE) ?? '10485760',
+        10,
+      ),
+      uploadAllowedMimeTypes: (
+        get(CONFIG_KEYS.UPLOAD_ALLOWED_MIME_TYPES) ??
+        'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip'
+      )
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      uploadThumbnailWidth: parseInt(
+        get(CONFIG_KEYS.UPLOAD_THUMBNAIL_WIDTH) ?? '300',
+        10,
+      ),
+      uploadThumbnailHeight: parseInt(
+        get(CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT) ?? '300',
         10,
       ),
     };
@@ -158,6 +194,26 @@ export class SystemSettingService {
       entries.push({
         key: CONFIG_KEYS.REACTION_MAX_PER_USER_PER_POST,
         value: String(data.reactionMaxPerUserPerPost),
+      });
+    if (data.uploadMaxFileSize !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_MAX_FILE_SIZE,
+        value: String(data.uploadMaxFileSize),
+      });
+    if (data.uploadAllowedMimeTypes !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_ALLOWED_MIME_TYPES,
+        value: data.uploadAllowedMimeTypes.join(','),
+      });
+    if (data.uploadThumbnailWidth !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_THUMBNAIL_WIDTH,
+        value: String(data.uploadThumbnailWidth),
+      });
+    if (data.uploadThumbnailHeight !== undefined)
+      entries.push({
+        key: CONFIG_KEYS.UPLOAD_THUMBNAIL_HEIGHT,
+        value: String(data.uploadThumbnailHeight),
       });
 
     await this.prisma.$transaction(

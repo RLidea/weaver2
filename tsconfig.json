@@ -42,6 +42,12 @@
       ],
       "@weaver2/prisma/*": [
         "libs/prisma/src/*"
+      ],
+      "@weaver2/upload": [
+        "libs/upload/src"
+      ],
+      "@weaver2/upload/*": [
+        "libs/upload/src/*"
       ]
     }
   },

@@ -71,6 +71,7 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.34.5",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
@@ -92,6 +93,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
+    "@types/sharp": "^0.32.0",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
@@ -114,6 +116,9 @@
   },
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
   },
   "jest": {
     "moduleFileExtensions": [
@@ -139,7 +144,8 @@
       "^@weaver2/common(|/.*)$": "<rootDir>/libs/common/src/$1",
       "^@weaver2/email(|/.*)$": "<rootDir>/libs/email/src/$1",
       "^@weaver2/pagination(|/.*)$": "<rootDir>/libs/pagination/src/$1",
-      "^@weaver2/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1"
+      "^@weaver2/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
+      "^@weaver2/upload(|/.*)$": "<rootDir>/libs/upload/src/$1"
     }
   }
 }

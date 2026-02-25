@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
+import { UploadModule as UploadLibModule } from '@weaver2/upload';
+import { SystemSettingModule } from '../config/system-setting.module';
 import { UploadController } from './controllers/upload.controller';
-import { UploadService } from './services/upload.service';
-import { PrismaModule } from '@weaver2/prisma';
+import { UploadAdminController } from './controllers/upload-admin.controller';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [UploadController],
-  providers: [UploadService],
-  exports: [UploadService],
+  imports: [UploadLibModule, SystemSettingModule],
+  controllers: [UploadController, UploadAdminController],
 })
 export class UploadModule {}

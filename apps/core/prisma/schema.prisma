@@ -25,6 +25,7 @@ model User {
   userSetting      UserSetting?
   userAgreements   UserTermsAgreement[]
   permissionGroups UserPermissionGroup[]
+  files            File[]
 }
 
 model UserSetting {
@@ -137,6 +138,7 @@ model Post {
   deletedAt          DateTime?
   comments           Comment[]
   reactions          PostReaction[]
+  files              File[]
   author             User          @relation(fields: [authorId], references: [id])
   board              Board         @relation(fields: [boardId], references: [id])
   category           PostCategory? @relation(fields: [categoryId], references: [id])
@@ -288,6 +290,27 @@ model PostReaction {
   @@index([postId])
   @@index([userId])
   @@map("post_reactions")
+}
+
+model File {
+  id            String    @id @default(uuid())
+  originalName  String
+  storedName    String    @unique
+  mimeType      String
+  size          Int
+  path          String
+  thumbnailPath String?
+  postId        String?
+  uploadedById  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  post          Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  uploadedBy    User?     @relation(fields: [uploadedById], references: [id])
+
+  @@index([uploadedById])
+  @@index([postId])
+  @@index([createdAt(sort: Desc), id], map: "file_cursor_idx")
 }
 
 enum PostStatus {
