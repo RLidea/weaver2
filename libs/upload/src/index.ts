@@ -7,6 +7,8 @@ export * from './providers/s3-storage.provider';
 export * from './repositories/create-file.command';
 export * from './repositories/find-file-by-id.query';
 export * from './repositories/delete-file.command';
+export * from './repositories/update-file.command';
 export * from './dto/file.dto';
 export * from './dto/upload-file.dto';
+export * from './dto/link-post.dto';
 export * from './dto/admin-files-query.dto';

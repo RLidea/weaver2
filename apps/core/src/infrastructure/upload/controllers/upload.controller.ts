@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -6,6 +7,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Redirect,
@@ -23,7 +25,12 @@ import {
 import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
-import { UploadService, FileDto, UploadFileDto } from '@weaver2/upload';
+import {
+  UploadService,
+  FileDto,
+  UploadFileDto,
+  LinkPostDto,
+} from '@weaver2/upload';
 import { SystemSettingService } from '../../config/system-setting.service';
 import { memoryStorage } from 'multer';
 
@@ -94,6 +101,22 @@ export class UploadController {
     const url = await this.uploadService.getThumbnailUrl(id);
     if (!url) throw new NotFoundException('썸네일이 없습니다.');
     return { url };
+  }
+
+  @Patch(':id/link')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({
+    summary: '파일을 게시글에 연결',
+    description: '업로드된 파일에 postId를 설정합니다. 본인 파일만 가능합니다.',
+  })
+  @ApiStandardResponses({ type: FileDto })
+  async linkToPost(
+    @Param('id') id: string,
+    @Body() dto: LinkPostDto,
+    @AuthUser() authUser: CommonAuthUserDto,
+  ): Promise<FileDto> {
+    return this.uploadService.linkToPost(id, dto.postId, authUser.id);
   }
 
   @Delete(':id')

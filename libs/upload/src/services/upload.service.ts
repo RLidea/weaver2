@@ -19,6 +19,7 @@ import { ThumbnailService } from './thumbnail.service';
 import { CreateFileCommand } from '../repositories/create-file.command';
 import { FindFileByIdQuery } from '../repositories/find-file-by-id.query';
 import { DeleteFileCommand } from '../repositories/delete-file.command';
+import { UpdateFileCommand } from '../repositories/update-file.command';
 import { FileDto } from '../dto/file.dto';
 import { AdminFilesQueryDto } from '../dto/admin-files-query.dto';
 
@@ -31,6 +32,7 @@ export class UploadService {
     private readonly createFileCmd: CreateFileCommand,
     private readonly findFileByIdQuery: FindFileByIdQuery,
     private readonly deleteFileCmd: DeleteFileCommand,
+    private readonly updateFileCmd: UpdateFileCommand,
   ) {}
 
   async uploadFiles(
@@ -154,6 +156,22 @@ export class UploadService {
       );
     }
     await this.deleteFileCmd.softDelete(id);
+  }
+
+  async linkToPost(
+    id: string,
+    postId: string,
+    userId: string,
+  ): Promise<FileDto> {
+    const file = await this.findFileByIdQuery.execute(id);
+    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    if (file.uploadedById !== userId) {
+      throw new ForbiddenException(
+        '본인이 업로드한 파일만 연결할 수 있습니다.',
+      );
+    }
+    const updated = await this.updateFileCmd.linkToPost(id, postId);
+    return this.toDto(updated);
   }
 
   async hardDeleteFile(id: string): Promise<void> {
