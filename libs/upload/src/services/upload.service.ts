@@ -22,6 +22,7 @@ import { DeleteFileCommand } from '../repositories/delete-file.command';
 import { UpdateFileCommand } from '../repositories/update-file.command';
 import { FileDto } from '../dto/file.dto';
 import { AdminFilesQueryDto } from '../dto/admin-files-query.dto';
+import { UserFilesQueryDto } from '../dto/user-files-query.dto';
 
 @Injectable()
 export class UploadService {
@@ -106,6 +107,26 @@ export class UploadService {
     const file = await this.findFileByIdQuery.execute(id);
     if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
     return this.toDto(file);
+  }
+
+  async findFilesByUserId(
+    userId: string,
+    query: UserFilesQueryDto,
+  ): Promise<KeysetResponseDto<FileDto>> {
+    const where: Record<string, unknown> = {
+      uploadedById: userId,
+      deletedAt: null,
+    };
+    if (query.postId) where.postId = query.postId;
+
+    return KeysetPaginationService.paginate<FileDto>({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      prisma: this.prisma.file as any,
+      preset: query.preset,
+      cursor: query.cursor,
+      limit: query.limit,
+      where,
+    });
   }
 
   async findAllFilesForAdmin(
