@@ -40,6 +40,7 @@ export class UploadService {
       postId?: string;
       maxFileSize: number;
       allowedMimeTypes: string[];
+      generateThumbnail: boolean;
       thumbnailWidth: number;
       thumbnailHeight: number;
     },
@@ -67,7 +68,7 @@ export class UploadService {
       const { path: filePath } = await this.storage.save(file, directory);
 
       let thumbnailPath: string | undefined;
-      if (this.thumbnail.isImage(file.mimetype)) {
+      if (options.generateThumbnail && this.thumbnail.isImage(file.mimetype)) {
         const thumbBuffer = await this.thumbnail.generate(
           file.buffer,
           options.thumbnailWidth,

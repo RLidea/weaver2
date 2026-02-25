@@ -58,6 +58,7 @@ export class UploadController {
       postId: dto.postId,
       maxFileSize: settings.uploadMaxFileSize,
       allowedMimeTypes: settings.uploadAllowedMimeTypes,
+      generateThumbnail: dto.generateThumbnail ?? true,
       thumbnailWidth: settings.uploadThumbnailWidth,
       thumbnailHeight: settings.uploadThumbnailHeight,
     });
