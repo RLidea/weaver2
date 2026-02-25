@@ -4,9 +4,11 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Query,
+  Redirect,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -67,6 +69,30 @@ export class UploadController {
   @ApiStandardResponses({ type: FileDto })
   async getFileById(@Param('id') id: string): Promise<FileDto> {
     return this.uploadService.findFileById(id);
+  }
+
+  @Get(':id/file')
+  @Redirect()
+  @ApiOperation({
+    summary: '파일 서빙 (302 리다이렉트)',
+    description:
+      'local: 정적 경로로 리다이렉트, s3: presigned URL로 리다이렉트',
+  })
+  async serveFile(@Param('id') id: string): Promise<{ url: string }> {
+    const url = await this.uploadService.getFileUrl(id);
+    return { url };
+  }
+
+  @Get(':id/thumbnail')
+  @Redirect()
+  @ApiOperation({
+    summary: '썸네일 서빙 (302 리다이렉트)',
+    description: '이미지가 아니거나 썸네일이 없으면 404',
+  })
+  async serveThumbnail(@Param('id') id: string): Promise<{ url: string }> {
+    const url = await this.uploadService.getThumbnailUrl(id);
+    if (!url) throw new NotFoundException('썸네일이 없습니다.');
+    return { url };
   }
 
   @Delete(':id')

@@ -21,6 +21,22 @@ export class LocalStorageProvider implements StorageProvider {
     return { storedName, path: filePath };
   }
 
+  async saveBuffer(
+    buffer: Buffer,
+    filename: string,
+    directory: string,
+  ): Promise<{ storedName: string; path: string }> {
+    await fs.mkdir(directory, { recursive: true });
+
+    const ext = path.extname(filename).toLowerCase();
+    const storedName = `${randomUUID()}${ext}`;
+    const filePath = path.join(directory, storedName);
+
+    await fs.writeFile(filePath, buffer);
+
+    return { storedName, path: filePath };
+  }
+
   async delete(filePath: string): Promise<void> {
     try {
       await fs.unlink(filePath);
@@ -36,5 +52,11 @@ export class LocalStorageProvider implements StorageProvider {
     } catch {
       return false;
     }
+  }
+
+  getFileUrl(filePath: string): Promise<string> {
+    // main.ts useStaticAssets: cwd/uploads → /uploads prefix
+    // DB path: uploads/2026/02/uuid.ext → URL: /uploads/2026/02/uuid.ext
+    return Promise.resolve(`/${filePath}`);
   }
 }

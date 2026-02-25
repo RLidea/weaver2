@@ -3,6 +3,7 @@ export * from './services/upload.service';
 export * from './services/thumbnail.service';
 export * from './providers/storage-provider.interface';
 export * from './providers/local-storage.provider';
+export * from './providers/s3-storage.provider';
 export * from './repositories/create-file.command';
 export * from './repositories/find-file-by-id.query';
 export * from './repositories/delete-file.command';

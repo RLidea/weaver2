@@ -42,6 +42,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.997.0",
+    "@aws-sdk/s3-request-presigner": "^3.997.0",
     "@nestjs/common": "^11.1.5",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.5",
@@ -118,7 +120,9 @@
     "seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["sharp"]
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   },
   "jest": {
     "moduleFileExtensions": [

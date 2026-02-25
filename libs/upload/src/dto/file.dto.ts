@@ -16,11 +16,13 @@ export class FileDto {
   @ApiProperty({ description: '파일 크기 (bytes)' })
   size: number;
 
-  @ApiProperty({ description: '파일 경로' })
-  path: string;
+  @ApiProperty({
+    description: '파일 접근 URL (local: 정적 경로, s3: presigned URL)',
+  })
+  url: string;
 
-  @ApiPropertyOptional({ description: '썸네일 경로 (이미지만)' })
-  thumbnailPath: string | null;
+  @ApiPropertyOptional({ description: '썸네일 접근 URL (이미지만)' })
+  thumbnailUrl: string | null;
 
   @ApiPropertyOptional({ description: '연결된 게시글 ID' })
   postId: string | null;

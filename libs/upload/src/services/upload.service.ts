@@ -64,26 +64,27 @@ export class UploadService {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const directory = path.join('uploads', year, month);
 
-      const { storedName, path: filePath } = await this.storage.save(
-        file,
-        directory,
-      );
+      const { path: filePath } = await this.storage.save(file, directory);
 
       let thumbnailPath: string | undefined;
       if (this.thumbnail.isImage(file.mimetype)) {
-        const ext = path.extname(file.originalname).toLowerCase();
-        thumbnailPath = await this.thumbnail.generate(
+        const thumbBuffer = await this.thumbnail.generate(
           file.buffer,
-          directory,
-          ext,
           options.thumbnailWidth,
           options.thumbnailHeight,
         );
+        const ext = path.extname(file.originalname).toLowerCase();
+        const { path: thumbPath } = await this.storage.saveBuffer(
+          thumbBuffer,
+          `thumb${ext}`,
+          directory,
+        );
+        thumbnailPath = thumbPath;
       }
 
       const record = await this.createFileCmd.execute({
         originalName: file.originalname,
-        storedName,
+        storedName: path.basename(filePath),
         mimeType: file.mimetype,
         size: file.size,
         path: filePath,
@@ -92,7 +93,7 @@ export class UploadService {
         uploadedById,
       });
 
-      results.push(this.toDto(record));
+      results.push(await this.toDto(record));
     }
 
     return results;
@@ -127,7 +128,20 @@ export class UploadService {
       where: { postId, deletedAt: null },
       orderBy: { createdAt: 'asc' },
     });
-    return files.map((f) => this.toDto(f));
+    return Promise.all(files.map((f) => this.toDto(f)));
+  }
+
+  async getFileUrl(id: string): Promise<string> {
+    const file = await this.findFileByIdQuery.execute(id);
+    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    return this.storage.getFileUrl(file.path);
+  }
+
+  async getThumbnailUrl(id: string): Promise<string | null> {
+    const file = await this.findFileByIdQuery.execute(id);
+    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    if (!file.thumbnailPath) return null;
+    return this.storage.getFileUrl(file.thumbnailPath);
   }
 
   async softDeleteFile(id: string, userId: string): Promise<void> {
@@ -152,7 +166,7 @@ export class UploadService {
     await this.deleteFileCmd.hardDelete(id);
   }
 
-  private toDto(file: {
+  private async toDto(file: {
     id: string;
     originalName: string;
     storedName: string;
@@ -164,15 +178,20 @@ export class UploadService {
     uploadedById: string | null;
     createdAt: Date;
     deletedAt: Date | null;
-  }): FileDto {
+  }): Promise<FileDto> {
+    const url = await this.storage.getFileUrl(file.path);
+    const thumbnailUrl = file.thumbnailPath
+      ? await this.storage.getFileUrl(file.thumbnailPath)
+      : null;
+
     return {
       id: file.id,
       originalName: file.originalName,
       storedName: file.storedName,
       mimeType: file.mimeType,
       size: file.size,
-      path: file.path,
-      thumbnailPath: file.thumbnailPath,
+      url,
+      thumbnailUrl,
       postId: file.postId,
       uploadedById: file.uploadedById,
       createdAt: file.createdAt,
