@@ -124,6 +124,21 @@ export class UploadController {
     return { url };
   }
 
+  @Patch(':id/unlink')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({
+    summary: '파일 게시글 연결 해제',
+    description: 'postId를 null로 초기화합니다. 본인 파일만 가능합니다.',
+  })
+  @ApiStandardResponses({ type: FileDto })
+  async unlinkFromPost(
+    @Param('id') id: string,
+    @AuthUser() authUser: CommonAuthUserDto,
+  ): Promise<FileDto> {
+    return this.uploadService.unlinkFromPost(id, authUser.id);
+  }
+
   @Patch(':id/link')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('ACCESS-TOKEN')

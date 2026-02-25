@@ -12,4 +12,11 @@ export class UpdateFileCommand {
       data: { postId },
     });
   }
+
+  async unlinkFromPost(id: string): Promise<PostFile> {
+    return this.prisma.postFile.update({
+      where: { id },
+      data: { postId: null },
+    });
+  }
 }

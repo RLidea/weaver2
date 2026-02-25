@@ -179,6 +179,18 @@ export class UploadService {
     await this.deleteFileCmd.softDelete(id);
   }
 
+  async unlinkFromPost(id: string, userId: string): Promise<FileDto> {
+    const file = await this.findFileByIdQuery.execute(id);
+    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    if (file.uploadedById !== userId) {
+      throw new ForbiddenException(
+        '본인이 업로드한 파일만 연결 해제할 수 있습니다.',
+      );
+    }
+    const updated = await this.updateFileCmd.unlinkFromPost(id);
+    return this.toDto(updated);
+  }
+
   async linkToPost(
     id: string,
     postId: string,
