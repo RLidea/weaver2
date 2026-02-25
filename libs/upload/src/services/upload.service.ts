@@ -121,7 +121,7 @@ export class UploadService {
 
     return KeysetPaginationService.paginate<FileDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.file as any,
+      prisma: this.prisma.postFile as any,
       preset: query.preset,
       cursor: query.cursor,
       limit: query.limit,
@@ -139,7 +139,7 @@ export class UploadService {
 
     return KeysetPaginationService.paginate<FileDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.file as any,
+      prisma: this.prisma.postFile as any,
       preset: query.preset,
       cursor: query.cursor,
       limit: query.limit,
@@ -148,7 +148,7 @@ export class UploadService {
   }
 
   async findFilesByPostId(postId: string): Promise<FileDto[]> {
-    const files = await this.prisma.file.findMany({
+    const files = await this.prisma.postFile.findMany({
       where: { postId, deletedAt: null },
       orderBy: { createdAt: 'asc' },
     });
@@ -198,7 +198,7 @@ export class UploadService {
   async purgeOrphanedFiles(retentionHours: number): Promise<number> {
     const cutoff = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
 
-    const orphans = await this.prisma.file.findMany({
+    const orphans = await this.prisma.postFile.findMany({
       where: { postId: null, deletedAt: null, createdAt: { lte: cutoff } },
       select: { id: true, path: true, thumbnailPath: true },
     });
@@ -211,7 +211,7 @@ export class UploadService {
     }
 
     if (orphans.length > 0) {
-      await this.prisma.file.deleteMany({
+      await this.prisma.postFile.deleteMany({
         where: { id: { in: orphans.map((f) => f.id) } },
       });
     }
@@ -220,7 +220,7 @@ export class UploadService {
   }
 
   async hardDeleteFile(id: string): Promise<void> {
-    const file = await this.prisma.file.findUnique({ where: { id } });
+    const file = await this.prisma.postFile.findUnique({ where: { id } });
     if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
 
     await this.storage.delete(file.path);
