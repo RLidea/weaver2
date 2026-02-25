@@ -13,8 +13,14 @@ export class DeleteAccountService {
       throw new NotFoundException('User not found.');
     }
 
-    // Soft delete the User record.
-    // LocalCredential, OAuthAccount, RefreshToken are hard-deleted via Cascade.
-    await SoftDeleteUserCommand(this.prisma, userId);
+    await this.prisma.$transaction(async (tx) => {
+      // ON DELETE CASCADE fires only on hard DELETE, not on soft-delete (UPDATE).
+      // Explicitly hard-delete auth-related records before soft-deleting the User.
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      await tx.oAuthAccount.deleteMany({ where: { userId } });
+      await tx.localCredential.deleteMany({ where: { userId } });
+
+      await SoftDeleteUserCommand(tx, userId);
+    });
   }
 }
