@@ -19,6 +19,8 @@ import { SignOutService } from './services/sign-out.service';
 import { TermsService } from '../terms/services/terms.service';
 import { OAuthModule } from './oauth/oauth.module';
 import { OAuthController } from './controllers/oauth.controller';
+import { TwoFactorController } from './controllers/two-factor.controller';
+import { TwoFactorService } from './services/two-factor.service';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule, OAuthModule],
@@ -28,6 +30,7 @@ import { OAuthController } from './controllers/oauth.controller';
     PasswordResetController,
     SignOutController,
     OAuthController,
+    TwoFactorController,
   ],
   providers: [
     SignInService,
@@ -38,6 +41,7 @@ import { OAuthController } from './controllers/oauth.controller';
     ResetPasswordService,
     SignOutService,
     TermsService,
+    TwoFactorService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

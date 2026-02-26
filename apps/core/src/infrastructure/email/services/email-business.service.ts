@@ -170,6 +170,18 @@ export class EmailBusinessService {
   }
 
   /**
+   * 2단계 인증 코드 메일 발송
+   */
+  async sendTwoFactorCodeEmail(email: string, code: string, userId?: string) {
+    return this.sendTemplateEmail({
+      to: email,
+      templateName: 'two-factor-code',
+      variables: { code },
+      userId,
+    });
+  }
+
+  /**
    * 실패한 이메일 재발송
    */
   async retryFailedEmail(emailLogId: string) {

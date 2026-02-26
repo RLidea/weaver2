@@ -38,6 +38,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     this.logger.debug(`Validating payload: ${JSON.stringify(payload)}`);
+    // pre-auth 토큰은 일반 인증 토큰으로 사용 불가
+    if ((payload as unknown as Record<string, unknown>).type === 'pre-auth') {
+      return null;
+    }
     const user = await FindUserByIdQuery(this.prisma, payload.sub);
     this.logger.debug(`User from findUserById: ${JSON.stringify(user?.id)}`);
     if (!user) {

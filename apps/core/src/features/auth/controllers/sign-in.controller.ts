@@ -13,6 +13,7 @@ import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { SignInService } from '../services/sign-in.service';
+import { TwoFactorService } from '../services/two-factor.service';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
@@ -27,9 +28,30 @@ import { ConfigService } from '@nestjs/config';
 export class SignInController {
   constructor(
     private readonly signInService: SignInService,
+    private readonly twoFactorService: TwoFactorService,
     private readonly configService: ConfigService,
   ) {}
   private logger = new Logger(SignInController.name);
+
+  private setAuthCookies(
+    res: Response,
+    tokens: { accessToken: string; refreshToken: string; tokenExpiry: number },
+  ) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    res.cookie('access_token', tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      path: '/',
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      path: '/',
+      maxAge: tokens.tokenExpiry,
+    });
+  }
+
   /*
     Sign In
    */
@@ -64,26 +86,39 @@ export class SignInController {
     @Res({ passthrough: true }) res: Response,
   ) {
     this.logger.debug(JSON.stringify(authUser));
-    const { accessToken, refreshToken, tokenExpiry } =
-      await this.signInService.login(authUser.id, 'email', loginDto.rememberMe);
 
-    // Access Token 쿠키 설정
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      path: '/',
-      maxAge: 15 * 60 * 1000, // 15분
-    });
+    if (authUser.totpEnabled || authUser.emailOtpEnabled) {
+      const preAuthToken = this.twoFactorService.createPreAuthToken(
+        authUser.id,
+        loginDto.rememberMe,
+      );
+      return {
+        message: 'Two-factor authentication required',
+        data: {
+          twoFactorRequired: true,
+          preAuthToken,
+          availableMethods: {
+            totp: authUser.totpEnabled ?? false,
+            email: authUser.emailOtpEnabled ?? false,
+          },
+        },
+      };
+    }
 
-    // Refresh Token 쿠키 설정 (Remember me에 따라 기간 조정)
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      path: '/',
-      maxAge: tokenExpiry,
-    });
+    const tokens = await this.signInService.login(
+      authUser.id,
+      'email',
+      loginDto.rememberMe,
+    );
+    this.setAuthCookies(res, tokens);
 
-    return { message: 'Login successful', data: { accessToken, refreshToken } };
+    return {
+      message: 'Login successful',
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+    };
   }
 
   @Public()
@@ -108,37 +143,15 @@ export class SignInController {
         `Refreshing token for: ${refreshToken.substring(0, 10)}...`,
       );
 
-      const {
-        accessToken,
-        refreshToken: newRefreshToken,
-        tokenExpiry,
-      } = await this.signInService.refresh(refreshToken);
-
-      const isProduction = this.configService.get('NODE_ENV') === 'production';
-
-      // 새로운 Access Token 쿠키 설정
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        path: '/',
-        maxAge: 15 * 60 * 1000, // 15분
-      });
-
-      // Rotation: 새로운 Refresh Token 쿠키로 교체
-      res.cookie('refresh_token', newRefreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        path: '/',
-        maxAge: tokenExpiry,
-      });
+      const tokens = await this.signInService.refresh(refreshToken);
+      this.setAuthCookies(res, tokens);
 
       return {
         message: 'Token refreshed successfully',
-        data: { accessToken },
+        data: { accessToken: tokens.accessToken },
       };
     } catch (error) {
       this.logger.error('Token refresh failed:', (error as Error).message);
-      // Refresh token이 유효하지 않으면 쿠키 삭제
       res.clearCookie('refresh_token');
       res.clearCookie('access_token');
       throw error;

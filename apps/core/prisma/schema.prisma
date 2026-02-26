@@ -17,10 +17,11 @@ model User {
   updatedAt        DateTime             @updatedAt
   deletedAt        DateTime?
   lastLoginAt      DateTime?
-  localCredential  LocalCredential?
-  oauthAccounts    OAuthAccount[]
-  refreshTokens    RefreshToken[]
-  comments         Comment[]
+  localCredential     LocalCredential?
+  oauthAccounts       OAuthAccount[]
+  refreshTokens       RefreshToken[]
+  twoFactorChallenges TwoFactorChallenge[]
+  comments            Comment[]
   emailLogs        EmailLog[]
   pageViews        PageView[]
   posts            Post[]
@@ -57,14 +58,28 @@ model LocalCredential {
   verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
   isVerified              Boolean   @default(false)
-  twoFactorEnabled        Boolean   @default(false)
-  twoFactorSecret         String?
+  totpEnabled             Boolean   @default(false)
+  totpSecret              String?
+  emailOtpEnabled         Boolean   @default(false)
   userId                  String    @unique
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("local_credentials")
+}
+
+model TwoFactorChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  method    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, method])
+  @@map("two_factor_challenges")
 }
 
 model OAuthAccount {
