@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { User } from '@prisma/client';
+import { STORAGE_PROVIDER, StorageProvider } from '@weaver2/upload';
 
 import { findUserQuery } from '../repositories/find-user.query';
 import { OffsetResponseDto } from '@weaver2/pagination';
@@ -11,7 +12,10 @@ import { FindUserByUsernameQuery } from '../repositories/find-user-by-username.q
 
 @Injectable()
 export class FindUserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+  ) {}
 
   findUsers(query: PaginationRequestDto): Promise<OffsetResponseDto<User>> {
     return findUserQuery(this.prisma, query);
@@ -22,7 +26,15 @@ export class FindUserService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
-    return user;
+    return this.withFreshProfileImageUrl(user);
+  }
+
+  private async withFreshProfileImageUrl<T extends User>(user: T): Promise<T> {
+    if (!user.profileImagePath) return user;
+    const profileImageUrl = await this.storage.getFileUrl(
+      user.profileImagePath,
+    );
+    return { ...user, profileImageUrl };
   }
 
   async findUserByUsername(username: string): Promise<User> {
