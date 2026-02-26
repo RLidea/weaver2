@@ -103,6 +103,22 @@ export const PERMISSIONS = {
     ALL: 'upload:*',
   },
 
+  /** 신고 */
+  REPORT: {
+    CREATE: 'report:create',
+    READ: 'report:read',
+    UPDATE: 'report:update',
+    ALL: 'report:*',
+  },
+
+  /** 모더레이션 */
+  MODERATION: {
+    CONTENT_HIDE: 'moderation:content:hide',
+    CONTENT_DELETE: 'moderation:content:delete',
+    USER_WARN: 'moderation:user:warn',
+    ALL: 'moderation:*',
+  },
+
   /** 슈퍼 관리자 */
   SUPER: '*:*',
 } as const;
@@ -119,6 +135,8 @@ export type Permission =
   | (typeof PERMISSIONS.TERMS)[keyof typeof PERMISSIONS.TERMS]
   | (typeof PERMISSIONS.PERMISSION_GROUP)[keyof typeof PERMISSIONS.PERMISSION_GROUP]
   | (typeof PERMISSIONS.UPLOAD)[keyof typeof PERMISSIONS.UPLOAD]
+  | (typeof PERMISSIONS.REPORT)[keyof typeof PERMISSIONS.REPORT]
+  | (typeof PERMISSIONS.MODERATION)[keyof typeof PERMISSIONS.MODERATION]
   | typeof PERMISSIONS.SUPER;
 
 /** 관리자 UI에서 사용할 전체 Permission 목록 */
@@ -198,6 +216,18 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: PERMISSIONS.UPLOAD.READ, label: '파일 조회' },
   { value: PERMISSIONS.UPLOAD.DELETE, label: '파일 삭제' },
   { value: PERMISSIONS.UPLOAD.ALL, label: '파일 전체 권한' },
+
+  // Report
+  { value: PERMISSIONS.REPORT.CREATE, label: '신고 접수' },
+  { value: PERMISSIONS.REPORT.READ, label: '신고 목록 조회' },
+  { value: PERMISSIONS.REPORT.UPDATE, label: '신고 처리' },
+  { value: PERMISSIONS.REPORT.ALL, label: '신고 전체 권한' },
+
+  // Moderation
+  { value: PERMISSIONS.MODERATION.CONTENT_HIDE, label: '콘텐츠 숨김/복원' },
+  { value: PERMISSIONS.MODERATION.CONTENT_DELETE, label: '콘텐츠 삭제' },
+  { value: PERMISSIONS.MODERATION.USER_WARN, label: '유저 경고' },
+  { value: PERMISSIONS.MODERATION.ALL, label: '모더레이션 전체 권한' },
 
   // Super
   { value: PERMISSIONS.SUPER, label: '슈퍼 관리자 (전체 권한)' },

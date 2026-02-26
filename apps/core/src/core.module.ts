@@ -25,6 +25,7 @@ import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 import { PermissionModule } from './features/permission/permission.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationModule } from './features/notification/notification.module';
+import { ReportModule } from './features/report/report.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { NotificationModule } from './features/notification/notification.module'
     SearchModule,
     AnalyticsModule,
     NotificationModule,
+    ReportModule,
     HealthModule,
     StaticModule,
   ],

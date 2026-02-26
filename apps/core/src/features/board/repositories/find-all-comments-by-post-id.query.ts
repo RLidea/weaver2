@@ -12,17 +12,17 @@ export const COMMENT_CHILDREN_INCLUDE = {
     include: {
       author: AUTHOR_SELECT,
       children: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, hiddenAt: null },
         orderBy: { createdAt: 'asc' as const },
         include: {
           author: AUTHOR_SELECT,
           children: {
-            where: { deletedAt: null },
+            where: { deletedAt: null, hiddenAt: null },
             orderBy: { createdAt: 'asc' as const },
             include: {
               author: AUTHOR_SELECT,
               children: {
-                where: { deletedAt: null },
+                where: { deletedAt: null, hiddenAt: null },
                 orderBy: { createdAt: 'asc' as const },
                 include: {
                   author: AUTHOR_SELECT,
@@ -41,7 +41,7 @@ export async function FindAllCommentsByPostIdQuery(
   postId: string,
 ) {
   return prisma.comment.findMany({
-    where: { postId, parentId: null },
+    where: { postId, parentId: null, deletedAt: null, hiddenAt: null },
     include: {
       author: AUTHOR_SELECT,
       ...COMMENT_CHILDREN_INCLUDE,

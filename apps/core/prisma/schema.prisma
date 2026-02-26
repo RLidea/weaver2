@@ -14,6 +14,8 @@ model User {
   displayName      String               @unique
   profileImageUrl  String?
   profileImagePath String?
+  warningCount     Int                  @default(0)
+  suspendedUntil   DateTime?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   deletedAt        DateTime?
@@ -33,6 +35,8 @@ model User {
   permissionGroups UserPermissionGroup[]
   files            PostFile[]
   notifications    Notification[]
+  reportsMade      Report[]             @relation("ReportsMade")
+  reportsHandled   Report[]             @relation("ReportsHandled")
 
   @@map("users")
 }
@@ -184,6 +188,7 @@ model Post {
   status             PostStatus    @default(PUBLISHED)
   viewCount          Int           @default(0)
   requiredPermission String?
+  hiddenAt           DateTime?
   deletedAt          DateTime?
   comments           Comment[]
   reactions          PostReaction[]
@@ -201,6 +206,7 @@ model Post {
 model Comment {
   id        String    @id @default(uuid())
   content   String
+  hiddenAt  DateTime?
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -362,6 +368,7 @@ model PostFile {
   thumbnailPath String?
   postId        String?
   uploadedById  String?
+  hiddenAt      DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -401,6 +408,61 @@ enum NotificationType {
   REPLY
   REACTION
   SYSTEM
+}
+
+model Report {
+  id            String        @id @default(uuid())
+  reporterId    String
+  targetType    ReportTarget
+  targetId      String
+  reason        ReportReason
+  description   String?
+  status        ReportStatus  @default(PENDING)
+  resolvedById  String?
+  resolvedAt    DateTime?
+  actionTaken   ReportAction?
+  moderatorNote String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  reporter      User          @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy    User?         @relation("ReportsHandled", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+enum ReportTarget {
+  POST
+  COMMENT
+  USER
+  MEDIA
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE_CONTENT
+  HARASSMENT
+  HATE_SPEECH
+  MISINFORMATION
+  COPYRIGHT_VIOLATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportAction {
+  CONTENT_HIDDEN
+  CONTENT_DELETED
+  USER_WARNED
+  USER_SUSPENDED
+  NO_ACTION
 }
 
 enum EmailStatus {

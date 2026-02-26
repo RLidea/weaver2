@@ -37,6 +37,39 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.TERMS.ALL,
       PERMISSIONS.PERMISSION_GROUP.ALL,
       PERMISSIONS.UPLOAD.ALL,
+      // 신고 및 모더레이션
+      PERMISSIONS.REPORT.ALL,
+      PERMISSIONS.MODERATION.ALL,
+    ],
+  },
+  {
+    name: 'Operator',
+    description: '콘텐츠 삭제 및 유저 정지 권한을 포함한 운영자',
+    isSystem: true,
+    permissions: [
+      // 관리자 (제한적)
+      PERMISSIONS.ADMIN.ACCESS,
+      PERMISSIONS.ADMIN.DASHBOARD,
+      // 게시글 중재
+      PERMISSIONS.POST.READ,
+      PERMISSIONS.POST.READ_ALL,
+      PERMISSIONS.POST.UPDATE_ALL,
+      PERMISSIONS.POST.DELETE_ALL,
+      // 댓글 중재
+      PERMISSIONS.COMMENT.READ,
+      PERMISSIONS.COMMENT.UPDATE_ALL,
+      PERMISSIONS.COMMENT.DELETE_ALL,
+      // 게시판
+      PERMISSIONS.BOARD.READ,
+      // 유저
+      PERMISSIONS.USER.READ,
+      PERMISSIONS.USER.SUSPEND,
+      // 파일
+      PERMISSIONS.UPLOAD.READ,
+      PERMISSIONS.UPLOAD.DELETE,
+      // 신고 및 모더레이션 (삭제 포함)
+      PERMISSIONS.REPORT.ALL,
+      PERMISSIONS.MODERATION.ALL,
     ],
   },
   {
@@ -60,10 +93,13 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.BOARD.READ,
       // 유저
       PERMISSIONS.USER.READ,
-      PERMISSIONS.USER.SUSPEND,
       // 파일
       PERMISSIONS.UPLOAD.READ,
-      PERMISSIONS.UPLOAD.DELETE,
+      // 신고 처리 + 숨김/경고만 (삭제·정지 제외)
+      PERMISSIONS.REPORT.READ,
+      PERMISSIONS.REPORT.UPDATE,
+      PERMISSIONS.MODERATION.CONTENT_HIDE,
+      PERMISSIONS.MODERATION.USER_WARN,
     ],
   },
   {
@@ -92,6 +128,8 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       // 파일
       PERMISSIONS.UPLOAD.CREATE,
       PERMISSIONS.UPLOAD.READ,
+      // 신고 접수
+      PERMISSIONS.REPORT.CREATE,
     ],
   },
   {
@@ -106,24 +144,54 @@ export async function seedPermissionGroups(prisma: PrismaClient) {
   for (const groupData of permissionGroupsToSeed) {
     const existing = await prisma.permissionGroup.findUnique({
       where: { name: groupData.name },
+      include: { permissions: true },
     });
 
-    if (existing) {
-      logSeedResult('PermissionGroup', groupData.name, 'exists');
+    if (!existing) {
+      await prisma.permissionGroup.create({
+        data: {
+          name: groupData.name,
+          description: groupData.description,
+          isSystem: groupData.isSystem,
+          permissions: {
+            create: groupData.permissions.map((permission) => ({ permission })),
+          },
+        },
+      });
+      logSeedResult('PermissionGroup', groupData.name, 'created');
       continue;
     }
 
-    await prisma.permissionGroup.create({
-      data: {
-        name: groupData.name,
-        description: groupData.description,
-        isSystem: groupData.isSystem,
-        permissions: {
-          create: groupData.permissions.map((permission) => ({ permission })),
-        },
-      },
-    });
+    // 기존 그룹 권한 동기화: 없는 권한 추가, 제거된 권한 삭제
+    const existingPerms = new Set(
+      existing.permissions.map((p) => p.permission),
+    );
+    const targetPerms = new Set(groupData.permissions);
 
-    logSeedResult('PermissionGroup', groupData.name, 'created');
+    const toAdd = groupData.permissions.filter((p) => !existingPerms.has(p));
+    const toRemove = [...existingPerms].filter((p) => !targetPerms.has(p));
+
+    if (toAdd.length > 0 || toRemove.length > 0) {
+      await prisma.$transaction([
+        ...toAdd.map((permission) =>
+          prisma.permissionGroupPermission.create({
+            data: { permissionGroupId: existing.id, permission },
+          }),
+        ),
+        ...(toRemove.length > 0
+          ? [
+              prisma.permissionGroupPermission.deleteMany({
+                where: {
+                  permissionGroupId: existing.id,
+                  permission: { in: toRemove },
+                },
+              }),
+            ]
+          : []),
+      ]);
+      logSeedResult('PermissionGroup', groupData.name, 'updated');
+    } else {
+      logSeedResult('PermissionGroup', groupData.name, 'exists');
+    }
   }
 }

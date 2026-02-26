@@ -29,6 +29,13 @@ export class SignInService {
     if (!user || !user.localCredential || !user.localCredential.password)
       throw new UnauthorizedException('Invalid credentials');
 
+    // 정지 계정 체크 (suspendedUntil이 미래 시각이면 정지 상태)
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new UnauthorizedException(
+        `Account is suspended until ${user.suspendedUntil.toISOString()}.`,
+      );
+    }
+
     const { localCredential } = user;
 
     if (

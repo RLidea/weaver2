@@ -98,6 +98,7 @@ export class PostService {
       authorId: userId,
       status: 'PUBLISHED',
       deletedAt: null,
+      hiddenAt: null,
       ...(!isSelf && { isSecret: false }),
     };
 
@@ -120,6 +121,7 @@ export class PostService {
     const where = {
       status: 'PUBLISHED' as const,
       deletedAt: null,
+      hiddenAt: null,
       ...(!isLoggedIn && { isSecret: false }),
     };
 
@@ -146,6 +148,7 @@ export class PostService {
       boardId,
       status: 'PUBLISHED' as const,
       deletedAt: null,
+      hiddenAt: null,
       ...(!isLoggedIn && { isSecret: false }),
     };
 
@@ -183,6 +186,7 @@ export class PostService {
       id,
       status: 'PUBLISHED' as const,
       deletedAt: null,
+      hiddenAt: null,
       // 로그인하지 않은 사용자는 비밀글 접근 불가
       ...(!isLoggedIn && { isSecret: false }),
     };

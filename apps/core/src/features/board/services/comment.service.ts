@@ -183,7 +183,7 @@ export class CommentService {
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
-      where: { postId, parentId: null },
+      where: { postId, parentId: null, deletedAt: null, hiddenAt: null },
       include: {
         author: { select: { id: true, username: true, displayName: true } },
         ...COMMENT_CHILDREN_INCLUDE,
