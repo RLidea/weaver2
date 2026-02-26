@@ -30,6 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           return token;
         },
         ExtractJwt.fromAuthHeaderAsBearerToken(), // Fallback for Swagger or other API clients
+        ExtractJwt.fromUrlQueryParameter('token'), // Fallback for SSE / mobile clients
       ]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,

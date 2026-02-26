@@ -23,6 +23,8 @@ import {
   KeysetResponseDto,
 } from '@weaver2/pagination';
 import { AdminCommentsQueryDto } from '../dto/admin-comments-query.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationEventDto } from '../../notification/dto/notification-event.dto';
 
 // 댓글은 시간순(오름차순) 고정 정렬 — 전역 KEYSET_PRESETS에 등록하지 않음
 const COMMENT_PRESET: KeysetPreset = {
@@ -38,6 +40,7 @@ export class CommentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postService: PostService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createComment(
@@ -77,6 +80,45 @@ export class CommentService {
       dto.content,
       dto.parentId,
     );
+
+    if (authorId) {
+      // 대댓글: 부모 댓글 작성자에게 알림
+      if (dto.parentId) {
+        const parentComment = await this.prisma.comment.findUnique({
+          where: { id: dto.parentId },
+          select: { authorId: true },
+        });
+        if (parentComment?.authorId) {
+          const event: NotificationEventDto = {
+            recipientId: parentComment.authorId,
+            actorId: authorId,
+            type: 'REPLY',
+            title: '새 답글이 달렸습니다',
+            body: dto.content.slice(0, 100),
+            link: `/posts/${postId}`,
+          };
+          this.eventEmitter.emit('notification.created', event);
+        }
+      } else {
+        // 댓글: 게시글 작성자에게 알림
+        const post = await this.prisma.post.findUnique({
+          where: { id: postId },
+          select: { authorId: true },
+        });
+        if (post?.authorId) {
+          const event: NotificationEventDto = {
+            recipientId: post.authorId,
+            actorId: authorId,
+            type: 'COMMENT',
+            title: '새 댓글이 달렸습니다',
+            body: dto.content.slice(0, 100),
+            link: `/posts/${postId}`,
+          };
+          this.eventEmitter.emit('notification.created', event);
+        }
+      }
+    }
+
     return comment as CommentDto;
   }
 

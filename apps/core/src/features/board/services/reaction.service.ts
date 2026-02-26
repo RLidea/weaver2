@@ -12,12 +12,15 @@ import {
   SystemSettingService,
   CONFIG_KEYS,
 } from '../../../infrastructure/config/system-setting.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationEventDto } from '../../notification/dto/notification-event.dto';
 
 @Injectable()
 export class ReactionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly systemSettingService: SystemSettingService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async getReactions(
@@ -131,6 +134,19 @@ export class ReactionService {
         throw new BadRequestException('이미 해당 이모지로 리액션했습니다.');
       }
       throw e;
+    }
+
+    // 게시글 작성자에게 리액션 알림
+    if (post.authorId) {
+      const event: NotificationEventDto = {
+        recipientId: post.authorId,
+        actorId: userId,
+        type: 'REACTION',
+        title: '게시글에 리액션이 달렸습니다',
+        body: `${emoji.name} 리액션`,
+        link: `/posts/${postId}`,
+      };
+      this.eventEmitter.emit('notification.created', event);
     }
 
     return this.getReactions(postId, userId);

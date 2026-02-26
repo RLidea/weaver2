@@ -23,6 +23,8 @@ import { BoardModule } from './features/board/board.module';
 import { SearchModule } from './features/search/search.module';
 import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 import { PermissionModule } from './features/permission/permission.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { NotificationModule } from './features/notification/notification.module';
 
 @Module({
   imports: [
@@ -53,6 +55,7 @@ import { PermissionModule } from './features/permission/permission.module';
         },
       ],
     }),
+    EventEmitterModule.forRoot(),
     UserModule,
     PrismaModule,
     PermissionModule,
@@ -64,6 +67,7 @@ import { PermissionModule } from './features/permission/permission.module';
     BoardModule,
     SearchModule,
     AnalyticsModule,
+    NotificationModule,
     HealthModule,
     StaticModule,
   ],
