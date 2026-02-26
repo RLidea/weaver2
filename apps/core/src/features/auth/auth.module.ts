@@ -21,6 +21,8 @@ import { OAuthModule } from './oauth/oauth.module';
 import { OAuthController } from './controllers/oauth.controller';
 import { TwoFactorController } from './controllers/two-factor.controller';
 import { TwoFactorService } from './services/two-factor.service';
+import { SessionController } from './controllers/session.controller';
+import { SessionService } from './services/session.service';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule, OAuthModule],
@@ -31,6 +33,7 @@ import { TwoFactorService } from './services/two-factor.service';
     SignOutController,
     OAuthController,
     TwoFactorController,
+    SessionController,
   ],
   providers: [
     SignInService,
@@ -42,6 +45,7 @@ import { TwoFactorService } from './services/two-factor.service';
     SignOutService,
     TermsService,
     TwoFactorService,
+    SessionService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

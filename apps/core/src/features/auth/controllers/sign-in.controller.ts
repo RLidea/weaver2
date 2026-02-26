@@ -83,6 +83,7 @@ export class SignInController {
   async emailLogin(
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() loginDto: { rememberMe?: boolean },
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     this.logger.debug(JSON.stringify(authUser));
@@ -105,10 +106,15 @@ export class SignInController {
       };
     }
 
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+
     const tokens = await this.signInService.login(
       authUser.id,
       'email',
       loginDto.rememberMe,
+      ipAddress,
+      userAgent,
     );
     this.setAuthCookies(res, tokens);
 
@@ -143,7 +149,14 @@ export class SignInController {
         `Refreshing token for: ${refreshToken.substring(0, 10)}...`,
       );
 
-      const tokens = await this.signInService.refresh(refreshToken);
+      const ipAddress = req.ip;
+      const userAgent = req.headers['user-agent'];
+
+      const tokens = await this.signInService.refresh(
+        refreshToken,
+        ipAddress,
+        userAgent,
+      );
       this.setAuthCookies(res, tokens);
 
       return {

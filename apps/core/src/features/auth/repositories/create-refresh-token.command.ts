@@ -5,12 +5,16 @@ export async function CreateRefreshTokenCommand(
   userId: string,
   token: string,
   expires: Date,
+  ipAddress?: string,
+  userAgent?: string,
 ) {
   return prisma.refreshToken.create({
     data: {
       token,
       userId,
       expires,
+      ipAddress,
+      userAgent,
     },
   });
 }

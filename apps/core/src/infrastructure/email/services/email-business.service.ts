@@ -182,6 +182,22 @@ export class EmailBusinessService {
   }
 
   /**
+   * 이메일 변경 인증 코드 메일 발송
+   */
+  async sendEmailChangeVerificationEmail(
+    newEmail: string,
+    code: string,
+    userId?: string,
+  ) {
+    return this.sendTemplateEmail({
+      to: newEmail,
+      templateName: 'email-change',
+      variables: { code },
+      userId,
+    });
+  }
+
+  /**
    * 실패한 이메일 재발송
    */
   async retryFailedEmail(emailLogId: string) {

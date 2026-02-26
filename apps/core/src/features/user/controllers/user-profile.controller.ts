@@ -34,6 +34,9 @@ import { ChangePasswordService } from '../services/change-password.service';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { UpdateProfileService } from '../services/update-profile.service';
+import { EmailChangeService } from '../services/email-change.service';
+import { RequestEmailChangeDto } from '../dto/request-email-change.dto';
+import { ConfirmEmailChangeDto } from '../dto/confirm-email-change.dto';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
@@ -45,6 +48,7 @@ export class UserProfileController {
     private readonly updateUserProfileService: UpdateUserProfileService,
     private readonly changePasswordService: ChangePasswordService,
     private readonly updateProfileService: UpdateProfileService,
+    private readonly emailChangeService: EmailChangeService,
   ) {}
 
   @Get()
@@ -95,6 +99,34 @@ export class UserProfileController {
       authUser.id,
       changePasswordDto,
     );
+  }
+
+  @Post('email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '이메일 변경 요청 (인증 코드 발송)' })
+  @ApiStandardResponses({ status: 204, description: '인증 코드 발송 완료' })
+  async requestEmailChange(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() dto: RequestEmailChangeDto,
+  ) {
+    await this.emailChangeService.requestEmailChange(
+      authUser.id,
+      dto.currentPassword,
+      dto.newEmail,
+    );
+  }
+
+  @Post('email/confirm')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('ACCESS-TOKEN')
+  @ApiOperation({ summary: '이메일 변경 인증 코드 확인' })
+  @ApiStandardResponses({ status: 204, description: '이메일 변경 완료' })
+  async confirmEmailChange(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() dto: ConfirmEmailChangeDto,
+  ) {
+    await this.emailChangeService.confirmEmailChange(authUser.id, dto.code);
   }
 
   @Post('profile-image')

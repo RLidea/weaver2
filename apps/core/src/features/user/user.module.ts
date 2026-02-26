@@ -8,9 +8,11 @@ import { UserAdminController } from './controllers/user-admin.controller';
 import { UpdateUserProfileService } from './services/update-user-profile.service';
 import { ChangePasswordService } from './services/change-password.service';
 import { UpdateProfileService } from './services/update-profile.service';
+import { EmailChangeService } from './services/email-change.service';
+import { EmailModule } from '../../infrastructure/email/email.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EmailModule],
   controllers: [
     UserProfileController,
     UserQueryController,
@@ -22,6 +24,7 @@ import { UpdateProfileService } from './services/update-profile.service';
     UpdateUserProfileService,
     ChangePasswordService,
     UpdateProfileService,
+    EmailChangeService,
   ],
   exports: [
     FindUserService,

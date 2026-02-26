@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { FindLocalCredentialByUserIdQuery } from '../../auth/repositories/find-local-credential-by-user-id.query';
 import { UpdateLocalCredentialPasswordCommand } from '../../auth/repositories/update-local-credential-password.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
 
 @Injectable()
 export class ChangePasswordService {
@@ -41,5 +42,7 @@ export class ChangePasswordService {
       userId,
       hashedNewPassword,
     );
+
+    await DeleteRefreshTokensByUserIdCommand(this.prisma, userId);
   }
 }

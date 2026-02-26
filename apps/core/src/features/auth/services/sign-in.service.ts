@@ -7,6 +7,8 @@ import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
 import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
 import { DeleteRefreshTokenCommand } from '../repositories/delete-refresh-token.command';
+import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
+import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 
 @Injectable()
 export class SignInService {
@@ -27,8 +29,24 @@ export class SignInService {
     if (!user || !user.localCredential || !user.localCredential.password)
       throw new UnauthorizedException('Invalid credentials');
 
-    const match = await bcrypt.compare(password, user.localCredential.password);
-    if (!match) throw new UnauthorizedException('Invalid credentials');
+    const { localCredential } = user;
+
+    if (
+      localCredential.lockedUntil &&
+      localCredential.lockedUntil > new Date()
+    ) {
+      throw new UnauthorizedException(
+        'Account is temporarily locked. Please try again later.',
+      );
+    }
+
+    const match = await bcrypt.compare(password, localCredential.password);
+    if (!match) {
+      await IncrementFailedAttemptsCommand(this.prisma, user.id);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    await ResetFailedAttemptsCommand(this.prisma, user.id);
 
     this.logger.debug(
       `validateUserByEmail: Returning user: ${JSON.stringify(user.id)}`,
@@ -36,7 +54,13 @@ export class SignInService {
     return user;
   }
 
-  async login(userId: string, _provider: string, rememberMe = false) {
+  async login(
+    userId: string,
+    _provider: string,
+    rememberMe = false,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
     );
@@ -57,6 +81,8 @@ export class SignInService {
     const generatedRefreshToken = await this.generateRefreshToken(
       userId,
       expiryDays,
+      ipAddress,
+      userAgent,
     );
     return {
       accessToken: this.jwtService.sign(payload),
@@ -65,16 +91,28 @@ export class SignInService {
     };
   }
 
-  async generateRefreshToken(userId: string, expiryDays: number) {
+  async generateRefreshToken(
+    userId: string,
+    expiryDays: number,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
 
-    await CreateRefreshTokenCommand(this.prisma, userId, token, expires);
+    await CreateRefreshTokenCommand(
+      this.prisma,
+      userId,
+      token,
+      expires,
+      ipAddress,
+      userAgent,
+    );
 
     return token;
   }
 
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken: string, ipAddress?: string, userAgent?: string) {
     const stored = await FindRefreshTokenQuery(this.prisma, refreshToken);
 
     if (!stored || stored.expires < new Date()) {
@@ -92,6 +130,8 @@ export class SignInService {
     const newRefreshToken = await this.generateRefreshToken(
       stored.user.id,
       remainingDays,
+      ipAddress,
+      userAgent,
     );
 
     return {

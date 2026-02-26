@@ -17,10 +17,11 @@ model User {
   updatedAt        DateTime             @updatedAt
   deletedAt        DateTime?
   lastLoginAt      DateTime?
-  localCredential     LocalCredential?
-  oauthAccounts       OAuthAccount[]
-  refreshTokens       RefreshToken[]
-  twoFactorChallenges TwoFactorChallenge[]
+  localCredential      LocalCredential?
+  oauthAccounts        OAuthAccount[]
+  refreshTokens        RefreshToken[]
+  twoFactorChallenges  TwoFactorChallenge[]
+  emailChangeRequests  EmailChangeRequest[]
   comments            Comment[]
   emailLogs        EmailLog[]
   pageViews        PageView[]
@@ -61,6 +62,8 @@ model LocalCredential {
   totpEnabled             Boolean   @default(false)
   totpSecret              String?
   emailOtpEnabled         Boolean   @default(false)
+  failedAttempts          Int       @default(0)
+  lockedUntil             DateTime?
   userId                  String    @unique
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
@@ -80,6 +83,19 @@ model TwoFactorChallenge {
 
   @@index([userId, method])
   @@map("two_factor_challenges")
+}
+
+model EmailChangeRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  newEmail  String
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_change_requests")
 }
 
 model OAuthAccount {
@@ -103,6 +119,8 @@ model RefreshToken {
   token     String   @unique
   expires   DateTime
   userId    String
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

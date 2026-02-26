@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
@@ -50,6 +50,7 @@ export class TwoFactorController {
   @ApiOperation({ summary: 'pre-auth 토큰 + 2FA 코드로 최종 로그인' })
   async authenticate(
     @Body() dto: TwoFactorAuthenticateDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { userId, rememberMe } = await this.twoFactorService.authenticate(
@@ -58,7 +59,16 @@ export class TwoFactorController {
       dto.code,
     );
 
-    const tokens = await this.signInService.login(userId, 'email', rememberMe);
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+
+    const tokens = await this.signInService.login(
+      userId,
+      'email',
+      rememberMe,
+      ipAddress,
+      userAgent,
+    );
     this.setAuthCookies(res, tokens);
 
     return {
