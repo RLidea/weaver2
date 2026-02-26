@@ -30,6 +30,6 @@ import { UpdateFileCommand } from './repositories/update-file.command';
     UpdateFileCommand,
     UploadService,
   ],
-  exports: [UploadService],
+  exports: [UploadService, STORAGE_PROVIDER, ThumbnailService],
 })
 export class UploadModule {}

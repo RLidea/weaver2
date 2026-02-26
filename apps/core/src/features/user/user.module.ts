@@ -10,9 +10,10 @@ import { ChangePasswordService } from './services/change-password.service';
 import { UpdateProfileService } from './services/update-profile.service';
 import { EmailChangeService } from './services/email-change.service';
 import { EmailModule } from '../../infrastructure/email/email.module';
+import { UploadModule } from '@weaver2/upload';
 
 @Module({
-  imports: [PrismaModule, EmailModule],
+  imports: [PrismaModule, EmailModule, UploadModule],
   controllers: [
     UserProfileController,
     UserQueryController,

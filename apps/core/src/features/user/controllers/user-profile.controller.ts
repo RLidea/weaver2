@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Body,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -26,10 +27,8 @@ import { FindUserService } from '../services/find-user.service';
 import { DeleteAccountService } from '../services/delete-account.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { memoryStorage } from 'multer';
 import { UpdateUserProfileService } from '../services/update-user-profile.service';
-import * as fs from 'fs';
 import { ChangePasswordService } from '../services/change-password.service';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
@@ -137,60 +136,33 @@ export class UserProfileController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
   @ApiStandardResponses()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const now = new Date();
-          const year = now.getFullYear();
-          const month = (now.getMonth() + 1).toString().padStart(2, '0');
-          const uploadPath = join(
-            process.cwd(),
-            'uploads',
-            String(year),
-            month,
-          );
-
-          if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
+      storage: memoryStorage(),
       fileFilter: (req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
-          return cb(new Error('Only image files are allowed!'), false);
+        if (!file.mimetype.match(/^image\/(jpeg|png|gif|webp)$/)) {
+          return cb(
+            new BadRequestException('이미지 파일만 업로드할 수 있습니다.'),
+            false,
+          );
         }
         cb(null, true);
       },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     }),
   )
   async uploadProfileImage(
     @UploadedFile() file: Express.Multer.File,
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const imageUrl = `/uploads/${year}/${month}/${file.filename}`;
-    await this.updateUserProfileService.updateProfileImage(
+    const imageUrl = await this.updateUserProfileService.uploadProfileImage(
       authUser.id,
-      imageUrl,
+      file,
     );
     return { imageUrl };
   }
