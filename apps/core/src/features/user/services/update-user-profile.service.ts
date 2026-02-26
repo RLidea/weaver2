@@ -22,10 +22,19 @@ export class UpdateUserProfileService {
     const { path: filePath } = await this.storage.save(file, directory);
     const imageUrl = await this.storage.getFileUrl(filePath);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImagePath: true },
+    });
+
     await this.prisma.user.update({
       where: { id: userId },
-      data: { profileImageUrl: imageUrl },
+      data: { profileImageUrl: imageUrl, profileImagePath: filePath },
     });
+
+    if (user?.profileImagePath) {
+      await this.storage.delete(user.profileImagePath);
+    }
 
     return imageUrl;
   }
