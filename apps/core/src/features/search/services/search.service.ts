@@ -79,7 +79,7 @@ export class SearchService {
           to_tsvector('simple', p.title || ' ' || p.content),
           to_tsquery('simple', ${query})
         ) as rank
-      FROM "Post" p
+      FROM "posts" p
       WHERE
         to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
         AND p.status = 'PUBLISHED'
@@ -135,7 +135,7 @@ export class SearchService {
     const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
       Prisma.sql`
       SELECT COUNT(*) as count
-      FROM "Post" p
+      FROM "posts" p
       WHERE
         to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
         AND p.status = 'PUBLISHED'
@@ -165,8 +165,8 @@ export class SearchService {
           to_tsvector('simple', c.content),
           to_tsquery('simple', ${query})
         ) as rank
-      FROM "Comment" c
-      ${boardId ? Prisma.sql`JOIN "Post" p ON c."postId" = p.id` : Prisma.empty}
+      FROM "comments" c
+      ${boardId ? Prisma.sql`JOIN "posts" p ON c."postId" = p.id` : Prisma.empty}
       WHERE
         to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
         ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
@@ -218,8 +218,8 @@ export class SearchService {
     const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
       Prisma.sql`
       SELECT COUNT(*) as count
-      FROM "Comment" c
-      ${boardId ? Prisma.sql`JOIN "Post" p ON c."postId" = p.id` : Prisma.empty}
+      FROM "comments" c
+      ${boardId ? Prisma.sql`JOIN "posts" p ON c."postId" = p.id` : Prisma.empty}
       WHERE
         to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
         ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
