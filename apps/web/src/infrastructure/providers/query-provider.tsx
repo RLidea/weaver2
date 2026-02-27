@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { createQueryClient } from '@/lib/query-client';
+import { createQueryClient } from '@/infrastructure/query-client';
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   // useState로 생성해 SSR hydration 불일치 방지

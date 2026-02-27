@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useToast } from '@/context/toast-context';
+import { useToast } from '@/infrastructure/providers/toast-provider';
 import { ApiError } from '@/types/api';
 
 const ERROR_MESSAGES: Partial<Record<number, string>> = {

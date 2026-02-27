@@ -2,8 +2,8 @@
 
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/auth-context';
-import { useApiError } from '@/hooks/use-api-error';
+import { useAuth } from '@/infrastructure/providers/auth-provider';
+import { useApiError } from '@/shared/hooks/use-api-error';
 
 function LoginForm() {
   const router = useRouter();

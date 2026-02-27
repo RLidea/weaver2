@@ -1,0 +1,18 @@
+/* Default Skin — 기본 라이트 테마 */
+[data-skin="default"] {
+  --skin-bg:          #f8fafc;
+  --skin-surface:     #ffffff;
+  --skin-surface-2:   #f1f5f9;
+  --skin-border:      #e2e8f0;
+  --skin-primary:     #6366f1;
+  --skin-primary-fg:  #ffffff;
+  --skin-text:        #0f172a;
+  --skin-text-muted:  #64748b;
+
+  --skin-radius-sm:   0.25rem;
+  --skin-radius-md:   0.5rem;
+  --skin-radius-lg:   0.75rem;
+
+  --skin-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --skin-backdrop:    0px;
+}

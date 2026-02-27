@@ -1,6 +1,6 @@
 'use client';
 
-import { useToast } from '@/context/toast-context';
+import { useToast } from '@/infrastructure/providers/toast-provider';
 
 const STYLES = {
   success: 'bg-green-600 text-white',
