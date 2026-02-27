@@ -2,10 +2,13 @@ import { ApiError, ApiErrorResponse, ApiResponse } from '@/types/api';
 
 type RequestOptions = Omit<RequestInit, 'body' | 'method'>;
 
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
   private onAuthError: (() => void) | null = null;
+  private csrfToken: string | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -19,6 +22,26 @@ class ApiClient {
     this.onAuthError = callback;
   }
 
+  /**
+   * CSRF 토큰이 캐시되어 있으면 반환, 없으면 서버에서 발급받는다.
+   * GET 요청이므로 CSRF 검사 대상이 아니다.
+   */
+  private async ensureCsrfToken(): Promise<string> {
+    if (this.csrfToken) return this.csrfToken;
+
+    const response = await fetch(`${this.baseUrl}/v1/auth/csrf-token`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, 'Failed to fetch CSRF token');
+    }
+
+    const data = (await response.json()) as ApiResponse<{ csrfToken: string }>;
+    this.csrfToken = data.data.csrfToken;
+    return this.csrfToken;
+  }
+
   private async request<T>(
     method: string,
     path: string,
@@ -28,6 +51,11 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${path}`;
 
+    const csrfHeaders: Record<string, string> = {};
+    if (MUTATION_METHODS.has(method)) {
+      csrfHeaders['x-csrf-token'] = await this.ensureCsrfToken();
+    }
+
     const response = await fetch(url, {
       ...options,
       method,
@@ -35,6 +63,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
+        ...csrfHeaders,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -44,6 +73,13 @@ class ApiClient {
     }
 
     if (!response.ok) {
+      // CSRF 토큰 만료 → 캐시 무효화 후 1회 재시도
+      if (response.status === 403 && !isRetry) {
+        this.csrfToken = null;
+        return this.request<T>(method, path, body, options, true);
+      }
+
+      // 액세스 토큰 만료 → refresh 후 1회 재시도
       if (response.status === 401 && !isRetry && !this.isRefreshing) {
         const refreshed = await this.refresh();
         if (refreshed) {
@@ -53,12 +89,17 @@ class ApiClient {
         throw new ApiError(401, 'Unauthorized');
       }
 
-      const errorBody = await response.json().catch(() => null) as ApiErrorResponse | null;
+      const errorBody = (await response.json().catch(() => null)) as ApiErrorResponse | null;
       const message = errorBody?.error?.message ?? 'Request failed';
       const errorPath = errorBody?.error?.path ?? path;
       const timestamp = errorBody?.error?.timestamp ?? new Date().toISOString();
 
-      throw new ApiError(response.status, Array.isArray(message) ? message.join(', ') : message, errorPath, timestamp);
+      throw new ApiError(
+        response.status,
+        Array.isArray(message) ? message.join(', ') : message,
+        errorPath,
+        timestamp,
+      );
     }
 
     return response.json() as Promise<ApiResponse<T>>;
@@ -68,10 +109,18 @@ class ApiClient {
     if (this.isRefreshing) return false;
     this.isRefreshing = true;
     try {
+      const csrfToken = await this.ensureCsrfToken();
       const response = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
       });
+      // refresh 실패 시 CSRF 토큰도 함께 무효화
+      if (!response.ok) {
+        this.csrfToken = null;
+      }
       return response.ok;
     } catch {
       return false;

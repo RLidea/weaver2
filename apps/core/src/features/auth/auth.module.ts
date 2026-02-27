@@ -23,6 +23,7 @@ import { TwoFactorController } from './controllers/two-factor.controller';
 import { TwoFactorService } from './services/two-factor.service';
 import { SessionController } from './controllers/session.controller';
 import { SessionService } from './services/session.service';
+import { CsrfController } from './controllers/csrf.controller';
 
 @Module({
   imports: [PrismaModule, UserModule, EmailModule, OAuthModule],
@@ -34,6 +35,7 @@ import { SessionService } from './services/session.service';
     OAuthController,
     TwoFactorController,
     SessionController,
+    CsrfController,
   ],
   providers: [
     SignInService,
