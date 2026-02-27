@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = ['/', '/login', '/sign-up'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath = PUBLIC_PATHS.some(
@@ -27,7 +27,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * 아래 경로를 제외한 모든 요청에 middleware 적용:
+     * 아래 경로를 제외한 모든 요청에 proxy 적용:
      * - _next/static (정적 파일)
      * - _next/image (이미지 최적화)
      * - favicon.ico
