@@ -102,7 +102,9 @@ class ApiClient {
       );
     }
 
-    return response.json() as Promise<ApiResponse<T>>;
+    return response.json().catch(() => {
+      throw new ApiError(response.status, '응답을 처리할 수 없습니다.');
+    }) as Promise<ApiResponse<T>>;
   }
 
   private async refresh(): Promise<boolean> {

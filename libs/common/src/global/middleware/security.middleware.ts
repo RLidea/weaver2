@@ -42,7 +42,7 @@ export function setSecurityMiddleware(app: INestApplication): void {
       }
     },
     allowedHeaders:
-      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Cookie, Accept, Observe, Authorization',
+      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Cookie, Accept, Observe, Authorization, X-CSRF-Token',
     methods: 'GET,PUT,POST,DELETE,OPTIONS,PATCH',
     credentials: true,
   });

@@ -22,10 +22,6 @@ export function useApiError() {
         toast.error(message);
         return;
       }
-      if (error instanceof Error) {
-        toast.error(error.message);
-        return;
-      }
       toast.error('알 수 없는 오류가 발생했습니다.');
     },
     [toast],

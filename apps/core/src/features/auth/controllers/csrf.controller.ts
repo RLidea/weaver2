@@ -13,9 +13,8 @@ export class CsrfController {
   @Get('csrf-token')
   @ApiOperation({ summary: 'CSRF 토큰 발급' })
   getCsrfToken(@Req() req: Request) {
-    return {
-      message: 'CSRF token issued',
-      data: { csrfToken: req.csrfToken() },
-    };
+    // message/data 래퍼 없이 반환 → SuccessInterceptor가
+    // { message: 'success', data: { csrfToken: '...' } } 형태로 올바르게 감쌈
+    return { csrfToken: req.csrfToken() };
   }
 }
