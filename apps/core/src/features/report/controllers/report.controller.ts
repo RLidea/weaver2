@@ -7,6 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
 import { PermissionGuard } from '../../permission/guards/permission.guard';
@@ -25,6 +26,7 @@ export class ReportController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @RequirePermission(PERMISSIONS.REPORT.CREATE)
   @ApiOperation({ summary: '신고 접수' })
   @ApiStandardResponses({ type: ReportDto })

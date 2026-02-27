@@ -1,5 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { SearchService } from '../services/search.service';
 import { SearchRequestDto } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
@@ -13,6 +14,7 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Get()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({
     summary: '통합 검색 - 게시글과 댓글을 검색합니다',
     description: `

@@ -23,6 +23,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -60,6 +61,7 @@ export class UploadController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({
     summary: '파일 업로드',
