@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/infrastructure/providers/auth-provider';
+import { useMe } from '@/features/auth/hooks/use-me';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useMe();
   const router = useRouter();
 
   useEffect(() => {

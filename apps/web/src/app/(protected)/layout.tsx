@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/infrastructure/providers/auth-provider';
+import { useMe } from '@/features/auth/hooks/use-me';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useMe();
   const router = useRouter();
   const pathname = usePathname();
 
