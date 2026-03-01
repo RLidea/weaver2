@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useMe } from '@/features/user/hooks/use-me';
+import { Spinner } from '@/shared/components/ui/spinner';
+import { AppShell } from '@/shared/components/layout/app-shell';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useMe();
@@ -18,7 +20,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -27,5 +29,5 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     return null;
   }
 
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }

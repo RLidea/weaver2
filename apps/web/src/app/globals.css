@@ -16,6 +16,13 @@
   --color-text:       var(--skin-text,       #0f172a);
   --color-text-muted: var(--skin-text-muted, #64748b);
 
+  --color-error:      var(--skin-error,      #ef4444);
+  --color-error-fg:   var(--skin-error-fg,   #ffffff);
+  --color-success:    var(--skin-success,    #22c55e);
+  --color-success-fg: var(--skin-success-fg, #ffffff);
+  --color-warning:    var(--skin-warning,    #f59e0b);
+  --color-warning-fg: var(--skin-warning-fg, #ffffff);
+
   /* 반경 */
   --radius-sm: var(--skin-radius-sm, 0.25rem);
   --radius-md: var(--skin-radius-md, 0.5rem);

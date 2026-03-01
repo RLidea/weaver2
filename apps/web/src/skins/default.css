@@ -15,4 +15,11 @@
 
   --skin-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
   --skin-backdrop:    0px;
+
+  --skin-error:       #ef4444;
+  --skin-error-fg:    #ffffff;
+  --skin-success:     #22c55e;
+  --skin-success-fg:  #ffffff;
+  --skin-warning:     #f59e0b;
+  --skin-warning-fg:  #ffffff;
 }
