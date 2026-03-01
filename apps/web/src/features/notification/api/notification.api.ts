@@ -1,0 +1,24 @@
+import { apiClient } from '@/infrastructure/api-client';
+import type { KeysetResponse } from '@/types/pagination';
+import type { Notification } from '../types';
+
+export const notificationApi = {
+  getAll: (params?: { cursor?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.cursor) qs.set('cursor', params.cursor);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const str = qs.toString();
+    return apiClient.get<KeysetResponse<Notification>>(
+      `/v1/notifications${str ? `?${str}` : ''}`,
+    );
+  },
+
+  getUnreadCount: () =>
+    apiClient.get<{ count: number }>('/v1/notifications/unread-count'),
+
+  markRead: (id: string) =>
+    apiClient.patch<void>(`/v1/notifications/${id}/read`),
+
+  markAllRead: () =>
+    apiClient.patch<void>('/v1/notifications/read-all'),
+};
