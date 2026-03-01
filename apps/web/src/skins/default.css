@@ -16,6 +16,32 @@
   --skin-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
   --skin-backdrop:    0px;
 
+  /* 타이포그래피 — 폰트 크기 */
+  --skin-font-size-xs:   0.75rem;    /* 12px */
+  --skin-font-size-sm:   0.875rem;   /* 14px */
+  --skin-font-size-base: 1rem;       /* 16px */
+  --skin-font-size-lg:   1.125rem;   /* 18px */
+  --skin-font-size-xl:   1.25rem;    /* 20px */
+  --skin-font-size-2xl:  1.5rem;     /* 24px */
+  --skin-font-size-3xl:  1.875rem;   /* 30px */
+  --skin-font-size-4xl:  2.25rem;    /* 36px */
+
+  /* 타이포그래피 — 굵기 */
+  --skin-font-weight-normal:   400;
+  --skin-font-weight-medium:   500;
+  --skin-font-weight-semibold: 600;
+  --skin-font-weight-bold:     700;
+
+  /* 타이포그래피 — 행간 */
+  --skin-leading-tight:   1.25;
+  --skin-leading-normal:  1.5;
+  --skin-leading-relaxed: 1.625;
+
+  /* 타이포그래피 — 자간 */
+  --skin-tracking-tight:  -0.025em;
+  --skin-tracking-normal: 0em;
+  --skin-tracking-wide:   0.025em;
+
   --skin-error:       #ef4444;
   --skin-error-fg:    #ffffff;
   --skin-success:     #22c55e;

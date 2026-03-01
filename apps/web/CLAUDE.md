@@ -104,6 +104,8 @@ export function usePosts() {
 
 ### 사용 가능한 토큰 목록
 
+**색상**
+
 | 토큰 | 용도 |
 |------|------|
 | `bg-bg` | 페이지 배경 |
@@ -114,9 +116,28 @@ export function usePosts() {
 | `text-primary-fg` | primary 위의 텍스트 |
 | `text-text` | 본문 텍스트 |
 | `text-text-muted` | 보조 텍스트 |
+| `bg-error` / `text-error` | 오류 |
+| `bg-success` / `text-success` | 성공 |
+| `bg-warning` / `text-warning` | 경고 |
+
+**형태**
+
+| 토큰 | 용도 |
+|------|------|
 | `rounded-sm/md/lg` | 반경 |
 | `shadow-[var(--shadow-card)]` | 카드 그림자 |
 | `backdrop-blur-[var(--blur-backdrop)]` | 배경 블러 (글래스) |
+
+**타이포그래피** — `text-*`, `font-*`, `leading-*`, `tracking-*` 클래스가 스킨 토큰으로 위임됨
+
+| 토큰 | 클래스 | 용도 |
+|------|--------|------|
+| `--skin-font-size-xs~4xl` | `text-xs` ~ `text-4xl` | 글자 크기 |
+| `--skin-font-weight-*` | `font-normal/medium/semibold/bold` | 굵기 |
+| `--skin-leading-*` | `leading-tight/normal/relaxed` | 행간 |
+| `--skin-tracking-*` | `tracking-tight/normal/wide` | 자간 |
+
+> 타이포그래피는 직접 Tailwind 클래스를 쓰거나, `<Typography variant="h1|h2|h3|h4|body|body-sm|label|caption">` 컴포넌트를 사용한다.
 
 ### 새 스킨 추가 시
 
