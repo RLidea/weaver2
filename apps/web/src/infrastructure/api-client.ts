@@ -56,16 +56,18 @@ class ApiClient {
       csrfHeaders['x-csrf-token'] = await this.ensureCsrfToken();
     }
 
+    const isFormData = body instanceof FormData;
     const response = await fetch(url, {
       ...options,
       method,
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
+        // FormData는 브라우저가 Content-Type + boundary를 자동으로 설정
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options?.headers,
         ...csrfHeaders,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     if (response.status === 204) {
@@ -149,6 +151,10 @@ class ApiClient {
 
   delete<T>(path: string, options?: RequestOptions): Promise<ApiResponse<T>> {
     return this.request<T>('DELETE', path, undefined, options);
+  }
+
+  postForm<T>(path: string, body: FormData, options?: RequestOptions): Promise<ApiResponse<T>> {
+    return this.request<T>('POST', path, body, options);
   }
 }
 
