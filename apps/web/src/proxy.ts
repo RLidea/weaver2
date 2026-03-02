@@ -1,21 +1,37 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
-export function proxy() {
+const PROTECTED_PATHS = ['/dashboard', '/boards', '/notifications', '/settings'];
+const AUTH_PATHS = ['/login', '/sign-up'];
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+function isAuthPage(pathname: string): boolean {
+  return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const accessToken = request.cookies.get('access_token');
+  const refreshToken = request.cookies.get('refresh_token');
+  const hasSession = !!accessToken || !!refreshToken;
+
+  if (isProtected(pathname) && !hasSession) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAuthPage(pathname) && hasSession) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * 아래 경로를 제외한 모든 요청에 proxy 적용:
-     * - _next/static (정적 파일)
-     * - _next/image (이미지 최적화)
-     * - favicon.ico
-     * - /api (백엔드 프록시 경로)
-     * - public 폴더 파일 (.png, .svg 등)
-     *
-     * 인증 보호는 각 Route Group의 layout.tsx에서 처리
-     */
     '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)',
   ],
 };
