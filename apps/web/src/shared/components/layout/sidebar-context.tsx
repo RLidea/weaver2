@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 
 interface SidebarContextValue {
   isOpen: boolean;
@@ -14,14 +14,11 @@ const STORAGE_KEY = 'sidebar-open';
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   // 초기값: localStorage에서 복원, 없으면 true (데스크톱 기본 펼침)
-  const [isOpen, setIsOpen] = useState(true);
-
-  useEffect(() => {
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) {
-      setIsOpen(stored === 'true');
-    }
-  }, []);
+    return stored !== null ? stored === 'true' : true;
+  });
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => {

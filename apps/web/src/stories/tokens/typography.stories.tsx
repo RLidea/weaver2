@@ -30,7 +30,7 @@ function TypographyDocs() {
             { cls: 'text-2xl', label: 'text-2xl · 1.5rem · 24px', var: '--skin-font-size-2xl' },
             { cls: 'text-3xl', label: 'text-3xl · 1.875rem · 30px', var: '--skin-font-size-3xl' },
             { cls: 'text-4xl', label: 'text-4xl · 2.25rem · 36px', var: '--skin-font-size-4xl' },
-          ].map(({ cls, label, var: v }) => (
+          ].map(({ cls, label }) => (
             <div key={cls} className="flex items-baseline gap-4">
               <code className="w-52 flex-shrink-0 text-xs text-text-muted">{label}</code>
               <span className={`${cls} text-text`}>가나다 ABC</span>

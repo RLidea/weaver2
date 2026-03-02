@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMe } from '@/features/user/hooks/use-me';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { cn } from '@/shared/lib/cn';
-import { ChevronDownIcon, UserIcon, LogOutIcon, SettingsIcon } from '@/shared/components/ui/icons';
+import { ChevronDownIcon, LogOutIcon, SettingsIcon } from '@/shared/components/ui/icons';
 
 export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);

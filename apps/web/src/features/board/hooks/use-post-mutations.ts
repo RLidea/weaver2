@@ -35,7 +35,7 @@ export function useDeletePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ postId, boardId }: { postId: string; boardId: string }) =>
+    mutationFn: ({ postId }: { postId: string; boardId: string }) =>
       postApi.delete(postId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: postKeys.detail(variables.postId) });

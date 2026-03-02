@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { DEFAULT_SKIN, type SkinId } from '@/skins/index';
 
 interface SkinContextValue {
@@ -14,16 +14,11 @@ const SkinContext = createContext<SkinContextValue>({
 });
 
 export function SkinProvider({ children }: { children: React.ReactNode }) {
-  const [skin, setSkinState] = useState<SkinId>(DEFAULT_SKIN);
-
-  // 클라이언트 마운트 시 localStorage 값으로 초기화
-  useEffect(() => {
-    const stored = localStorage.getItem('skin') as SkinId | null;
-    if (stored && stored !== DEFAULT_SKIN) {
-      setSkinState(stored);
-      document.documentElement.setAttribute('data-skin', stored);
-    }
-  }, []);
+  // 인라인 스크립트가 이미 data-skin을 세팅했으므로 DOM에서 초기값을 읽음
+  const [skin, setSkinState] = useState<SkinId>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SKIN;
+    return (document.documentElement.getAttribute('data-skin') as SkinId) ?? DEFAULT_SKIN;
+  });
 
   function setSkin(id: SkinId) {
     setSkinState(id);

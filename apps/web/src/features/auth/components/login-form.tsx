@@ -1,9 +1,11 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLogin } from '@/features/auth/hooks/use-login';
+import { SignInSchema, type SignInRequest } from '@/features/auth/types';
 import { ApiError } from '@/types/api';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -14,19 +16,20 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { mutate: login, isPending, error } = useLogin();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInRequest>({
+    resolver: zodResolver(SignInSchema),
+  });
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function onSubmit(data: SignInRequest) {
     const redirectPath = searchParams.get('redirect') ?? '/dashboard';
-    login(
-      { email, password },
-      { onSuccess: () => router.replace(redirectPath) },
-    );
+    login(data, { onSuccess: () => router.replace(redirectPath) });
   }
 
-  const errorMessage = error instanceof ApiError ? error.message : (error?.message ?? null);
+  const serverError = error instanceof ApiError ? error.message : (error?.message ?? null);
 
   return (
     <Card className="w-full max-w-sm">
@@ -34,25 +37,22 @@ export function LoginForm() {
         <h1 className="text-center text-2xl font-semibold text-text">로그인</h1>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Input
             label="이메일"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            required
             autoComplete="email"
+            error={errors.email?.message}
+            {...register('email')}
           />
           <Input
             label="비밀번호"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            required
             autoComplete="current-password"
-            error={errorMessage ?? undefined}
+            error={errors.password?.message ?? serverError ?? undefined}
+            {...register('password')}
           />
           <Button type="submit" isLoading={isPending} className="mt-2 w-full">
             로그인

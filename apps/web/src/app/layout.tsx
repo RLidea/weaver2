@@ -28,7 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" data-skin="default">
+    <html lang="ko" data-skin="default" suppressHydrationWarning>
+      <head>
+        {/* 스킨 플래시 방지: JS가 실행되기 전에 data-skin을 적용 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var s=localStorage.getItem('skin');if(s)document.documentElement.setAttribute('data-skin',s);})();`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
