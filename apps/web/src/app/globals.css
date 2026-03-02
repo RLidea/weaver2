@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../skins/default.css";
+@import "../skins/dark.css";
 
 @theme inline {
   /* 폰트 */

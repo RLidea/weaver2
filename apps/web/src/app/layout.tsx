@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/infrastructure/providers/query-provider";
 import { AuthProvider } from "@/infrastructure/providers/auth-provider";
 import { ToastProvider } from "@/infrastructure/providers/toast-provider";
+import { SkinProvider } from "@/infrastructure/providers/skin-provider";
 import { ToastContainer } from "@/shared/components/ui/toast";
 import "./globals.css";
 
@@ -31,12 +32,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>
-          <ToastProvider>
-            <AuthProvider>{children}</AuthProvider>
-            <ToastContainer />
-          </ToastProvider>
-        </QueryProvider>
+        <SkinProvider>
+          <QueryProvider>
+            <ToastProvider>
+              <AuthProvider>{children}</AuthProvider>
+              <ToastContainer />
+            </ToastProvider>
+          </QueryProvider>
+        </SkinProvider>
       </body>
     </html>
   );

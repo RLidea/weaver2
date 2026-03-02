@@ -5,6 +5,7 @@ import { useUnreadCount } from '@/features/notification/hooks/use-unread-count';
 import { Badge } from '@/shared/components/ui/badge';
 import { BellIcon, MenuIcon } from '@/shared/components/ui/icons';
 import { useSidebar } from './sidebar-context';
+import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';
 
 export function Header() {
@@ -49,6 +50,9 @@ export function Header() {
             </Badge>
           )}
         </Link>
+
+        {/* 스킨 토글 */}
+        <SkinToggle />
 
         {/* 유저 메뉴 */}
         <UserMenu />

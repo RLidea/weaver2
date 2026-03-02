@@ -17,4 +17,6 @@ export {
   UserIcon,
   LogOutIcon,
   SearchIcon,
+  SunIcon,
+  MoonIcon,
 } from './icons';
