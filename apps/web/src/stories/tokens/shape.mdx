@@ -1,0 +1,81 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Tokens/Shape" />
+
+# 형태 토큰
+
+반경, 그림자, 블러 등의 형태 관련 토큰입니다. 모두 스킨 변수로 정의됩니다.
+
+---
+
+## 테두리 반경 (Border Radius)
+
+<div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+  {[
+    { cls: 'rounded-sm', label: 'rounded-sm', desc: '--skin-radius-sm (0.25rem)', style: { borderRadius: 'var(--radius-sm)' } },
+    { cls: 'rounded-md', label: 'rounded-md', desc: '--skin-radius-md (0.5rem)', style: { borderRadius: 'var(--radius-md)' } },
+    { cls: 'rounded-lg', label: 'rounded-lg', desc: '--skin-radius-lg (0.75rem)', style: { borderRadius: 'var(--radius-lg)' } },
+    { label: 'rounded-full', desc: 'full (9999px)', style: { borderRadius: '9999px' } },
+  ].map(({ label, desc, style }) => (
+    <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+      <div style={{
+        width: '80px', height: '80px',
+        background: 'var(--color-primary)',
+        ...style,
+      }} />
+      <code style={{ fontSize: '11px' }}>{label}</code>
+      <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', textAlign: 'center' }}>{desc}</span>
+    </div>
+  ))}
+</div>
+
+---
+
+## 그림자 (Shadow)
+
+<div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', padding: '16px' }}>
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+    <div style={{
+      width: '160px', height: '80px',
+      borderRadius: 'var(--radius-lg)',
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      boxShadow: 'var(--shadow-card)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>카드 그림자</span>
+    </div>
+    <code style={{ fontSize: '11px' }}>shadow-[var(--shadow-card)]</code>
+    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>--skin-shadow-card</span>
+  </div>
+</div>
+
+---
+
+## 배경 블러 (Backdrop Blur)
+
+글래스 효과에 사용됩니다. `Card` 컴포넌트의 `glass` prop을 통해 활성화됩니다.
+
+<div style={{ position: 'relative', width: '240px', height: '120px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'linear-gradient(135deg, var(--color-primary), #818cf8)' }}>
+  <div style={{
+    position: 'absolute', inset: '16px',
+    borderRadius: 'var(--radius-md)',
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    backdropFilter: 'blur(12px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }}>
+    <span style={{ color: 'white', fontSize: '13px', fontWeight: 600 }}>Glass Card</span>
+  </div>
+</div>
+
+```tsx
+// Card 컴포넌트에서 glass prop 사용
+<Card glass>글래스 카드</Card>
+
+// 직접 사용 시
+<div className="bg-surface/80 backdrop-blur-[var(--blur-backdrop)]" />
+```
+
+> 현재 default 스킨은 `--skin-backdrop: 0px` (블러 없음)입니다.
+> 다크 스킨이나 글래스모피즘 스킨에서 값을 변경하면 전체 적용됩니다.

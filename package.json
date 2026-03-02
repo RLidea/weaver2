@@ -14,6 +14,7 @@
     "---------------------------WEB---------------------------": "",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
+    "storybook:web": "pnpm --filter web storybook",
     "---------------------------CORE---------------------------": "",
     "dev:core": "nest start ypet --watch",
     "debug:core": "nest start ypet --debug --watch",
