@@ -38,11 +38,11 @@ Weaver2는 NestJS 기반의 종합적인 웹 애플리케이션 백엔드 시스
 
 ## 📱 애플리케이션 (`apps`)
 
-### `core`
+### `core-backend`
 
 메인 애플리케이션입니다. API 서버의 핵심 비즈니스 로직이 모두 이곳에 구현됩니다.
 
--   `apps/core`
+-   `apps/core-backend`
     -   ├── `prisma/`: 데이터베이스 스키마(`schema.prisma`), 마이그레이션 기록, 시드(seed) 스크립트가 포함됩니다. 이 디렉토리는 `core` 애플리케이션의 데이터베이스 관련 파일들을 관리합니다.
     -   ├── `src/`: 소스 코드가 위치합니다.
     -   │   ├── `main.ts`: 애플리케이션의 시작점(entry point)입니다.
@@ -235,7 +235,7 @@ GET  /terms/latest             # 최신 약관 조회
 
 **새 OAuth 프로바이더 추가 방법:**
 
-1. `apps/core/src/features/auth/oauth/providers/` 에 새 파일 생성 (`github.provider.ts` 등)
+1. `apps/core-backend/src/features/auth/oauth/providers/` 에 새 파일 생성 (`github.provider.ts` 등)
 2. `OAuthProvider` 인터페이스 구현 (`name`, `getAuthorizationUrl`, `exchangeCodeForTokens`, `getUserProfile`)
 3. `oauth.module.ts`의 `providers` 배열에 등록하고 `OAUTH_PROVIDERS_INIT` factory의 `inject`에 추가
 4. `.env`에 환경변수 3개 추가 (`{PROVIDER}_CLIENT_ID`, `{PROVIDER}_CLIENT_SECRET`, `{PROVIDER}_CALLBACK_URL`)
@@ -297,7 +297,7 @@ export class GithubOAuthProvider implements OAuthProvider {
 - **서빙 엔드포인트**: 
   - `/static/shared/styles/:file` - 스타일 파일
   - `/static/shared/components/:component/:file` - 컴포넌트 파일
-- **상세 가이드**: `apps/core/src/public/shared/GUIDE.md` 참조
+- **상세 가이드**: `apps/core-backend/src/public/shared/GUIDE.md` 참조
 
 ### 공통 라이브러리
 

@@ -1,4 +1,4 @@
-# Web App (apps/web) Guidelines
+# Web App (apps/core-frontend) Guidelines
 
 ## 디렉토리 구조
 
