@@ -11,11 +11,15 @@
     "debug": "sh scripts/run-project.sh debug",
     "start": "sh scripts/run-project.sh start",
     "build": "sh scripts/run-project.sh build",
+    "---------------------------WEB---------------------------": "",
+    "dev:web": "pnpm --filter core-frontend dev",
+    "build:web": "pnpm --filter core-frontend build",
+    "storybook:web": "pnpm --filter core-frontend storybook",
     "---------------------------CORE---------------------------": "",
-    "dev:core": "nest start ypet --watch",
-    "debug:core": "nest start ypet --debug --watch",
-    "prod:core": "node dist/apps/core/main",
-    "build:core": "nest build core",
+    "dev:core": "nest start core-backend --watch",
+    "debug:core": "nest start core-backend --debug --watch",
+    "prod:core": "node dist/apps/core-backend/main",
+    "build:core": "nest build core-backend",
     "---------------------------BUILD---------------------------": "",
     "test": "sh scripts/run-test.sh test",
     "test:watch": "sh scripts/run-test.sh watch",
@@ -29,15 +33,15 @@
     "db:migrate": "pnpm db:core:migrate",
     "db:reset": "pnpm db:core:reset",
     "db:seed": "pnpm db:core:seed",
-    "db:core:generate": "pnpm prisma generate --schema=apps/core/prisma/schema.prisma",
-    "db:core:migrate": "npx prisma migrate dev --schema=apps/core/prisma/schema.prisma",
-    "db:core:reset": "pnpm prisma migrate reset --schema=apps/core/prisma/schema.prisma",
-    "db:core:seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts",
+    "db:core:generate": "pnpm prisma generate --schema=apps/core-backend/prisma/schema",
+    "db:core:migrate": "npx prisma migrate dev --schema=apps/core-backend/prisma/schema",
+    "db:core:reset": "pnpm prisma migrate reset --schema=apps/core-backend/prisma/schema",
+    "db:core:seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/prisma/seed/seed.ts",
     "---------------------------Security---------------------------": "",
     "audit:json": "pnpm audit --json --no-optional",
     "---------------------------OTHERs---------------------------": "",
-    "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "format": "prettier --write \"apps/core-backend/**/*.ts\" \"libs/**/*.ts\"",
+    "lint": "eslint \"{src,apps/core-backend,libs,test}/**/*.ts\" --fix",
     "postinstall": "npx husky init",
     "prepare": "husky"
   },
@@ -121,7 +125,7 @@
     "typescript-eslint": "^8.38.0"
   },
   "prisma": {
-    "seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core/prisma/seed/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/prisma/seed/seed.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

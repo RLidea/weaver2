@@ -48,12 +48,18 @@
       ],
       "@weaver2/upload/*": [
         "libs/upload/src/*"
+      ],
+      "@weaver2/shared": [
+        "libs/shared/src"
+      ],
+      "@weaver2/shared/*": [
+        "libs/shared/src/*"
       ]
     }
   },
   "include": [
     "apps/**/*.ts",
     "libs/**/*.ts",
-    "apps/core/src/types/**/*.d.ts"
+    "apps/core-backend/src/types/**/*.d.ts"
   ]
 }

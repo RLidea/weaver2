@@ -63,7 +63,7 @@ pnpm build:core
 
 # PM2로 실행
 echo "🚀 PM2로 앱 시작 중..."
-pm2 start dist/apps/core/main.js --name "$PM2_APP_NAME"
+pm2 start dist/apps/core-backend/main.js --name "$PM2_APP_NAME"
 pm2 save
 pm2 startup  # 서버 재시작 시 자동 실행 등록
 

@@ -14,6 +14,10 @@ fi
 # 선택된 프로젝트에 맞는 테스트 명령어 실행
 case "$COMMAND" in
   test)
+    if [[ ! -f "apps/$SELECTED_PROJECT/jest.config.js" ]]; then
+      echo "jest.config.js not found for $SELECTED_PROJECT, skipping tests"
+      exit 0
+    fi
     echo "jest --config apps/$SELECTED_PROJECT/jest.config.js"
     jest --config "apps/$SELECTED_PROJECT/jest.config.js"
     ;;

@@ -1,0 +1,63 @@
+// =============================================================================
+// Framework: System Settings & Analytics
+// =============================================================================
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model PageView {
+  id        String   @id @default(uuid())
+  pageUrl   String   @db.VarChar(500)
+  userId    String?
+  ipAddress String?  @db.VarChar(45)
+  referrer  String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([pageUrl, createdAt])
+  @@index([userId, createdAt])
+  @@map("page_views")
+}
+
+model MonthlyAnalyticsReport {
+  id             String   @id @default(uuid())
+  year           Int
+  month          Int
+  totalPageViews Int      @default(0)
+  uniqueVisitors Int      @default(0)
+  dailyAvgViews  Float    @default(0)
+  peakDailyViews Int      @default(0)
+  topPages       Json?
+  trafficSources Json?
+  dailyTrends    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([year, month])
+  @@map("monthly_analytics_reports")
+}
+
+model SecurityAuditReport {
+  id                 String   @id @default(uuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  scanType           String   @default("pnpm_audit")
+  scanDuration       Int?
+  totalDependencies  Int
+  vulnerabilityCount Json
+  securityScore      Int
+  rawAuditData       Json
+  vulnerabilities    Json
+  recommendations    Json?
+  packageJsonHash    String?
+  lockfileHash       String?
+
+  @@map("security_audit_reports")
+}

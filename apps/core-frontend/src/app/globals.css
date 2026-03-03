@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@import "../skins/default.css";
+@import "../skins/dark.css";
+
+@theme inline {
+  /* 폰트 */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* 색상 — 스킨 변수로 위임 */
+  --color-bg:         var(--skin-bg,         #f8fafc);
+  --color-surface:    var(--skin-surface,    #ffffff);
+  --color-surface-2:  var(--skin-surface-2,  #f1f5f9);
+  --color-border:     var(--skin-border,     #e2e8f0);
+  --color-primary:    var(--skin-primary,    #6366f1);
+  --color-primary-fg: var(--skin-primary-fg, #ffffff);
+  --color-text:       var(--skin-text,       #0f172a);
+  --color-text-muted: var(--skin-text-muted, #64748b);
+
+  --color-error:      var(--skin-error,      #ef4444);
+  --color-error-fg:   var(--skin-error-fg,   #ffffff);
+  --color-success:    var(--skin-success,    #22c55e);
+  --color-success-fg: var(--skin-success-fg, #ffffff);
+  --color-warning:    var(--skin-warning,    #f59e0b);
+  --color-warning-fg: var(--skin-warning-fg, #ffffff);
+
+  /* 폰트 크기 — Tailwind text-* 클래스를 스킨으로 위임
+   * 효과: text-sm, text-2xl 등 기존 클래스가 스킨 교체만으로 변경됨 */
+  --font-size-xs:   var(--skin-font-size-xs,   0.75rem);
+  --font-size-sm:   var(--skin-font-size-sm,   0.875rem);
+  --font-size-base: var(--skin-font-size-base, 1rem);
+  --font-size-lg:   var(--skin-font-size-lg,   1.125rem);
+  --font-size-xl:   var(--skin-font-size-xl,   1.25rem);
+  --font-size-2xl:  var(--skin-font-size-2xl,  1.5rem);
+  --font-size-3xl:  var(--skin-font-size-3xl,  1.875rem);
+  --font-size-4xl:  var(--skin-font-size-4xl,  2.25rem);
+
+  /* 폰트 굵기 — font-medium, font-semibold 등이 스킨 위임 */
+  --font-weight-normal:   var(--skin-font-weight-normal,   400);
+  --font-weight-medium:   var(--skin-font-weight-medium,   500);
+  --font-weight-semibold: var(--skin-font-weight-semibold, 600);
+  --font-weight-bold:     var(--skin-font-weight-bold,     700);
+
+  /* 행간 — leading-tight, leading-normal 등이 스킨 위임 */
+  --line-height-tight:   var(--skin-leading-tight,   1.25);
+  --line-height-normal:  var(--skin-leading-normal,  1.5);
+  --line-height-relaxed: var(--skin-leading-relaxed, 1.625);
+
+  /* 자간 — tracking-tight, tracking-normal 등이 스킨 위임 */
+  --letter-spacing-tight:  var(--skin-tracking-tight,  -0.025em);
+  --letter-spacing-normal: var(--skin-tracking-normal, 0em);
+  --letter-spacing-wide:   var(--skin-tracking-wide,   0.025em);
+
+  /* 반경 */
+  --radius-sm: var(--skin-radius-sm, 0.25rem);
+  --radius-md: var(--skin-radius-md, 0.5rem);
+  --radius-lg: var(--skin-radius-lg, 0.75rem);
+
+  /* 그림자 / 블러 */
+  --shadow-card:   var(--skin-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.1));
+  --blur-backdrop: var(--skin-backdrop,    0px);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: Arial, Helvetica, sans-serif;
+}

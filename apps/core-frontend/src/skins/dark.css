@@ -1,0 +1,51 @@
+/* Dark Skin — 다크 테마 */
+[data-skin="dark"] {
+  --skin-bg:          #0f172a;
+  --skin-surface:     #1e293b;
+  --skin-surface-2:   #334155;
+  --skin-border:      #475569;
+  --skin-primary:     #818cf8;
+  --skin-primary-fg:  #ffffff;
+  --skin-text:        #f1f5f9;
+  --skin-text-muted:  #94a3b8;
+
+  --skin-radius-sm:   0.25rem;
+  --skin-radius-md:   0.5rem;
+  --skin-radius-lg:   0.75rem;
+
+  --skin-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --skin-backdrop:    0px;
+
+  /* 타이포그래피 — 폰트 크기 */
+  --skin-font-size-xs:   0.75rem;
+  --skin-font-size-sm:   0.875rem;
+  --skin-font-size-base: 1rem;
+  --skin-font-size-lg:   1.125rem;
+  --skin-font-size-xl:   1.25rem;
+  --skin-font-size-2xl:  1.5rem;
+  --skin-font-size-3xl:  1.875rem;
+  --skin-font-size-4xl:  2.25rem;
+
+  /* 타이포그래피 — 굵기 */
+  --skin-font-weight-normal:   400;
+  --skin-font-weight-medium:   500;
+  --skin-font-weight-semibold: 600;
+  --skin-font-weight-bold:     700;
+
+  /* 타이포그래피 — 행간 */
+  --skin-leading-tight:   1.25;
+  --skin-leading-normal:  1.5;
+  --skin-leading-relaxed: 1.625;
+
+  /* 타이포그래피 — 자간 */
+  --skin-tracking-tight:  -0.025em;
+  --skin-tracking-normal: 0em;
+  --skin-tracking-wide:   0.025em;
+
+  --skin-error:       #f87171;
+  --skin-error-fg:    #ffffff;
+  --skin-success:     #4ade80;
+  --skin-success-fg:  #ffffff;
+  --skin-warning:     #fbbf24;
+  --skin-warning-fg:  #ffffff;
+}

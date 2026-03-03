@@ -4,7 +4,7 @@ This document provides guidelines and context for the Gemini assistant to ensure
 
 ## Project Overview
 
-This is a monorepo project for `weaver2`, built with NestJS. The main application is in `apps/core`, and shared libraries are in `libs`.
+This is a monorepo project for `weaver2`, built with NestJS. The main application is in `apps/core-backend`, and shared libraries are in `libs`.
 
 ## Architecture and Coding Conventions
 
@@ -55,7 +55,7 @@ Commit messages should follow a specific format.
 ### Code Style
 
 -   **DTOs:**
-    -   Application-specific DTOs (like `UserDto`) should be located within the corresponding module's `dto` directory (e.g., `apps/core/src/modules/user/dto`).
+    -   Application-specific DTOs (like `UserDto`) should be located within the corresponding module's `dto` directory (e.g., `apps/core-backend/src/modules/user/dto`).
     -   DTOs used purely for Swagger documentation (like `ErrorResponseDto`) should be placed in `libs/common/src/global/dto/swagger`.
 -   **Custom Decorators:** Use custom decorators to reduce boilerplate, especially for Swagger annotations. Add detailed JSDoc comments to explain their purpose and usage.
 

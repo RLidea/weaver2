@@ -1,0 +1,80 @@
+// =============================================================================
+// Framework: Permissions & RBAC
+// =============================================================================
+
+model PermissionGroup {
+  id                   String                           @id @default(uuid())
+  name                 String                           @unique
+  description          String?
+  isSystem             Boolean                          @default(false)
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+  permissions          PermissionGroupPermission[]
+  users                UserPermissionGroup[]
+  allowedResourceRules ResourcePermissionAllowedGroup[]
+  deniedResourceRules  ResourcePermissionDeniedGroup[]
+
+  @@map("permission_groups")
+}
+
+model PermissionGroupPermission {
+  id                String          @id @default(uuid())
+  permissionGroupId String
+  permission        String
+  createdAt         DateTime        @default(now())
+  permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([permissionGroupId, permission])
+  @@map("permission_group_permissions")
+}
+
+model UserPermissionGroup {
+  id                String          @id @default(uuid())
+  userId            String
+  permissionGroupId String
+  createdAt         DateTime        @default(now())
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionGroup   PermissionGroup @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionGroupId])
+  @@map("user_permission_groups")
+}
+
+model ResourcePermission {
+  id             String                           @id @default(uuid())
+  resourceType   String
+  resourceId     String
+  action         String
+  allowAnonymous Boolean                          @default(false)
+  createdAt      DateTime                         @default(now())
+  updatedAt      DateTime                         @updatedAt
+  allowedGroups  ResourcePermissionAllowedGroup[]
+  deniedGroups   ResourcePermissionDeniedGroup[]
+
+  @@unique([resourceType, resourceId, action])
+  @@map("resource_permissions")
+}
+
+model ResourcePermissionAllowedGroup {
+  id                   String             @id @default(uuid())
+  resourcePermissionId String
+  permissionGroupId    String
+  createdAt            DateTime           @default(now())
+  resourcePermission   ResourcePermission @relation(fields: [resourcePermissionId], references: [id], onDelete: Cascade)
+  permissionGroup      PermissionGroup    @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([resourcePermissionId, permissionGroupId])
+  @@map("resource_permission_allowed_groups")
+}
+
+model ResourcePermissionDeniedGroup {
+  id                   String             @id @default(uuid())
+  resourcePermissionId String
+  permissionGroupId    String
+  createdAt            DateTime           @default(now())
+  resourcePermission   ResourcePermission @relation(fields: [resourcePermissionId], references: [id], onDelete: Cascade)
+  permissionGroup      PermissionGroup    @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([resourcePermissionId, permissionGroupId])
+  @@map("resource_permission_denied_groups")
+}
