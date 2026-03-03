@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "apps/core/src",
+  "sourceRoot": "apps/core-backend/src",
   "defaultLibraryPrefix": "@weaver2",
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": true,
-    "tsConfigPath": "apps/core/tsconfig.app.json"
+    "tsConfigPath": "apps/core-backend/tsconfig.app.json"
   },
   "monorepo": true,
-  "root": "apps/core",
+  "root": "apps/core-backend",
   "projects": {
     "common": {
       "type": "library",
@@ -20,13 +20,13 @@
         "tsConfigPath": "libs/common/tsconfig.lib.json"
       }
     },
-    "core": {
+    "core-backend": {
       "type": "application",
-      "root": "apps/core",
+      "root": "apps/core-backend",
       "entryFile": "main",
-      "sourceRoot": "apps/core/src",
+      "sourceRoot": "apps/core-backend/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/core/tsconfig.app.json",
+        "tsConfigPath": "apps/core-backend/tsconfig.app.json",
         "assets": [
           "public/**/*"
         ]
