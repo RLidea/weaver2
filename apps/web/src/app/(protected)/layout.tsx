@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useMe } from '@/features/user/hooks/use-me';
-import { useNotificationStream } from '@/features/notification/hooks/use-notification-stream';
+import { useMe } from '@/core/user/hooks/use-me';
+import { useNotificationStream } from '@/core/notification/hooks/use-notification-stream';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { AppShell } from '@/shared/components/layout/app-shell';
 

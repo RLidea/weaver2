@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminSystemSettingsApiService } from '../services/admin-system-settings.api.service';
 import { UpdateSystemSettingDto } from '../../../../infrastructure/config/system-setting.service';

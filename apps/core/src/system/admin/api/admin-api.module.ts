@@ -15,7 +15,7 @@ import { AdminSystemSettingsApiController } from './controllers/admin-system-set
 import { AdminSystemSettingsApiService } from './services/admin-system-settings.api.service';
 import { AdminPermissionApiController } from './controllers/admin-permission.api.controller';
 import { AdminPermissionApiService } from './services/admin-permission.api.service';
-import { BoardModule } from '../../../project/board/board.module';
+import { BoardModule } from '../../../features/board/board.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
 import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
 

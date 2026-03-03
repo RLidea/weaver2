@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Param, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { EmailStatus } from '@prisma/client';
 import { AdminNotificationsApiService } from '../services/admin-notifications.api.service';

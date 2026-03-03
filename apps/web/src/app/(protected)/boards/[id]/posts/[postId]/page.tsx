@@ -1,4 +1,4 @@
-import { PostDetail } from '@/project/board/components/post-detail';
+import { PostDetail } from '@/features/board/components/post-detail';
 
 interface PostPageProps {
   params: Promise<{ id: string; postId: string }>;

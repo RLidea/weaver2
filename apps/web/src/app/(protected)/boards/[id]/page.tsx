@@ -1,4 +1,4 @@
-import { BoardDetail } from '@/project/board/components/board-detail';
+import { BoardDetail } from '@/features/board/components/board-detail';
 
 interface BoardPageProps {
   params: Promise<{ id: string }>;

@@ -1,5 +1,5 @@
 import { Controller, Get, Render } from '@nestjs/common';
-import { RequirePermission } from '../../../../features/permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @Controller('admin')

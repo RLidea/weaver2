@@ -24,7 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import {

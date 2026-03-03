@@ -3,10 +3,10 @@ import { CoreController } from './core.controller';
 import { CoreService } from './core.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { UserModule } from './features/user/user.module';
+import { UserModule } from './core/user/user.module';
 import { PrismaModule } from '@weaver2/prisma';
 import { RequestLoggerMiddleware } from '@weaver2/common/global/middleware/request-logger.middleware';
-import { AuthModule } from './features/auth/auth.module';
+import { AuthModule } from './core/auth/auth.module';
 import { EmailModule } from './infrastructure/email/email.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -18,14 +18,14 @@ import { HealthModule } from './system/health/health.module';
 import { StaticModule } from './system/static/static.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './infrastructure/upload/upload.module';
-import { TermsModule } from './features/terms/terms.module';
-import { BoardModule } from './project/board/board.module';
-import { SearchModule } from './project/search/search.module';
+import { TermsModule } from './core/terms/terms.module';
+import { BoardModule } from './features/board/board.module';
+import { SearchModule } from './features/search/search.module';
 import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
-import { PermissionModule } from './features/permission/permission.module';
+import { PermissionModule } from './core/permission/permission.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { NotificationModule } from './features/notification/notification.module';
-import { ReportModule } from './project/report/report.module';
+import { NotificationModule } from './core/notification/notification.module';
+import { ReportModule } from './features/report/report.module';
 
 @Module({
   imports: [

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useMe } from '@/features/user/hooks/use-me';
-import { useLogout } from '@/features/auth/hooks/use-logout';
+import { useMe } from '@/core/user/hooks/use-me';
+import { useLogout } from '@/core/auth/hooks/use-logout';
 import { cn } from '@/shared/lib/cn';
 import { ChevronDownIcon, LogOutIcon, SettingsIcon } from '@/shared/components/ui/icons';
 

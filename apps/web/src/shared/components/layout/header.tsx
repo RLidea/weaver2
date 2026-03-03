@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useUnreadCount } from '@/features/notification/hooks/use-unread-count';
+import { useUnreadCount } from '@/core/notification/hooks/use-unread-count';
 import { Badge } from '@/shared/components/ui/badge';
 import { BellIcon, MenuIcon } from '@/shared/components/ui/icons';
 import { useSidebar } from './sidebar-context';

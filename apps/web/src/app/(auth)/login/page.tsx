@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { LoginForm } from '@/features/auth/components/login-form';
+import { LoginForm } from '@/core/auth/components/login-form';
 import { Spinner } from '@/shared/components/ui/spinner';
 
 export default function LoginPage() {

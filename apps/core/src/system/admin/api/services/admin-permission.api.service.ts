@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { ALL_PERMISSIONS } from '@weaver2/common/constants/permissions.const';
-import { PermissionService } from '../../../../features/permission/services/permission.service';
+import { PermissionService } from '../../../../core/permission/services/permission.service';
 import {
   CreatePermissionGroupDto,
   UpdatePermissionGroupDto,

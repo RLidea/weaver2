@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { SignUpForm } from '@/features/auth/components/sign-up-form';
+import { SignUpForm } from '@/core/auth/components/sign-up-form';
 import { Spinner } from '@/shared/components/ui/spinner';
 
 export default function SignUpPage() {

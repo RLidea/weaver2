@@ -9,8 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
-import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
+import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
+import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { UploadService, FileDto, AdminFilesQueryDto } from '@weaver2/upload';

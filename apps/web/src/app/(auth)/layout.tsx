@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMe } from '@/features/user/hooks/use-me';
+import { useMe } from '@/core/user/hooks/use-me';
 import { Spinner } from '@/shared/components/ui/spinner';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

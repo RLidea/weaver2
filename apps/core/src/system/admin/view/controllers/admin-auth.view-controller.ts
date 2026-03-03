@@ -4,7 +4,7 @@ import { join } from 'path';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
-import { SignInService } from '../../../../features/auth/services/sign-in.service';
+import { SignInService } from '../../../../core/auth/services/sign-in.service';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
 

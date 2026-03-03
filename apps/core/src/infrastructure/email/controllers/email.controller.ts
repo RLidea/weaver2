@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { EmailBusinessService } from '../services/email-business.service';

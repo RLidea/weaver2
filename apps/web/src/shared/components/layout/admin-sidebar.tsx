@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { cn } from '@/shared/lib/cn';
-import { useMe } from '@/features/user/hooks/use-me';
+import { useMe } from '@/core/user/hooks/use-me';
 import {
   HomeIcon,
   UsersIcon,
