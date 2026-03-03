@@ -10,7 +10,7 @@ export function useUserPosts(userId: string, params?: Omit<KeysetParams, 'cursor
       postApi.getByUserId(userId, { ...params, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.data.meta.hasNextPage ? lastPage.data.meta.nextCursor : undefined,
+      lastPage.data.hasNextPage ? (lastPage.data.nextCursor ?? undefined) : undefined,
     enabled: !!userId,
   });
 }

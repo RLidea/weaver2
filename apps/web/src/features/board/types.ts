@@ -1,4 +1,4 @@
-import type { KeysetMeta } from '@/types/pagination';
+
 
 export type PostStatus = 'PUBLISHED' | 'DRAFT' | 'HIDDEN';
 
@@ -38,8 +38,10 @@ export interface Post {
 
 /** GET /v1/boards/:boardId/posts 응답 — keyset + 고정글 포함 */
 export interface BoardPostsResponse {
-  items: Post[];
-  meta: KeysetMeta;
+  data: Post[];
+  nextCursor: string | null;
+  hasNextPage: boolean;
+  limit: number;
   pinnedPosts: Post[];
 }
 

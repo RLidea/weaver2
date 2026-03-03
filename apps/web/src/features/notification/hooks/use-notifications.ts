@@ -9,6 +9,6 @@ export function useNotifications(limit = 20) {
       notificationApi.getAll({ cursor: pageParam, limit }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.data.meta.hasNextPage ? lastPage.data.meta.nextCursor : undefined,
+      lastPage.data.hasNextPage ? (lastPage.data.nextCursor ?? undefined) : undefined,
   });
 }

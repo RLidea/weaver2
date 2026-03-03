@@ -6,6 +6,6 @@ export function useRecentNotifications(limit = 3) {
   return useQuery({
     queryKey: [...notificationKeys.lists, 'recent', limit],
     queryFn: () => notificationApi.getAll({ limit }),
-    select: (res) => res.data.items,
+    select: (res) => res.data.data,
   });
 }

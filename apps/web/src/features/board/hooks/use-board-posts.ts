@@ -10,7 +10,7 @@ export function useBoardPosts(boardId: string, params?: Omit<KeysetParams, 'curs
       boardApi.getPosts(boardId, { ...params, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.data.meta.hasNextPage ? lastPage.data.meta.nextCursor : undefined,
+      lastPage.data.hasNextPage ? (lastPage.data.nextCursor ?? undefined) : undefined,
     enabled: !!boardId,
   });
 }

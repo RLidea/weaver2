@@ -27,7 +27,7 @@ export function NotificationList() {
   const { mutate: markRead } = useMarkRead();
   const { mutate: markAllRead, isPending: isMarkingAll } = useMarkAllRead();
 
-  const notifications = data?.pages.flatMap((p) => p.data.items) ?? [];
+  const notifications = data?.pages.flatMap((p) => p.data.data) ?? [];
   const hasUnread = notifications.some((n) => !n.isRead);
 
   return (

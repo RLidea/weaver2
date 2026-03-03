@@ -9,7 +9,7 @@ export async function FindNotificationsByUserIdQuery(
   const take = limit + 1;
   const where = { userId };
 
-  const items = await prisma.notification.findMany({
+  const rows = await prisma.notification.findMany({
     where,
     take,
     ...(cursor && {
@@ -19,12 +19,12 @@ export async function FindNotificationsByUserIdQuery(
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   });
 
-  const hasNextPage = items.length > limit;
-  if (hasNextPage) items.pop();
+  const hasNextPage = rows.length > limit;
+  if (hasNextPage) rows.pop();
 
   return {
-    items,
-    nextCursor: hasNextPage ? items[items.length - 1]?.id : undefined,
+    data: rows,
+    nextCursor: hasNextPage ? rows[rows.length - 1]?.id : undefined,
     hasNextPage,
   };
 }

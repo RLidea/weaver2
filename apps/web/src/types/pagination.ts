@@ -10,12 +10,9 @@ export interface OffsetResponse<T> {
   meta: OffsetMeta;
 }
 
-export interface KeysetMeta {
-  hasNextPage: boolean;
-  nextCursor?: string;
-}
-
 export interface KeysetResponse<T> {
-  items: T[];
-  meta: KeysetMeta;
+  data: T[];
+  nextCursor: string | null;
+  hasNextPage: boolean;
+  limit?: number;
 }

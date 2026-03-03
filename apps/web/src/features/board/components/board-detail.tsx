@@ -40,7 +40,7 @@ export function BoardDetail({ boardId }: BoardDetailProps) {
   }
 
   const pinnedPosts = data?.pages[0]?.data.pinnedPosts ?? [];
-  const posts = data?.pages.flatMap((page) => page.data.items) ?? [];
+  const posts = data?.pages.flatMap((page) => page.data.data) ?? [];
 
   return (
     <div className="max-w-4xl space-y-4">

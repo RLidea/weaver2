@@ -14,6 +14,6 @@ export function usePosts(params?: UsePostsParams) {
       postApi.getAll({ ...params, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.data.meta.hasNextPage ? lastPage.data.meta.nextCursor : undefined,
+      lastPage.data.hasNextPage ? (lastPage.data.nextCursor ?? undefined) : undefined,
   });
 }

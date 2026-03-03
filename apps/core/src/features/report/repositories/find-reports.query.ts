@@ -11,7 +11,7 @@ export async function FindReportsQuery(
   if (filters.status) where.status = filters.status;
   if (filters.targetType) where.targetType = filters.targetType;
 
-  const items = await prisma.report.findMany({
+  const rows = await prisma.report.findMany({
     where,
     take,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -22,12 +22,12 @@ export async function FindReportsQuery(
     },
   });
 
-  const hasNextPage = items.length > limit;
-  if (hasNextPage) items.pop();
+  const hasNextPage = rows.length > limit;
+  if (hasNextPage) rows.pop();
 
   return {
-    items,
-    nextCursor: hasNextPage ? items[items.length - 1]?.id : undefined,
+    data: rows,
+    nextCursor: hasNextPage ? rows[rows.length - 1]?.id : undefined,
     hasNextPage,
   };
 }
