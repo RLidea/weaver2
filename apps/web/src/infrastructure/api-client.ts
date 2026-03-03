@@ -1,6 +1,9 @@
 import { ApiError, ApiErrorResponse, ApiResponse } from '@/types/api';
 
-type RequestOptions = Omit<RequestInit, 'body' | 'method'>;
+type RequestOptions = Omit<RequestInit, 'body' | 'method'> & {
+  /** true이면 401 후 refresh 실패 시 onAuthError를 호출하지 않는다. */
+  skipOnAuthError?: boolean;
+};
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -51,6 +54,9 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${path}`;
 
+    // skipOnAuthError는 fetch 옵션이 아니므로 분리
+    const { skipOnAuthError, ...fetchOptions } = options ?? {};
+
     const csrfHeaders: Record<string, string> = {};
     if (MUTATION_METHODS.has(method)) {
       csrfHeaders['x-csrf-token'] = await this.ensureCsrfToken();
@@ -58,13 +64,13 @@ class ApiClient {
 
     const isFormData = body instanceof FormData;
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       method,
       credentials: 'include',
       headers: {
         // FormData는 브라우저가 Content-Type + boundary를 자동으로 설정
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...options?.headers,
+        ...fetchOptions.headers,
         ...csrfHeaders,
       },
       body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
@@ -87,7 +93,9 @@ class ApiClient {
         if (refreshed) {
           return this.request<T>(method, path, body, options, true);
         }
-        this.onAuthError?.();
+        if (!skipOnAuthError) {
+          this.onAuthError?.();
+        }
         throw new ApiError(401, 'Unauthorized');
       }
 
