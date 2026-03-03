@@ -63,7 +63,7 @@ export class AdminAuthViewController {
 
     // 토큰이 없거나 무효하면 로그인 페이지 렌더링
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/assets/admin', 'admin-login.html'),
+      join(process.cwd(), 'apps/core-backend/src/assets/admin', 'admin-login.html'),
     );
   }
 
@@ -73,7 +73,7 @@ export class AdminAuthViewController {
     res.sendFile(
       join(
         process.cwd(),
-        'apps/core/src/assets/admin',
+        'apps/core-backend/src/assets/admin',
         'request-password-reset.html',
       ),
     );
@@ -83,7 +83,7 @@ export class AdminAuthViewController {
   @Get('reset-password')
   getResetPasswordPage(@Res() res: Response) {
     res.sendFile(
-      join(process.cwd(), 'apps/core/src/assets', 'reset-password.html'),
+      join(process.cwd(), 'apps/core-backend/src/assets', 'reset-password.html'),
     );
   }
 }

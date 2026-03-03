@@ -5,7 +5,7 @@
 ## 📁 디렉토리 구조
 
 ```
-apps/core/src/public/shared/
+apps/core-backend/src/assets/shared/
 ├── GUIDE.md                      # 이 문서
 ├── styles/
 │   ├── design-system.css         # 디자인 시스템 변수 및 기본 스타일
@@ -468,8 +468,8 @@ this.getUserInitials(user)
 
 ### 1. 컴포넌트 파일 생성
 ```bash
-mkdir apps/core/src/public/shared/components/my-component
-touch apps/core/src/public/shared/components/my-component/my-component.js
+mkdir apps/core-backend/src/assets/shared/components/my-component
+touch apps/core-backend/src/assets/shared/components/my-component/my-component.js
 ```
 
 ### 2. 컴포넌트 구현

@@ -17,7 +17,7 @@ export class HealthDashboardViewController {
   dashboard(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/health/dashboard.html',
+      'apps/core-backend/src/assets/health/dashboard.html',
     );
     return res.sendFile(filePath);
   }
@@ -26,7 +26,7 @@ export class HealthDashboardViewController {
   dashboardJs(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/health/dashboard.js',
+      'apps/core-backend/src/assets/health/dashboard.js',
     );
     res.setHeader('Content-Type', 'application/javascript');
     return res.sendFile(filePath);
@@ -36,7 +36,7 @@ export class HealthDashboardViewController {
   dashboardCss(@Res() res: Response) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/health/dashboard.css',
+      'apps/core-backend/src/assets/health/dashboard.css',
     );
     res.setHeader('Content-Type', 'text/css');
     return res.sendFile(filePath);

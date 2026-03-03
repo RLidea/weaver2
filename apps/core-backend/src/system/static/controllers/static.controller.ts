@@ -16,7 +16,7 @@ export class StaticController {
   ) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/shared',
+      'apps/core-backend/src/assets/shared',
       type,
       file,
     );
@@ -38,7 +38,7 @@ export class StaticController {
   ) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/shared/components',
+      'apps/core-backend/src/assets/shared/components',
       component,
       file,
     );
@@ -60,7 +60,7 @@ export class StaticController {
   ) {
     const filePath = join(
       process.cwd(),
-      'apps/core/src/assets/admin',
+      'apps/core-backend/src/assets/admin',
       type,
       file,
     );

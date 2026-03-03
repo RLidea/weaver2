@@ -27,7 +27,7 @@ async function bootstrap() {
     prefix: '/uploads',
   });
 
-  app.useStaticAssets(join(process.cwd(), 'apps/core/src/assets'), {
+  app.useStaticAssets(join(process.cwd(), 'apps/core-backend/src/assets'), {
     prefix: '/',
   });
 
