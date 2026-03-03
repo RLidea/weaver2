@@ -30,11 +30,17 @@ export function LoginForm() {
   }
 
   const serverError = error instanceof ApiError ? error.message : (error?.message ?? null);
+  const isRegistered = searchParams.get('registered') === '1';
 
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
         <h1 className="text-center text-2xl font-semibold text-text">로그인</h1>
+        {isRegistered && (
+          <p className="mt-2 rounded-md bg-success/10 px-3 py-2 text-center text-sm text-success">
+            가입이 완료되었습니다. 이메일을 확인하여 인증을 완료해주세요.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
