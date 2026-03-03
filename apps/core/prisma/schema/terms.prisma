@@ -1,0 +1,28 @@
+// =============================================================================
+// Framework: Terms & Agreements
+// =============================================================================
+
+model TermsAndConditions {
+  id             String               @id @default(uuid())
+  version        Int                  @unique
+  title          String
+  content        String
+  effectiveAt    DateTime
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  userAgreements UserTermsAgreement[]
+
+  @@map("terms_and_conditions")
+}
+
+model UserTermsAgreement {
+  id                   String             @id @default(uuid())
+  userId               String
+  termsAndConditionsId String
+  agreedAt             DateTime           @default(now())
+  termsAndConditions   TermsAndConditions @relation(fields: [termsAndConditionsId], references: [id])
+  user                 User               @relation(fields: [userId], references: [id])
+
+  @@unique([userId, termsAndConditionsId])
+  @@map("user_terms_agreements")
+}

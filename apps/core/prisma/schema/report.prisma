@@ -1,0 +1,58 @@
+// =============================================================================
+// Project: Report & Moderation Feature
+// =============================================================================
+
+model Report {
+  id            String        @id @default(uuid())
+  reporterId    String
+  targetType    ReportTarget
+  targetId      String
+  reason        ReportReason
+  description   String?
+  status        ReportStatus  @default(PENDING)
+  resolvedById  String?
+  resolvedAt    DateTime?
+  actionTaken   ReportAction?
+  moderatorNote String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  reporter      User          @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy    User?         @relation("ReportsHandled", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+enum ReportTarget {
+  POST
+  COMMENT
+  USER
+  MEDIA
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE_CONTENT
+  HARASSMENT
+  HATE_SPEECH
+  MISINFORMATION
+  COPYRIGHT_VIOLATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportAction {
+  CONTENT_HIDDEN
+  CONTENT_DELETED
+  USER_WARNED
+  USER_SUSPENDED
+  NO_ACTION
+}

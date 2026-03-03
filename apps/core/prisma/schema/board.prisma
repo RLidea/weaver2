@@ -1,0 +1,143 @@
+// =============================================================================
+// Project: Board Feature
+// =============================================================================
+
+model Board {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  posts       Post[]
+  categories  PostCategory[]
+
+  @@map("boards")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Post {
+  id                 String         @id @default(uuid())
+  title              String
+  content            String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  boardId            String
+  authorId           String
+  categoryId         String?
+  isPinned           Boolean        @default(false)
+  isSecret           Boolean        @default(false)
+  priority           Int            @default(0)
+  status             PostStatus     @default(PUBLISHED)
+  viewCount          Int            @default(0)
+  requiredPermission String?
+  hiddenAt           DateTime?
+  deletedAt          DateTime?
+  comments           Comment[]
+  reactions          PostReaction[]
+  files              PostFile[]
+  author             User           @relation(fields: [authorId], references: [id])
+  board              Board          @relation(fields: [boardId], references: [id])
+  category           PostCategory?  @relation(fields: [categoryId], references: [id])
+
+  @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
+  @@index([createdAt(sort: Desc), id], map: "post_cursor_idx")
+  @@index([viewCount(sort: Desc), id], map: "post_viewcount_cursor_idx")
+  @@map("posts")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String
+  hiddenAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  postId    String
+  authorId  String
+  parentId  String?
+  author    User      @relation(fields: [authorId], references: [id])
+  post      Post      @relation(fields: [postId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  children  Comment[] @relation("CommentReplies")
+
+  @@index([postId, parentId, createdAt], map: "comment_list_idx")
+  @@map("comments")
+}
+
+model PostCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  boardId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+  board       Board    @relation(fields: [boardId], references: [id])
+
+  @@unique([boardId, name])
+  @@map("post_categories")
+}
+
+model Emoji {
+  id        String         @id @default(uuid())
+  code      String         @unique
+  name      String
+  unicode   String?
+  imageUrl  String?
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  reactions PostReaction[]
+
+  @@map("emojis")
+}
+
+model PostReaction {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  postId    String
+  userId    String
+  emojiId   String
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  emoji     Emoji    @relation(fields: [emojiId], references: [id])
+
+  @@unique([postId, userId, emojiId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_reactions")
+}
+
+model PostFile {
+  id            String    @id @default(uuid())
+  originalName  String
+  storedName    String    @unique
+  mimeType      String
+  size          Int
+  path          String
+  thumbnailPath String?
+  postId        String?
+  uploadedById  String?
+  hiddenAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  post          Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  uploadedBy    User?     @relation(fields: [uploadedById], references: [id])
+
+  @@index([uploadedById])
+  @@index([postId])
+  @@index([createdAt(sort: Desc), id], map: "post_file_cursor_idx")
+  @@map("post_files")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
+}

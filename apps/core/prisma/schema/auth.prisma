@@ -1,0 +1,134 @@
+// =============================================================================
+// Framework: Authentication & User Core
+// =============================================================================
+
+model User {
+  id               String               @id @default(uuid())
+  email            String               @unique
+  username         String               @unique
+  displayName      String               @unique
+  profileImageUrl  String?
+  profileImagePath String?
+  warningCount     Int                  @default(0)
+  suspendedUntil   DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  deletedAt        DateTime?
+  lastLoginAt      DateTime?
+  localCredential      LocalCredential?
+  oauthAccounts        OAuthAccount[]
+  refreshTokens        RefreshToken[]
+  twoFactorChallenges  TwoFactorChallenge[]
+  emailChangeRequests  EmailChangeRequest[]
+  emailLogs        EmailLog[]
+  pageViews        PageView[]
+  userSetting      UserSetting?
+  userAgreements   UserTermsAgreement[]
+  permissionGroups UserPermissionGroup[]
+  notifications    Notification[]
+
+  // Project-specific relations (board)
+  posts            Post[]
+  comments         Comment[]
+  reactions        PostReaction[]
+  files            PostFile[]
+
+  // Project-specific relations (report)
+  reportsMade      Report[]             @relation("ReportsMade")
+  reportsHandled   Report[]             @relation("ReportsHandled")
+
+  @@map("users")
+}
+
+model UserSetting {
+  id                          String   @id @default(uuid())
+  userId                      String   @unique
+  isMarketingConsentGiven     Boolean  @default(false)
+  isNewsletterSubscribed      Boolean  @default(false)
+  isEmailNotificationsEnabled Boolean  @default(true)
+  isSmsNotificationsEnabled   Boolean  @default(false)
+  isPushNotificationsEnabled  Boolean  @default(false)
+  prefersDarkMode             Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  user                        User     @relation(fields: [userId], references: [id])
+
+  @@map("user_settings")
+}
+
+model LocalCredential {
+  id                      String    @id @default(uuid())
+  password                String
+  passwordResetToken      String?   @unique
+  resetTokenExpiry        DateTime?
+  verificationToken       String?   @unique
+  verificationTokenExpiry DateTime?
+  isVerified              Boolean   @default(false)
+  totpEnabled             Boolean   @default(false)
+  totpSecret              String?
+  emailOtpEnabled         Boolean   @default(false)
+  failedAttempts          Int       @default(0)
+  lockedUntil             DateTime?
+  userId                  String    @unique
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("local_credentials")
+}
+
+model TwoFactorChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  method    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, method])
+  @@map("two_factor_challenges")
+}
+
+model EmailChangeRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  newEmail  String
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_change_requests")
+}
+
+model OAuthAccount {
+  id           String    @id @default(uuid())
+  provider     String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  userId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expires   DateTime
+  userId    String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
