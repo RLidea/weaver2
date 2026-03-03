@@ -1,0 +1,17 @@
+import { Suspense } from 'react';
+import { Spinner } from '@/shared/components/ui/spinner';
+import { UserTable } from '@/features/admin/users/components/user-table';
+
+export default function AdminUsersPage() {
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold text-text">사용자 관리</h1>
+      <p className="mt-1 text-sm text-text-muted">사용자 목록을 조회하고 관리하세요.</p>
+      <div className="mt-6">
+        <Suspense fallback={<div className="flex justify-center py-16"><Spinner /></div>}>
+          <UserTable />
+        </Suspense>
+      </div>
+    </div>
+  );
+}

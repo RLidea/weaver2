@@ -9,11 +9,13 @@ import { UpdateUserProfileService } from './services/update-user-profile.service
 import { ChangePasswordService } from './services/change-password.service';
 import { UpdateProfileService } from './services/update-profile.service';
 import { EmailChangeService } from './services/email-change.service';
+import { UserAdminService } from './services/user-admin.service';
 import { EmailModule } from '../../infrastructure/email/email.module';
 import { UploadModule } from '@weaver2/upload';
+import { PermissionModule } from '../permission/permission.module';
 
 @Module({
-  imports: [PrismaModule, EmailModule, UploadModule],
+  imports: [PrismaModule, EmailModule, UploadModule, PermissionModule],
   controllers: [
     UserProfileController,
     UserQueryController,
@@ -26,6 +28,7 @@ import { UploadModule } from '@weaver2/upload';
     ChangePasswordService,
     UpdateProfileService,
     EmailChangeService,
+    UserAdminService,
   ],
   exports: [
     FindUserService,
