@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useMe } from '@/features/user/hooks/use-me';
-import { useBoards } from '@/features/board/hooks/use-boards';
-import { useUnreadCount } from '@/features/notification/hooks/use-unread-count';
-import { useRecentPosts } from '../hooks/use-recent-posts';
+import { useRecentNotifications } from '../hooks/use-recent-notifications';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
-import { BellIcon, BoardIcon } from '@/shared/components/ui/icons';
+import { BellIcon, ShieldIcon, UserIcon } from '@/shared/components/ui/icons';
 import { Spinner } from '@/shared/components/ui/spinner';
 
 function formatRelativeTime(dateString: string): string {
@@ -24,132 +22,144 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('ko-KR');
 }
 
+const ACCOUNT_SHORTCUTS = [
+  {
+    href: '/settings/profile',
+    icon: UserIcon,
+    label: '프로필 편집',
+    description: '이름, 아바타 변경',
+  },
+  {
+    href: '/settings/security',
+    icon: ShieldIcon,
+    label: '보안 설정',
+    description: '비밀번호, 이메일',
+  },
+  {
+    href: '/settings/notifications',
+    icon: BellIcon,
+    label: '알림 설정',
+    description: '수신 방법 관리',
+  },
+] as const;
+
 export function DashboardOverview() {
   const { user } = useMe();
-  const { data: boards = [], isLoading: boardsLoading } = useBoards();
-  const { data: unreadCount = 0 } = useUnreadCount();
-  const { data: recentPosts = [], isLoading: postsLoading } = useRecentPosts(5);
+  const { data: recentNotifications = [], isLoading: notifLoading } = useRecentNotifications(3);
 
   const isAdmin = user
     ? hasPermission(user.permissions, PERMISSIONS.ADMIN.ACCESS)
     : false;
 
+  const initials = (user?.displayName ?? user?.username ?? '?')
+    .charAt(0)
+    .toUpperCase();
+
   return (
-    <div className="max-w-4xl space-y-6">
-      {/* 환영 섹션 */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">
-            안녕하세요, {user?.displayName ?? user?.username}님!
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">오늘도 좋은 하루 되세요.</p>
-        </div>
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="shrink-0 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-fg transition-opacity hover:opacity-90"
-          >
-            관리자 패널
-          </Link>
-        )}
-      </div>
-
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Link href="/notifications" aria-label={`미읽 알림 ${unreadCount}개`}>
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardContent className="flex items-center gap-3 py-5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                <BellIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-text">{unreadCount}</p>
-                <p className="text-xs text-text-muted">미읽 알림</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/boards" aria-label={`게시판 ${boards.length}개`}>
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardContent className="flex items-center gap-3 py-5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                <BoardIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-text">{boards.length}</p>
-                <p className="text-xs text-text-muted">게시판</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* 게시판 바로가기 */}
+    <div className="max-w-2xl space-y-6">
+      {/* 프로필 카드 */}
       <Card>
-        <CardHeader>
-          <h2 className="text-base font-semibold text-text">게시판</h2>
-        </CardHeader>
-        <CardContent>
-          {boardsLoading ? (
-            <div className="flex justify-center py-4">
-              <Spinner size="sm" />
-            </div>
-          ) : boards.length === 0 ? (
-            <p className="text-sm text-text-muted">게시판이 없습니다.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {boards.map((board) => (
-                <Link
-                  key={board.id}
-                  href={`/boards/${board.id}`}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm text-text transition-colors hover:bg-surface-2 hover:text-primary"
-                >
-                  {board.name}
-                </Link>
-              ))}
-            </div>
+        <CardContent className="flex items-center gap-4 py-5">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-fg">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold text-text">
+              {user?.displayName ?? user?.username}
+            </p>
+            <p className="truncate text-sm text-text-muted">@{user?.username}</p>
+            {user?.email && (
+              <p className="truncate text-sm text-text-muted">{user.email}</p>
+            )}
+          </div>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-fg transition-opacity hover:opacity-90"
+            >
+              관리자 패널
+            </Link>
           )}
         </CardContent>
       </Card>
 
-      {/* 최신 게시글 */}
+      {/* 최근 알림 */}
       <Card>
         <CardHeader className="flex items-center justify-between py-3">
-          <h2 className="text-base font-semibold text-text">최신 게시글</h2>
-          <Link href="/boards" className="text-xs text-primary hover:opacity-80">
-            더보기
+          <h2 className="text-base font-semibold text-text">최근 알림</h2>
+          <Link href="/notifications" className="text-xs text-primary hover:opacity-80">
+            전체보기
           </Link>
         </CardHeader>
         <CardContent className="p-0">
-          {postsLoading ? (
-            <div className="flex justify-center py-8">
+          {notifLoading ? (
+            <div className="flex justify-center py-6">
               <Spinner size="sm" />
             </div>
-          ) : recentPosts.length === 0 ? (
-            <p className="px-6 py-4 text-sm text-text-muted">게시글이 없습니다.</p>
+          ) : recentNotifications.length === 0 ? (
+            <p className="px-6 py-4 text-sm text-text-muted">새 알림이 없습니다.</p>
           ) : (
             <ul className="divide-y divide-border">
-              {recentPosts.map((post) => (
-                <li key={post.id}>
-                  <Link
-                    href={`/boards/${post.boardId}/posts/${post.id}`}
-                    className="flex items-center justify-between px-6 py-3 transition-colors hover:bg-surface-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-text">{post.title}</p>
-                      <p className="mt-0.5 text-xs text-text-muted">
-                        {post.board.name} · 조회 {post.viewCount}
-                      </p>
+              {recentNotifications.map((notif) => (
+                <li key={notif.id}>
+                  {notif.link ? (
+                    <Link
+                      href={notif.link}
+                      className="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-surface-2"
+                    >
+                      <span
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notif.isRead ? 'bg-transparent' : 'bg-primary'}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-text">{notif.title}</p>
+                        <p className="truncate text-xs text-text-muted">{notif.body}</p>
+                      </div>
+                      <span className="ml-2 shrink-0 text-xs text-text-muted">
+                        {formatRelativeTime(notif.createdAt)}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 px-6 py-3">
+                      <span
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notif.isRead ? 'bg-transparent' : 'bg-primary'}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-text">{notif.title}</p>
+                        <p className="truncate text-xs text-text-muted">{notif.body}</p>
+                      </div>
+                      <span className="ml-2 shrink-0 text-xs text-text-muted">
+                        {formatRelativeTime(notif.createdAt)}
+                      </span>
                     </div>
-                    <span className="ml-4 shrink-0 text-xs text-text-muted">
-                      {formatRelativeTime(post.createdAt)}
-                    </span>
-                  </Link>
+                  )}
                 </li>
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      {/* 계정 관리 */}
+      <Card>
+        <CardHeader className="py-3">
+          <h2 className="text-base font-semibold text-text">계정 관리</h2>
+        </CardHeader>
+        <CardContent className="grid grid-cols-3 gap-3 pb-5">
+          {ACCOUNT_SHORTCUTS.map(({ href, icon: Icon, label, description }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-4 text-center transition-colors hover:bg-surface-2 hover:text-primary"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text">{label}</p>
+                <p className="text-xs text-text-muted">{description}</p>
+              </div>
+            </Link>
+          ))}
         </CardContent>
       </Card>
     </div>

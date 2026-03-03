@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/lib/cn';
-import { HomeIcon, BoardIcon, BellIcon, SettingsIcon, XIcon } from '@/shared/components/ui/icons';
+import { HomeIcon, BellIcon, SettingsIcon, XIcon } from '@/shared/components/ui/icons';
 import { useSidebar } from './sidebar-context';
 
 const NAV_ITEMS = [
   { label: '대시보드', href: '/dashboard', Icon: HomeIcon },
-  { label: '게시판', href: '/boards', Icon: BoardIcon },
   { label: '알림', href: '/notifications', Icon: BellIcon },
   { label: '설정', href: '/settings/profile', Icon: SettingsIcon },
 ] as const;
