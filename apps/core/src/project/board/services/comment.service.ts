@@ -24,7 +24,7 @@ import {
 } from '@weaver2/pagination';
 import { AdminCommentsQueryDto } from '../dto/admin-comments-query.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { NotificationEventDto } from '../../notification/dto/notification-event.dto';
+import { NotificationEventDto } from '../../../features/notification/dto/notification-event.dto';
 
 // 댓글은 시간순(오름차순) 고정 정렬 — 전역 KEYSET_PRESETS에 등록하지 않음
 const COMMENT_PRESET: KeysetPreset = {

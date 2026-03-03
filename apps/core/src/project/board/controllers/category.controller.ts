@@ -11,9 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { CategoryService } from '../services/category.service';

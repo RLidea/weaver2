@@ -19,13 +19,13 @@ import { StaticModule } from './system/static/static.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './infrastructure/upload/upload.module';
 import { TermsModule } from './features/terms/terms.module';
-import { BoardModule } from './features/board/board.module';
-import { SearchModule } from './features/search/search.module';
+import { BoardModule } from './project/board/board.module';
+import { SearchModule } from './project/search/search.module';
 import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 import { PermissionModule } from './features/permission/permission.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationModule } from './features/notification/notification.module';
-import { ReportModule } from './features/report/report.module';
+import { ReportModule } from './project/report/report.module';
 
 @Module({
   imports: [

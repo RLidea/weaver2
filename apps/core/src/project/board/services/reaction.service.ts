@@ -13,7 +13,7 @@ import {
   CONFIG_KEYS,
 } from '../../../infrastructure/config/system-setting.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { NotificationEventDto } from '../../notification/dto/notification-event.dto';
+import { NotificationEventDto } from '../../../features/notification/dto/notification-event.dto';
 
 @Injectable()
 export class ReactionService {

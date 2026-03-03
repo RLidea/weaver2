@@ -16,7 +16,7 @@ import { PostService } from '../services/post.service';
 import { CommentService } from '../services/comment.service';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';

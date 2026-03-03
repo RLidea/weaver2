@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { CommonAuthUserDto } from '@weaver2/common';
-import { PermissionService } from '../../permission/services/permission.service';
+import { PermissionService } from '../../../features/permission/services/permission.service';
 
 export enum BoardActionType {
   READ = 'read',

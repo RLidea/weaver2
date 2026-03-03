@@ -16,7 +16,7 @@ import { BoardService } from '../services/board.service';
 import { PostService } from '../services/post.service';
 import { CreateBoardDto } from '../dto/create-board.dto';
 import { UpdateBoardDto } from '../dto/update-board.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
 import { PostDto } from '../dto/post.dto';
@@ -28,7 +28,7 @@ import {
   BoardPermissionService,
   BoardActionType,
 } from '../services/board-permission.service';
-import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @ApiTags('Board')

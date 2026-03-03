@@ -18,12 +18,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { EmojiService } from '../services/emoji.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { EmojiDto } from '../dto/emoji.dto';
 import { CreateEmojiDto } from '../dto/create-emoji.dto';
 import { UpdateEmojiDto } from '../dto/update-emoji.dto';
-import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
+import { RequirePermission } from '../../../features/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @ApiTags('Admin - Emoji')

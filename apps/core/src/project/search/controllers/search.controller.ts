@@ -4,7 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SearchService } from '../services/search.service';
 import { SearchRequestDto } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../features/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 
 @ApiTags('Search')

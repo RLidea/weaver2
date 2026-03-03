@@ -16,7 +16,7 @@ import {
 } from '../repositories/find-reports.query';
 import { UpdateReportStatusCommand } from '../repositories/update-report.command';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { NotificationEventDto } from '../../notification/dto/notification-event.dto';
+import { NotificationEventDto } from '../../../features/notification/dto/notification-event.dto';
 
 @Injectable()
 export class ReportService {

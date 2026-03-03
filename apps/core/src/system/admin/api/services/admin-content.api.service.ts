@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
-import { BoardService } from '../../../../features/board/services/board.service';
-import { PostService } from '../../../../features/board/services/post.service';
-import { CommentService } from '../../../../features/board/services/comment.service';
+import { BoardService } from '../../../../project/board/services/board.service';
+import { PostService } from '../../../../project/board/services/post.service';
+import { CommentService } from '../../../../project/board/services/comment.service';
 import {
   ContentPurgeService,
   PurgeResult,
-} from '../../../../features/board/services/content-purge.service';
+} from '../../../../project/board/services/content-purge.service';
 import { Prisma, PostStatus } from '@prisma/client';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 

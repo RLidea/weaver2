@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@weaver2/prisma';
-import { PermissionModule } from '../permission/permission.module';
+import { PermissionModule } from '../../features/permission/permission.module';
 import { ReportController } from './controllers/report.controller';
 import { ReportAdminController } from './controllers/report-admin.controller';
 import { ModerationController } from './controllers/moderation.controller';

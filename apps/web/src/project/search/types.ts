@@ -1,4 +1,4 @@
-import type { Post, Comment } from '@/features/board/types';
+import type { Post, Comment } from '@/project/board/types';
 
 export type SearchType = 'posts' | 'comments' | 'all';
 
