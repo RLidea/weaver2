@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@weaver2/shared": ["../../libs/shared/src"],
+      "@weaver2/shared/*": ["../../libs/shared/src/*"]
     }
   },
   "include": [
@@ -28,7 +30,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "../../libs/shared/src/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

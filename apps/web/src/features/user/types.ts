@@ -6,6 +6,8 @@ export interface User {
   id: string;
   username: string;
   displayName: string;
+  /** 부여된 permission 문자열 목록. 일반 사용자는 [] */
+  permissions: string[];
 }
 
 export interface UpdateProfileRequest {

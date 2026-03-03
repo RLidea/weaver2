@@ -37,6 +37,8 @@ const securityHeaders = [
 const apiUrl = process.env.API_URL || "http://localhost:4000";
 
 const nextConfig: NextConfig = {
+  // libs/shared는 apps/web 외부에 있으므로 Next.js가 트랜스파일할 수 있도록 지정
+  transpilePackages: ['@weaver2/shared'],
   async rewrites() {
     return [
       {
