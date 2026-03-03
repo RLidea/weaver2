@@ -21,4 +21,28 @@ export class UserDto {
     example: 'Test User',
   })
   displayName: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Email address',
+    example: 'user@example.com',
+  })
+  email: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Profile image URL',
+    example: 'https://example.com/profile.jpg',
+  })
+  profileImageUrl: string | null;
+
+  @ApiProperty({
+    type: [String],
+    description: 'Granted permissions (only included in /users/me response)',
+    example: ['post:create', 'comment:create'],
+    required: false,
+  })
+  permissions?: string[];
 }
