@@ -1,13 +1,13 @@
-export interface OffsetMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
 export interface OffsetResponse<T> {
-  items: T[];
-  meta: OffsetMeta;
+  data: T[];
+  total: number;
+  limit: number;
+  currentItemCount: number;
+  currentPage: number;
+  firstPage: number;
+  lastPage: number;
+  nextPage: number | null;
+  prevPage: number | null;
 }
 
 export interface KeysetResponse<T> {
