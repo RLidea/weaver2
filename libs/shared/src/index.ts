@@ -153,7 +153,10 @@ export type Permission =
  * - '*:*'        → 슈퍼 관리자 (전체 허용)
  * - 'resource:*' → 해당 리소스 전체 허용
  */
-export function hasPermission(userPermissions: string[], required: string): boolean {
+export function hasPermission(
+  userPermissions: string[],
+  required: string,
+): boolean {
   return userPermissions.some(
     (p) =>
       p === required ||
