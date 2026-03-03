@@ -24,10 +24,10 @@ export const authApi = {
     apiClient.post<void>('/v1/auth/verify/resend', { email }),
 
   requestPasswordReset: (body: RequestPasswordResetRequest) =>
-    apiClient.post<void>('/auth/password/request-reset', body),
+    apiClient.post<void>('/v1/auth/password/request-reset', body),
 
   resetPassword: (body: ResetPasswordRequest) =>
-    apiClient.post<void>('/auth/password/reset', body),
+    apiClient.post<void>('/v1/auth/password/reset', body),
 
   listSessions: () =>
     apiClient.get<Session[]>('/v1/auth/sessions'),

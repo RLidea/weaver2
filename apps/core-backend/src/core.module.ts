@@ -40,8 +40,7 @@ import { ReportModule } from './features/report/report.module';
       global: true, // 글로벌 설정
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_SECRET') || 'your-default-secret',
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '1h',
         },
