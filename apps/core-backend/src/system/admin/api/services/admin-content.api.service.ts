@@ -149,7 +149,9 @@ export class AdminContentApiService {
   async getPosts(options: AdminContentPostsQueryDto) {
     const { boardId, status, search, includeDeleted, ...pagination } = options;
 
-    const where: Prisma.PostWhereInput = includeDeleted ? {} : { deletedAt: null };
+    const where: Prisma.PostWhereInput = includeDeleted
+      ? {}
+      : { deletedAt: null };
     if (boardId) where.boardId = boardId;
     if (status) where.status = status;
     if (search) {
@@ -206,7 +208,9 @@ export class AdminContentApiService {
   async getComments(options: AdminContentCommentsQueryDto) {
     const { postId, search, includeDeleted, ...pagination } = options;
 
-    const where: Prisma.CommentWhereInput = includeDeleted ? {} : { deletedAt: null };
+    const where: Prisma.CommentWhereInput = includeDeleted
+      ? {}
+      : { deletedAt: null };
     if (postId) where.postId = postId;
     if (search) where.content = { contains: search, mode: 'insensitive' };
 

@@ -26,6 +26,8 @@ export class AdminContentPostsQueryDto extends OffsetRequestDto {
   })
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === 'true' || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === 'true' || value === true,
+  )
   includeDeleted?: boolean;
 }
