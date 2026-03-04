@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
+import { OffsetPaginationService } from '@weaver2/pagination';
 import { BoardService } from '../../../../features/board/services/board.service';
 import { PostService } from '../../../../features/board/services/post.service';
 import { CommentService } from '../../../../features/board/services/comment.service';
@@ -10,19 +10,8 @@ import {
 } from '../../../../features/board/services/content-purge.service';
 import { Prisma, PostStatus } from '@prisma/client';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
-
-interface PostsFilterOptions {
-  pagination: OffsetRequestDto;
-  boardId?: string;
-  status?: PostStatus;
-  search?: string;
-}
-
-interface CommentsFilterOptions {
-  pagination: OffsetRequestDto;
-  postId?: string;
-  search?: string;
-}
+import { AdminContentPostsQueryDto } from '../dto/admin-content-posts-query.dto';
+import { AdminContentCommentsQueryDto } from '../dto/admin-content-comments-query.dto';
 
 @Injectable()
 export class AdminContentApiService {
@@ -157,10 +146,10 @@ export class AdminContentApiService {
   }
 
   // ============ Post Management ============
-  async getPosts(options: PostsFilterOptions) {
-    const { pagination, boardId, status, search } = options;
+  async getPosts(options: AdminContentPostsQueryDto) {
+    const { boardId, status, search, includeDeleted, ...pagination } = options;
 
-    const where: Prisma.PostWhereInput = { deletedAt: null };
+    const where: Prisma.PostWhereInput = includeDeleted ? {} : { deletedAt: null };
     if (boardId) where.boardId = boardId;
     if (status) where.status = status;
     if (search) {
@@ -214,10 +203,10 @@ export class AdminContentApiService {
   }
 
   // ============ Comment Management ============
-  async getComments(options: CommentsFilterOptions) {
-    const { pagination, postId, search } = options;
+  async getComments(options: AdminContentCommentsQueryDto) {
+    const { postId, search, includeDeleted, ...pagination } = options;
 
-    const where: Prisma.CommentWhereInput = {};
+    const where: Prisma.CommentWhereInput = includeDeleted ? {} : { deletedAt: null };
     if (postId) where.postId = postId;
     if (search) where.content = { contains: search, mode: 'insensitive' };
 

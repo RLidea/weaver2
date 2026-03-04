@@ -8,13 +8,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { PostStatus } from '@prisma/client';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
-import { PostStatus } from '@prisma/client';
 import { AdminContentApiService } from '../services/admin-content.api.service';
-import { OffsetRequestDto } from '@weaver2/pagination';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
+import { AdminContentPostsQueryDto } from '../dto/admin-content-posts-query.dto';
+import { AdminContentCommentsQueryDto } from '../dto/admin-content-comments-query.dto';
 
 @ApiTags('Admin Content')
 @Controller({ path: 'admin/content', version: '1' })
@@ -69,18 +70,8 @@ export class AdminContentApiController {
   @Get('posts')
   @ApiOperation({ summary: '게시글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.POST.READ_ALL)
-  async getPosts(
-    @Query() paginationDto: OffsetRequestDto,
-    @Query('boardId') boardId?: string,
-    @Query('status') status?: PostStatus,
-    @Query('search') search?: string,
-  ) {
-    return this.adminContentApiService.getPosts({
-      pagination: paginationDto,
-      boardId,
-      status,
-      search,
-    });
+  async getPosts(@Query() query: AdminContentPostsQueryDto) {
+    return this.adminContentApiService.getPosts(query);
   }
 
   @Get('posts/:postId')
@@ -111,16 +102,8 @@ export class AdminContentApiController {
   @Get('comments')
   @ApiOperation({ summary: '댓글 조회 (필터링, 페이지네이션)' })
   @RequirePermission(PERMISSIONS.COMMENT.READ)
-  async getComments(
-    @Query() paginationDto: OffsetRequestDto,
-    @Query('postId') postId?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.adminContentApiService.getComments({
-      pagination: paginationDto,
-      postId,
-      search,
-    });
+  async getComments(@Query() query: AdminContentCommentsQueryDto) {
+    return this.adminContentApiService.getComments(query);
   }
 
   @Delete('comments/:commentId')
