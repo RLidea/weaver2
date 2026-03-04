@@ -1,10 +1,15 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { FindUserByDisplayNameQuery } from '../repositories/find-user-by-display-name.query';
 import { FindUserByUsernameQuery } from '../repositories/find-user-by-username.query';
 import { UpdateUserCommand } from '../repositories/update-user.command';
 import { UpsertUserSettingCommand } from '../repositories/upsert-user-setting.command';
+import { isReservedUsername, isReservedDisplayName } from '@weaver2/common';
 
 @Injectable()
 export class UpdateProfileService {
@@ -17,6 +22,10 @@ export class UpdateProfileService {
     const { displayName, username, ...userSettings } = updateProfileDto;
 
     if (displayName) {
+      if (isReservedDisplayName(displayName)) {
+        throw new BadRequestException('사용할 수 없는 닉네임입니다.');
+      }
+
       const existingUser = await FindUserByDisplayNameQuery(
         this.prisma,
         displayName,
@@ -28,6 +37,10 @@ export class UpdateProfileService {
     }
 
     if (username) {
+      if (isReservedUsername(username)) {
+        throw new BadRequestException('사용할 수 없는 사용자 이름입니다.');
+      }
+
       const existingUser = await FindUserByUsernameQuery(this.prisma, username);
 
       if (existingUser && existingUser.id !== userId) {

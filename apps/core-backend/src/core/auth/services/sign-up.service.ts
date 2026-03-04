@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
+import { isReservedUsername, isReservedDisplayName } from '@weaver2/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
@@ -31,6 +32,14 @@ export class SignUpService {
 
   async emailSignUp(dto: EmailSignUpDto) {
     const { username, displayName, email, password, agreedTermsIds } = dto;
+
+    if (isReservedUsername(username)) {
+      throw new BadRequestException('사용할 수 없는 사용자 이름입니다.');
+    }
+
+    if (isReservedDisplayName(displayName)) {
+      throw new BadRequestException('사용할 수 없는 닉네임입니다.');
+    }
 
     await this.findUserService.checkExistingUser({
       username,
