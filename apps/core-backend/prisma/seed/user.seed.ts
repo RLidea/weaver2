@@ -15,6 +15,24 @@ const usersToSeed = [
     displayName: '개발자',
     email: 'weaver@weaver.com',
   },
+  {
+    id: 'cmbyuak4r00021rjcop3r4t0r',
+    username: 'operator',
+    displayName: '운영자',
+    email: 'operator@weaver.com',
+  },
+  {
+    id: 'cmbyuak4s00031rjcm0d3r4t0',
+    username: 'moderator',
+    displayName: '모더레이터',
+    email: 'moderator@weaver.com',
+  },
+  {
+    id: 'cmbyuak4t00041rjcsu5p3nd3d',
+    username: 'suspended',
+    displayName: '정지계정',
+    email: 'suspended@weaver.com',
+  },
 ];
 
 const localCredentialsToSeed = [
@@ -25,6 +43,18 @@ const localCredentialsToSeed = [
   {
     password: 'secret!!',
     userId: 'cmbyuak4m00011rjce4dkz2m2',
+  },
+  {
+    password: 'secret!!',
+    userId: 'cmbyuak4r00021rjcop3r4t0r',
+  },
+  {
+    password: 'secret!!',
+    userId: 'cmbyuak4s00031rjcm0d3r4t0',
+  },
+  {
+    password: 'secret!!',
+    userId: 'cmbyuak4t00041rjcsu5p3nd3d',
   },
 ];
 

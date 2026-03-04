@@ -9,6 +9,9 @@ interface UserGroupAssignment {
 const assignmentsToSeed: UserGroupAssignment[] = [
   { username: 'admin', groupName: 'SuperAdmin' },
   { username: 'weaver', groupName: 'User' },
+  { username: 'operator', groupName: 'Operator' },
+  { username: 'moderator', groupName: 'Moderator' },
+  { username: 'suspended', groupName: 'Suspended' },
 ];
 
 export async function seedUserPermissionGroups(prisma: PrismaClient) {
