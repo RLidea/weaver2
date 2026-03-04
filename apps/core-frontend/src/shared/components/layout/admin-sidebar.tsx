@@ -31,10 +31,10 @@ const NAV_ITEMS = [
     exact: false,
   },
   {
-    label: '게시판 관리',
-    href: '/admin/boards',
+    label: '콘텐츠 관리',
+    href: '/admin/content',
     Icon: BoardIcon,
-    permission: PERMISSIONS.BOARD.MANAGE,
+    permission: PERMISSIONS.BOARD.READ,
     exact: false,
   },
   {
