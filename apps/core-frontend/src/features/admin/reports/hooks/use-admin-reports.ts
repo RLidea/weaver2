@@ -7,7 +7,7 @@ export function useAdminReports(params?: ReportsParams) {
   return useQuery({
     queryKey: adminReportKeys.lists(params),
     queryFn: () => adminReportsApi.getAll(params),
-    select: (res) => res.data,
+    select: (res) => res.data.data,
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

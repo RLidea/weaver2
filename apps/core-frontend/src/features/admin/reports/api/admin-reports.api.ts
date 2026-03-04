@@ -1,5 +1,5 @@
 import { apiClient } from '@/infrastructure/api-client';
-import type { Report, ReportsParams, ResolveReportRequest } from '../types';
+import type { Report, ReportsParams, ReportsResponse, ResolveReportRequest } from '../types';
 
 function toQueryString(params: object): string {
   const qs = new URLSearchParams();
@@ -12,7 +12,7 @@ function toQueryString(params: object): string {
 
 export const adminReportsApi = {
   getAll: (params?: ReportsParams) =>
-    apiClient.get<Report[]>(`/v1/admin/reports${toQueryString(params ?? {})}`),
+    apiClient.get<ReportsResponse>(`/v1/admin/reports${toQueryString(params ?? {})}`),
 
   getById: (id: string) =>
     apiClient.get<Report>(`/v1/admin/reports/${id}`),
