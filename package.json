@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "init": "sh scripts/init.sh",
     "---------------------------COMMON---------------------------": "",
     "dev": "sh scripts/run-project.sh dev",
     "debug": "sh scripts/run-project.sh debug",
