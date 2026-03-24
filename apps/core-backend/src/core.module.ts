@@ -31,6 +31,7 @@ import { ReportModule } from './features/report/report.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: 'apps/core-backend/.env',
     }),
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
