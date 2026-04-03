@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { useComments } from '../hooks/use-comments';
+import { CommentForm } from './comment-form';
 import { Spinner } from '@/shared/components/ui/spinner';
 import type { Comment } from '../types';
 
@@ -19,14 +21,19 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('ko-KR');
 }
 
-function CommentItem({ comment, depth = 0 }: { comment: Comment; depth?: number }) {
+function CommentItem({
+  comment,
+  postId,
+  depth = 0,
+}: {
+  comment: Comment;
+  postId: string;
+  depth?: number;
+}) {
+  const [replyOpen, setReplyOpen] = useState(false);
+
   return (
-    <div
-      className={cn(
-        'py-3',
-        depth > 0 && 'ml-6 border-l-2 border-border pl-4',
-      )}
-    >
+    <div className={cn('py-3', depth > 0 && 'ml-6 border-l-2 border-border pl-4')}>
       {comment.deletedAt ? (
         <p className="text-xs text-text-muted">삭제된 댓글입니다.</p>
       ) : (
@@ -40,13 +47,33 @@ function CommentItem({ comment, depth = 0 }: { comment: Comment; depth?: number 
             </span>
           </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-text">{comment.content}</p>
+          {depth === 0 && (
+            <button
+              onClick={() => setReplyOpen((prev) => !prev)}
+              className="mt-1.5 text-xs text-text-muted transition-colors hover:text-primary"
+            >
+              {replyOpen ? '취소' : '답글'}
+            </button>
+          )}
         </>
+      )}
+
+      {replyOpen && (
+        <div className="mt-2">
+          <CommentForm
+            postId={postId}
+            parentId={comment.id}
+            placeholder="답글을 작성하세요."
+            onSuccess={() => setReplyOpen(false)}
+            onCancel={() => setReplyOpen(false)}
+          />
+        </div>
       )}
 
       {comment.children && comment.children.length > 0 && (
         <div className="mt-2 space-y-1">
           {comment.children.map((child) => (
-            <CommentItem key={child.id} comment={child} depth={depth + 1} />
+            <CommentItem key={child.id} comment={child} postId={postId} depth={depth + 1} />
           ))}
         </div>
       )}
@@ -71,18 +98,21 @@ export function CommentList({ postId }: CommentListProps) {
 
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold text-text">
-        댓글 {comments.length}개
-      </h3>
+      <h3 className="mb-3 text-sm font-semibold text-text">댓글 {comments.length}개</h3>
+
       {comments.length === 0 ? (
-        <p className="text-sm text-text-muted">첫 댓글을 작성해 보세요.</p>
+        <p className="mb-4 text-sm text-text-muted">첫 댓글을 작성해 보세요.</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="mb-4 divide-y divide-border">
           {comments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
+            <CommentItem key={comment.id} comment={comment} postId={postId} />
           ))}
         </div>
       )}
+
+      <div className="border-t border-border pt-4">
+        <CommentForm postId={postId} />
+      </div>
     </div>
   );
 }
