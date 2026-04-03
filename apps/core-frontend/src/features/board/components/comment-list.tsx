@@ -2,8 +2,12 @@
 
 import { useState } from 'react';
 import { cn } from '@/shared/lib/cn';
+import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useComments } from '../hooks/use-comments';
+import { useUpdateComment, useDeleteComment } from '../hooks/use-comment-mutations';
+import { useMe } from '@/core/user/hooks/use-me';
 import { CommentForm } from './comment-form';
+import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
 import type { Comment } from '../types';
 
@@ -21,40 +25,115 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('ko-KR');
 }
 
-function CommentItem({
-  comment,
-  postId,
-  depth = 0,
-}: {
+interface CommentItemProps {
   comment: Comment;
   postId: string;
   depth?: number;
-}) {
+  userId: string | null;
+  userPermissions: string[];
+}
+
+function CommentItem({ comment, postId, depth = 0, userId, userPermissions }: CommentItemProps) {
   const [replyOpen, setReplyOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+
+  const { mutate: updateComment, isPending: isUpdating } = useUpdateComment();
+  const { mutate: deleteComment, isPending: isDeleting } = useDeleteComment();
+
+  const isAuthor = userId === comment.authorId;
+  const canEdit =
+    (isAuthor && hasPermission(userPermissions, PERMISSIONS.COMMENT.UPDATE_OWN)) ||
+    hasPermission(userPermissions, PERMISSIONS.COMMENT.UPDATE_ALL);
+  const canDelete =
+    (isAuthor && hasPermission(userPermissions, PERMISSIONS.COMMENT.DELETE_OWN)) ||
+    hasPermission(userPermissions, PERMISSIONS.COMMENT.DELETE_ALL) ||
+    hasPermission(userPermissions, PERMISSIONS.MODERATION.CONTENT_DELETE);
+
+  const handleEditStart = () => {
+    setEditContent(comment.content ?? '');
+    setIsEditing(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const content = editContent.trim();
+    if (!content) return;
+    updateComment(
+      { commentId: comment.id, body: { content } },
+      { onSuccess: () => setIsEditing(false) },
+    );
+  };
+
+  const handleDelete = () => {
+    if (!confirm('댓글을 삭제할까요?')) return;
+    deleteComment({ commentId: comment.id, postId });
+  };
 
   return (
     <div className={cn('py-3', depth > 0 && 'ml-6 border-l-2 border-border pl-4')}>
       {comment.deletedAt ? (
         <p className="text-xs text-text-muted">삭제된 댓글입니다.</p>
+      ) : isEditing ? (
+        /* 수정 폼 */
+        <form onSubmit={handleEditSubmit} className="space-y-2">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={2}
+            className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <div className="flex justify-end gap-1">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+              취소
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!editContent.trim() || isUpdating}
+              isLoading={isUpdating}
+            >
+              저장
+            </Button>
+          </div>
+        </form>
       ) : (
+        /* 댓글 보기 */
         <>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-text">
               {comment.author?.displayName ?? '알 수 없음'}
             </span>
-            <span className="text-xs text-text-muted">
-              {formatRelativeTime(comment.createdAt)}
-            </span>
+            <span className="text-xs text-text-muted">{formatRelativeTime(comment.createdAt)}</span>
           </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-text">{comment.content}</p>
-          {depth === 0 && (
-            <button
-              onClick={() => setReplyOpen((prev) => !prev)}
-              className="mt-1.5 text-xs text-text-muted transition-colors hover:text-primary"
-            >
-              {replyOpen ? '취소' : '답글'}
-            </button>
-          )}
+          <div className="mt-1.5 flex items-center gap-2">
+            {depth === 0 && (
+              <button
+                onClick={() => setReplyOpen((prev) => !prev)}
+                className="text-xs text-text-muted transition-colors hover:text-primary"
+              >
+                {replyOpen ? '취소' : '답글'}
+              </button>
+            )}
+            {canEdit && (
+              <button
+                onClick={handleEditStart}
+                className="text-xs text-text-muted transition-colors hover:text-text"
+              >
+                수정
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-xs text-text-muted transition-colors hover:text-error"
+              >
+                삭제
+              </button>
+            )}
+          </div>
         </>
       )}
 
@@ -73,7 +152,14 @@ function CommentItem({
       {comment.children && comment.children.length > 0 && (
         <div className="mt-2 space-y-1">
           {comment.children.map((child) => (
-            <CommentItem key={child.id} comment={child} postId={postId} depth={depth + 1} />
+            <CommentItem
+              key={child.id}
+              comment={child}
+              postId={postId}
+              depth={depth + 1}
+              userId={userId}
+              userPermissions={userPermissions}
+            />
           ))}
         </div>
       )}
@@ -87,6 +173,7 @@ interface CommentListProps {
 
 export function CommentList({ postId }: CommentListProps) {
   const { data: comments = [], isLoading } = useComments(postId);
+  const { user } = useMe();
 
   if (isLoading) {
     return (
@@ -105,7 +192,13 @@ export function CommentList({ postId }: CommentListProps) {
       ) : (
         <div className="mb-4 divide-y divide-border">
           {comments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} postId={postId} />
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              postId={postId}
+              userId={user?.id ?? null}
+              userPermissions={user?.permissions ?? []}
+            />
           ))}
         </div>
       )}
