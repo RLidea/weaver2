@@ -4,6 +4,8 @@ import { seedEmailTemplates } from './email-templates.seed';
 import { seedBoardPermissions } from './board-permission.seed';
 import { seedPermissionGroups } from './permission-group.seed';
 import { seedUserPermissionGroups } from './user-permission-group.seed';
+import { seedTestPost } from './post.seed';
+import { seedEmojis } from './emoji.seed';
 import { logSeedResult } from './seed-logger';
 const prisma = new PrismaClient();
 
@@ -90,6 +92,8 @@ async function main() {
   await seedUserPermissionGroups(prisma);
   await seedBoardPermissions(prisma);
   await seedEmailTemplates();
+  await seedEmojis(prisma);
+  await seedTestPost(prisma);
   console.log('Seeding process completed successfully.');
 }
 

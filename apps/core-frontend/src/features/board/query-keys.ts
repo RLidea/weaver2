@@ -17,3 +17,7 @@ export const commentKeys = {
 export const reactionKeys = {
   byPost: (postId: string) => ['reactions', postId] as const,
 } as const;
+
+export const emojiKeys = {
+  all: ['emojis'] as const,
+} as const;

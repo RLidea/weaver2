@@ -10,6 +10,7 @@ import { UserPostsController } from './controllers/user-posts.controller';
 import { CommentAdminController } from './controllers/comment-admin.controller';
 import { UserCommentsController } from './controllers/user-comments.controller';
 import { EmojiAdminController } from './controllers/emoji-admin.controller';
+import { EmojiController } from './controllers/emoji.controller';
 import { PostReactionController } from './controllers/post-reaction.controller';
 import { EmojiService } from './services/emoji.service';
 import { ReactionService } from './services/reaction.service';
@@ -34,6 +35,7 @@ import { SystemSettingModule } from '../../infrastructure/config/system-setting.
     UserCommentsController,
     CategoryController,
     EmojiAdminController,
+    EmojiController,
     PostReactionController,
   ],
   providers: [

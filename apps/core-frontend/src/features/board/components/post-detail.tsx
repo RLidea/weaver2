@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePost } from '../hooks/use-post';
 import { CommentList } from './comment-list';
+import { ReactionBar } from './reaction-bar';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { ChevronLeftIcon } from '@/shared/components/ui/icons';
@@ -66,6 +67,9 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
           </div>
           <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-text">
             {post.content}
+          </div>
+          <div className="mt-6 border-t border-border pt-4">
+            <ReactionBar postId={postId} />
           </div>
         </CardContent>
       </Card>
