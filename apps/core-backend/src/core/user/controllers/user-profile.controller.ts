@@ -11,7 +11,9 @@ import {
   UploadedFile,
   Body,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -63,8 +65,13 @@ export class UserProfileController {
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '자신의 계정 탈퇴' })
   @ApiStandardResponses({ status: 204, description: '계정 탈퇴 성공' })
-  async deleteMyAccount(@AuthUser() authUser: CommonAuthUserDto) {
+  async deleteMyAccount(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.deleteAccountService.execute(authUser.id);
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
   }
 
   @Patch()

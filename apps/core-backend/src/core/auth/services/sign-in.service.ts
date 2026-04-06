@@ -53,6 +53,10 @@ export class SignInService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!localCredential.isVerified) {
+      throw new UnauthorizedException('Email not verified. Please check your inbox.');
+    }
+
     await ResetFailedAttemptsCommand(this.prisma, user.id);
 
     this.logger.debug(
