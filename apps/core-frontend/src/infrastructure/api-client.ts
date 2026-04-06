@@ -89,6 +89,9 @@ class ApiClient {
 
       // 액세스 토큰 만료 → refresh 후 1회 재시도
       if (response.status === 401 && !isRetry && !this.isRefreshing) {
+        const errorBody401 = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+        const message401 = errorBody401?.error?.message;
+
         const refreshed = await this.refresh();
         if (refreshed) {
           return this.request<T>(method, path, body, options, true);
@@ -96,7 +99,7 @@ class ApiClient {
         if (!skipOnAuthError) {
           this.onAuthError?.();
         }
-        throw new ApiError(401, 'Unauthorized');
+        throw new ApiError(401, message401 ?? 'Unauthorized');
       }
 
       const errorBody = (await response.json().catch(() => null)) as ApiErrorResponse | null;
