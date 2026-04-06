@@ -26,7 +26,16 @@ export class SignInService {
       `validateUserByEmail: Found user: ${JSON.stringify(user?.id)}`,
     );
 
-    if (!user || !user.localCredential || !user.localCredential.password)
+    if (!user) {
+      // 탈퇴한 계정인지 별도 확인
+      const deletedUser = await this.prisma.user.findFirst({
+        where: { email, deletedAt: { not: null } },
+      });
+      if (deletedUser) throw new UnauthorizedException('ACCOUNT_DELETED');
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.localCredential || !user.localCredential.password)
       throw new UnauthorizedException('Invalid credentials');
 
     // 정지 계정 체크 (suspendedUntil이 미래 시각이면 정지 상태)

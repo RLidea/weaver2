@@ -18,6 +18,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { mutate: login, isPending, error } = useLogin();
   const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [accountDeleted, setAccountDeleted] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
@@ -32,6 +33,7 @@ export function LoginForm() {
 
   function onSubmit(data: SignInRequest) {
     setEmailNotVerified(false);
+    setAccountDeleted(false);
     const redirectPath = searchParams.get('redirect') ?? '/dashboard';
     login(data, {
       onSuccess: () => router.replace(redirectPath),
@@ -39,6 +41,8 @@ export function LoginForm() {
         if (err instanceof ApiError && err.message === 'EMAIL_NOT_VERIFIED') {
           setEmailNotVerified(true);
           setResendEmail(data.email);
+        } else if (err instanceof ApiError && err.message === 'ACCOUNT_DELETED') {
+          setAccountDeleted(true);
         }
       },
     });
@@ -56,9 +60,9 @@ export function LoginForm() {
   }
 
   const serverError =
-    !emailNotVerified && error instanceof ApiError
+    !emailNotVerified && !accountDeleted && error instanceof ApiError
       ? error.message
-      : !emailNotVerified && error
+      : !emailNotVerified && !accountDeleted && error
         ? error.message
         : null;
 
@@ -92,6 +96,15 @@ export function LoginForm() {
             error={errors.password?.message ?? serverError ?? undefined}
             {...register('password')}
           />
+
+          {accountDeleted && (
+            <div className="rounded-md border border-error/30 bg-error/10 px-3 py-3 text-sm">
+              <p className="font-medium text-error">탈퇴한 계정입니다</p>
+              <p className="mt-0.5 text-text-muted">
+                이 이메일로 가입된 계정은 탈퇴 처리되었습니다. 새로 가입하시려면 회원가입을 이용해주세요.
+              </p>
+            </div>
+          )}
 
           {emailNotVerified && (
             <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-3 text-sm">
