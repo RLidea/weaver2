@@ -30,7 +30,7 @@ export class SessionController {
       authUser.id,
       currentToken,
     );
-    return { message: 'Sessions retrieved successfully', data: sessions };
+    return sessions;
   }
 
   @Delete('others')

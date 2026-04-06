@@ -37,12 +37,12 @@ function formatDate(dateString: string): string {
 }
 
 export function SessionList() {
-  const { data: sessions, isLoading } = useSessions();
+  const { data: sessions = [], isLoading } = useSessions();
   const { mutate: revokeSession, isPending: isRevoking } = useRevokeSession();
   const { mutate: revokeOthers, isPending: isRevokingOthers } = useRevokeOtherSessions();
   const toast = useToast();
 
-  const hasOtherSessions = sessions?.some((s) => !s.isCurrent) ?? false;
+  const hasOtherSessions = sessions.some((s) => !s.isCurrent);
 
   function handleRevoke(sessionId: string) {
     revokeSession(sessionId, {
