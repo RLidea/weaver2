@@ -88,15 +88,16 @@ class ApiClient {
       }
 
       // 액세스 토큰 만료 → refresh 후 1회 재시도
+      // skipOnAuthError=true이면 refresh를 시도하지 않고 즉시 에러를 반환한다 (로그인 등 공개 엔드포인트)
       if (response.status === 401 && !isRetry && !this.isRefreshing) {
         const errorBody401 = (await response.json().catch(() => null)) as ApiErrorResponse | null;
         const message401 = errorBody401?.error?.message;
 
-        const refreshed = await this.refresh();
-        if (refreshed) {
-          return this.request<T>(method, path, body, options, true);
-        }
         if (!skipOnAuthError) {
+          const refreshed = await this.refresh();
+          if (refreshed) {
+            return this.request<T>(method, path, body, options, true);
+          }
           this.onAuthError?.();
         }
         throw new ApiError(401, message401 ?? 'Unauthorized');
