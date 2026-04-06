@@ -11,7 +11,7 @@ import type {
 
 export const authApi = {
   signIn: (body: SignInRequest) =>
-    apiClient.post<void>('/v1/auth/sign-in', body),
+    apiClient.post<void>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
 
   signOut: () =>
     apiClient.post<void>('/v1/auth/sign-out'),
