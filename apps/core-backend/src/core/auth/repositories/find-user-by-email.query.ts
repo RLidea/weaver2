@@ -4,8 +4,8 @@ export async function FindUserByEmailQuery(
   prisma: PrismaClient,
   email: string,
 ) {
-  return prisma.user.findUnique({
-    where: { email },
+  return prisma.user.findFirst({
+    where: { email, deletedAt: null },
     include: { userSetting: true, localCredential: true },
   });
 }
