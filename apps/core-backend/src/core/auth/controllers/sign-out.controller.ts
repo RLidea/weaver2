@@ -1,5 +1,5 @@
-import { Controller, Post, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Post, Req, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { SignOutService } from '../services/sign-out.service';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
@@ -16,11 +16,16 @@ export class SignOutController {
   @Post('sign-out')
   @ApiOperation({ summary: '로그아웃 및 인증 쿠키 삭제' })
   async signOut(
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
     @AuthUser() authUser: CommonAuthUserDto,
   ) {
+    const cookies = req.cookies as Record<string, string> | undefined;
+    const refreshToken = cookies?.refresh_token;
     try {
-      await this.signOutService.signOut(authUser.id);
+      if (refreshToken) {
+        await this.signOutService.signOut(refreshToken);
+      }
     } finally {
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
