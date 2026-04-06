@@ -54,9 +54,23 @@ export class UpdateProfileService {
       ...(username && { username }),
     });
 
-    // Update or create UserSetting fields
-    if (Object.keys(userSettings).length > 0) {
-      await UpsertUserSettingCommand(this.prisma, userId, userSettings);
+    // Update or create UserSetting fields (DTO 필드명 → Prisma 필드명 매핑)
+    const settingData: Record<string, unknown> = {};
+    if (userSettings.marketingConsent !== undefined)
+      settingData.isMarketingConsentGiven = userSettings.marketingConsent;
+    if (userSettings.newsletterConsent !== undefined)
+      settingData.isNewsletterSubscribed = userSettings.newsletterConsent;
+    if (userSettings.emailNotification !== undefined)
+      settingData.isEmailNotificationsEnabled = userSettings.emailNotification;
+    if (userSettings.smsNotification !== undefined)
+      settingData.isSmsNotificationsEnabled = userSettings.smsNotification;
+    if (userSettings.pushNotification !== undefined)
+      settingData.isPushNotificationsEnabled = userSettings.pushNotification;
+    if (userSettings.darkMode !== undefined)
+      settingData.prefersDarkMode = userSettings.darkMode;
+
+    if (Object.keys(settingData).length > 0) {
+      await UpsertUserSettingCommand(this.prisma, userId, settingData);
     }
   }
 }
