@@ -5,6 +5,8 @@ import type {
   RequestPasswordResetRequest,
   ResetPasswordRequest,
   Session,
+  TwoFactorStatus,
+  TotpSetup,
 } from '../types';
 
 export const authApi = {
@@ -37,4 +39,26 @@ export const authApi = {
 
   revokeOtherSessions: () =>
     apiClient.delete<void>('/v1/auth/sessions/others'),
+
+  // 2FA
+  get2faStatus: () =>
+    apiClient.get<TwoFactorStatus>('/v1/auth/2fa/status'),
+
+  getTotpSetup: () =>
+    apiClient.get<TotpSetup>('/v1/auth/2fa/totp/setup'),
+
+  confirmTotpSetup: (code: string) =>
+    apiClient.post<void>('/v1/auth/2fa/totp/confirm', { code }),
+
+  disableTotp: (code: string) =>
+    apiClient.deleteWithBody<void>('/v1/auth/2fa/totp', { code }),
+
+  setupEmailOtp: () =>
+    apiClient.post<void>('/v1/auth/2fa/email/setup', {}),
+
+  confirmEmailOtp: (code: string) =>
+    apiClient.post<void>('/v1/auth/2fa/email/confirm', { code }),
+
+  disableEmailOtp: (code: string) =>
+    apiClient.deleteWithBody<void>('/v1/auth/2fa/email', { code }),
 };

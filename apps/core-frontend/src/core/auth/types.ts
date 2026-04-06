@@ -56,3 +56,13 @@ export interface Session {
   createdAt: string;
   isCurrent: boolean;
 }
+
+export interface TwoFactorStatus {
+  totpEnabled: boolean;
+  emailOtpEnabled: boolean;
+}
+
+export interface TotpSetup {
+  secret: string;
+  qrCodeUrl: string;
+}

@@ -161,6 +161,10 @@ class ApiClient {
     return this.request<T>('DELETE', path, undefined, options);
   }
 
+  deleteWithBody<T>(path: string, body: unknown, options?: RequestOptions): Promise<ApiResponse<T>> {
+    return this.request<T>('DELETE', path, body, options);
+  }
+
   postForm<T>(path: string, body: FormData, options?: RequestOptions): Promise<ApiResponse<T>> {
     return this.request<T>('POST', path, body, options);
   }

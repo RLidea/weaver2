@@ -1,4 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class UserSettingDto {
+  @ApiProperty() isEmailNotificationsEnabled: boolean;
+  @ApiProperty() isSmsNotificationsEnabled: boolean;
+  @ApiProperty() isPushNotificationsEnabled: boolean;
+  @ApiProperty() isMarketingConsentGiven: boolean;
+  @ApiProperty() isNewsletterSubscribed: boolean;
+  @ApiProperty() prefersDarkMode: boolean;
+}
 
 export class UserDto {
   @ApiProperty({
@@ -38,11 +47,16 @@ export class UserDto {
   })
   profileImageUrl: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     description: 'Granted permissions (only included in /users/me response)',
     example: ['post:create', 'comment:create'],
-    required: false,
   })
   permissions?: string[];
+
+  @ApiPropertyOptional({
+    type: UserSettingDto,
+    description: 'User settings (only included in /users/me response)',
+  })
+  userSetting?: UserSettingDto;
 }

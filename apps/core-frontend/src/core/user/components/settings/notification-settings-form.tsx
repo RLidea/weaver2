@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { useToast } from '@/infrastructure/providers/toast-provider';
 import { ApiError } from '@/types/api';
@@ -38,12 +39,21 @@ function ToggleItem({ label, description, checked, onChange, disabled }: ToggleI
 }
 
 export function NotificationSettingsForm() {
+  const { user } = useMe();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const toast = useToast();
 
   const [emailNotification, setEmailNotification] = useState(false);
   const [smsNotification, setSmsNotification] = useState(false);
   const [pushNotification, setPushNotification] = useState(false);
+
+  useEffect(() => {
+    if (user?.userSetting) {
+      setEmailNotification(user.userSetting.isEmailNotificationsEnabled);
+      setSmsNotification(user.userSetting.isSmsNotificationsEnabled);
+      setPushNotification(user.userSetting.isPushNotificationsEnabled);
+    }
+  }, [user]);
 
   function handleToggle(
     key: 'emailNotification' | 'smsNotification' | 'pushNotification',

@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
+import { useUploadProfileImage } from '@/core/user/hooks/use-upload-profile-image';
 import { useToast } from '@/infrastructure/providers/toast-provider';
 import { ApiError } from '@/types/api';
 import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
@@ -29,7 +31,9 @@ type ProfileFormValues = z.infer<typeof ProfileSchema>;
 export function ProfileForm() {
   const { user } = useMe();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
+  const { mutate: uploadImage, isPending: isUploading } = useUploadProfileImage();
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -60,6 +64,21 @@ export function ProfileForm() {
     });
   }
 
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadImage(file, {
+      onSuccess: () => toast.success('프로필 이미지가 변경되었습니다.'),
+      onError: (err) => {
+        const message = err instanceof ApiError ? err.message : '이미지 업로드에 실패했습니다.';
+        toast.error(message);
+      },
+    });
+    e.target.value = '';
+  }
+
+  const initials = (user?.displayName ?? user?.username ?? '?').charAt(0).toUpperCase();
+
   return (
     <Card>
       <CardHeader>
@@ -67,6 +86,49 @@ export function ProfileForm() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="flex flex-col gap-4">
+          {/* 프로필 이미지 */}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-primary transition-opacity hover:opacity-80 disabled:opacity-50"
+              aria-label="프로필 이미지 변경"
+            >
+              {user?.profileImageUrl ? (
+                <Image
+                  src={user.profileImageUrl}
+                  alt="프로필 이미지"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-xl font-bold text-primary-fg">
+                  {initials}
+                </span>
+              )}
+            </button>
+            <div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                isLoading={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                이미지 변경
+              </Button>
+              <p className="mt-1 text-xs text-text-muted">JPG, PNG, GIF, WEBP · 최대 5MB</p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+          </div>
+
           <Input
             label="표시 이름"
             placeholder="홍길동"
