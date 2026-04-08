@@ -10,6 +10,7 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
+  private refreshQueue: ((success: boolean) => void)[] = [];
   private onAuthError: (() => void) | null = null;
   private csrfToken: string | null = null;
 
@@ -88,19 +89,37 @@ class ApiClient {
       }
 
       // 액세스 토큰 만료 → refresh 후 1회 재시도
-      // skipOnAuthError=true이면 refresh를 시도하지 않고 즉시 에러를 반환한다 (로그인 등 공개 엔드포인트)
-      if (response.status === 401 && !isRetry && !this.isRefreshing) {
-        const errorBody401 = (await response.json().catch(() => null)) as ApiErrorResponse | null;
-        const message401 = errorBody401?.error?.message;
+      // skipOnAuthError=true여도 세션이 살아있을 수 있으므로(리프레시 토큰 존재 가능성) 우선 리프레시를 시도한다.
+      if (response.status === 401 && !isRetry) {
+        if (this.isRefreshing) {
+          console.log(`[ApiClient] Refresh in progress, queueing request: ${path}`);
+          const refreshed = await new Promise<boolean>((resolve) => {
+            this.refreshQueue.push(resolve);
+          });
 
-        if (!skipOnAuthError) {
-          const refreshed = await this.refresh();
           if (refreshed) {
+            console.log(`[ApiClient] Retrying queued request after successful refresh: ${path}`);
             return this.request<T>(method, path, body, options, true);
           }
+          throw new ApiError(401, 'Unauthorized (Refresh failed)');
+        }
+
+        console.log(`[ApiClient] 401 detected, starting token refresh: ${path} (skipOnAuthError=${!!skipOnAuthError})`);
+        const refreshed = await this.refresh();
+
+        if (refreshed) {
+          console.log(`[ApiClient] Token refreshed successfully, retrying: ${path}`);
+          return this.request<T>(method, path, body, options, true);
+        }
+
+        console.warn(`[ApiClient] Token refresh failed for: ${path}`);
+
+        // 리프레시 실패 시 skipOnAuthError가 false인 경우에만 로그인 페이지로 리다이렉트
+        if (!skipOnAuthError) {
           this.onAuthError?.();
         }
-        throw new ApiError(401, message401 ?? 'Unauthorized');
+
+        throw new ApiError(401, 'Unauthorized');
       }
 
       const errorBody = (await response.json().catch(() => null)) as ApiErrorResponse | null;
@@ -124,6 +143,8 @@ class ApiClient {
   private async refresh(): Promise<boolean> {
     if (this.isRefreshing) return false;
     this.isRefreshing = true;
+    console.log('[ApiClient] Executing refresh POST request...');
+
     try {
       const csrfToken = await this.ensureCsrfToken();
       const response = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
@@ -133,15 +154,36 @@ class ApiClient {
           'x-csrf-token': csrfToken,
         },
       });
-      // refresh 실패 시 CSRF 토큰도 함께 무효화
-      if (!response.ok) {
+
+      const success = response.ok;
+      if (!success) {
+        if (response.status === 401) {
+          console.warn(`[ApiClient] Session expired (401 during refresh)`);
+        } else {
+          console.error(`[ApiClient] Refresh endpoint returned error: ${response.status}`);
+        }
         this.csrfToken = null;
+      } else {
+        console.log('[ApiClient] Refresh endpoint succeeded');
       }
-      return response.ok;
-    } catch {
+
+      // 큐에 대기 중인 모든 요청에 결과 전달
+      this.processQueue(success);
+      return success;
+    } catch (error) {
+      console.error('[ApiClient] Error during refresh process:', error);
+      this.processQueue(false);
       return false;
     } finally {
       this.isRefreshing = false;
+    }
+  }
+
+  private processQueue(success: boolean) {
+    if (this.refreshQueue.length > 0) {
+      console.log(`[ApiClient] Processing ${this.refreshQueue.length} queued requests with success=${success}`);
+      this.refreshQueue.forEach((resolve) => resolve(success));
+      this.refreshQueue = [];
     }
   }
 

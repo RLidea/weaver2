@@ -142,6 +142,14 @@ export class SignInService {
     // Rotation: 기존 토큰 삭제 후 새 토큰 발급
     await DeleteRefreshTokenCommand(this.prisma, refreshToken);
 
+    // 사용자가 삭제되었거나 존재하지 않는지 확인
+    if (!stored.user || stored.user.deletedAt) {
+      this.logger.warn(
+        `Refresh attempted for deleted or non-existent user: ${stored.user?.id || 'unknown'}`,
+      );
+      throw new UnauthorizedException('User account no longer exists');
+    }
+
     const remainingMs = stored.expires.getTime() - Date.now();
     const remainingDays = Math.max(
       1,
