@@ -156,9 +156,8 @@ export function LoginForm() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 placeholder="000000"
-                maxLength={6}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
+                onChange={(e) => setOtpCode(e.target.value.trim().slice(0, 6))}
                 error={twoFactorError instanceof ApiError ? twoFactorError.message : twoFactorError?.message}
               />
               <Button type="submit" isLoading={isTwoFactorPending} className="w-full" disabled={!otpCode.trim()}>
