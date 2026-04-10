@@ -7,10 +7,14 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
-import type { TOTP } from 'otplib';
+import type { generateSecret, generateURI, verify } from 'otplib';
 import type QRCode from 'qrcode';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { authenticator } = require('otplib') as { authenticator: TOTP };
+const { generateSecret: otpGenerateSecret, generateURI: otpGenerateURI, verify: otpVerify } = require('otplib') as {
+  generateSecret: typeof generateSecret;
+  generateURI: typeof generateURI;
+  verify: typeof verify;
+};
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const qrcode = require('qrcode') as typeof QRCode;
 import { randomInt } from 'crypto';
@@ -83,8 +87,8 @@ export class TwoFactorService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
-    const secret = authenticator.generateSecret();
-    const otpAuthUrl = authenticator.toURI({
+    const secret = otpGenerateSecret();
+    const otpAuthUrl = otpGenerateURI({
       label: user.email,
       issuer: APP_NAME,
       secret,
@@ -96,7 +100,7 @@ export class TwoFactorService {
       totpSecret: secret,
     });
 
-    return { secret, qrCodeDataUrl, otpAuthUrl };
+    return { secret, qrCodeUrl: qrCodeDataUrl, otpAuthUrl };
   }
 
   async confirmTotpSetup(userId: string, code: string): Promise<void> {
@@ -108,9 +112,7 @@ export class TwoFactorService {
       throw new BadRequestException('TOTP setup not initiated');
     }
 
-    const result = await authenticator.verify(code, {
-      secret: credential.totpSecret,
-    });
+    const result = await otpVerify({ token: code, secret: credential.totpSecret });
     if (!result.valid) throw new BadRequestException('Invalid TOTP code');
 
     await UpdateTotpSettingsCommand(this.prisma, userId, { totpEnabled: true });
@@ -223,9 +225,7 @@ export class TwoFactorService {
       if (!credential.totpEnabled || !credential.totpSecret) {
         throw new BadRequestException('TOTP is not enabled for this account');
       }
-      const result = await authenticator.verify(code, {
-        secret: credential.totpSecret,
-      });
+      const result = await otpVerify({ token: code, secret: credential.totpSecret });
       if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
     } else {
       if (!credential.emailOtpEnabled) {
@@ -336,9 +336,7 @@ export class TwoFactorService {
     },
   ): Promise<void> {
     if (credential.totpEnabled && credential.totpSecret) {
-      const result = await authenticator.verify(code, {
-        secret: credential.totpSecret,
-      });
+      const result = await otpVerify({ token: code, secret: credential.totpSecret });
       if (result.valid) return;
     }
 
