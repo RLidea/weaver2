@@ -152,19 +152,31 @@ export function ContentCommentsTab() {
                 {comments.map((comment) => (
                   <tr key={comment.id} className="transition-colors hover:bg-surface-2">
                     <td className="px-4 py-3 max-w-[260px]">
-                      <p className="truncate text-text">
-                        {comment.deletedAt ? (
-                          <span className="italic text-text-muted">[삭제된 댓글]</span>
-                        ) : (
-                          comment.content
-                        )}
-                      </p>
+                      {comment.deletedAt ? (
+                        <p className="truncate italic text-text-muted">[삭제된 댓글]</p>
+                      ) : (
+                        <a
+                          href={`/boards/${comment.post.boardId}/posts/${comment.postId}#comment-${comment.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate block text-text hover:text-primary hover:underline"
+                        >
+                          {comment.content}
+                        </a>
+                      )}
                       {comment.parentId && (
                         <span className="text-xs text-text-muted">↳ 대댓글</span>
                       )}
                     </td>
                     <td className="px-4 py-3 max-w-[180px]">
-                      <p className="truncate text-text-muted">{comment.post.title}</p>
+                      <a
+                        href={`/boards/${comment.post.boardId}/posts/${comment.postId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate block text-text-muted hover:text-primary hover:underline"
+                      >
+                        {comment.post.title}
+                      </a>
                     </td>
                     <td className="px-4 py-3 text-text-muted">
                       {comment.author.displayName}

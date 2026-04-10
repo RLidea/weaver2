@@ -58,7 +58,16 @@ export function BoardTable() {
                 )}
                 {data.map((board) => (
                   <tr key={board.id} className="transition-colors hover:bg-surface-2">
-                    <td className="px-4 py-3 font-medium text-text">{board.name}</td>
+                    <td className="px-4 py-3">
+                      <a
+                        href={`/boards/${board.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-text hover:text-primary hover:underline"
+                      >
+                        {board.name}
+                      </a>
+                    </td>
                     <td className="max-w-xs truncate px-4 py-3 text-text-muted">
                       {board.description ?? '—'}
                     </td>

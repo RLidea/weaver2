@@ -71,7 +71,7 @@ function CommentItem({ comment, postId, depth = 0, userId, userPermissions }: Co
   };
 
   return (
-    <div className={cn('py-3', depth > 0 && 'ml-6 border-l-2 border-border pl-4')}>
+    <div id={`comment-${comment.id}`} className={cn('py-3', depth > 0 && 'ml-6 border-l-2 border-border pl-4')}>
       {comment.deletedAt ? (
         <p className="text-xs text-text-muted">삭제된 댓글입니다.</p>
       ) : isEditing ? (

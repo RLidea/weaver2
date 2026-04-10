@@ -244,12 +244,28 @@ export function ContentPostsTab() {
                     className="transition-colors hover:bg-surface-2"
                   >
                     <td className="px-4 py-3 max-w-[220px]">
-                      <p className="truncate font-medium text-text">{post.title}</p>
+                      <a
+                        href={`/boards/${post.board.id}/posts/${post.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate block font-medium text-text hover:text-primary hover:underline"
+                      >
+                        {post.title}
+                      </a>
                       {post.isPinned && (
                         <span className="text-xs text-primary">📌 고정</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-text-muted">{post.board.name}</td>
+                    <td className="px-4 py-3">
+                      <a
+                        href={`/boards/${post.board.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text-muted hover:text-primary hover:underline"
+                      >
+                        {post.board.name}
+                      </a>
+                    </td>
                     <td className="px-4 py-3 text-text-muted">
                       {post.author.displayName}
                     </td>

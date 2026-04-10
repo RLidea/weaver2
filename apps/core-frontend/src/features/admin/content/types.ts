@@ -50,7 +50,7 @@ export interface AdminComment {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  post: { id: string; title: string };
+  post: { id: string; title: string; boardId: string };
   author: { id: string; username: string; displayName: string };
 }
 

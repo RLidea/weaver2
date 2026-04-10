@@ -219,7 +219,7 @@ export class AdminContentApiService {
       options: pagination,
       where,
       include: {
-        post: { select: { id: true, title: true } },
+        post: { select: { id: true, title: true, boardId: true } },
         author: { select: { id: true, username: true, displayName: true } },
       },
     });
