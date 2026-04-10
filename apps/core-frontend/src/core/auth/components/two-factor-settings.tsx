@@ -125,9 +125,13 @@ function TotpSection({ enabled }: { enabled: boolean }) {
                 <div className="flex-1">
                   <Input
                     placeholder="6자리 코드 입력"
-                    maxLength={6}
                     error={confirmForm.formState.errors.code?.message}
                     {...confirmForm.register('code')}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const text = e.clipboardData.getData('text').trim().slice(0, 6);
+                      confirmForm.setValue('code', text, { shouldValidate: true });
+                    }}
                   />
                 </div>
                 <Button type="submit" size="md" isLoading={isConfirming}>
@@ -148,9 +152,13 @@ function TotpSection({ enabled }: { enabled: boolean }) {
             <div className="flex-1">
               <Input
                 placeholder="6자리 코드 입력"
-                maxLength={6}
                 error={disableForm.formState.errors.code?.message}
                 {...disableForm.register('code')}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text').trim().slice(0, 6);
+                  disableForm.setValue('code', text, { shouldValidate: true });
+                }}
               />
             </div>
             <Button type="submit" variant="danger" size="md" isLoading={isDisabling}>
@@ -254,6 +262,11 @@ function EmailOtpSection({ enabled }: { enabled: boolean }) {
                 placeholder="인증 코드 입력"
                 error={confirmForm.formState.errors.code?.message}
                 {...confirmForm.register('code')}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text').trim().slice(0, 6);
+                  confirmForm.setValue('code', text, { shouldValidate: true });
+                }}
               />
             </div>
             <Button type="submit" size="md" isLoading={isConfirming}>
@@ -274,6 +287,11 @@ function EmailOtpSection({ enabled }: { enabled: boolean }) {
                 placeholder="인증 코드 입력"
                 error={disableForm.formState.errors.code?.message}
                 {...disableForm.register('code')}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text').trim().slice(0, 6);
+                  disableForm.setValue('code', text, { shouldValidate: true });
+                }}
               />
             </div>
             <Button type="submit" variant="danger" size="md" isLoading={isDisabling}>
