@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useLogin } from '@/core/auth/hooks/use-login';
-import { SignInSchema, type SignInRequest } from '@/core/auth/types';
+import { useLogin, useTwoFactorLogin, useSendLoginEmailOtp } from '@/core/auth/hooks/use-login';
+import { SignInSchema, type SignInRequest, type SignInResponse } from '@/core/auth/types';
 import { ApiError } from '@/types/api';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -17,26 +17,51 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { mutate: login, isPending, error } = useLogin();
+  const { mutate: twoFactorLogin, isPending: isTwoFactorPending, error: twoFactorError } = useTwoFactorLogin();
+  const { mutate: sendEmailOtp, isPending: isSendingOtp } = useSendLoginEmailOtp();
+
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [accountDeleted, setAccountDeleted] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
+  // 2FA 상태
+  const [twoFactorState, setTwoFactorState] = useState<SignInResponse | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<'totp' | 'email' | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+
   const {
     register,
     handleSubmit,
-    getValues,
     formState: { errors },
   } = useForm<SignInRequest>({
     resolver: zodResolver(SignInSchema),
   });
 
+  const redirectPath = searchParams.get('redirect') ?? '/dashboard';
+
   function onSubmit(data: SignInRequest) {
     setEmailNotVerified(false);
     setAccountDeleted(false);
-    const redirectPath = searchParams.get('redirect') ?? '/dashboard';
     login(data, {
-      onSuccess: () => router.replace(redirectPath),
+      onSuccess: (res) => {
+        const twoFactor = res?.data;
+        if (twoFactor?.twoFactorRequired) {
+          setTwoFactorState(twoFactor);
+          // 방법이 하나뿐이면 자동 선택
+          if (twoFactor.availableMethods.email && !twoFactor.availableMethods.totp) {
+            setSelectedMethod('email');
+            sendEmailOtp(twoFactor.preAuthToken, {
+              onSuccess: () => setEmailOtpSent(true),
+            });
+          } else if (twoFactor.availableMethods.totp && !twoFactor.availableMethods.email) {
+            setSelectedMethod('totp');
+          }
+          return;
+        }
+        router.replace(redirectPath);
+      },
       onError: (err) => {
         if (err instanceof ApiError && err.message === 'EMAIL_NOT_VERIFIED') {
           setEmailNotVerified(true);
@@ -46,6 +71,25 @@ export function LoginForm() {
         }
       },
     });
+  }
+
+  function handleSelectMethod(method: 'totp' | 'email') {
+    setSelectedMethod(method);
+    setOtpCode('');
+    if (method === 'email' && twoFactorState && !emailOtpSent) {
+      sendEmailOtp(twoFactorState.preAuthToken, {
+        onSuccess: () => setEmailOtpSent(true),
+      });
+    }
+  }
+
+  function handleTwoFactorSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!twoFactorState || !selectedMethod || !otpCode.trim()) return;
+    twoFactorLogin(
+      { preAuthToken: twoFactorState.preAuthToken, method: selectedMethod, code: otpCode.trim() },
+      { onSuccess: () => router.replace(redirectPath) },
+    );
   }
 
   async function handleResend() {
@@ -68,6 +112,84 @@ export function LoginForm() {
 
   const isRegistered = searchParams.get('registered') === '1';
 
+  // ── 2FA 화면 ──
+  if (twoFactorState) {
+    const { availableMethods } = twoFactorState;
+    const hasBothMethods = availableMethods.totp && availableMethods.email;
+
+    return (
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <h1 className="text-center text-2xl font-semibold text-text">2단계 인증</h1>
+          <p className="mt-1 text-center text-sm text-text-muted">
+            계정 보안을 위해 추가 인증이 필요합니다.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {hasBothMethods && !selectedMethod && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-text-muted">인증 방법을 선택해주세요.</p>
+              <Button variant="secondary" className="w-full" onClick={() => handleSelectMethod('totp')}>
+                인증 앱 (TOTP) 사용
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={() => handleSelectMethod('email')} isLoading={isSendingOtp}>
+                이메일 인증 코드 사용
+              </Button>
+            </div>
+          )}
+
+          {selectedMethod && (
+            <form onSubmit={handleTwoFactorSubmit} className="flex flex-col gap-4">
+              {selectedMethod === 'email' && (
+                <div className="rounded-md bg-surface-2 px-3 py-2 text-sm text-text-muted">
+                  {emailOtpSent
+                    ? '이메일로 인증 코드를 발송했습니다. 받은편지함을 확인해주세요.'
+                    : '이메일 인증 코드를 발송 중입니다...'}
+                </div>
+              )}
+              {selectedMethod === 'totp' && (
+                <p className="text-sm text-text-muted">인증 앱에 표시된 6자리 코드를 입력해주세요.</p>
+              )}
+              <Input
+                label="인증 코드"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                error={twoFactorError instanceof ApiError ? twoFactorError.message : twoFactorError?.message}
+              />
+              <Button type="submit" isLoading={isTwoFactorPending} className="w-full" disabled={!otpCode.trim()}>
+                인증 완료
+              </Button>
+              {hasBothMethods && (
+                <button
+                  type="button"
+                  onClick={() => { setSelectedMethod(null); setOtpCode(''); }}
+                  className="text-xs text-text-muted underline underline-offset-2"
+                >
+                  다른 방법으로 인증
+                </button>
+              )}
+            </form>
+          )}
+        </CardContent>
+        <CardFooter className="justify-center">
+          <button
+            type="button"
+            onClick={() => { setTwoFactorState(null); setSelectedMethod(null); setOtpCode(''); setEmailOtpSent(false); }}
+            className="text-sm text-text-muted underline underline-offset-2"
+          >
+            로그인 화면으로 돌아가기
+          </button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  // ── 기본 로그인 화면 ──
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>

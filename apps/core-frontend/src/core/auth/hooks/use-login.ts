@@ -1,16 +1,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api';
 import { userKeys } from '@/core/user/query-keys';
-import type { SignInRequest } from '../types';
+import type { SignInRequest, TwoFactorAuthenticateRequest } from '../types';
 
 export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (req: SignInRequest) => authApi.signIn(req),
-    onSuccess: async () => {
-      // 로그인 성공 → me 쿼리 갱신 (캐시가 인증 상태의 진실의 원천)
+    onSuccess: async (res) => {
+      // 2FA가 필요한 경우는 호출자가 처리
+      if (res?.data?.twoFactorRequired) return;
+      // 일반 로그인 성공 → me 쿼리 갱신
       await queryClient.invalidateQueries({ queryKey: userKeys.me });
     },
+  });
+}
+
+export function useTwoFactorLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: TwoFactorAuthenticateRequest) => authApi.twoFactorAuthenticate(req),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: userKeys.me });
+    },
+  });
+}
+
+export function useSendLoginEmailOtp() {
+  return useMutation({
+    mutationFn: (preAuthToken: string) => authApi.sendLoginEmailOtp(preAuthToken),
   });
 }

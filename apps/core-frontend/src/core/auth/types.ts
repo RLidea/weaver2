@@ -66,3 +66,20 @@ export interface TotpSetup {
   secret: string;
   qrCodeUrl: string;
 }
+
+// SuccessInterceptor가 { message, ...rest } → { message, data: rest } 로 변환하므로
+// 컨트롤러가 flat하게 반환한 필드들이 data에 담긴다.
+export interface SignInResponse {
+  twoFactorRequired: true;
+  preAuthToken: string;
+  availableMethods: {
+    totp: boolean;
+    email: boolean;
+  };
+}
+
+export interface TwoFactorAuthenticateRequest {
+  preAuthToken: string;
+  method: 'totp' | 'email';
+  code: string;
+}

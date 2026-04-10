@@ -95,13 +95,11 @@ export class SignInController {
       );
       return {
         message: 'Two-factor authentication required',
-        data: {
-          twoFactorRequired: true,
-          preAuthToken,
-          availableMethods: {
-            totp: authUser.totpEnabled ?? false,
-            email: authUser.emailOtpEnabled ?? false,
-          },
+        twoFactorRequired: true,
+        preAuthToken,
+        availableMethods: {
+          totp: authUser.totpEnabled ?? false,
+          email: authUser.emailOtpEnabled ?? false,
         },
       };
     }

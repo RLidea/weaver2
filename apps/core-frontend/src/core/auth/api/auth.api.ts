@@ -1,17 +1,25 @@
 import { apiClient } from '@/infrastructure/api-client';
 import type {
   SignInRequest,
+  SignInResponse,
   SignUpRequest,
   RequestPasswordResetRequest,
   ResetPasswordRequest,
   Session,
   TwoFactorStatus,
   TotpSetup,
+  TwoFactorAuthenticateRequest,
 } from '../types';
 
 export const authApi = {
   signIn: (body: SignInRequest) =>
-    apiClient.post<void>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
+    apiClient.post<SignInResponse | null>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
+
+  sendLoginEmailOtp: (preAuthToken: string) =>
+    apiClient.post<void>('/v1/auth/2fa/email/send', { preAuthToken }, { skipOnAuthError: true }),
+
+  twoFactorAuthenticate: (body: TwoFactorAuthenticateRequest) =>
+    apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),
 
   signOut: () =>
     apiClient.post<void>('/v1/auth/sign-out'),
