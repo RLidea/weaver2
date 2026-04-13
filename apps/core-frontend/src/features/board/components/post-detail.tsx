@@ -9,6 +9,7 @@ import { useUpdatePost, useDeletePost } from '../hooks/use-post-mutations';
 import { useMe } from '@/core/user/hooks/use-me';
 import { CommentList } from './comment-list';
 import { ReactionBar } from './reaction-bar';
+import { PostFiles } from './post-files';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
@@ -174,6 +175,7 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
               <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-text">
                 {post.content}
               </div>
+              <PostFiles postId={postId} />
             </>
           )}
 

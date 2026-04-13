@@ -26,6 +26,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
+import { Public } from '@weaver2/common/decorator/public.decorator';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import {
   UploadService,
@@ -57,6 +58,15 @@ export class UploadController {
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<FileDto>> {
     return this.uploadService.findFilesByUserId(authUser.id, query);
+  }
+
+  @Get('post/:postId')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '게시글에 첨부된 파일 목록 조회 (공개)' })
+  @ApiStandardResponses({ type: FileDto, isArray: true })
+  async getPostFiles(@Param('postId') postId: string): Promise<FileDto[]> {
+    return this.uploadService.findFilesByPostId(postId);
   }
 
   @Post()
