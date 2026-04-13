@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useUnreadCount } from '@/core/notification/hooks/use-unread-count';
 import { Badge } from '@/shared/components/ui/badge';
-import { BellIcon, MenuIcon } from '@/shared/components/ui/icons';
+import { BellIcon, MenuIcon, SearchIcon } from '@/shared/components/ui/icons';
 import { useSidebar } from './sidebar-context';
 import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';
@@ -33,6 +33,15 @@ export function Header() {
 
       {/* 우측 영역 */}
       <div className="ml-auto flex items-center gap-1">
+        {/* 검색 */}
+        <Link
+          href="/search"
+          aria-label="검색"
+          className="rounded-md p-2 text-text-muted hover:bg-surface-2 transition-colors"
+        >
+          <SearchIcon className="h-5 w-5" />
+        </Link>
+
         {/* 알림 벨 */}
         <Link
           href="/notifications"
