@@ -215,6 +215,7 @@ function ChangeEmailForm() {
 
 import { SessionList } from '@/core/auth/components/session-list';
 import { TwoFactorSettings } from '@/core/auth/components/two-factor-settings';
+import { OAuthConnections } from '@/core/auth/components/oauth-connections';
 
 export function SecurityForm() {
   return (
@@ -222,6 +223,7 @@ export function SecurityForm() {
       <ChangePasswordForm />
       <ChangeEmailForm />
       <TwoFactorSettings />
+      <OAuthConnections />
       <SessionList />
     </div>
   );

@@ -83,3 +83,9 @@ export interface TwoFactorAuthenticateRequest {
   method: 'totp' | 'email';
   code: string;
 }
+
+export interface OAuthConnection {
+  provider: string;
+  providerId: string;
+  createdAt: string;
+}

@@ -9,6 +9,7 @@ import type {
   TwoFactorStatus,
   TotpSetup,
   TwoFactorAuthenticateRequest,
+  OAuthConnection,
 } from '../types';
 
 export const authApi = {
@@ -69,4 +70,11 @@ export const authApi = {
 
   disableEmailOtp: (code: string) =>
     apiClient.deleteWithBody<void>('/v1/auth/2fa/email', { code }),
+
+  // OAuth 연동
+  getOAuthConnections: () =>
+    apiClient.get<OAuthConnection[]>('/v1/auth/oauth/connections'),
+
+  disconnectOAuth: (provider: string) =>
+    apiClient.delete<void>(`/v1/auth/oauth/connections/${provider}`),
 };
