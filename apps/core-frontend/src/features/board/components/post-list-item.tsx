@@ -24,23 +24,33 @@ interface PostListItemProps {
 
 export function PostListItem({ post, boardId, pinned = false }: PostListItemProps) {
   return (
-    <Link
-      href={`/boards/${boardId}/posts/${post.id}`}
-      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2"
-    >
+    <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2">
       {pinned && (
         <Badge variant="primary" size="sm" className="shrink-0">
           고정
         </Badge>
       )}
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
+      <Link
+        href={`/boards/${boardId}/posts/${post.id}`}
+        className="min-w-0 flex-1 truncate text-sm font-medium text-text hover:text-primary"
+      >
         {post.title}
-      </span>
+      </Link>
       <div className="flex shrink-0 items-center gap-3 text-xs text-text-muted">
-        <span>{post.author?.displayName ?? '알 수 없음'}</span>
+        {post.author?.username ? (
+          <Link
+            href={`/users/${post.author.username}`}
+            className="hover:text-text"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {post.author.displayName}
+          </Link>
+        ) : (
+          <span>알 수 없음</span>
+        )}
         <span>조회 {post.viewCount}</span>
         <span>{formatRelativeTime(post.createdAt)}</span>
       </div>
-    </Link>
+    </div>
   );
 }
