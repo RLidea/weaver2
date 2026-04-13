@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useBoard } from '../hooks/use-board';
 import { useBoardPosts } from '../hooks/use-board-posts';
+import { useMe } from '@/core/user/hooks/use-me';
 import { PostListItem } from './post-list-item';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
-import { ChevronLeftIcon } from '@/shared/components/ui/icons';
+import { ChevronLeftIcon, PencilIcon } from '@/shared/components/ui/icons';
 
 interface BoardDetailProps {
   boardId: string;
@@ -15,6 +17,7 @@ interface BoardDetailProps {
 
 export function BoardDetail({ boardId }: BoardDetailProps) {
   const { data: board, isLoading: boardLoading } = useBoard(boardId);
+  const { user } = useMe();
   const {
     data,
     isLoading: postsLoading,
@@ -42,6 +45,10 @@ export function BoardDetail({ boardId }: BoardDetailProps) {
   const pinnedPosts = data?.pages[0]?.data.pinnedPosts ?? [];
   const posts = data?.pages.flatMap((page) => page.data.data) ?? [];
 
+  const canWrite = user
+    ? hasPermission(user.permissions, PERMISSIONS.POST.CREATE)
+    : false;
+
   return (
     <div className="max-w-4xl space-y-4">
       {/* 헤더 */}
@@ -53,10 +60,20 @@ export function BoardDetail({ boardId }: BoardDetailProps) {
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold text-text">{board.name}</h1>
-          {board.description && (
-            <p className="mt-0.5 text-sm text-text-muted">{board.description}</p>
+        <div className="flex flex-1 items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-text">{board.name}</h1>
+            {board.description && (
+              <p className="mt-0.5 text-sm text-text-muted">{board.description}</p>
+            )}
+          </div>
+          {canWrite && (
+            <Link href={`/boards/${boardId}/write`}>
+              <Button size="sm" className="flex items-center gap-1.5">
+                <PencilIcon className="h-4 w-4" />
+                글쓰기
+              </Button>
+            </Link>
           )}
         </div>
       </div>
