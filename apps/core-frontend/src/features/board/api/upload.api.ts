@@ -20,4 +20,7 @@ export const uploadApi = {
       .postForm<PostFileItem[]>(`/v1/upload?postId=${postId}`, formData)
       .then((res) => res.data);
   },
+
+  deleteFile: (fileId: string) =>
+    apiClient.delete<void>(`/v1/upload/${fileId}`),
 };
