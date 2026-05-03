@@ -2,6 +2,12 @@
 
 export type PostStatus = 'PUBLISHED' | 'DRAFT' | 'HIDDEN';
 
+export interface Category {
+  id: string;
+  name: string;
+  boardId: string;
+}
+
 export interface Board {
   id: string;
   name: string;

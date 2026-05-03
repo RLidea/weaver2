@@ -22,6 +22,7 @@ import { BoardDto } from '../dto/board.dto';
 import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { KeysetRequestDto } from '@weaver2/pagination';
+import { BoardPostsQueryDto } from '../dto/board-posts-query.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import {
@@ -85,7 +86,7 @@ export class BoardController {
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async getBoardPosts(
     @Param('boardId') boardId: string,
-    @Query() keysetDto: KeysetRequestDto,
+    @Query() queryDto: BoardPostsQueryDto,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<BoardPostsResponseDto> {
     await this.permissionService.requirePermission(
@@ -97,8 +98,9 @@ export class BoardController {
 
     return this.postService.findPostsByBoardIdWithKeyset(
       boardId,
-      keysetDto,
+      queryDto,
       authUser,
+      queryDto.categoryId,
     );
   }
 

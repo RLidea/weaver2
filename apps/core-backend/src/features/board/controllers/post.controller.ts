@@ -71,6 +71,7 @@ export class PostController {
   @ApiStandardResponses({ type: PostDto, isArray: true })
   async findPosts(
     @Query('boardId') boardId?: string,
+    @Query('categoryId') categoryId?: string,
     @Query() keysetDto?: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<BoardPostsResponseDto | KeysetResponseDto<PostDto>> {
@@ -87,6 +88,7 @@ export class PostController {
         boardId,
         dto,
         authUser,
+        categoryId,
       );
     }
 

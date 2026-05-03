@@ -1,5 +1,5 @@
 import { apiClient } from '@/infrastructure/api-client';
-import type { Board, BoardPostsResponse, KeysetParams } from '../types';
+import type { Board, BoardPostsResponse, Category, KeysetParams } from '../types';
 
 function toQueryString(params: object): string {
   const qs = new URLSearchParams();
@@ -17,8 +17,11 @@ export const boardApi = {
   getById: (id: string) =>
     apiClient.get<Board>(`/v1/boards/${id}`),
 
-  getPosts: (boardId: string, params?: KeysetParams) =>
+  getPosts: (boardId: string, params?: KeysetParams & { categoryId?: string }) =>
     apiClient.get<BoardPostsResponse>(
       `/v1/boards/${boardId}/posts${toQueryString(params ?? {})}`,
     ),
+
+  getCategories: (boardId: string) =>
+    apiClient.get<Category[]>(`/v1/boards/${boardId}/categories`),
 };

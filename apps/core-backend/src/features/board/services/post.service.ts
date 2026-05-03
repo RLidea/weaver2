@@ -140,6 +140,7 @@ export class PostService {
     boardId: string,
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
+    categoryId?: string,
   ): Promise<BoardPostsResponseDto> {
     await this.boardService.findBoardById(boardId);
 
@@ -150,6 +151,7 @@ export class PostService {
       deletedAt: null,
       hiddenAt: null,
       ...(!isLoggedIn && { isSecret: false }),
+      ...(categoryId && { categoryId }),
     };
 
     // 고정 게시글: priority 내림차순 → 최신순 정렬

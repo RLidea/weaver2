@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useBoard } from '../hooks/use-board';
 import { useBoardPosts } from '../hooks/use-board-posts';
+import { useBoardCategories } from '../hooks/use-board-categories';
 import { useMe } from '@/core/user/hooks/use-me';
 import { PostListItem } from './post-list-item';
 import { Card } from '@/shared/components/ui/card';
@@ -17,14 +19,16 @@ interface BoardDetailProps {
 
 export function BoardDetail({ boardId }: BoardDetailProps) {
   const { data: board, isLoading: boardLoading } = useBoard(boardId);
+  const { data: categories = [] } = useBoardCategories(boardId);
   const { user } = useMe();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const {
     data,
     isLoading: postsLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useBoardPosts(boardId);
+  } = useBoardPosts(boardId, { categoryId: selectedCategoryId });
 
   if (boardLoading) {
     return (
@@ -77,6 +81,37 @@ export function BoardDetail({ boardId }: BoardDetailProps) {
           )}
         </div>
       </div>
+
+      {/* 카테고리 필터 탭 */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedCategoryId(undefined)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              selectedCategoryId === undefined
+                ? 'bg-primary text-primary-fg'
+                : 'bg-surface-2 text-text-muted hover:bg-surface-2 hover:text-text'
+            }`}
+          >
+            전체
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() =>
+                setSelectedCategoryId(cat.id === selectedCategoryId ? undefined : cat.id)
+              }
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                selectedCategoryId === cat.id
+                  ? 'bg-primary text-primary-fg'
+                  : 'bg-surface-2 text-text-muted hover:bg-surface-2 hover:text-text'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 게시글 목록 */}
       <Card>
