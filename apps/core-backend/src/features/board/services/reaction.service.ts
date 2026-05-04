@@ -144,7 +144,7 @@ export class ReactionService {
         type: 'REACTION',
         title: '게시글에 리액션이 달렸습니다',
         body: `${emoji.name} 리액션`,
-        link: `/posts/${postId}`,
+        link: `/boards/${post.boardId}/posts/${postId}`,
       };
       this.eventEmitter.emit('notification.created', event);
     }

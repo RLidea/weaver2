@@ -82,6 +82,12 @@ export class CommentService {
     );
 
     if (authorId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: postId },
+        select: { authorId: true, boardId: true },
+      });
+      const postLink = post ? `/boards/${post.boardId}/posts/${postId}` : `/boards/unknown/posts/${postId}`;
+
       // 대댓글: 부모 댓글 작성자에게 알림
       if (dto.parentId) {
         const parentComment = await this.prisma.comment.findUnique({
@@ -95,16 +101,12 @@ export class CommentService {
             type: 'REPLY',
             title: '새 답글이 달렸습니다',
             body: dto.content.slice(0, 100),
-            link: `/posts/${postId}`,
+            link: postLink,
           };
           this.eventEmitter.emit('notification.created', event);
         }
       } else {
         // 댓글: 게시글 작성자에게 알림
-        const post = await this.prisma.post.findUnique({
-          where: { id: postId },
-          select: { authorId: true },
-        });
         if (post?.authorId) {
           const event: NotificationEventDto = {
             recipientId: post.authorId,
@@ -112,7 +114,7 @@ export class CommentService {
             type: 'COMMENT',
             title: '새 댓글이 달렸습니다',
             body: dto.content.slice(0, 100),
-            link: `/posts/${postId}`,
+            link: postLink,
           };
           this.eventEmitter.emit('notification.created', event);
         }
