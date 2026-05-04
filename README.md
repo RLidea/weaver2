@@ -1,391 +1,310 @@
 # Weaver2
 
-Weaver2는 NestJS 기반의 종합적인 웹 애플리케이션 백엔드 시스템입니다. 인증, 사용자 관리, 게시판, 관리자 기능을 포함한 확장 가능한 모노레포 구조로 설계되었습니다.
+NestJS + Next.js 기반의 커뮤니티 플랫폼 보일러플레이트입니다. 인증, 게시판, 알림, 검색, 신고/제재, 관리자 기능을 포함한 프로덕션 수준의 모노레포 구조로 설계되었습니다.
 
 ## 🚀 주요 기능
 
-- **인증 시스템**: JWT 기반 로그인, 회원가입, 비밀번호 재설정
-- **사용자 관리**: 프로필 관리, 프로필 이미지 업로드, 계정 설정
-- **게시판 시스템**: 게시판/게시글/댓글 CRUD 관리
-- **관리자 기능**: 대시보드, 사용자 관리, 시스템 통계
-- **공유 컴포넌트 시스템**: 재사용 가능한 UI 컴포넌트 라이브러리
-- **이메일 시스템**: SMTP 기반 이메일 발송 및 인증
-- **파일 업로드**: 이미지 업로드 및 정적 파일 서빙
-- **약관 관리**: 이용약관 버전 관리 및 동의 시스템
+### 인증 & 사용자
+- **이메일/비밀번호 로그인·회원가입** — JWT HttpOnly 쿠키 기반, 이메일 인증
+- **OAuth 소셜 로그인** — Google, Kakao, Naver (native fetch, passport 미사용)
+- **2단계 인증(2FA)** — TOTP(Google Authenticator 등) + 이메일 OTP 선택 지원
+- **계정 잠금** — 로그인 5회 실패 시 15분 잠금
+- **세션 관리** — 기기별 RefreshToken 조회·삭제, 비밀번호 변경 시 전체 세션 무효화
+- **이메일 변경** — 새 이메일로 인증 코드 발송 후 적용
+- **OAuth 연결 관리** — 연동된 소셜 계정 목록 조회·해제
+
+### 게시판
+- **게시판·게시글·댓글 CRUD** — Keyset 기반 무한스크롤 페이지네이션
+- **대댓글** — 4단계 중첩, 소프트 삭제
+- **파일 첨부** — 게시글 생성·수정 시 파일 업로드/삭제
+- **고정 게시글** — 쿼리 분리 패턴으로 상단 고정
+- **카테고리 필터링** — 게시판별 카테고리 탭/칩 UI
+- **리액션 시스템** — 이모지 기반 게시글 반응
+
+### 알림
+- **SSE 실시간 알림** — 로그인 상태에서 댓글·답글·리액션 즉시 수신
+- **웹 푸시 알림** — Service Worker + VAPID 기반, 브라우저 닫힌 상태에서도 수신
+- **알림 목록** — 미읽음 카운트, 전체/개별 읽음 처리
+
+### 검색
+- **통합 검색** — 게시글·댓글 전문 검색, 키워드 하이라이팅
+- **필터링** — 작성자, 날짜 범위, 게시판별 필터
+- **URL 상태 관리** — 검색 조건이 URL에 유지되어 공유 가능
+
+### 신고/모더레이션
+- **다형 신고** — 게시글·댓글·사용자·미디어 신고
+- **콘텐츠 제재** — 숨김·삭제, 동일 대상 신고 자동 처리
+- **사용자 제재** — 경고·정지(기간 지정), 로그인 시 정지 계정 차단
+- **권한 분리** — Moderator(숨김·경고) / Operator(삭제·정지) / Admin(전체)
+
+### 관리자
+- **대시보드** — 사용자·게시글·댓글 통계
+- **사용자 관리** — 목록 조회, 정지·복구
+- **콘텐츠 관리** — 게시글·댓글 관리
+- **권한 그룹** — 그룹별 세분화된 퍼미션 관리
+- **신고 처리** — 신고 목록 조회·처리·기각
+- **이메일 템플릿** — 발송 템플릿 내용·활성화 관리
+- **시스템 설정** — KV 스토어 기반 런타임 설정 변경
+- **약관 관리** — 버전 관리·동의 이력
+
+### 인프라
+- **파일 업로드** — Local 또는 S3(MinIO 호환) 드라이버 전환 가능
+- **썸네일 생성** — sharp 기반 자동 리사이징
+- **이메일** — SMTP, DB 템플릿 관리, 발송 로그·재발송
+- **Rate Limiting** — 전역 + 민감 엔드포인트별 강화 적용
+
+---
 
 ## 🛠️ 기술 스택
 
-- **Backend**: NestJS, TypeScript
-- **Database**: PostgreSQL, Prisma ORM
-- **Authentication**: JWT, Passport.js
-- **Email**: Nodemailer
-- **File Upload**: Multer
-- **Documentation**: Swagger/OpenAPI
-- **Testing**: Jest
-- **Code Quality**: ESLint, Prettier, Husky
-
-## 📂 최상위 디렉토리 구조
-
--   `.`
-    -   ├── `apps/`: 실행 가능한 애플리케이션들이 위치합니다.
-    -   ├── `libs/`: 여러 애플리케이션에서 공유되는 라이브러리(모듈)들이 위치합니다.
-    -   ├── `scripts/`: 프로젝트에서 사용되는 유틸리티 스크립트들이 위치합니다.
-    -   ├── `package.json`: 프로젝트의 의존성 및 스크립트를 정의합니다.
-    -   ├── `GEMINI.md`: Gemini 어시스턴트를 위한 프로젝트 가이드라인 및 컨텍스트 정보를 담고 있습니다.
-    -   └── `tsconfig.json`: TypeScript 컴파일러 설정 파일입니다.
+| 영역 | 기술 |
+|------|------|
+| Backend | NestJS, TypeScript, Prisma ORM |
+| Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS |
+| Database | PostgreSQL |
+| Auth | JWT (HttpOnly Cookie), Passport 없이 native OAuth |
+| Realtime | SSE (Server-Sent Events), Web Push (VAPID) |
+| Storage | Local / AWS S3 (환경변수로 전환) |
+| Email | Nodemailer (SMTP) |
+| Docs | Swagger / OpenAPI |
+| CI | ESLint, Prettier, Husky pre-commit |
 
 ---
 
-## 📱 애플리케이션 (`apps`)
+## 📂 프로젝트 구조
 
-### `core-backend`
-
-메인 애플리케이션입니다. API 서버의 핵심 비즈니스 로직이 모두 이곳에 구현됩니다.
-
--   `apps/core-backend`
-    -   ├── `prisma/`: 데이터베이스 스키마(`schema.prisma`), 마이그레이션 기록, 시드(seed) 스크립트가 포함됩니다. 이 디렉토리는 `core` 애플리케이션의 데이터베이스 관련 파일들을 관리합니다.
-    -   ├── `src/`: 소스 코드가 위치합니다.
-    -   │   ├── `main.ts`: 애플리케이션의 시작점(entry point)입니다.
-    -   │   ├── `core.module.ts`: 루트 모듈(Root Module)입니다.
-    -   │   ├── `modules/`: 기능별로 도메인이 분리된 모듈들이 위치합니다.
-    -   │   │   ├── `auth/`: 인증/인가 (회원가입, 로그인, JWT) 관련 로직
-    -   │   │   ├── `user/`: 사용자 정보 관리 관련 로직
-    -   │   │   ├── `board/`: 게시판 관련 로직
-    -   │   │   └── ... (기타 비즈니스 로직 모듈)
-    -   │   ├── `decorator/`: 해당 애플리케이션(`core`) 내에서만 사용되는 커스텀 데코레이터가 위치합니다.
-    -   │   ├── `public/`: 외부에 노출되는 정적 파일(HTML, CSS, JS)들이 위치합니다.
-    -   │   │   ├── `health/`: 헬스체크 대시보드 관련 정적 파일
-    -   │   │   └── `shared/`: 공유 컴포넌트 시스템 (카드, 버튼, 상태 배지 등)
-    -   │   └── `types/`: 애플리케이션 전역에서 사용되는 타입 정의가 위치합니다.
-    -   └── `test/`: E2E(End-to-End) 테스트 코드가 위치합니다.
-
----
-
-## 📚 라이브러리 (`libs`)
-
-여러 `apps`에서 공통으로 사용될 수 있는 재사용 가능한 기능들을 모아놓은 곳입니다.
-
--   `libs`
-    -   ├── `common/`: 전역적으로 사용될 가능성이 높은 유틸리티, 데코레이터, 예외 필터, 인터셉터 등이 위치합니다.
-    -   │   └── `src/`
-    -   │       ├── `decorator/`: 여러 앱에서 공용으로 사용할 데코레이터 (`@Public`, `@AuthUser` 등)
-    -   │       └── `global/`: NestJS의 전역(Global) 기능 모음 (Exception Filters, Interceptors, Middlewares 등)
-    -   ├── `pagination/`: 페이지네이션(Pagination) 관련 DTO 및 서비스 로직을 제공하는 라이브러리입니다.
-    -   └── `prisma/`: Prisma 클라이언트 서비스를 앱에 주입하기 위한 모듈입니다. 이 라이브러리는 Prisma 관련 로직을 추상화하여 다른 모듈에서 데이터베이스 접근을 용이하게 합니다.
-
----
-
-## 🛠️ 주요 실행 명령어
-
-### 개발 및 빌드
-```bash
-pnpm dev          # 개발 모드로 core 애플리케이션 실행
-pnpm debug        # 디버그 모드로 실행
-pnpm build        # 프로덕션 빌드
-pnpm start        # 프로덕션 모드로 실행
 ```
-
-### 테스트
-```bash
-pnpm test         # 유닛 테스트 실행
-pnpm test:watch   # 테스트 감시 모드
-pnpm test:e2e     # E2E 테스트 실행
-pnpm test:cov     # 테스트 커버리지 확인
+weaver2/
+├── apps/
+│   ├── core-backend/          # NestJS API 서버 (port 4000)
+│   │   ├── prisma/schema/     # 도메인별 분리된 Prisma 스키마
+│   │   └── src/
+│   │       ├── core/          # 프레임워크 기능 (auth, user, notification, permission, terms)
+│   │       ├── features/      # 비즈니스 기능 (board, report, search)
+│   │       ├── infrastructure/# 인프라 (email, upload, config)
+│   │       └── system/        # 관리자 API
+│   └── core-frontend/         # Next.js 웹 앱 (port 3000)
+│       └── src/
+│           ├── app/           # 라우팅 (App Router)
+│           ├── features/      # 도메인별 슬라이스
+│           ├── shared/        # 공통 UI 컴포넌트
+│           └── infrastructure/# ApiClient, Providers
+├── libs/
+│   ├── common/                # 전역 데코레이터, 인터셉터, 필터
+│   ├── email/                 # Nodemailer 래퍼
+│   ├── pagination/            # Keyset 페이지네이션 라이브러리
+│   ├── prisma/                # PrismaService 모듈
+│   ├── shared/                # PERMISSIONS 상수, hasPermission() (백·프론트 공용)
+│   └── upload/                # StorageProvider 인터페이스, Local/S3 구현
+└── scripts/                   # 유틸리티 스크립트
 ```
-
-### 데이터베이스
-```bash
-pnpm db:generate  # Prisma 클라이언트 생성
-pnpm db:migrate   # 마이그레이션 실행
-pnpm db:reset     # 데이터베이스 초기화
-pnpm db:seed      # 시드 데이터 생성
-```
-
-### 코드 품질
-```bash
-pnpm lint         # ESLint 코드 검사
-pnpm format       # Prettier 코드 포맷팅
-```
-
----
-
-## 🏗️ 데이터베이스 스키마
-
-### 주요 모델
-
-#### User (사용자)
-- **기본 정보**: UUID, 사용자명, 표시명, 프로필 이미지
-- **역할**: USER, ADMIN, MODERATOR, DEVELOPER
-- **타임스탬프**: 생성일, 수정일, 삭제일, 마지막 로그인
-
-#### Auth (인증)
-- **인증 정보**: 이메일, 비밀번호, 이메일 인증
-- **보안**: 비밀번호 재설정 토큰, 2FA 지원
-- **OAuth**: 외부 인증 제공자 연동 지원
-
-#### Board System (게시판)
-- **Board**: 게시판 정보 (이름, 설명)
-- **Post**: 게시글 (제목, 내용, 작성자)
-- **Comment**: 댓글 (내용, 작성자)
-
-#### UserSetting (사용자 설정)
-- **알림 설정**: 이메일, SMS, 푸시 알림
-- **개인화**: 다크 모드, 마케팅 동의
-
-#### Terms (약관)
-- **버전 관리**: 약관 버전별 관리
-- **동의 기록**: 사용자별 약관 동의 이력
-
----
-
-## 🔌 API 엔드포인트
-
-### 인증 (Authentication)
-```
-POST /auth/sign-in              # 로그인
-POST /auth/sign-up/email        # 이메일 회원가입
-GET  /auth/verify               # 이메일 인증
-POST /auth/refresh              # 토큰 갱신
-POST /auth/password/request-reset # 비밀번호 재설정 요청
-POST /auth/password/reset       # 비밀번호 재설정
-POST /auth/sign-out             # 로그아웃
-
-GET  /auth/oauth/:provider          # OAuth 로그인 페이지 리다이렉트 (google | kakao | naver)
-GET  /auth/oauth/:provider/callback # OAuth 콜백 처리 및 JWT 발급
-```
-
-### 사용자 (Users)
-```
-GET    /users/me                # 본인 정보 조회
-PATCH  /users/me                # 프로필 수정
-PATCH  /users/me/password       # 비밀번호 변경
-DELETE /users/me                # 계정 탈퇴
-POST   /users/me/profile-image  # 프로필 이미지 업로드
-```
-
-### 게시판 (Boards)
-```
-GET    /boards                  # 게시판 목록
-POST   /boards                  # 게시판 생성 (관리자)
-GET    /boards/:id              # 게시판 조회
-PATCH  /boards/:id              # 게시판 수정 (관리자)
-DELETE /boards/:id              # 게시판 삭제 (관리자)
-
-GET    /boards/:boardId/posts           # 게시글 목록
-POST   /boards/:boardId/posts           # 게시글 생성
-GET    /boards/:boardId/posts/:postId   # 게시글 조회
-PATCH  /boards/:boardId/posts/:postId   # 게시글 수정
-DELETE /boards/:boardId/posts/:postId   # 게시글 삭제
-
-GET    /boards/:boardId/posts/:postId/comments           # 댓글 목록
-POST   /boards/:boardId/posts/:postId/comments           # 댓글 생성
-PATCH  /boards/:boardId/posts/:postId/comments/:commentId # 댓글 수정
-DELETE /boards/:boardId/posts/:postId/comments/:commentId # 댓글 삭제
-```
-
-### 관리자 (Admin)
-```
-GET /admin/dashboard/summary    # 대시보드 통계
-GET /admin/dashboard           # 대시보드 페이지
-GET /admin/user-management     # 사용자 관리 페이지
-GET /admin/analytics           # 분석 페이지
-GET /admin/content-management  # 컨텐츠 관리 페이지
-```
-
-### 헬스체크 및 모니터링
-```
-GET /v1/health                 # 시스템 헬스체크 (API v1)
-GET /v1/health/ready           # Kubernetes 준비성 검사 (API v1)
-GET /v1/health/live            # Kubernetes 생존성 검사 (API v1)
-GET /health/dashboard          # 헬스체크 대시보드 (View)
-GET /health/dashboard.js       # 대시보드 JavaScript (View)
-GET /health/dashboard.css      # 대시보드 CSS (View)
-```
-
-### 정적 파일 서빙
-```
-GET /static/shared/:type/:file # 공유 스타일/컴포넌트 파일
-GET /static/shared/components/:component/:file # 컴포넌트별 파일
-```
-
-### 기타
-```
-POST /email                    # 이메일 발송
-GET  /terms/latest             # 최신 약관 조회
-```
-
----
-
-## 📦 모듈 구조
-
-### Core 모듈들
-
-#### 🔐 Auth 모듈
-- JWT 기반 인증 시스템
-- 이메일 인증 및 비밀번호 재설정
-- 리프레시 토큰 관리
-- 레이트 리미팅 적용
-- **OAuth 소셜 로그인**: Google, Kakao, Naver 지원 (passport 없이 native fetch 방식)
-  - 동일 이메일 계정 자동 연동
-  - 신규 사용자 자동 회원가입
-
-**OAuth 보안 처리:**
-- **CSRF 방어**: 로그인 시작 시 `state` 값을 생성해 `oauth_state` HttpOnly 쿠키에 저장. 콜백에서 쿠키 값과 query `state`를 비교 검증 후 쿠키 삭제.
-- **에러/거부 처리**: provider가 `error` 파라미터를 반환하거나 `code`/`state`가 없으면 `OAUTH_FAILURE_REDIRECT_URL`로 리다이렉트. 토큰 교환/프로필 조회 중 예외 발생 시에도 동일하게 처리.
-
-**새 OAuth 프로바이더 추가 방법:**
-
-1. `apps/core-backend/src/features/auth/oauth/providers/` 에 새 파일 생성 (`github.provider.ts` 등)
-2. `OAuthProvider` 인터페이스 구현 (`name`, `getAuthorizationUrl`, `exchangeCodeForTokens`, `getUserProfile`)
-3. `oauth.module.ts`의 `providers` 배열에 등록하고 `OAUTH_PROVIDERS_INIT` factory의 `inject`에 추가
-4. `.env`에 환경변수 3개 추가 (`{PROVIDER}_CLIENT_ID`, `{PROVIDER}_CLIENT_SECRET`, `{PROVIDER}_CALLBACK_URL`)
-
-```typescript
-// 예시: github.provider.ts
-@Injectable()
-export class GithubOAuthProvider implements OAuthProvider {
-  readonly name = 'github';
-  // getAuthorizationUrl, exchangeCodeForTokens, getUserProfile 구현
-}
-```
-
-#### 👤 User 모듈
-- 사용자 프로필 관리
-- 프로필 이미지 업로드
-- 비밀번호 변경 및 계정 탈퇴
-- 역할 기반 접근 제어
-
-#### 📝 Board 모듈
-- 게시판/게시글/댓글 CRUD
-- 계층적 라우팅 구조
-- 작성자 권한 확인
-- 관리자 전용 게시판 관리
-
-#### 🔧 Admin 모듈
-- 실시간 통계 대시보드
-- 사용자 관리 인터페이스
-- API와 View 분리 구조
-- 정적 HTML 페이지 제공
-
-#### 🏥 Health 모듈
-- 시스템 헬스체크 API
-- 실시간 모니터링 대시보드
-- Kubernetes 준비성/생존성 검사
-- Glassmorphism UI 적용
-
-#### 📁 Static 모듈
-- 공유 컴포넌트 시스템 서빙
-- 정적 파일 제공 및 관리
-- 컴포넌트별 파일 라우팅
-
-#### 📧 Email 모듈
-- SMTP 기반 이메일 발송
-- 이메일 템플릿 관리
-- 인증 및 비밀번호 재설정 이메일
-
-#### 📄 Terms 모듈
-- 약관 버전 관리
-- 사용자 동의 기록
-- 회원가입 시 약관 동의 연동
-
-#### 🎨 Shared Component System (공유 컴포넌트 시스템)
-- **Glassmorphism 디자인**: 반투명 배경과 블러 효과 적용
-- **재사용 가능한 컴포넌트**: Card, Button, Status Badge, Progress Meter 등
-- **일관된 디자인 시스템**: CSS 변수 기반 통합 스타일 관리
-- **모듈화된 구조**: ES6 모듈 패턴으로 구현
-- **확장 가능한 아키텍처**: Web Components로 마이그레이션 준비
-- **서빙 엔드포인트**: 
-  - `/static/shared/styles/:file` - 스타일 파일
-  - `/static/shared/components/:component/:file` - 컴포넌트 파일
-- **상세 가이드**: `apps/core-backend/src/public/shared/GUIDE.md` 참조
-
-### 공통 라이브러리
-
-#### 🛠️ Common 라이브러리
-- 전역 데코레이터 (`@Public`, `@AuthUser`)
-- 예외 필터 및 인터셉터
-- 미들웨어 및 파이프
-- 유틸리티 함수
-
-#### 📄 Pagination 라이브러리
-- 페이지네이션 DTO
-- 페이지네이션 서비스
-- 표준화된 응답 구조
-
-#### 🗄️ Prisma 라이브러리
-- Prisma 클라이언트 서비스
-- 데이터베이스 연결 관리
-- 트랜잭션 처리
-
----
-
-## 🏛️ 아키텍처 특징
-
-### 모듈화 및 확장성
-- **3계층 아키텍처**: Features/Infrastructure/System 레이어 분리
-- **Command/Query 패턴**: Repository 레이어에서 읽기/쓰기 분리
-- **모듈 분리**: 기능별 독립적인 모듈 구성
-- **라이브러리 공유**: 공통 기능의 라이브러리화
-- **타입 안정성**: TypeScript 기반 타입 안정성
-- **의존성 주입**: NestJS DI 컨테이너 활용
-- **API 버전 관리**: URI 기반 버전 관리 (/v1/)
-
-### 보안 및 인증
-- **JWT 인증**: 쿠키 기반 토큰 인증 시스템
-- **역할 기반 접근 제어**: 사용자 역할별 권한 관리 (USER, ADMIN, MODERATOR, DEVELOPER)
-- **레이트 리미팅**: 민감한 엔드포인트 요청 제한
-- **보안 미들웨어**: Helmet, CSRF 보호, 보안 헤더
-- **가드 시스템**: JWT, Local, Roles 가드로 다층 보안
-
-### 데이터 관리
-- **Repository 패턴**: `.query.ts`와 `.command.ts`로 읽기/쓰기 명확히 분리
-- **트랜잭션 관리**: Prisma를 통한 데이터 일관성 보장
-- **마이그레이션**: 스키마 버전 관리 및 자동 마이그레이션
-- **시드 데이터**: 초기 데이터 설정 및 개발용 더미 데이터
-- **Soft Delete**: 사용자 데이터 안전한 삭제 처리
-
-### 개발 경험
-- **자동 문서화**: Swagger/OpenAPI 지원
-- **코드 품질**: ESLint, Prettier 적용
-- **테스트**: Jest 기반 테스트 환경
-- **Git 훅**: Husky를 통한 커밋 전 검사
 
 ---
 
 ## 🚀 시작하기
 
-### 1. 환경 설정
+### 1. 환경 변수 설정
 ```bash
-# 의존성 설치
-pnpm install
-
-# 환경 변수 설정 (.env 파일 생성)
-cp .env.example .env
+cp apps/core-backend/.env.example apps/core-backend/.env
+cp apps/core-frontend/.env.example apps/core-frontend/.env.local
 ```
 
-### 2. 데이터베이스 설정
+`apps/core-backend/.env` 필수 항목:
+```env
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/<db>
+JWT_SECRET=<secret>
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=<email>
+SMTP_PASS=<app-password>
+
+# Web Push (VAPID) — node -e "const wp=require('web-push'); console.log(wp.generateVAPIDKeys())"
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@example.com
+
+# 파일 저장 방식: local(기본) | s3
+STORAGE_DRIVER=local
+```
+
+### 2. 의존성 설치
 ```bash
-# Prisma 클라이언트 생성
-pnpm db:generate
+pnpm install
+```
 
+### 3. 데이터베이스 설정
+```bash
 # 마이그레이션 실행
-pnpm db:migrate
+DATABASE_URL=<your-url> npx prisma migrate deploy --schema apps/core-backend/prisma/schema
 
-# 시드 데이터 생성
+# 시드 데이터 생성 (권한 그룹, 기본 관리자 계정, 이메일 템플릿 등)
 pnpm db:seed
 ```
 
-### 3. 개발 서버 실행
+### 4. 개발 서버 실행
 ```bash
-# 개발 모드 실행
+# 백엔드 (port 4000)
 pnpm dev
 
-# 서버 실행 확인
-# http://localhost:3000
+# 프론트엔드 (port 3000) — 별도 터미널
+cd apps/core-frontend && pnpm dev
 ```
 
-### 4. API 문서 확인
+### 5. 확인
+| 서비스 | URL |
+|--------|-----|
+| 프론트엔드 | http://localhost:3000 |
+| API 서버 | http://localhost:4000 |
+| Swagger | http://localhost:4000/docs |
+
+기본 관리자 계정은 시드 실행 후 `apps/core-backend/prisma/seed` 참조.
+
+---
+
+## 🔌 주요 API 엔드포인트
+
+모든 경로는 `/v1` 프리픽스를 포함합니다.
+
+### 인증
+```
+POST /v1/auth/sign-in                    # 로그인
+POST /v1/auth/sign-up/email              # 이메일 회원가입
+POST /v1/auth/refresh                    # 토큰 갱신
+POST /v1/auth/sign-out                   # 로그아웃
+POST /v1/auth/password/request-reset     # 비밀번호 재설정 요청
+POST /v1/auth/password/reset             # 비밀번호 재설정
+GET  /v1/auth/oauth/:provider            # OAuth 시작 (google|kakao|naver)
+POST /v1/auth/2fa/authenticate           # 2FA 최종 인증
+POST /v1/auth/2fa/email/send             # 이메일 OTP 발송
+GET  /v1/auth/sessions                   # 세션 목록
+DELETE /v1/auth/sessions/:id             # 세션 삭제
+GET  /v1/auth/oauth/connections          # OAuth 연결 목록
+DELETE /v1/auth/oauth/connections/:provider # OAuth 연결 해제
+```
+
+### 사용자
+```
+GET    /v1/users/me                      # 본인 정보 조회
+PATCH  /v1/users/me                      # 프로필 수정
+PATCH  /v1/users/me/password             # 비밀번호 변경
+DELETE /v1/users/me                      # 계정 탈퇴
+POST   /v1/users/me/email                # 이메일 변경 요청
+POST   /v1/users/me/email/confirm        # 이메일 변경 확인
+```
+
+### 게시판
+```
+GET    /v1/boards                        # 게시판 목록
+GET    /v1/boards/:id/posts              # 게시글 목록 (categoryId 필터 지원)
+POST   /v1/boards/:id/posts              # 게시글 생성 (파일 첨부 가능)
+GET    /v1/boards/:id/posts/:postId      # 게시글 조회
+PATCH  /v1/boards/:id/posts/:postId      # 게시글 수정
+DELETE /v1/boards/:id/posts/:postId      # 게시글 삭제
+POST   /v1/boards/:id/posts/:postId/reactions/:emojiId # 리액션 추가
+```
+
+### 알림
+```
+GET  /v1/notifications                   # 알림 목록
+GET  /v1/notifications/unread-count      # 미읽음 수
+GET  /v1/notifications/stream            # SSE 실시간 스트림
+PATCH /v1/notifications/:id/read         # 개별 읽음 처리
+PATCH /v1/notifications/read-all         # 전체 읽음 처리
+GET  /v1/notifications/push-subscription/public-key # VAPID 공개키
+POST /v1/notifications/push-subscription # 웹 푸시 구독 저장
+DELETE /v1/notifications/push-subscription # 웹 푸시 구독 해제
+```
+
+### 검색
+```
+GET /v1/search?q=키워드&type=post|comment&boardId=...&authorId=...
+```
+
+### 신고
+```
+POST   /v1/reports                       # 신고 생성
+GET    /v1/reports                       # 신고 목록 (관리자)
+PATCH  /v1/reports/:id/action            # 신고 처리 (숨김·삭제·경고·정지)
+PATCH  /v1/reports/:id/reject            # 신고 기각
+```
+
+### 업로드
+```
+POST /v1/upload                          # 파일 업로드
+GET  /v1/upload/:id/file                 # 파일 서빙 (302 redirect)
+GET  /v1/upload/:id/thumbnail            # 썸네일 서빙 (302 redirect)
+```
+
+---
+
+## 🏗️ 아키텍처
+
+### Repository 패턴
+```
+Controller → Service → Repository (*.query.ts | *.command.ts) → Prisma
+```
+읽기(Query)와 쓰기(Command)를 파일 레벨에서 분리합니다.
+
+### 알림 아키텍처
+```
+EventEmitter2 (notification.created)
+  → NotificationListener
+    → DB 저장 (notifications 테이블)
+    → InMemoryNotificationEmitter → SSE 발송
+    → PushSubscriptionService → 웹 푸시 발송
+```
+`NOTIFICATION_EMITTER` 심볼 토큰으로 추상화되어 있어, Redis 기반 Emitter로 교체 시 `NotificationModule` provider만 변경하면 됩니다.
+
+### 파일 업로드 아키텍처
+```
+STORAGE_DRIVER=local  → LocalStorageProvider  (uploads/ 디렉토리)
+STORAGE_DRIVER=s3     → S3StorageProvider     (AWS S3 / MinIO)
+```
+환경변수 하나로 드라이버를 전환할 수 있습니다.
+
+### 권한 시스템
+역할(Role) 대신 **권한 그룹(PermissionGroup)** 기반으로 동작합니다.
+- 사용자는 여러 권한 그룹에 속할 수 있습니다.
+- `PERMISSIONS` 상수와 `hasPermission()` 함수가 `@weaver2/shared`에 정의되어 백엔드·프론트엔드가 공유합니다.
+- 와일드카드 지원: `board:*`는 `board:read`, `board:write` 등을 모두 포함합니다.
+
+---
+
+## 🔐 보안
+
+- **JWT**: HttpOnly 쿠키 기반, Access Token 15분 / Refresh Token 최대 30일
+- **CSRF**: 뮤테이션 요청마다 `x-csrf-token` 헤더 검증
+- **Rate Limiting**: 전역 60초/100회, 로그인 60초/10회, 2FA 60초/3~5회
+- **계정 잠금**: 로그인 5회 실패 → 15분 잠금
+- **보안 헤더**: Helmet, HSTS(프로덕션), X-Frame-Options 등
+
+---
+
+## 🛠️ 주요 명령어
+
 ```bash
-# Swagger UI 접속
-# http://localhost:3000/docs
+# 개발 서버
+pnpm dev              # 백엔드 개발 모드
+pnpm build            # 백엔드 프로덕션 빌드
+
+# 데이터베이스
+pnpm db:migrate       # 마이그레이션 실행
+pnpm db:seed          # 시드 데이터 생성
+pnpm db:reset         # DB 초기화 + 시드
+
+# 코드 품질
+pnpm lint             # ESLint 검사
+pnpm format           # Prettier 포맷팅
+pnpm test             # 유닛 테스트
+```
+
+---
+
+## 🐳 Docker
+
+```bash
+# 개발 환경 (PostgreSQL + 앱)
+docker-compose up -d
+
+# 프로덕션
+docker-compose -f docker-compose.prod.yml up -d
 ```
