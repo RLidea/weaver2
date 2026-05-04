@@ -1,0 +1,19 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../../..",
+  "testRegex": "\\.integration\\.spec\\.ts$",
+  "transform": { "^.+\\.ts$": "ts-jest" },
+  "testEnvironment": "node",
+  "roots": ["<rootDir>/apps/core-backend/test/integration"],
+  "setupFiles": ["<rootDir>/apps/core-backend/test/integration/setup.ts"],
+  "testTimeout": 30000,
+  "moduleNameMapper": {
+    "^otplib$": "<rootDir>/apps/core-backend/test/integration/__mocks__/otplib.js",
+    "^@weaver2/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+    "^@weaver2/email(|/.*)$": "<rootDir>/libs/email/src/$1",
+    "^@weaver2/pagination(|/.*)$": "<rootDir>/libs/pagination/src/$1",
+    "^@weaver2/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
+    "^@weaver2/shared(|/.*)$": "<rootDir>/libs/shared/src/$1",
+    "^@weaver2/upload(|/.*)$": "<rootDir>/libs/upload/src/$1"
+  }
+}
