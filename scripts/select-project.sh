@@ -5,9 +5,9 @@
 PROJECTS_PATH="$(dirname "$0")/../apps"  # 스크립트 위치 기준으로 apps 경로 설정
 PROJECTS=$(ls -d $PROJECTS_PATH/*/ | xargs -n 1 basename)
 
-# 비대화형 환경(CI, pre-commit 훅 등)에서는 core로 자동 선택
+# 비대화형 환경(CI, pre-commit 훅 등)에서는 core-backend로 자동 선택
 if [ ! -t 0 ]; then
-  export SELECTED_PROJECT="core"
+  export SELECTED_PROJECT="core-backend"
   echo "비대화형 모드: core 프로젝트 자동 선택됨"
   return 0 2>/dev/null || exit 0
 fi
