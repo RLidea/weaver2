@@ -13,6 +13,7 @@ import {
   FlagIcon,
   FileTextIcon,
   SettingsIcon,
+  MailIcon,
 } from '@/shared/components/ui/icons';
 
 const NAV_ITEMS = [
@@ -56,6 +57,13 @@ const NAV_ITEMS = [
     href: '/admin/terms',
     Icon: FileTextIcon,
     permission: PERMISSIONS.TERMS.MANAGE,
+    exact: false,
+  },
+  {
+    label: '이메일 템플릿',
+    href: '/admin/email-templates',
+    Icon: MailIcon,
+    permission: PERMISSIONS.EMAIL.TEMPLATE_MANAGE,
     exact: false,
   },
   {
