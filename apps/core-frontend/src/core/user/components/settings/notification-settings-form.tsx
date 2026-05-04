@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { useToast } from '@/infrastructure/providers/toast-provider';
+import { usePushSubscription } from '@/core/notification/hooks/use-push-subscription';
 import { ApiError } from '@/types/api';
 import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
 
@@ -42,10 +43,12 @@ export function NotificationSettingsForm() {
   const { user } = useMe();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const toast = useToast();
+  const { subscribe, unsubscribe } = usePushSubscription();
 
   const [emailNotification, setEmailNotification] = useState(false);
   const [smsNotification, setSmsNotification] = useState(false);
   const [pushNotification, setPushNotification] = useState(false);
+  const [isPushPending, setIsPushPending] = useState(false);
 
   useEffect(() => {
     if (user?.userSetting) {
@@ -56,7 +59,7 @@ export function NotificationSettingsForm() {
   }, [user]);
 
   function handleToggle(
-    key: 'emailNotification' | 'smsNotification' | 'pushNotification',
+    key: 'emailNotification' | 'smsNotification',
     value: boolean,
     setter: (v: boolean) => void,
   ) {
@@ -65,12 +68,33 @@ export function NotificationSettingsForm() {
       { [key]: value },
       {
         onError: (err) => {
-          setter(!value); // 롤백
+          setter(!value);
           const message = err instanceof ApiError ? err.message : '저장에 실패했습니다.';
           toast.error(message);
         },
       },
     );
+  }
+
+  async function handlePushToggle(value: boolean) {
+    setIsPushPending(true);
+    try {
+      if (value) {
+        const success = await subscribe();
+        if (!success) {
+          toast.error('브라우저 알림 권한이 거부되었습니다.');
+          return;
+        }
+      } else {
+        await unsubscribe();
+      }
+      setPushNotification(value);
+      updateProfile({ pushNotification: value });
+    } catch {
+      toast.error('푸시 알림 설정에 실패했습니다.');
+    } finally {
+      setIsPushPending(false);
+    }
   }
 
   return (
@@ -94,11 +118,11 @@ export function NotificationSettingsForm() {
           onChange={(v) => handleToggle('smsNotification', v, setSmsNotification)}
         />
         <ToggleItem
-          label="푸시 알림"
-          description="브라우저 푸시 알림을 수신합니다."
+          label="웹 푸시 알림"
+          description="브라우저를 닫아도 알림을 받을 수 있습니다."
           checked={pushNotification}
-          disabled={isPending}
-          onChange={(v) => handleToggle('pushNotification', v, setPushNotification)}
+          disabled={isPending || isPushPending}
+          onChange={handlePushToggle}
         />
       </CardContent>
     </Card>

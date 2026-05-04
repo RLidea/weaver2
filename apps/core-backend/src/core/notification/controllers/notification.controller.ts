@@ -1,9 +1,12 @@
 import {
   Controller,
   Get,
+  Post,
+  Delete,
   Patch,
   Param,
   Query,
+  Body,
   Sse,
   UseGuards,
   HttpCode,
@@ -18,11 +21,16 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AuthUser } from '@weaver2/common';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { NotificationService } from '../services/notification.service';
+import { PushSubscriptionService } from '../services/push-subscription.service';
 import {
   INotificationEmitter,
   NOTIFICATION_EMITTER,
 } from '../emitters/notification-emitter.interface';
 import { NotificationDto } from '../dto/notification.dto';
+import {
+  SavePushSubscriptionDto,
+  DeletePushSubscriptionDto,
+} from '../dto/save-push-subscription.dto';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { Request } from 'express';
 
@@ -32,9 +40,38 @@ import { Request } from 'express';
 export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
+    private readonly pushSubscriptionService: PushSubscriptionService,
     @Inject(NOTIFICATION_EMITTER)
     private readonly notificationEmitter: INotificationEmitter,
   ) {}
+
+  @Get('push-subscription/public-key')
+  @ApiOperation({ summary: 'VAPID 공개키 조회' })
+  getVapidPublicKey(): { publicKey: string } {
+    return { publicKey: this.pushSubscriptionService.getPublicKey() };
+  }
+
+  @Post('push-subscription')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '웹 푸시 구독 저장' })
+  @ApiStandardResponses({ status: 204, description: 'Subscription saved' })
+  async savePushSubscription(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() dto: SavePushSubscriptionDto,
+  ): Promise<void> {
+    await this.pushSubscriptionService.save({ userId: authUser.id, ...dto });
+  }
+
+  @Delete('push-subscription')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '웹 푸시 구독 해제' })
+  @ApiStandardResponses({ status: 204, description: 'Subscription deleted' })
+  async deletePushSubscription(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Body() dto: DeletePushSubscriptionDto,
+  ): Promise<void> {
+    await this.pushSubscriptionService.delete(dto.endpoint, authUser.id);
+  }
 
   @Get()
   @ApiOperation({ summary: '알림 목록 조회 (keyset pagination)' })

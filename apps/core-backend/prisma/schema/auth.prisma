@@ -26,6 +26,7 @@ model User {
   userAgreements   UserTermsAgreement[]
   permissionGroups UserPermissionGroup[]
   notifications    Notification[]
+  pushSubscriptions PushSubscription[]
 
   // Project-specific relations (board)
   posts            Post[]

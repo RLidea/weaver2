@@ -21,4 +21,13 @@ export const notificationApi = {
 
   markAllRead: () =>
     apiClient.patch<void>('/v1/notifications/read-all'),
+
+  getVapidPublicKey: () =>
+    apiClient.get<{ publicKey: string }>('/v1/notifications/push-subscription/public-key'),
+
+  savePushSubscription: (data: { endpoint: string; p256dh: string; auth: string }) =>
+    apiClient.post<void>('/v1/notifications/push-subscription', data),
+
+  deletePushSubscription: (endpoint: string) =>
+    apiClient.deleteWithBody<void>('/v1/notifications/push-subscription', { endpoint }),
 };
