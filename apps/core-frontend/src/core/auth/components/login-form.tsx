@@ -111,6 +111,7 @@ export function LoginForm() {
         : null;
 
   const isRegistered = searchParams.get('registered') === '1';
+  const isReset = searchParams.get('reset') === '1';
 
   // ── 2FA 화면 ──
   if (twoFactorState) {
@@ -198,6 +199,11 @@ export function LoginForm() {
             가입이 완료되었습니다. 이메일을 확인하여 인증을 완료해주세요.
           </p>
         )}
+        {isReset && (
+          <p className="mt-2 rounded-md bg-success/10 px-3 py-2 text-center text-sm text-success">
+            비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -209,14 +215,21 @@ export function LoginForm() {
             error={errors.email?.message}
             {...register('email')}
           />
-          <Input
-            label="비밀번호"
-            type="password"
-            placeholder="••••••••"
-            autoComplete="current-password"
-            error={errors.password?.message ?? serverError ?? undefined}
-            {...register('password')}
-          />
+          <div className="flex flex-col gap-1">
+            <Input
+              label="비밀번호"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              error={errors.password?.message ?? serverError ?? undefined}
+              {...register('password')}
+            />
+            <div className="flex justify-end">
+              <Link href="/forgot-password" className="text-xs text-text-muted hover:opacity-80">
+                비밀번호를 잊으셨나요?
+              </Link>
+            </div>
+          </div>
 
           {accountDeleted && (
             <div className="rounded-md border border-error/30 bg-error/10 px-3 py-3 text-sm">
