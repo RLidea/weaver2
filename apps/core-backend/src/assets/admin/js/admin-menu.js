@@ -17,40 +17,43 @@ function waitForApiClient() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Load admin menu
-    fetch('/admin/partials/_admin-menu.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('admin-menu-placeholder').innerHTML = html;
+    const placeholder = document.getElementById('admin-menu-placeholder');
+    if (placeholder) {
+        placeholder.innerHTML = `
+            <nav class="admin-nav">
+                <div class="admin-nav-brand">
+                    <i class="fas fa-shield-alt"></i>
+                    <span id="admin-site-name">Admin</span>
+                </div>
+                <div class="admin-nav-actions">
+                    <a href="#" id="logout-link" class="admin-nav-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </nav>`;
 
-            // Attach logout event listener after menu is loaded
-            const logoutLink = document.getElementById('logout-link');
-            if (logoutLink) {
-                logoutLink.addEventListener('click', async (event) => {
-                    event.preventDefault();
-                    try {
-                        const response = await fetch('/v1/auth/sign-out', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                        });
-                        if (response.ok) {
-                            window.location.href = '/admin/login'; // Redirect to login page after logout
-                        } else {
-                            console.error('Logout failed');
-                            alert('Logout failed. Please try again.');
-                        }
-                    } catch (error) {
-                        console.error('Error during logout:', error);
-                        alert('An error occurred during logout.');
+        const logoutLink = document.getElementById('logout-link');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', async (event) => {
+                event.preventDefault();
+                try {
+                    const response = await fetch('/v1/auth/sign-out', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    if (response.ok) {
+                        window.location.href = '/admin/login';
+                    } else {
+                        alert('Logout failed. Please try again.');
                     }
-                });
-            }
-        })
-        .catch(error => console.error('Error loading admin menu:', error));
-    
-    // Update page title with site name from system settings
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    alert('An error occurred during logout.');
+                }
+            });
+        }
+    }
+
     updatePageTitle();
 });
 
@@ -71,16 +74,14 @@ async function updatePageTitle(defaultPageTitle = '') {
                 siteName = responseData.siteName;
             }
             
-            // Get current page title or use provided default
             const currentTitle = document.title;
             const pageTitle = defaultPageTitle || currentTitle;
-            
-            // Update title format: "[SiteName] - [PageTitle]"
             if (pageTitle && !pageTitle.includes(siteName)) {
                 document.title = `${siteName} - ${pageTitle.replace(/^.*? - /, '')}`;
             }
-            
-            console.log(`Page title updated to: ${document.title}`);
+
+            const brandEl = document.getElementById('admin-site-name');
+            if (brandEl) brandEl.textContent = siteName;
         }
     } catch (error) {
         console.error('Error updating page title:', error);

@@ -1,5 +1,17 @@
 /* Admin Security Page Styles - Following Weaver2 Design System */
 
+/* ========== 레이아웃 오버라이드 (사이드바 → 상단 navbar로 전환) ========== */
+body {
+  display: block;
+}
+
+.main-content {
+  margin-left: 0;
+  padding: var(--spacing-2xl);
+  max-width: 1280px;
+  margin-right: auto;
+}
+
 /* =====================================
    Audit History Panel Styles
    ===================================== */

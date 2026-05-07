@@ -311,3 +311,49 @@ body {
 
   /* 버튼 반응형 스타일은 components/buttons.css로 이동됨 */
 }
+
+/* ========== Admin Navbar ========== */
+.admin-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: var(--blur-light);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-light);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-blue);
+}
+
+.admin-nav-brand i {
+  font-size: 18px;
+}
+
+.admin-nav-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--border-radius-small);
+  transition: var(--transition);
+}
+
+.admin-nav-logout:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
