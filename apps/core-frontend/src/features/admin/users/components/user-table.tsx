@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { Button } from '@/shared/components/ui/button';
@@ -90,10 +91,13 @@ export function UserTable() {
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-text">
                             {user.profileImageUrl ? (
-                              <img
+                              <Image
                                 src={user.profileImageUrl}
                                 alt={user.displayName}
+                                width={32}
+                                height={32}
                                 className="h-8 w-8 rounded-full object-cover"
+                                unoptimized
                               />
                             ) : (
                               user.displayName.charAt(0).toUpperCase()

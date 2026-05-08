@@ -12,5 +12,7 @@ export function useUpdateEmailTemplate() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: emailTemplateKeys.all });
     },
+    // 호출부에서 toast.error를 직접 띄우므로 글로벌 핸들러 건너뜀
+    meta: { skipGlobalErrorToast: true },
   });
 }
