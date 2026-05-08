@@ -39,11 +39,7 @@ export class BoardPermissionService {
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
     if (!user?.isLogin) {
-      return this.canPerformAction(
-        item.boardId,
-        BoardActionType.EDIT_OWN,
-        user,
-      );
+      return false;
     }
 
     if (item.authorId === user.id) {
@@ -62,11 +58,7 @@ export class BoardPermissionService {
     user?: CommonAuthUserDto,
   ): Promise<boolean> {
     if (!user?.isLogin) {
-      return this.canPerformAction(
-        item.boardId,
-        BoardActionType.DELETE_OWN,
-        user,
-      );
+      return false;
     }
 
     if (item.authorId === user.id) {
