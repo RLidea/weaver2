@@ -25,10 +25,19 @@ async function bootstrap() {
   // Serve static files from the 'uploads' directory
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
+    dotfiles: 'deny',
+    index: false,
+    redirect: false,
   });
 
+  // Legacy admin/health view assets. HTML 파일들은 별도 view controller에서
+  // 명시적으로 서빙하므로 여기서는 css/js만 의도된 노출. dotfile/index 차단
+  // 으로 의도치 않은 디렉토리 listing이나 .DS_Store 등을 막는다.
   app.useStaticAssets(join(process.cwd(), 'apps/core-backend/src/assets'), {
     prefix: '/',
+    dotfiles: 'deny',
+    index: false,
+    redirect: false,
   });
 
   setNestApp(app);
