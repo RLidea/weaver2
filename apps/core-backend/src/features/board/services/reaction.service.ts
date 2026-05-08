@@ -3,11 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
-import {
-  PostReactionsResponseDto,
-  ReactionSummaryDto,
-} from '../dto/post-reactions-response.dto';
+import { PostReactionsResponseDto } from '../dto/post-reactions-response.dto';
 import {
   SystemSettingService,
   CONFIG_KEYS,
@@ -26,61 +24,57 @@ export class ReactionService {
   async getReactions(
     postId: string,
     userId?: string,
+    options: { skipPostCheck?: boolean } = {},
   ): Promise<PostReactionsResponseDto> {
-    // 게시글 존재 확인
-    const post = await this.prisma.post.findUnique({
-      where: { id: postId, deletedAt: null },
-    });
-    if (!post)
-      throw new NotFoundException(`Post with ID '${postId}' not found.`);
-
-    // 이모지별 카운트 집계
-    const grouped = await this.prisma.postReaction.groupBy({
-      by: ['emojiId'],
-      where: { postId },
-      _count: { id: true },
-    });
-
-    if (grouped.length === 0) {
-      return { reactions: [], totalCount: 0 };
-    }
-
-    // 이모지 정보 조회
-    const emojiIds = grouped.map((g) => g.emojiId);
-    const emojis = await this.prisma.emoji.findMany({
-      where: { id: { in: emojiIds } },
-    });
-    const emojiMap = new Map(emojis.map((e) => [e.id, e]));
-
-    // 현재 유저의 리액션 목록
-    const userReactedIds = new Set<string>();
-    if (userId) {
-      const userReactions = await this.prisma.postReaction.findMany({
-        where: { postId, userId },
-        select: { emojiId: true },
+    if (!options.skipPostCheck) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: postId, deletedAt: null },
       });
-      userReactions.forEach((r) => userReactedIds.add(r.emojiId));
+      if (!post)
+        throw new NotFoundException(`Post with ID '${postId}' not found.`);
     }
 
-    const reactions: ReactionSummaryDto[] = grouped
-      .map((g) => {
-        const emoji = emojiMap.get(g.emojiId);
-        if (!emoji) return null;
-        return {
-          emoji: {
-            id: emoji.id,
-            code: emoji.code,
-            name: emoji.name,
-            unicode: emoji.unicode,
-            imageUrl: emoji.imageUrl,
-            isActive: emoji.isActive,
-            createdAt: emoji.createdAt,
-          },
-          count: g._count.id,
-          reacted: userReactedIds.has(g.emojiId),
-        };
-      })
-      .filter((r): r is ReactionSummaryDto => r !== null);
+    // 단일 JOIN+GROUP BY 쿼리로 emoji 정보 + 카운트 + 유저 리액션 여부를 한 번에
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        code: string;
+        name: string;
+        unicode: string | null;
+        imageUrl: string | null;
+        isActive: boolean;
+        createdAt: Date;
+        count: bigint;
+        reacted: boolean;
+      }>
+    >(Prisma.sql`
+      SELECT
+        e.id, e.code, e.name, e.unicode, e."imageUrl", e."isActive", e."createdAt",
+        COUNT(pr.id) AS count,
+        ${
+          userId
+            ? Prisma.sql`COALESCE(BOOL_OR(pr."userId" = ${userId}), false)`
+            : Prisma.sql`false`
+        } AS reacted
+      FROM "post_reactions" pr
+      INNER JOIN "emojis" e ON e.id = pr."emojiId"
+      WHERE pr."postId" = ${postId}
+      GROUP BY e.id, e.code, e.name, e.unicode, e."imageUrl", e."isActive", e."createdAt"
+    `);
+
+    const reactions = rows.map((r) => ({
+      emoji: {
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        unicode: r.unicode,
+        imageUrl: r.imageUrl,
+        isActive: r.isActive,
+        createdAt: r.createdAt,
+      },
+      count: Number(r.count),
+      reacted: r.reacted,
+    }));
 
     const totalCount = reactions.reduce((sum, r) => sum + r.count, 0);
     return { reactions, totalCount };
@@ -149,7 +143,7 @@ export class ReactionService {
       this.eventEmitter.emit('notification.created', event);
     }
 
-    return this.getReactions(postId, userId);
+    return this.getReactions(postId, userId, { skipPostCheck: true });
   }
 
   async removeReaction(
@@ -168,6 +162,6 @@ export class ReactionService {
       where: { postId_userId_emojiId: { postId, userId, emojiId } },
     });
 
-    return this.getReactions(postId, userId);
+    return this.getReactions(postId, userId, { skipPostCheck: true });
   }
 }
