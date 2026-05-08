@@ -237,6 +237,8 @@ export class PostService {
   }
 
   async deletePost(id: string): Promise<void> {
-    await DeletePostCommand(this.prisma, id);
+    await this.prisma.$transaction(async (tx) => {
+      await DeletePostCommand(tx, id);
+    });
   }
 }

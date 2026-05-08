@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { ResolveRelatedReportsCommand } from '../repositories/update-report.command';
+import { DeletePostCommand } from '../../board/repositories/delete-post.command';
 import { SuspendUserDto } from '../dto/moderation-action.dto';
 
 @Injectable()
@@ -45,10 +46,7 @@ export class ModerationService {
       });
       if (!post) throw new NotFoundException(`Post '${id}' not found.`);
 
-      await tx.post.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-      });
+      await DeletePostCommand(tx, id);
       await ResolveRelatedReportsCommand(
         tx,
         'POST',
