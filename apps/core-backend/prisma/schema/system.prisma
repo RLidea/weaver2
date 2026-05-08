@@ -26,6 +26,13 @@ model PageView {
   @@map("page_views")
 }
 
+// JSON 컬럼은 "이미 가공된 스냅샷 보고서"용으로만 사용한다.
+// MonthlyAnalyticsReport·SecurityAuditReport는 한 시점에 집계된 결과를
+// 그대로 보여주는 read-only 표시 용도이므로 JSON이 합리적이다.
+// 향후 다음 요건이 생기면 별도 정규화 테이블로 분리한다:
+//   - JSON 내부 필드를 인덱스로 검색해야 함
+//   - JSON 내부 값으로 집계(GROUP BY/SUM)해야 함
+//   - 시간에 따른 trend를 단일 row 단위로 비교해야 함
 model MonthlyAnalyticsReport {
   id             String   @id @default(uuid())
   year           Int
