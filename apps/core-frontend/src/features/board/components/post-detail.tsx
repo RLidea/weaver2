@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { ChevronLeftIcon } from '@/shared/components/ui/icons';
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 
 const MAX_FILES = 10;
 const MAX_SIZE_MB = 50;
@@ -68,6 +69,7 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
@@ -160,11 +162,15 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
   const remainingSlots =
     existingFiles.filter((f) => !pendingDeleteIds.includes(f.id)).length + newFiles.length;
 
-  const handleDelete = () => {
-    if (!confirm('게시글을 삭제할까요?')) return;
+  const handleDelete = () => setConfirmDeletePost(true);
+
+  const handleConfirmDeletePost = () => {
     deletePost(
       { postId, boardId },
-      { onSuccess: () => router.push(`/boards/${boardId}`) },
+      {
+        onSuccess: () => router.push(`/boards/${boardId}`),
+        onSettled: () => setConfirmDeletePost(false),
+      },
     );
   };
 
@@ -343,6 +349,17 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
           <CommentList postId={postId} />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDeletePost}
+        title="게시글 삭제"
+        message="이 게시글을 삭제할까요? 되돌릴 수 없습니다."
+        confirmText="삭제"
+        danger
+        pending={isDeleting}
+        onConfirm={handleConfirmDeletePost}
+        onClose={() => setConfirmDeletePost(false)}
+      />
     </div>
   );
 }

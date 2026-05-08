@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useOAuthConnections, useDisconnectOAuth } from '../hooks/use-oauth-connections';
 import { useToast } from '@/infrastructure/providers/toast-provider';
 import { ApiError } from '@/types/api';
 import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',
@@ -35,15 +37,25 @@ export function OAuthConnections() {
   const { data: connections = [], isLoading } = useOAuthConnections();
   const { mutate: disconnect, isPending } = useDisconnectOAuth();
   const toast = useToast();
+  const [pendingDisconnect, setPendingDisconnect] = useState<string | null>(null);
 
   function handleDisconnect(provider: string) {
-    if (!confirm(`${PROVIDER_LABELS[provider] ?? provider} 연동을 해제할까요?`)) return;
+    setPendingDisconnect(provider);
+  }
+
+  function confirmDisconnect() {
+    const provider = pendingDisconnect;
+    if (!provider) return;
 
     disconnect(provider, {
-      onSuccess: () => toast.success('소셜 계정 연동이 해제되었습니다.'),
+      onSuccess: () => {
+        toast.success('소셜 계정 연동이 해제되었습니다.');
+        setPendingDisconnect(null);
+      },
       onError: (err) => {
         const message = err instanceof ApiError ? err.message : '연동 해제에 실패했습니다.';
         toast.error(message);
+        setPendingDisconnect(null);
       },
     });
   }
@@ -88,6 +100,21 @@ export function OAuthConnections() {
           </ul>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={pendingDisconnect !== null}
+        title="소셜 계정 연동 해제"
+        message={
+          pendingDisconnect
+            ? `${PROVIDER_LABELS[pendingDisconnect] ?? pendingDisconnect} 연동을 해제할까요?`
+            : ''
+        }
+        confirmText="해제"
+        danger
+        pending={isPending}
+        onConfirm={confirmDisconnect}
+        onClose={() => setPendingDisconnect(null)}
+      />
     </Card>
   );
 }

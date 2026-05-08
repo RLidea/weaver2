@@ -9,6 +9,7 @@ import { useMe } from '@/core/user/hooks/use-me';
 import { CommentForm } from './comment-form';
 import { Button } from '@/shared/components/ui/button';
 import { Spinner } from '@/shared/components/ui/spinner';
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import type { Comment } from '../types';
 
 function formatRelativeTime(dateString: string): string {
@@ -37,6 +38,7 @@ function CommentItem({ comment, postId, depth = 0, userId, userPermissions }: Co
   const [replyOpen, setReplyOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { mutate: updateComment, isPending: isUpdating } = useUpdateComment();
   const { mutate: deleteComment, isPending: isDeleting } = useDeleteComment();
@@ -65,9 +67,13 @@ function CommentItem({ comment, postId, depth = 0, userId, userPermissions }: Co
     );
   };
 
-  const handleDelete = () => {
-    if (!confirm('댓글을 삭제할까요?')) return;
-    deleteComment({ commentId: comment.id, postId });
+  const handleDelete = () => setConfirmDelete(true);
+
+  const handleConfirmDelete = () => {
+    deleteComment(
+      { commentId: comment.id, postId },
+      { onSettled: () => setConfirmDelete(false) },
+    );
   };
 
   return (
@@ -163,6 +169,17 @@ function CommentItem({ comment, postId, depth = 0, userId, userPermissions }: Co
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="댓글 삭제"
+        message="이 댓글을 삭제할까요? 되돌릴 수 없습니다."
+        confirmText="삭제"
+        danger
+        pending={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
