@@ -7,7 +7,7 @@ const AUTHOR_SELECT = {
 // Prisma는 무제한 재귀를 지원하지 않으므로 4단계 depth까지 중첩
 export const COMMENT_CHILDREN_INCLUDE = {
   children: {
-    where: { deletedAt: null },
+    where: { deletedAt: null, hiddenAt: null },
     orderBy: { createdAt: 'asc' as const },
     include: {
       author: AUTHOR_SELECT,
