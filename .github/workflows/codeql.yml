@@ -1,0 +1,67 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 매주 월요일 05:00 UTC = 14:00 KST
+    # main에 변경이 없어도 정기적으로 분석을 돌려 신규 룰을 적용한다.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+# 동일 PR/branch에 새 push 들어오면 진행 중인 run 취소
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      # CodeQL이 결과를 Security 탭에 업로드하려면 필요
+      security-events: write
+      # private 의존성 패키지를 받아오려면 필요
+      packages: read
+      # SARIF 업로드 시 사용
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # apps/core-backend(NestJS) + apps/core-frontend(Next.js) 모두 TS/JS
+        # 단일 언어로 묶어 분석하면 cross-file taint flow도 추적된다.
+        language: [javascript-typescript]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended: 기본 쿼리 + 추가 보안 쿼리
+          # security-and-quality: 위 + 코드 품질(unused vars 등) — false positive 많음
+          queries: security-extended
+          # node_modules 등 분석 제외 (config-file로도 가능하지만 인라인이 가벼움)
+          config: |
+            paths-ignore:
+              - node_modules
+              - dist
+              - '**/.next'
+              - '**/storybook-static'
+              - apps/core-backend/prisma/schema/migrations
+              - '**/*.spec.ts'
+              - '**/*.test.ts'
+              - '**/*.stories.tsx'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

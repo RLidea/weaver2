@@ -308,3 +308,60 @@ docker-compose up -d
 # 프로덕션
 docker-compose -f docker-compose.prod.yml up -d
 ```
+
+---
+
+## 🤖 CI / GitHub Actions
+
+`.github/workflows/`에 4개의 워크플로우가 포함되어 있습니다.
+
+| 워크플로우 | 트리거 | 역할 |
+|----------|--------|------|
+| `ci.yml` | PR / main push / 수동 | install → secret-files / lint / unit / integration / backend build / web build / prisma check → `CI success` 단일 게이트 |
+| `security.yml` | 매주 월 09:00 KST / 수동 / 의존성 PR | `pnpm audit --audit-level=high`, 발견 시 자동 Issue 생성 + PR fail |
+| `pr-checks.yml` | PR 이벤트 | Conventional Commits 제목 검사, 경로별 자동 라벨, 500줄 이상 PR 경고 |
+| `codeql.yml` | PR / main push / 매주 월 14:00 KST / 수동 | GitHub CodeQL 정적 분석 (security-extended 쿼리) |
+
+**설계 포인트**:
+- `ci-success` 단일 aggregator job — Branch protection에서 이 하나만 require하면 충분.
+- `HUSKY=0` + `--ignore-scripts` + 명시적 `prisma generate` — pnpm v11의 `approve-builds` 프롬프트와 husky postinstall 노이즈 회피.
+- Postgres 16 service container + healthcheck로 integration test 격리.
+- `concurrency.cancel-in-progress` — 동일 PR 새 push 시 진행 중 run 자동 취소.
+
+### Branch ruleset 권장 설정
+
+저장소 `Settings → Rules → Rulesets → New branch ruleset`:
+
+- **Target**: default branch
+- **Restrict deletions** ✅
+- **Block force pushes** ✅
+- **Require a pull request before merging** ✅
+  - Required approvals: 1
+  - Dismiss stale approvals: ✅
+  - Require conversation resolution: ✅
+- **Require status checks to pass** ✅
+  - **`CI success`** 단일 등록 (워크플로우가 한 번 실행된 후에 검색 가능)
+  - **`Analyze (javascript-typescript)`** 추가 (CodeQL — public 또는 Team/Enterprise plan)
+
+### 외주/private 저장소로 복제 시
+
+이 보일러플레이트를 private repo로 복제하셨다면 **plan에 따라 ruleset 일부 항목을 빼야** 합니다:
+
+| 기능 | Public Free | Private Free | Private Team/Enterprise |
+|------|------------|-------------|------------------------|
+| Code Scanning (CodeQL) | ✅ | ❌ → ruleset에서 제거 | ✅ |
+| `Restrict file paths` (Push ruleset) | ✅ | ❌ → 본 보일러플레이트의 3-layer guard 사용 | ✅ |
+| Dependabot | ✅ | ✅ | ✅ |
+| Branch ruleset | ✅ | ✅ | ✅ |
+
+> Private + Free 환경에서 CodeQL 워크플로우 자체는 두어도 무방하지만 결과를 Security 탭에서 볼 수 없으며, ruleset의 `Require code scanning results`는 영원히 만족되지 않으므로 반드시 제거해야 합니다.
+
+### Secret/key 파일 차단 — 3-layer guard
+
+이 보일러플레이트는 GitHub plan 의존 없이 secret 유출을 방어합니다:
+
+1. `.gitignore` — `.env*` (단, `.env.example` 제외), `*.pem/.key/.p12/.pfx/.crt/.cer`, `id_rsa*`, `id_ed25519*`
+2. `.husky/pre-commit` — staged 파일 검사 후 차단 (커밋 자체가 실패)
+3. `ci.yml`의 `secret-files` job — 트리 전체 검사 (push에서 차단)
+
+세 단계가 동일 패턴을 공유하므로 어느 하나가 뚫려도 다음에서 잡힙니다.
