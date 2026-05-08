@@ -4,7 +4,9 @@ import { ReportService } from './report.service';
 import { PrismaService } from '@weaver2/prisma';
 
 jest.mock('../repositories/create-report.command', () => ({
-  CreateReportCommand: jest.fn(async (_p, dto) => ({ id: 'r1', ...dto })),
+  CreateReportCommand: jest.fn((_p, dto) =>
+    Promise.resolve({ id: 'r1', ...dto }),
+  ),
 }));
 
 jest.mock('../repositories/find-reports.query', () => ({
@@ -13,7 +15,9 @@ jest.mock('../repositories/find-reports.query', () => ({
 }));
 
 jest.mock('../repositories/update-report.command', () => ({
-  UpdateReportStatusCommand: jest.fn(async (_p, id, data) => ({ id, ...data })),
+  UpdateReportStatusCommand: jest.fn((_p, id, data) =>
+    Promise.resolve({ id, ...data }),
+  ),
 }));
 
 import { FindReportByIdQuery } from '../repositories/find-reports.query';
@@ -90,16 +94,18 @@ describe('ReportService.resolveReport / dismissReport', () => {
     mockFindById.mockResolvedValue({ id: 'r1', status: 'RESOLVED' });
 
     await expect(
-      service.resolveReport('r1', 'mod', { actionTaken: 'CONTENT_HIDDEN' } as any),
+      service.resolveReport('r1', 'mod', {
+        actionTaken: 'CONTENT_HIDDEN',
+      } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('이미 DISMISSED인 신고를 dismiss → BadRequestException', async () => {
     mockFindById.mockResolvedValue({ id: 'r1', status: 'DISMISSED' });
 
-    await expect(
-      service.dismissReport('r1', 'mod'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.dismissReport('r1', 'mod')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('정상 resolve 시 신고자에게 SYSTEM 알림 emit', async () => {

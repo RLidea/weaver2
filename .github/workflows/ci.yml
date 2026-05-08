@@ -156,6 +156,12 @@ jobs:
       JWT_SECRET: ci-jwt-secret-not-for-prod
       CSRF_SECRET: ci-csrf-secret-not-for-prod
       NODE_ENV: test
+      # EmailService 생성자가 SMTP env 검증 후 throw하므로 더미 주입 필수.
+      # 실제 발송은 일어나지 않음 (테스트가 EmailService를 호출하지 않음).
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: '587'
+      SMTP_USER: ci-test
+      SMTP_PASS: ci-test-password
 
     steps:
       - uses: actions/checkout@v4

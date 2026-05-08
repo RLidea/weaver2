@@ -7,9 +7,9 @@ const service = new EmailTemplateService(null as any, null as any, null as any);
 describe('EmailTemplateService', () => {
   describe('renderTemplate()', () => {
     it('단일 변수 치환', () => {
-      expect(service.renderTemplate('안녕하세요, {{name}}님', { name: '찬중' })).toBe(
-        '안녕하세요, 찬중님',
-      );
+      expect(
+        service.renderTemplate('안녕하세요, {{name}}님', { name: '찬중' }),
+      ).toBe('안녕하세요, 찬중님');
     });
 
     it('여러 변수 치환', () => {
@@ -52,12 +52,16 @@ describe('EmailTemplateService', () => {
 
   describe('extractTemplateVariables()', () => {
     it('단일 변수 추출', () => {
-      expect(service.extractTemplateVariables('안녕 {{name}}')).toEqual(['name']);
+      expect(service.extractTemplateVariables('안녕 {{name}}')).toEqual([
+        'name',
+      ]);
     });
 
     it('여러 변수 추출', () => {
       expect(
-        service.extractTemplateVariables('{{code}} expires in {{expiry}} minutes'),
+        service.extractTemplateVariables(
+          '{{code}} expires in {{expiry}} minutes',
+        ),
       ).toEqual(['code', 'expiry']);
     });
 

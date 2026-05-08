@@ -52,15 +52,24 @@ export class PushSubscriptionService implements OnModuleInit {
       subscriptions.map(async (sub) => {
         try {
           await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
             JSON.stringify(payload),
           );
         } catch (error: unknown) {
           const statusCode = (error as { statusCode?: number }).statusCode;
           if (statusCode === 410 || statusCode === 404) {
             // 만료된 구독 자동 삭제
-            await DeletePushSubscriptionCommand(this.prisma, sub.endpoint, userId);
-            this.logger.log(`Removed expired push subscription for user ${userId}`);
+            await DeletePushSubscriptionCommand(
+              this.prisma,
+              sub.endpoint,
+              userId,
+            );
+            this.logger.log(
+              `Removed expired push subscription for user ${userId}`,
+            );
           } else {
             this.logger.error(`Push send failed for user ${userId}`, error);
           }

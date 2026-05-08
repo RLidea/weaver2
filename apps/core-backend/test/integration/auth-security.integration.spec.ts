@@ -13,8 +13,12 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@weaver2/prisma';
-import { createTestApp, closeTestApp, getTestingModule } from './helpers/test-app.helper';
-import { loginAs, getCsrfToken, getAuthCookies } from './helpers/auth.helper';
+import {
+  createTestApp,
+  closeTestApp,
+  getTestingModule,
+} from './helpers/test-app.helper';
+import { loginAs, getAuthCookies } from './helpers/auth.helper';
 
 const TEST_PASSWORD = 'TestPass1234!';
 const WRONG_PASSWORD = 'WrongPass0000!';
@@ -165,8 +169,10 @@ describe('Auth Security (Integration)', () => {
       const res = await loginAs(app, email, TEST_PASSWORD);
 
       expect(res.status).toBe(201);
-      const cookies = (res.headers['set-cookie'] as unknown) as string[];
-      expect(cookies.some((c: string) => c.startsWith('access_token'))).toBe(true);
+      const cookies = res.headers['set-cookie'] as unknown as string[];
+      expect(cookies.some((c: string) => c.startsWith('access_token'))).toBe(
+        true,
+      );
     });
 
     it('존재하지 않는 이메일로 로그인 시 401', async () => {

@@ -6,7 +6,7 @@ jest.mock('otplib', () => ({
 }));
 
 jest.mock('qrcode', () => ({
-  toDataURL: jest.fn(async () => 'data:image/png;base64,test'),
+  toDataURL: jest.fn(() => Promise.resolve('data:image/png;base64,test')),
 }));
 
 import { UnauthorizedException } from '@nestjs/common';
@@ -58,8 +58,6 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
       throw new Error('jwt expired');
     });
 
-    expect(() => service.verifyPreAuthToken('tok')).toThrow(
-      /expired pre-auth/,
-    );
+    expect(() => service.verifyPreAuthToken('tok')).toThrow(/expired pre-auth/);
   });
 });

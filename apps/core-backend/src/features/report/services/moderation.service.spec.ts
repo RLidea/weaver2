@@ -136,7 +136,9 @@ describe('ModerationService', () => {
       });
 
       await service.suspendUser('u1', 'mod-1', {});
-      expect(prisma.user.update.mock.calls[0][0].data.suspendedUntil).toBeNull();
+      expect(
+        prisma.user.update.mock.calls[0][0].data.suspendedUntil,
+      ).toBeNull();
     });
   });
 

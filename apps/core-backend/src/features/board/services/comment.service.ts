@@ -86,7 +86,9 @@ export class CommentService {
 
     if (authorId) {
       const post = await FindPostNotificationTargetQuery(this.prisma, postId);
-      const postLink = post ? `/boards/${post.boardId}/posts/${postId}` : `/boards/unknown/posts/${postId}`;
+      const postLink = post
+        ? `/boards/${post.boardId}/posts/${postId}`
+        : `/boards/unknown/posts/${postId}`;
 
       // 대댓글: 부모 댓글 작성자에게 알림
       if (dto.parentId) {
@@ -199,10 +201,7 @@ export class CommentService {
     );
     const rootIds = new Set(result.data.map((r) => r.id));
     const tree = buildCommentTree(
-      [
-        ...(result.data as CommentDto[]),
-        ...(descendants as unknown as CommentDto[]),
-      ],
+      [...result.data, ...(descendants as unknown as CommentDto[])],
       rootIds,
     );
 

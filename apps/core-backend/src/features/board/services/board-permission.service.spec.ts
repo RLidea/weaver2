@@ -109,11 +109,7 @@ describe('BoardPermissionService', () => {
     it('requirePermission은 권한 통과 시 throw 없음', async () => {
       permission.hasResourcePermission.mockResolvedValue(true);
       await expect(
-        service.requirePermission(
-          'board-1',
-          BoardActionType.READ,
-          owner,
-        ),
+        service.requirePermission('board-1', BoardActionType.READ, owner),
       ).resolves.toBeUndefined();
     });
   });

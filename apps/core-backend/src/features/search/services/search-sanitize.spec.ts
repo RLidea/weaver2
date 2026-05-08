@@ -17,7 +17,9 @@ describe('SearchService.sanitizeSearchQuery', () => {
   });
 
   it('PostgreSQL tsquery 메타문자 제거', () => {
-    expect(service.sanitizeSearchQuery('a&b|c!d(e)f')).toBe('a & b & c & d & e & f');
+    expect(service.sanitizeSearchQuery('a&b|c!d(e)f')).toBe(
+      'a & b & c & d & e & f',
+    );
   });
 
   it('연속된 공백을 하나의 AND로 압축', () => {

@@ -64,7 +64,10 @@ export async function DeleteCategoryCommand(prisma: Db, id: string) {
 /**
  * 카테고리 삭제 전, 해당 카테고리를 참조하는 게시글의 categoryId를 null로 해제.
  */
-export async function ClearPostsCategoryCommand(prisma: Db, categoryId: string) {
+export async function ClearPostsCategoryCommand(
+  prisma: Db,
+  categoryId: string,
+) {
   return prisma.post.updateMany({
     where: { categoryId },
     data: { categoryId: null },

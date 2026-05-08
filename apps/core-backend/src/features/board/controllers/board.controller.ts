@@ -21,7 +21,6 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { BoardDto } from '../dto/board.dto';
 import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
-import { KeysetRequestDto } from '@weaver2/pagination';
 import { BoardPostsQueryDto } from '../dto/board-posts-query.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';

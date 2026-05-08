@@ -35,7 +35,9 @@ export class FindUserService {
       this.permissionService.getUserPermissions(id),
     ]);
 
-    const setting = (user as typeof user & { userSetting?: Record<string, unknown> | null }).userSetting;
+    const setting = (
+      user as typeof user & { userSetting?: Record<string, unknown> | null }
+    ).userSetting;
 
     return {
       id: userWithImage.id,
@@ -46,12 +48,12 @@ export class FindUserService {
       permissions: Array.from(permissionsSet),
       userSetting: setting
         ? {
-            isEmailNotificationsEnabled: setting.isEmailNotificationsEnabled as boolean,
-            isSmsNotificationsEnabled: setting.isSmsNotificationsEnabled as boolean,
-            isPushNotificationsEnabled: setting.isPushNotificationsEnabled as boolean,
-            isMarketingConsentGiven: setting.isMarketingConsentGiven as boolean,
-            isNewsletterSubscribed: setting.isNewsletterSubscribed as boolean,
-            prefersDarkMode: setting.prefersDarkMode as boolean,
+            isEmailNotificationsEnabled: setting.isEmailNotificationsEnabled,
+            isSmsNotificationsEnabled: setting.isSmsNotificationsEnabled,
+            isPushNotificationsEnabled: setting.isPushNotificationsEnabled,
+            isMarketingConsentGiven: setting.isMarketingConsentGiven,
+            isNewsletterSubscribed: setting.isNewsletterSubscribed,
+            prefersDarkMode: setting.prefersDarkMode,
           }
         : undefined,
     };

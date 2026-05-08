@@ -3,7 +3,7 @@ import { ResetPasswordService } from './reset-password.service';
 import { PrismaService } from '@weaver2/prisma';
 
 jest.mock('bcrypt', () => ({
-  hash: jest.fn(async (pw: string) => `hashed:${pw}`),
+  hash: jest.fn((pw: string) => Promise.resolve(`hashed:${pw}`)),
 }));
 
 jest.mock('../repositories/find-local-credential-by-reset-token.query', () => ({

@@ -45,26 +45,26 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue(null);
     prisma.user.findFirst.mockResolvedValue({ id: 'deleted-1' });
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/ACCOUNT_DELETED/);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /ACCOUNT_DELETED/,
+    );
   });
 
   it('이메일 매칭 X + 탈퇴도 아님 → Invalid credentials', async () => {
     mockFind.mockResolvedValue(null);
     prisma.user.findFirst.mockResolvedValue(null);
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/Invalid credentials/);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /Invalid credentials/,
+    );
   });
 
   it('localCredential 없으면 Invalid credentials (OAuth-only 계정)', async () => {
     mockFind.mockResolvedValue({ id: 'u1', localCredential: null });
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/Invalid credentials/);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /Invalid credentials/,
+    );
   });
 
   it('정지 계정 (suspendedUntil 미래) → suspended 메시지', async () => {
@@ -75,9 +75,9 @@ describe('SignInService.validateUserByEmail', () => {
       localCredential: { password: 'hash', isVerified: true },
     });
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/suspended/i);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /suspended/i,
+    );
   });
 
   it('정지 해제 (suspendedUntil 과거 = epoch 0) → 다음 검증으로 통과', async () => {
@@ -110,9 +110,9 @@ describe('SignInService.validateUserByEmail', () => {
       },
     });
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/temporarily locked/i);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /temporarily locked/i,
+    );
   });
 
   it('비밀번호 불일치 → IncrementFailedAttempts + Invalid credentials', async () => {
@@ -127,9 +127,9 @@ describe('SignInService.validateUserByEmail', () => {
     });
     mockCompare.mockResolvedValue(false);
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'wrong'),
-    ).rejects.toThrow(/Invalid credentials/);
+    await expect(service.validateUserByEmail('a@b.c', 'wrong')).rejects.toThrow(
+      /Invalid credentials/,
+    );
 
     expect(mockIncrement).toHaveBeenCalledWith(prisma, 'u1');
   });
@@ -146,9 +146,9 @@ describe('SignInService.validateUserByEmail', () => {
     });
     mockCompare.mockResolvedValue(true);
 
-    await expect(
-      service.validateUserByEmail('a@b.c', 'pw'),
-    ).rejects.toThrow(/EMAIL_NOT_VERIFIED/);
+    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
+      /EMAIL_NOT_VERIFIED/,
+    );
   });
 
   it('성공 시 ResetFailedAttempts 호출 후 user 반환', async () => {

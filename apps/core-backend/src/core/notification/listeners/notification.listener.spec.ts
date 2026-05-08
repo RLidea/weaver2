@@ -11,9 +11,9 @@ describe('NotificationListener', () => {
 
   beforeEach(() => {
     notification = {
-      createNotification: jest.fn(async () => ({ id: 'n1' })),
+      createNotification: jest.fn(() => Promise.resolve({ id: 'n1' })),
     };
-    push = { sendToUser: jest.fn(async () => undefined) };
+    push = { sendToUser: jest.fn(() => Promise.resolve(undefined)) };
     emitter = { emit: jest.fn() };
 
     listener = new NotificationListener(

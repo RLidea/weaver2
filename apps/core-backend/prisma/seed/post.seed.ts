@@ -69,7 +69,8 @@ export async function seedFreeboardCategories(prisma: PrismaClient) {
     },
     {
       title: '[질문] Next.js App Router에서 레이아웃은 어떻게 구성하나요?',
-      content: 'App Router를 처음 써보는데 레이아웃 중첩이 헷갈립니다. 도움 부탁드립니다.',
+      content:
+        'App Router를 처음 써보는데 레이아웃 중첩이 헷갈립니다. 도움 부탁드립니다.',
       categoryName: '질문',
     },
     {
@@ -79,7 +80,8 @@ export async function seedFreeboardCategories(prisma: PrismaClient) {
     },
     {
       title: '[공유] 유용한 개발 도구 모음',
-      content: '평소 자주 쓰는 도구들을 공유합니다.\n- Raycast\n- TablePlus\n- Fig',
+      content:
+        '평소 자주 쓰는 도구들을 공유합니다.\n- Raycast\n- TablePlus\n- Fig',
       categoryName: '공유',
     },
   ];
