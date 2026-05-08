@@ -2,8 +2,10 @@
 
 import { Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { PERMISSIONS } from '@weaver2/shared';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { Tabs } from '@/shared/components/ui/tabs';
+import { RequirePermission } from '@/shared/components/auth/require-permission';
 import { BoardTable } from '@/features/admin/boards/components/board-table';
 import { ContentPostsTab } from '@/features/admin/content/components/content-posts-tab';
 import { ContentCommentsTab } from '@/features/admin/content/components/content-comments-tab';
@@ -50,22 +52,30 @@ function ContentTabs() {
 
 export default function AdminContentPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-text">콘텐츠 관리</h1>
-      <p className="mt-1 text-sm text-text-muted">
-        게시판·게시글·댓글을 통합 관리합니다.
-      </p>
-      <div className="mt-6">
-        <Suspense
-          fallback={
-            <div className="flex justify-center py-16">
-              <Spinner />
-            </div>
-          }
-        >
-          <ContentTabs />
-        </Suspense>
+    <RequirePermission
+      permission={[
+        PERMISSIONS.BOARD.MANAGE,
+        PERMISSIONS.POST.READ_ALL,
+        PERMISSIONS.COMMENT.UPDATE_ALL,
+      ]}
+    >
+      <div>
+        <h1 className="text-2xl font-semibold text-text">콘텐츠 관리</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          게시판·게시글·댓글을 통합 관리합니다.
+        </p>
+        <div className="mt-6">
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-16">
+                <Spinner />
+              </div>
+            }
+          >
+            <ContentTabs />
+          </Suspense>
+        </div>
       </div>
-    </div>
+    </RequirePermission>
   );
 }
