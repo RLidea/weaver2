@@ -43,6 +43,8 @@ model Post {
   @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
   @@index([createdAt(sort: Desc), id], map: "post_cursor_idx")
   @@index([viewCount(sort: Desc), id], map: "post_viewcount_cursor_idx")
+  @@index([authorId, createdAt(sort: Desc)], map: "post_author_idx")
+  @@index([categoryId], map: "post_category_idx")
   @@map("posts")
 }
 
@@ -62,6 +64,7 @@ model Comment {
   children  Comment[] @relation("CommentReplies")
 
   @@index([postId, parentId, createdAt], map: "comment_list_idx")
+  @@index([authorId, createdAt(sort: Desc)], map: "comment_author_idx")
   @@map("comments")
 }
 
