@@ -122,7 +122,6 @@ export class CommentController {
   }
 
   @Patch(':commentId')
-  @Public()
   @ApiOperation({ summary: '댓글 수정' })
   @ApiStandardResponses({ type: CommentDto })
   async updateComment(
@@ -149,7 +148,6 @@ export class CommentController {
   }
 
   @Delete(':commentId')
-  @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '댓글 삭제' })
   @ApiStandardResponses({

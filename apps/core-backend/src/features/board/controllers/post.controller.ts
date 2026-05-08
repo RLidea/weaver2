@@ -146,7 +146,6 @@ export class PostController {
   }
 
   @Patch(':postId')
-  @Public()
   @ApiOperation({ summary: '게시글 수정' })
   @ApiStandardResponses({ type: PostDto })
   async updatePost(
@@ -163,7 +162,6 @@ export class PostController {
   }
 
   @Delete(':postId')
-  @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: '게시글 삭제' })
   @ApiStandardResponses({
