@@ -10,9 +10,10 @@ import { CommentDto } from '../dto/comment.dto';
 import { CreateCommentCommand } from '../repositories/create-comment.command';
 import { FindCommentByIdQuery } from '../repositories/find-comment-by-id.query';
 import {
-  FindAllCommentsByPostIdQuery,
-  COMMENT_CHILDREN_INCLUDE,
+  FindFlatCommentsByPostIdQuery,
+  FindFlatDescendantsByPostIdQuery,
 } from '../repositories/find-all-comments-by-post-id.query';
+import { buildCommentTree } from '../repositories/comment-tree.builder';
 import { UpdateCommentCommand } from '../repositories/update-comment.command';
 import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
@@ -167,9 +168,8 @@ export class CommentService {
 
   async findAllCommentsByPostId(postId: string): Promise<CommentDto[]> {
     await this.postService.findPostById(postId);
-    return FindAllCommentsByPostIdQuery(this.prisma, postId) as Promise<
-      CommentDto[]
-    >;
+    const flat = await FindFlatCommentsByPostIdQuery(this.prisma, postId);
+    return buildCommentTree(flat as unknown as CommentDto[]);
   }
 
   async findCommentsByPostIdWithKeyset(
@@ -178,8 +178,8 @@ export class CommentService {
   ): Promise<KeysetResponseDto<CommentDto>> {
     await this.postService.findPostById(postId);
 
-    // 루트 댓글(parentId: null)만 페이지네이션, children은 include로 함께 로드
-    return KeysetPaginationService.paginate<CommentDto>({
+    // 1. 루트 댓글만 keyset 페이지네이션 (children은 include 안 함)
+    const result = await KeysetPaginationService.paginate<CommentDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: this.prisma.comment as any,
       preset: COMMENT_PRESET,
@@ -188,9 +188,26 @@ export class CommentService {
       where: { postId, parentId: null, deletedAt: null, hiddenAt: null },
       include: {
         author: { select: { id: true, username: true, displayName: true } },
-        ...COMMENT_CHILDREN_INCLUDE,
       },
     });
+
+    if (result.data.length === 0) return result;
+
+    // 2. 자손을 평면 1쿼리로 모두 가져와 메모리에서 트리 빌드
+    const descendants = await FindFlatDescendantsByPostIdQuery(
+      this.prisma,
+      postId,
+    );
+    const rootIds = new Set(result.data.map((r) => r.id));
+    const tree = buildCommentTree(
+      [
+        ...(result.data as CommentDto[]),
+        ...(descendants as unknown as CommentDto[]),
+      ],
+      rootIds,
+    );
+
+    return { ...result, data: tree };
   }
 
   async findCommentById(id: string): Promise<CommentDto> {
