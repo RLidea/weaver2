@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
 import { SearchRequestDto, SearchType } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
 import { PostDto } from '../../board/dto/post.dto';
 import { CommentDto } from '../../board/dto/comment.dto';
+import {
+  SearchPostIdsQuery,
+  CountPostMatchesQuery,
+} from '../repositories/search-posts.query';
+import {
+  SearchCommentIdsQuery,
+  CountCommentMatchesQuery,
+} from '../repositories/search-comments.query';
 
 @Injectable()
 export class SearchService {
@@ -20,13 +27,12 @@ export class SearchService {
     let totalPosts = 0;
     let totalComments = 0;
 
-    // Sanitize search query for PostgreSQL Full-text Search
     const sanitizedQuery = this.sanitizeSearchQuery(q);
 
     if (type === SearchType.POSTS || type === SearchType.ALL) {
       const [foundPosts, postsCount] = await Promise.all([
-        this.searchPostsWithFullText(sanitizedQuery, boardId, skip, limit),
-        this.countPostsWithFullText(sanitizedQuery, boardId),
+        this.fetchPostsByMatch(sanitizedQuery, boardId, skip, limit),
+        CountPostMatchesQuery(this.prisma, sanitizedQuery, boardId),
       ]);
       posts = foundPosts;
       totalPosts = postsCount;
@@ -34,8 +40,8 @@ export class SearchService {
 
     if (type === SearchType.COMMENTS || type === SearchType.ALL) {
       const [foundComments, commentsCount] = await Promise.all([
-        this.searchCommentsWithFullText(sanitizedQuery, boardId, skip, limit),
-        this.countCommentsWithFullText(sanitizedQuery, boardId),
+        this.fetchCommentsByMatch(sanitizedQuery, boardId, skip, limit),
+        CountCommentMatchesQuery(this.prisma, sanitizedQuery, boardId),
       ]);
       comments = foundComments;
       totalComments = commentsCount;
@@ -44,75 +50,46 @@ export class SearchService {
     return {
       posts,
       comments,
-      total: {
-        posts: totalPosts,
-        comments: totalComments,
-      },
+      total: { posts: totalPosts, comments: totalComments },
     };
   }
 
-  private sanitizeSearchQuery(query: string): string {
-    // PostgreSQL Full-text Search 쿼리를 위한 문자 정리
+  /**
+   * PostgreSQL Full-text Search 쿼리를 위한 문자 정리.
+   * 외부 노출(테스트 가시성)을 위해 public.
+   */
+  sanitizeSearchQuery(query: string): string {
     return query
       .trim()
-      .replace(/[&|!()]/g, ' ') // 특수문자 제거
-      .replace(/\s+/g, ' & ') // 공백을 AND 연산자로 변경
+      .replace(/[&|!()]/g, ' ')
+      .replace(/\s+/g, ' & ')
       .trim();
   }
 
-  private async searchPostsWithFullText(
+  private async fetchPostsByMatch(
     query: string,
     boardId: string | undefined,
     skip: number,
     limit: number,
   ): Promise<PostDto[]> {
-    // 빈 쿼리 처리
-    if (!query || query.trim() === '') {
-      return [];
-    }
+    if (!query) return [];
 
-    const rawResults = await this.prisma.$queryRaw<{ id: string }[]>(
-      Prisma.sql`
-      SELECT
-        p.*,
-        ts_rank(
-          to_tsvector('simple', p.title || ' ' || p.content),
-          to_tsquery('simple', ${query})
-        ) as rank
-      FROM "posts" p
-      WHERE
-        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
-        AND p.status = 'PUBLISHED'
-        AND p."isSecret" = false
-        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
-      ORDER BY
-        p."isPinned" DESC,
-        p.priority DESC,
-        rank DESC,
-        p."viewCount" DESC,
-        p."createdAt" DESC
-      LIMIT ${limit} OFFSET ${skip}
-    `,
+    const matched = await SearchPostIdsQuery(
+      this.prisma,
+      query,
+      boardId,
+      skip,
+      limit,
     );
-
-    // 관계 데이터를 포함한 완전한 데이터 조회
-    const postIds = rawResults.map((result) => result.id);
-
-    if (postIds.length === 0) return [];
+    const ids = matched.map((m) => m.id);
+    if (ids.length === 0) return [];
 
     return this.prisma.post.findMany({
-      where: {
-        id: { in: postIds },
-        deletedAt: null,
-      },
+      where: { id: { in: ids }, deletedAt: null },
       include: {
         board: true,
         author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
+          select: { id: true, username: true, displayName: true },
         },
       },
       orderBy: [
@@ -124,108 +101,35 @@ export class SearchService {
     });
   }
 
-  private async countPostsWithFullText(
-    query: string,
-    boardId: string | undefined,
-  ): Promise<number> {
-    if (!query || query.trim() === '') {
-      return 0;
-    }
-
-    const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
-      Prisma.sql`
-      SELECT COUNT(*) as count
-      FROM "posts" p
-      WHERE
-        to_tsvector('simple', p.title || ' ' || p.content) @@ to_tsquery('simple', ${query})
-        AND p.status = 'PUBLISHED'
-        AND p."isSecret" = false
-        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
-    `,
-    );
-
-    return Number(result[0].count);
-  }
-
-  private async searchCommentsWithFullText(
+  private async fetchCommentsByMatch(
     query: string,
     boardId: string | undefined,
     skip: number,
     limit: number,
   ): Promise<CommentDto[]> {
-    if (!query || query.trim() === '') {
-      return [];
-    }
+    if (!query) return [];
 
-    const rawResults = await this.prisma.$queryRaw<{ id: string }[]>(
-      Prisma.sql`
-      SELECT
-        c.*,
-        ts_rank(
-          to_tsvector('simple', c.content),
-          to_tsquery('simple', ${query})
-        ) as rank
-      FROM "comments" c
-      ${boardId ? Prisma.sql`JOIN "posts" p ON c."postId" = p.id` : Prisma.empty}
-      WHERE
-        to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
-        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
-      ORDER BY
-        rank DESC,
-        c."createdAt" DESC
-      LIMIT ${limit} OFFSET ${skip}
-    `,
+    const matched = await SearchCommentIdsQuery(
+      this.prisma,
+      query,
+      boardId,
+      skip,
+      limit,
     );
-
-    const commentIds = rawResults.map((result) => result.id);
-
-    if (commentIds.length === 0) return [];
+    const ids = matched.map((m) => m.id);
+    if (ids.length === 0) return [];
 
     return this.prisma.comment.findMany({
-      where: {
-        id: { in: commentIds },
-      },
+      where: { id: { in: ids } },
       include: {
         author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
+          select: { id: true, username: true, displayName: true },
         },
         post: {
-          select: {
-            id: true,
-            title: true,
-            boardId: true,
-          },
+          select: { id: true, title: true, boardId: true },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
-  }
-
-  private async countCommentsWithFullText(
-    query: string,
-    boardId: string | undefined,
-  ): Promise<number> {
-    if (!query || query.trim() === '') {
-      return 0;
-    }
-
-    const result = await this.prisma.$queryRaw<{ count: bigint }[]>(
-      Prisma.sql`
-      SELECT COUNT(*) as count
-      FROM "comments" c
-      ${boardId ? Prisma.sql`JOIN "posts" p ON c."postId" = p.id` : Prisma.empty}
-      WHERE
-        to_tsvector('simple', c.content) @@ to_tsquery('simple', ${query})
-        ${boardId ? Prisma.sql`AND p."boardId" = ${boardId}` : Prisma.empty}
-    `,
-    );
-
-    return Number(result[0].count);
   }
 }
