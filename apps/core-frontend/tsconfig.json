@@ -33,5 +33,10 @@
     "**/*.mts",
     "../../libs/shared/src/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "src/stories/**"
+  ]
 }
