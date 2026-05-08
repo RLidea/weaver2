@@ -2,8 +2,8 @@
 
 import { Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { cn } from '@/shared/lib/cn';
 import { Spinner } from '@/shared/components/ui/spinner';
+import { Tabs } from '@/shared/components/ui/tabs';
 import { BoardTable } from '@/features/admin/boards/components/board-table';
 import { ContentPostsTab } from '@/features/admin/content/components/content-posts-tab';
 import { ContentCommentsTab } from '@/features/admin/content/components/content-comments-tab';
@@ -30,24 +30,7 @@ function ContentTabs() {
 
   return (
     <div className="space-y-6">
-      {/* 탭 헤더 */}
-      <div className="flex items-center gap-1 border-b border-border">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors',
-              activeTab === id
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-text-muted hover:text-text',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs<TabId> items={TABS} activeId={activeTab} onChange={setTab} />
 
       {/* 탭 콘텐츠 */}
       <Suspense

@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Select } from '@/shared/components/ui/select';
 import { Spinner } from '@/shared/components/ui/spinner';
+import { Tabs } from '@/shared/components/ui/tabs';
 import { useAdminSettings } from '../hooks/use-admin-settings';
 import { useUpdateAdminSettings, useResetAdminSettings } from '../hooks/use-admin-settings-mutations';
 import type { SystemSettings } from '../types';
@@ -447,24 +448,7 @@ export function SettingsForm() {
 
   return (
     <div className="space-y-6">
-      {/* 탭 헤더 */}
-      <div className="flex items-center gap-1 border-b border-border">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors',
-              activeTab === id
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-text-muted hover:text-text',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs<TabId> items={TABS} activeId={activeTab} onChange={setTab} />
 
       {/* 탭 콘텐츠 */}
       <div className="rounded-lg border border-border bg-surface p-6">
