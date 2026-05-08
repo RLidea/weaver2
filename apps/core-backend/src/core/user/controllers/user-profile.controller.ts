@@ -21,6 +21,7 @@ import {
   ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -109,6 +110,7 @@ export class UserProfileController {
 
   @Post('email')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '이메일 변경 요청 (인증 코드 발송)' })
   @ApiStandardResponses({ status: 204, description: '인증 코드 발송 완료' })
@@ -125,6 +127,7 @@ export class UserProfileController {
 
   @Post('email/confirm')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '이메일 변경 인증 코드 확인' })
   @ApiStandardResponses({ status: 204, description: '이메일 변경 완료' })
