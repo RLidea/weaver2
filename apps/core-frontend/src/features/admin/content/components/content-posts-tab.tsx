@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { Modal } from '@/shared/components/ui/modal';
+import { Pagination } from '@/shared/components/ui/pagination';
 import { Select } from '@/shared/components/ui/select';
 import { useAdminBoards } from '@/features/admin/boards/hooks/use-admin-boards';
 import { useAdminPosts } from '../hooks/use-admin-posts';
@@ -317,29 +318,13 @@ export function ContentPostsTab() {
 
       {/* 페이지네이션 */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-text-muted">
-          <p>
-            전체 {meta.total.toLocaleString()}건 / {meta.page} / {meta.totalPages} 페이지
-          </p>
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={meta.page <= 1}
-              onClick={() => setParam({ page: String(meta.page - 1) })}
-            >
-              이전
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={meta.page >= meta.totalPages}
-              onClick={() => setParam({ page: String(meta.page + 1) })}
-            >
-              다음
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={meta.page}
+          lastPage={meta.totalPages}
+          total={meta.total}
+          limit={LIMIT}
+          onPageChange={(p) => setParam({ page: String(p) })}
+        />
       )}
 
       <PostStatusModal post={statusPost} onClose={() => setStatusPost(null)} />
