@@ -14,15 +14,34 @@ export interface PushPayload {
 @Injectable()
 export class PushSubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(PushSubscriptionService.name);
+  private pushEnabled = false;
 
   constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT ?? 'mailto:admin@weaver2.local',
-      process.env.VAPID_PUBLIC_KEY ?? '',
-      process.env.VAPID_PRIVATE_KEY ?? '',
-    );
+    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+
+    if (!publicKey || !privateKey) {
+      this.logger.warn(
+        'VAPID keys not configured (VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY). Web push notifications are disabled.',
+      );
+      return;
+    }
+
+    try {
+      webpush.setVapidDetails(
+        process.env.VAPID_SUBJECT ?? 'mailto:admin@weaver2.local',
+        publicKey,
+        privateKey,
+      );
+      this.pushEnabled = true;
+    } catch (error) {
+      this.logger.error(
+        'Failed to configure VAPID details. Web push disabled.',
+        error,
+      );
+    }
   }
 
   getPublicKey(): string {
@@ -43,6 +62,8 @@ export class PushSubscriptionService implements OnModuleInit {
   }
 
   async sendToUser(userId: string, payload: PushPayload) {
+    if (!this.pushEnabled) return;
+
     const subscriptions = await FindPushSubscriptionsByUserQuery(
       this.prisma,
       userId,
