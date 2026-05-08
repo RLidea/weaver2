@@ -35,12 +35,22 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# dotenv environment variable files (와일드카드로 모든 변형 차단)
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
+# 단, 예시 파일은 커밋되어야 함
+!.env.example
+!.env.example.*
+
+# 자격증명·키 파일 (실수로 커밋되지 않도록)
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.crt
+*.cer
 
 # temp directory
 .temp

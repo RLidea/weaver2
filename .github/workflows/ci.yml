@@ -19,6 +19,30 @@ env:
   NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
+  # ── 0. Secret/key 파일 staging 차단 (Push ruleset 대체) ──────────
+  secret-files:
+    name: Forbidden file check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject .env*/keys in tree
+        run: |
+          set -euo pipefail
+          forbidden=$(git ls-files | awk '
+            /(^|\/)\.env(\.[^\/]+)?$/ && !/\.env\.example/ { print }
+            /\.(pem|key|p12|pfx|crt|cer)$/ { print }
+            /(^|\/)(id_rsa|id_ed25519)/ { print }
+          ' || true)
+          if [ -n "$forbidden" ]; then
+            echo "::error::다음 파일이 저장소에 포함되어 있습니다 (secret/key 의심):"
+            echo "$forbidden" | sed 's/^/::error::  - /'
+            exit 1
+          fi
+          echo "✓ Secret/key 파일 없음."
+
   # ── 1. 의존성 설치 + 캐시 (모든 후속 job의 prerequisite) ─────────────
   install:
     name: Install dependencies
@@ -256,6 +280,7 @@ jobs:
     name: CI success
     if: always()
     needs:
+      - secret-files
       - lint
       - test-unit
       - test-integration

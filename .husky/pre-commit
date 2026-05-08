@@ -1,1 +1,16 @@
+# Secret/key 파일이 커밋되는 것을 사전 차단
+# (.env*, *.pem/*.key/*.p12/*.pfx/*.crt/*.cer, id_rsa*/id_ed25519*)
+forbidden=$(git diff --cached --name-only --diff-filter=ACMR | awk '
+  /(^|\/)\.env(\.[^\/]+)?$/ && !/\.env\.example/ { print }
+  /\.(pem|key|p12|pfx|crt|cer)$/ { print }
+  /(^|\/)(id_rsa|id_ed25519)/ { print }
+')
+if [ -n "$forbidden" ]; then
+  echo "❌ 다음 파일은 커밋할 수 없습니다 (secret/key 의심):"
+  echo "$forbidden" | sed 's/^/  - /'
+  echo ""
+  echo "정말 필요하다면 .gitignore 예외를 두고 명시적으로 추가하세요."
+  exit 1
+fi
+
 pnpm test

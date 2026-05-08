@@ -49,7 +49,6 @@
     "---------------------------OTHERs---------------------------": "",
     "format": "prettier --write \"apps/core-backend/**/*.ts\" \"libs/**/*.ts\"",
     "lint": "eslint \"{src,apps/core-backend,libs,test}/**/*.ts\" --fix",
-    "postinstall": "npx husky init",
     "prepare": "husky"
   },
   "dependencies": {
