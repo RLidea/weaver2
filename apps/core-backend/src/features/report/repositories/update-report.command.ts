@@ -1,7 +1,9 @@
-import { PrismaClient, ReportStatus, ReportAction } from '@prisma/client';
+import { Prisma, PrismaClient, ReportStatus, ReportAction } from '@prisma/client';
+
+type ReportDb = PrismaClient | Prisma.TransactionClient;
 
 export async function UpdateReportStatusCommand(
-  prisma: PrismaClient,
+  prisma: ReportDb,
   id: string,
   data: {
     status: ReportStatus;
@@ -15,7 +17,7 @@ export async function UpdateReportStatusCommand(
 }
 
 export async function ResolveRelatedReportsCommand(
-  prisma: PrismaClient,
+  prisma: ReportDb,
   targetType: string,
   targetId: string,
   resolvedById: string,
