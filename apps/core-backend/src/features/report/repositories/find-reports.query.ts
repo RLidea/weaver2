@@ -1,4 +1,9 @@
-import { PrismaClient, ReportStatus, ReportTarget } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  ReportStatus,
+  ReportTarget,
+} from '@prisma/client';
 
 export async function FindReportsQuery(
   prisma: PrismaClient,
@@ -7,7 +12,7 @@ export async function FindReportsQuery(
   limit = 20,
 ) {
   const take = limit + 1;
-  const where: Record<string, unknown> = {};
+  const where: Prisma.ReportWhereInput = {};
   if (filters.status) where.status = filters.status;
   if (filters.targetType) where.targetType = filters.targetType;
 

@@ -1,4 +1,10 @@
-import { Prisma, PrismaClient, ReportStatus, ReportAction } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  ReportStatus,
+  ReportAction,
+  ReportTarget,
+} from '@prisma/client';
 
 type ReportDb = PrismaClient | Prisma.TransactionClient;
 
@@ -18,14 +24,14 @@ export async function UpdateReportStatusCommand(
 
 export async function ResolveRelatedReportsCommand(
   prisma: ReportDb,
-  targetType: string,
+  targetType: ReportTarget,
   targetId: string,
   resolvedById: string,
   actionTaken: ReportAction,
 ) {
   return prisma.report.updateMany({
     where: {
-      targetType: targetType as never,
+      targetType,
       targetId,
       status: { in: ['PENDING', 'REVIEWING'] },
     },
