@@ -2,6 +2,22 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { ResolveRelatedReportsCommand } from '../repositories/update-report.command';
 import { DeletePostCommand } from '../../board/repositories/delete-post.command';
+import {
+  HidePostCommand,
+  UnhidePostCommand,
+} from '../../board/repositories/hide-post.command';
+import {
+  HideCommentCommand,
+  UnhideCommentCommand,
+  SoftDeleteCommentCommand,
+} from '../../board/repositories/hide-comment.command';
+import {
+  HidePostFileCommand,
+  UnhidePostFileCommand,
+} from '../../board/repositories/hide-post-file.command';
+import { WarnUserCommand } from '../../../core/user/repositories/warn-user.command';
+import { SuspendUserCommand } from '../../../core/user/repositories/suspend-user.command';
+import { UnsuspendUserCommand } from '../../../core/user/repositories/unsuspend-user.command';
 import { SuspendUserDto } from '../dto/moderation-action.dto';
 
 @Injectable()
@@ -21,7 +37,7 @@ export class ModerationService {
       if (!post) throw new NotFoundException(`Post '${id}' not found.`);
 
       const hiddenAt = new Date();
-      await tx.post.update({ where: { id }, data: { hiddenAt } });
+      await HidePostCommand(tx, id, hiddenAt);
       await ResolveRelatedReportsCommand(
         tx,
         'POST',
@@ -36,7 +52,7 @@ export class ModerationService {
   async unhidePost(id: string): Promise<void> {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException(`Post '${id}' not found.`);
-    await this.prisma.post.update({ where: { id }, data: { hiddenAt: null } });
+    await UnhidePostCommand(this.prisma, id);
   }
 
   async deletePost(id: string, moderatorId: string): Promise<void> {
@@ -70,7 +86,7 @@ export class ModerationService {
       if (!comment) throw new NotFoundException(`Comment '${id}' not found.`);
 
       const hiddenAt = new Date();
-      await tx.comment.update({ where: { id }, data: { hiddenAt } });
+      await HideCommentCommand(tx, id, hiddenAt);
       await ResolveRelatedReportsCommand(
         tx,
         'COMMENT',
@@ -85,10 +101,7 @@ export class ModerationService {
   async unhideComment(id: string): Promise<void> {
     const comment = await this.prisma.comment.findUnique({ where: { id } });
     if (!comment) throw new NotFoundException(`Comment '${id}' not found.`);
-    await this.prisma.comment.update({
-      where: { id },
-      data: { hiddenAt: null },
-    });
+    await UnhideCommentCommand(this.prisma, id);
   }
 
   async deleteComment(id: string, moderatorId: string): Promise<void> {
@@ -98,10 +111,7 @@ export class ModerationService {
       });
       if (!comment) throw new NotFoundException(`Comment '${id}' not found.`);
 
-      await tx.comment.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-      });
+      await SoftDeleteCommentCommand(tx, id, new Date());
       await ResolveRelatedReportsCommand(
         tx,
         'COMMENT',
@@ -123,7 +133,7 @@ export class ModerationService {
       if (!file) throw new NotFoundException(`Media '${id}' not found.`);
 
       const hiddenAt = new Date();
-      await tx.postFile.update({ where: { id }, data: { hiddenAt } });
+      await HidePostFileCommand(tx, id, hiddenAt);
       await ResolveRelatedReportsCommand(
         tx,
         'MEDIA',
@@ -138,10 +148,7 @@ export class ModerationService {
   async unhideMedia(id: string): Promise<void> {
     const file = await this.prisma.postFile.findUnique({ where: { id } });
     if (!file) throw new NotFoundException(`Media '${id}' not found.`);
-    await this.prisma.postFile.update({
-      where: { id },
-      data: { hiddenAt: null },
-    });
+    await UnhidePostFileCommand(this.prisma, id);
   }
 
   // ── User ──────────────────────────────────────────────
@@ -156,11 +163,7 @@ export class ModerationService {
       });
       if (!user) throw new NotFoundException(`User '${userId}' not found.`);
 
-      const updated = await tx.user.update({
-        where: { id: userId },
-        data: { warningCount: { increment: 1 } },
-        select: { id: true, warningCount: true },
-      });
+      const updated = await WarnUserCommand(tx, userId);
       await ResolveRelatedReportsCommand(
         tx,
         'USER',
@@ -187,11 +190,7 @@ export class ModerationService {
         ? new Date(Date.now() + dto.days * 86400_000)
         : null; // null = 영구 정지
 
-      const updated = await tx.user.update({
-        where: { id: userId },
-        data: { suspendedUntil },
-        select: { id: true, suspendedUntil: true },
-      });
+      const updated = await SuspendUserCommand(tx, userId, suspendedUntil);
       await ResolveRelatedReportsCommand(
         tx,
         'USER',
@@ -206,9 +205,6 @@ export class ModerationService {
   async unsuspendUser(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException(`User '${userId}' not found.`);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { suspendedUntil: new Date(0) }, // 과거 시각으로 설정 → 정지 해제
-    });
+    await UnsuspendUserCommand(this.prisma, userId);
   }
 }
