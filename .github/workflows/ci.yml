@@ -179,7 +179,9 @@ jobs:
         run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
 
       - name: Run integration tests
-        run: pnpm test:integration:run -- --ci --maxWorkers=2
+        # pnpm test:integration:run의 -- forwarding이 jest --ci 인자로 안 넘어가서
+        # 직접 jest를 호출. config는 동일.
+        run: npx jest --config apps/core-backend/test/jest-integration.json --no-coverage --ci --maxWorkers=2
 
   # ── 5. Backend build ─────────────────────────────────────────────
   build-backend:
@@ -212,8 +214,9 @@ jobs:
     needs: install
     runs-on: ubuntu-latest
     env:
-      # 빌드 단계에서 backend URL이 필요 없도록 더미 주입
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+      # 빌드 단계 prerender에서 ApiClient 모듈이 평가되므로 더미 URL 주입.
+      # 변수명은 apps/core-frontend/src/infrastructure/api-client.ts와 일치해야 함.
+      NEXT_PUBLIC_API_URL: http://localhost:4000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

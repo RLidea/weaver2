@@ -3,40 +3,40 @@
 // =============================================================================
 
 model User {
-  id               String               @id @default(uuid())
-  email            String               @unique
-  username         String               @unique
-  displayName      String               @unique
-  profileImageUrl  String?
-  profileImagePath String?
-  warningCount     Int                  @default(0)
-  suspendedUntil   DateTime?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  deletedAt        DateTime?
-  lastLoginAt      DateTime?
-  localCredential      LocalCredential?
-  oauthAccounts        OAuthAccount[]
-  refreshTokens        RefreshToken[]
-  twoFactorChallenges  TwoFactorChallenge[]
-  emailChangeRequests  EmailChangeRequest[]
-  emailLogs        EmailLog[]
-  pageViews        PageView[]
-  userSetting      UserSetting?
-  userAgreements   UserTermsAgreement[]
-  permissionGroups UserPermissionGroup[]
-  notifications    Notification[]
-  pushSubscriptions PushSubscription[]
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  username            String                @unique
+  displayName         String                @unique
+  profileImageUrl     String?
+  profileImagePath    String?
+  warningCount        Int                   @default(0)
+  suspendedUntil      DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  deletedAt           DateTime?
+  lastLoginAt         DateTime?
+  localCredential     LocalCredential?
+  oauthAccounts       OAuthAccount[]
+  refreshTokens       RefreshToken[]
+  twoFactorChallenges TwoFactorChallenge[]
+  emailChangeRequests EmailChangeRequest[]
+  emailLogs           EmailLog[]
+  pageViews           PageView[]
+  userSetting         UserSetting?
+  userAgreements      UserTermsAgreement[]
+  permissionGroups    UserPermissionGroup[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
 
   // Project-specific relations (board)
-  posts            Post[]
-  comments         Comment[]
-  reactions        PostReaction[]
-  files            PostFile[]
+  posts     Post[]
+  comments  Comment[]
+  reactions PostReaction[]
+  files     PostFile[]
 
   // Project-specific relations (report)
-  reportsMade      Report[]             @relation("ReportsMade")
-  reportsHandled   Report[]             @relation("ReportsHandled")
+  reportsMade    Report[] @relation("ReportsMade")
+  reportsHandled Report[] @relation("ReportsHandled")
 
   @@map("users")
 }
