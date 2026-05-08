@@ -9,6 +9,7 @@ import { SearchIcon } from '@/shared/components/ui/icons';
 import type { SearchType } from '../types';
 
 const LIMIT = 20;
+const MAX_PAGE = 100;
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -58,9 +59,12 @@ export function SearchPageView() {
     q.trim().length > 0,
   );
 
-  const totalPages = Math.max(
-    Math.ceil(((type === 'comments' ? data?.total.comments : data?.total.posts) ?? 0) / LIMIT),
-    1,
+  const totalPages = Math.min(
+    Math.max(
+      Math.ceil(((type === 'comments' ? data?.total.comments : data?.total.posts) ?? 0) / LIMIT),
+      1,
+    ),
+    MAX_PAGE,
   );
 
   return (
