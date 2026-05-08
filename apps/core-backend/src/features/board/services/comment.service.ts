@@ -9,6 +9,8 @@ import { UpdateCommentDto } from '../dto/update-comment.dto';
 import { CommentDto } from '../dto/comment.dto';
 import { CreateCommentCommand } from '../repositories/create-comment.command';
 import { FindCommentByIdQuery } from '../repositories/find-comment-by-id.query';
+import { FindCommentSummaryQuery } from '../repositories/find-comment-summary.query';
+import { FindPostNotificationTargetQuery } from '../repositories/find-post-notification-target.query';
 import {
   FindFlatCommentsByPostIdQuery,
   FindFlatDescendantsByPostIdQuery,
@@ -53,10 +55,10 @@ export class CommentService {
 
     // parentId 유효성 검증: 같은 게시글의 댓글인지, 삭제되지 않았는지 확인
     if (dto.parentId) {
-      const parentComment = await this.prisma.comment.findUnique({
-        where: { id: dto.parentId },
-        select: { postId: true, deletedAt: true },
-      });
+      const parentComment = await FindCommentSummaryQuery(
+        this.prisma,
+        dto.parentId,
+      );
       if (!parentComment) {
         throw new NotFoundException(
           `Parent comment with ID '${dto.parentId}' not found.`,
@@ -83,18 +85,15 @@ export class CommentService {
     );
 
     if (authorId) {
-      const post = await this.prisma.post.findUnique({
-        where: { id: postId },
-        select: { authorId: true, boardId: true },
-      });
+      const post = await FindPostNotificationTargetQuery(this.prisma, postId);
       const postLink = post ? `/boards/${post.boardId}/posts/${postId}` : `/boards/unknown/posts/${postId}`;
 
       // 대댓글: 부모 댓글 작성자에게 알림
       if (dto.parentId) {
-        const parentComment = await this.prisma.comment.findUnique({
-          where: { id: dto.parentId },
-          select: { authorId: true },
-        });
+        const parentComment = await FindCommentSummaryQuery(
+          this.prisma,
+          dto.parentId,
+        );
         if (parentComment?.authorId) {
           const event: NotificationEventDto = {
             recipientId: parentComment.authorId,

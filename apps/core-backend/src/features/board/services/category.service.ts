@@ -8,6 +8,15 @@ import { CategoryDto } from '../dto/category.dto';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
 import { BoardService } from './board.service';
+import {
+  FindCategoryByIdQuery,
+  FindCategoryByBoardAndNameQuery,
+  FindCategoriesByBoardQuery,
+  CreateCategoryCommand,
+  UpdateCategoryCommand,
+  DeleteCategoryCommand,
+  ClearPostsCategoryCommand,
+} from '../repositories/category.repository';
 
 @Injectable()
 export class CategoryService {
@@ -19,40 +28,27 @@ export class CategoryService {
   async create(boardId: string, dto: CreateCategoryDto): Promise<CategoryDto> {
     await this.boardService.findBoardById(boardId);
 
-    const existing = await this.prisma.postCategory.findUnique({
-      where: { boardId_name: { boardId, name: dto.name } },
-    });
+    const existing = await FindCategoryByBoardAndNameQuery(
+      this.prisma,
+      boardId,
+      dto.name,
+    );
     if (existing) {
       throw new ConflictException(
         `Category with name '${dto.name}' already exists in this board.`,
       );
     }
 
-    return this.prisma.postCategory.create({
-      data: {
-        board: { connect: { id: boardId } },
-        name: dto.name,
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.color !== undefined && { color: dto.color }),
-        ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-      },
-    });
+    return CreateCategoryCommand(this.prisma, boardId, dto);
   }
 
   async findAllByBoardId(boardId: string): Promise<CategoryDto[]> {
     await this.boardService.findBoardById(boardId);
-
-    return this.prisma.postCategory.findMany({
-      where: { boardId },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
+    return FindCategoriesByBoardQuery(this.prisma, boardId);
   }
 
   async findById(boardId: string, categoryId: string): Promise<CategoryDto> {
-    const category = await this.prisma.postCategory.findUnique({
-      where: { id: categoryId },
-    });
+    const category = await FindCategoryByIdQuery(this.prisma, categoryId);
     if (!category || category.boardId !== boardId) {
       throw new NotFoundException(
         `Category with ID '${categoryId}' not found in this board.`,
@@ -69,9 +65,11 @@ export class CategoryService {
     await this.findById(boardId, categoryId);
 
     if (dto.name) {
-      const conflict = await this.prisma.postCategory.findUnique({
-        where: { boardId_name: { boardId, name: dto.name } },
-      });
+      const conflict = await FindCategoryByBoardAndNameQuery(
+        this.prisma,
+        boardId,
+        dto.name,
+      );
       if (conflict && conflict.id !== categoryId) {
         throw new ConflictException(
           `Category with name '${dto.name}' already exists in this board.`,
@@ -79,21 +77,16 @@ export class CategoryService {
       }
     }
 
-    return this.prisma.postCategory.update({
-      where: { id: categoryId },
-      data: dto,
-    });
+    return UpdateCategoryCommand(this.prisma, categoryId, dto);
   }
 
   async delete(boardId: string, categoryId: string): Promise<void> {
     await this.findById(boardId, categoryId);
 
-    // 해당 카테고리를 사용 중인 게시글의 categoryId를 null로 해제
-    await this.prisma.post.updateMany({
-      where: { categoryId },
-      data: { categoryId: null },
+    // 해당 카테고리를 사용 중인 게시글의 categoryId를 null로 해제 후 삭제
+    await this.prisma.$transaction(async (tx) => {
+      await ClearPostsCategoryCommand(tx, categoryId);
+      await DeleteCategoryCommand(tx, categoryId);
     });
-
-    await this.prisma.postCategory.delete({ where: { id: categoryId } });
   }
 }

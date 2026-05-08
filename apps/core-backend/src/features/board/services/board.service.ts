@@ -9,6 +9,7 @@ import { BoardDto } from '../dto/board.dto';
 import { CreateBoardCommand } from '../repositories/create-board.command';
 import { FindAllBoardsQuery } from '../repositories/find-all-boards.query';
 import { FindBoardByIdQuery } from '../repositories/find-board-by-id.query';
+import { FindBoardByNameQuery } from '../repositories/find-board-by-name.query';
 import { UpdateBoardDto } from '../dto/update-board.dto';
 import { UpdateBoardCommand } from '../repositories/update-board.command';
 import { DeleteBoardCommand } from '../repositories/delete-board.command';
@@ -22,9 +23,7 @@ export class BoardService {
   ) {}
 
   async createBoard(dto: CreateBoardDto): Promise<BoardDto> {
-    const existingBoard = await this.prisma.board.findFirst({
-      where: { name: dto.name, deletedAt: null },
-    });
+    const existingBoard = await FindBoardByNameQuery(this.prisma, dto.name);
     if (existingBoard) {
       throw new ConflictException(
         `Board with name '${dto.name}' already exists.`,
@@ -36,7 +35,6 @@ export class BoardService {
       dto.description,
     );
 
-    // 기본 권한 설정 생성
     await this.permissionService.createDefaultPermissions(board.id);
 
     return board;
@@ -61,9 +59,7 @@ export class BoardService {
     }
 
     if (dto.name && dto.name !== existingBoard.name) {
-      const nameConflict = await this.prisma.board.findFirst({
-        where: { name: dto.name, deletedAt: null },
-      });
+      const nameConflict = await FindBoardByNameQuery(this.prisma, dto.name);
       if (nameConflict) {
         throw new ConflictException(
           `Board with name '${dto.name}' already exists.`,

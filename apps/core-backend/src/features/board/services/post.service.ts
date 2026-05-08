@@ -5,6 +5,10 @@ import { UpdatePostDto } from '../dto/update-post.dto';
 import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { AdminPostsQueryDto } from '../dto/admin-posts-query.dto';
+import { CreatePostCommand } from '../repositories/create-post.command';
+import { FindPostByIdQuery } from '../repositories/find-post-by-id.query';
+import { FindPinnedPostsQuery } from '../repositories/find-pinned-posts.query';
+import { IncrementPostViewCountCommand } from '../repositories/increment-post-view-count.command';
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
@@ -33,7 +37,6 @@ export class PostService {
     authorId: string | null,
     dto: CreatePostDto,
   ): Promise<PostDto> {
-    // Check if board exists
     await this.boardService.findBoardById(boardId);
 
     const baseData = {
@@ -51,19 +54,10 @@ export class PostService {
       ? { ...baseData, author: { connect: { id: authorId } } }
       : baseData;
 
-    const post = await this.prisma.post.create({
-      data: createData as Prisma.PostCreateInput,
-      include: {
-        board: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
-        },
-      },
-    });
+    const post = await CreatePostCommand(
+      this.prisma,
+      createData as Prisma.PostCreateInput,
+    );
     return post as PostDto;
   }
 
@@ -154,14 +148,8 @@ export class PostService {
       ...(categoryId && { categoryId }),
     };
 
-    // 고정 게시글: priority 내림차순 → 최신순 정렬
-    const pinnedPosts = await this.prisma.post.findMany({
-      where: { ...baseWhere, isPinned: true },
-      include: POST_INCLUDE,
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
-    });
+    const pinnedPosts = await FindPinnedPostsQuery(this.prisma, baseWhere);
 
-    // 일반 게시글: 고정 제외, keyset 페이지네이션
     const paginated = await KeysetPaginationService.paginate<PostDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: this.prisma.post as any,
@@ -189,46 +177,25 @@ export class PostService {
       status: 'PUBLISHED' as const,
       deletedAt: null,
       hiddenAt: null,
-      // 로그인하지 않은 사용자는 비밀글 접근 불가
       ...(!isLoggedIn && { isSecret: false }),
     };
 
-    const post = await this.prisma.post.findUnique({
-      where: whereCondition,
-      include: {
-        board: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
-        },
-      },
-    });
+    const post = await FindPostByIdQuery(this.prisma, whereCondition);
 
     if (!post) {
       throw new NotFoundException(`Post with ID '${id}' not found.`);
     }
 
-    // 조회수 증가 (선택적)
     if (incrementView) {
       await this.incrementViewCount(id);
       post.viewCount = post.viewCount + 1;
     }
 
-    return post;
+    return post as PostDto;
   }
 
   async incrementViewCount(postId: string): Promise<void> {
-    await this.prisma.post.update({
-      where: { id: postId },
-      data: {
-        viewCount: {
-          increment: 1,
-        },
-      },
-    });
+    await IncrementPostViewCountCommand(this.prisma, postId);
   }
 
   async updatePost(id: string, dto: UpdatePostDto): Promise<PostDto> {
