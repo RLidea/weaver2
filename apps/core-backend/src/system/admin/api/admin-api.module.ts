@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@weaver2/prisma';
-import { SystemSettingModule } from '../../../infrastructure/config/system-setting.module';
 import { AdminDashboardApiController } from './controllers/admin-dashboard.api.controller';
 import { AdminDashboardApiService } from './services/admin-dashboard.api.service';
 import { AdminContentApiController } from './controllers/admin-content.api.controller';
@@ -20,13 +19,7 @@ import { EmailModule } from '../../../infrastructure/email/email.module';
 import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    SystemSettingModule,
-    BoardModule,
-    EmailModule,
-    AnalyticsModule,
-  ],
+  imports: [PrismaModule, BoardModule, EmailModule, AnalyticsModule],
   controllers: [
     AdminDashboardApiController,
     AdminContentApiController,

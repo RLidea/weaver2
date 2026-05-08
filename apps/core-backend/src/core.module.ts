@@ -26,6 +26,7 @@ import { PermissionModule } from './core/permission/permission.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationModule } from './core/notification/notification.module';
 import { ReportModule } from './features/report/report.module';
+import { SystemSettingModule } from './infrastructure/config/system-setting.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ReportModule } from './features/report/report.module';
     UserModule,
     PrismaModule,
     PermissionModule,
+    SystemSettingModule,
     AuthModule,
     EmailModule,
     AdminModule,
