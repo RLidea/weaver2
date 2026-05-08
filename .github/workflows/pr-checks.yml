@@ -1,0 +1,91 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  # PR 제목이 Conventional Commits 형식인지 검사
+  pr-title:
+    name: PR title (Conventional Commits)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            test
+            docs
+            chore
+            style
+            ci
+            build
+          requireScope: false
+          subjectPattern: ^[A-Za-z가-힣].*$
+          subjectPatternError: |
+            PR 제목은 알파벳 또는 한글로 시작해야 합니다.
+            예: feat(auth): add password reset
+
+  # 변경 파일 종류에 따라 라벨 자동 부착
+  auto-label:
+    name: Auto-label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+        continue-on-error: true
+
+  # 거대 PR 경고 (>500줄 변경 시 코멘트)
+  large-pr-warning:
+    name: Large PR warning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff size
+        id: diff
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changes=$(git diff --shortstat "$base...$head" | awk '{ print $4 + $6 }')
+          changes=${changes:-0}
+          echo "changes=$changes" >> $GITHUB_OUTPUT
+          echo "PR changes: $changes lines"
+
+      - name: Comment if too large
+        if: steps.diff.outputs.changes > 500
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const changes = ${{ steps.diff.outputs.changes }};
+            const marker = '<!-- large-pr-warning -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            if (comments.some((c) => c.body?.includes(marker))) return;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                marker,
+                `🐘 이 PR은 약 **${changes}줄** 이상이 변경되었습니다.`,
+                '리뷰어가 부담을 느낄 수 있으니 가능하면 의미 단위로 분할해주세요.',
+              ].join('\n'),
+            });

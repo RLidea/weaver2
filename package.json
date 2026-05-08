@@ -5,6 +5,11 @@
   "author": "Centell",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "packageManager": "pnpm@11.0.8",
   "scripts": {
     "init": "sh scripts/init.sh",
     "---------------------------COMMON---------------------------": "",

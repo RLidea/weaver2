@@ -1,0 +1,79 @@
+name: Security audit
+
+on:
+  schedule:
+    # 매주 월요일 09:00 KST = 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'apps/*/package.json'
+      - 'libs/*/package.json'
+
+env:
+  HUSKY: '0'
+
+jobs:
+  audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (no scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # 1) High/Critical만 fail-fast — 정기 알림용
+      - name: Audit (High/Critical)
+        id: audit
+        run: pnpm audit --audit-level=high --json > audit-report.json || echo "audit_failed=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-audit-${{ github.run_number }}
+          path: audit-report.json
+          retention-days: 30
+
+      # 2) 스케줄 실행에서 취약점 발견 시 GitHub Issue 생성
+      - name: Open issue on vulnerabilities
+        if: steps.audit.outputs.audit_failed == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '취약점 감지됨. 상세는 artifact 참조.';
+            try {
+              const data = JSON.parse(fs.readFileSync('audit-report.json', 'utf8'));
+              summary = '```json\n' + JSON.stringify(data.metadata?.vulnerabilities ?? data, null, 2) + '\n```';
+            } catch (_) {}
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[security] pnpm audit found vulnerabilities (${new Date().toISOString().slice(0, 10)})`,
+              body: [
+                '주간 의존성 감사에서 High/Critical 취약점이 발견되었습니다.',
+                '',
+                summary,
+                '',
+                `- workflow run: ${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+              ].join('\n'),
+              labels: ['security', 'dependencies'],
+            });
+
+      # 3) PR에서 발견된 경우 PR 상태 fail로 전파
+      - name: Fail PR if audit found High/Critical
+        if: steps.audit.outputs.audit_failed == 'true' && github.event_name == 'pull_request'
+        run: |
+          echo "::error::pnpm audit reported High/Critical vulnerabilities."
+          exit 1

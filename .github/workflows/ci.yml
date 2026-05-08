@@ -1,0 +1,273 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 동일 PR/branch에 새 push 들어오면 진행 중인 run 취소
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # husky가 CI에서 init되지 않도록 차단
+  HUSKY: '0'
+  # Next.js 빌드 시 텔레메트리 차단
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  # ── 1. 의존성 설치 + 캐시 (모든 후속 job의 prerequisite) ─────────────
+  install:
+    name: Install dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile, no scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
+        env:
+          # prisma generate는 DB에 연결하지 않으므로 더미 URL이면 충분
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      # 다음 job들이 재사용할 수 있도록 .prisma client + node_modules 캐시
+      - name: Cache node_modules + prisma client
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+
+  # ── 2. ESLint ────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - run: pnpm lint
+
+  # ── 3. Unit tests ────────────────────────────────────────────────
+  test-unit:
+    name: Unit tests
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      # --ci: watch off, --maxWorkers=2: GitHub-hosted runner CPU 매칭
+      - run: npx jest --config apps/core-backend/jest.config.js --ci --maxWorkers=2
+
+  # ── 4. Integration tests (Postgres 서비스 컨테이너) ────────────────
+  test-integration:
+    name: Integration tests
+    needs: install
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: weaver
+          POSTGRES_PASSWORD: weaver
+          POSTGRES_DB: weaver_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://weaver:weaver@localhost:5432/weaver_test
+      JWT_SECRET: ci-jwt-secret-not-for-prod
+      CSRF_SECRET: ci-csrf-secret-not-for-prod
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
+
+      - name: Run integration tests
+        run: pnpm test:integration:run -- --ci --maxWorkers=2
+
+  # ── 5. Backend build ─────────────────────────────────────────────
+  build-backend:
+    name: Build backend
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - run: npx nest build core-backend
+
+  # ── 6. Frontend build (포함: TypeScript 검증) ─────────────────────
+  build-web:
+    name: Build web
+    needs: install
+    runs-on: ubuntu-latest
+    env:
+      # 빌드 단계에서 backend URL이 필요 없도록 더미 주입
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Cache .next
+        uses: actions/cache@v4
+        with:
+          path: apps/core-frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/core-frontend/package.json', 'apps/core-frontend/**/*.[jt]s', 'apps/core-frontend/**/*.[jt]sx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-
+
+      - run: pnpm --filter core-frontend exec next build
+
+  # ── 7. Prisma schema drift / format ──────────────────────────────
+  prisma-check:
+    name: Prisma schema check
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Validate schema
+        run: pnpm prisma validate --schema=apps/core-backend/prisma/schema
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - name: Format check
+        run: pnpm prisma format --schema=apps/core-backend/prisma/schema --check
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+  # ── 8. 종합 게이트 (Branch protection이 이 job 하나만 require해도 OK) ─
+  ci-success:
+    name: CI success
+    if: always()
+    needs:
+      - lint
+      - test-unit
+      - test-integration
+      - build-backend
+      - build-web
+      - prisma-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all checks passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required jobs failed."
+            exit 1
+          fi
+          echo "All required CI checks passed."

@@ -1,0 +1,45 @@
+# actions/labeler@v5 설정 — 변경 경로에 따라 자동 라벨
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/core-backend/**
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/core-frontend/**
+
+libs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - libs/**
+
+db:migration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/core-backend/prisma/schema/migrations/**
+
+db:schema:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/core-backend/prisma/schema/*.prisma
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - pnpm-lock.yaml
+          - apps/*/package.json
+          - libs/*/package.json
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**
