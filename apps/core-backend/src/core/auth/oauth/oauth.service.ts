@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -96,7 +97,13 @@ export class OAuthService {
       this.logger.error(
         `OAuth callback failed for provider=${providerName}: ${(error as Error).message}`,
       );
-      res.redirect(failureUrl);
+
+      // 이미 가입된 이메일과 충돌한 경우 프론트에서 메시지 표시할 수 있도록 query 전달
+      const target =
+        error instanceof ConflictException
+          ? `${failureUrl}${failureUrl.includes('?') ? '&' : '?'}error=oauth_email_conflict&provider=${encodeURIComponent(providerName)}`
+          : failureUrl;
+      res.redirect(target);
     }
   }
 
@@ -157,18 +164,15 @@ export class OAuthService {
       return { userId: existing.userId };
     }
 
-    // 2. 같은 이메일 User 조회 → 자동 연동
+    // 2. 같은 이메일 사용자 존재 → 자동 연동을 차단한다.
+    // 이메일을 검증하지 않는 OAuth provider 또는 임의 이메일을 청구할 수 있는
+    // provider에 대해 자동 연동은 계정 탈취 위험. 사용자가 로그인 후 설정에서
+    // 명시적으로 연동하도록 안내한다.
     const existingUser = await FindUserByEmailQuery(this.prisma, profile.email);
     if (existingUser) {
-      await UpsertOAuthAccountCommand(this.prisma, {
-        userId: existingUser.id,
-        provider: profile.provider,
-        providerId: profile.providerId,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        tokenExpiry: tokens.tokenExpiry,
-      });
-      return { userId: existingUser.id };
+      throw new ConflictException(
+        `이미 ${profile.email} 이메일로 가입된 계정이 있습니다. 로그인 후 설정에서 ${profile.provider} 계정을 연동해주세요.`,
+      );
     }
 
     // 3. 신규 사용자 생성
