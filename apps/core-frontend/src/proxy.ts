@@ -1,6 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_PATHS = ['/dashboard', '/boards', '/notifications', '/settings'];
+const PROTECTED_PATHS = [
+  '/dashboard',
+  '/boards',
+  '/notifications',
+  '/settings',
+  '/search',
+  '/users',
+  '/admin',
+];
 const AUTH_PATHS = ['/login', '/sign-up'];
 
 function isProtected(pathname: string): boolean {
