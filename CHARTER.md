@@ -142,7 +142,7 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 - `console.*` 잔존은 모두 **의도된 사용** — 시드 CLI 로깅(`prisma/seed/*`), React error boundary(`apps/core-frontend/src/app/error.tsx`), 빌드 타임 환경변수 경고(`server-api.ts`). 백엔드 서비스 코드는 NestJS `Logger`로 통일.
 - DB raw 쿼리에 테이블·컬럼 식별자 직접 박힘 — **의도된 trade-off**. Prisma 파라미터 바인딩은 식별자에 못 쓰므로 상수화하면 `${Prisma.raw(...)}` 보일러플레이트가 폭증. `@@map`/필드명 변경 빈도가 매우 낮으므로 박힌 채로 유지. 위치: `features/search/repositories/`, `features/board/services/reaction.service.ts`, `infrastructure/analytics/`.
 - 결제·송금·금융 미포함
-- e2e 테스트 부재 (현재 통합 테스트 1종, 유닛 102종)
+- e2e 커버리지 최소 — 현재 유닛 102 + 통합 1 + e2e 1(로그인 골든패스, Playwright). 시나리오 확장은 ROADMAP. 인프라(`apps/core-frontend/e2e/`, CI test-e2e job)는 갖춰져 있어 추가는 spec 파일 한 개씩 들어감.
 
 ---
 

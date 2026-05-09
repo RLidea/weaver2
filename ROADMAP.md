@@ -35,19 +35,22 @@
 
 ## 🟡 우선순위 중간 (서비스 안정화 단계)
 
-### Playwright e2e 테스트
+### Playwright e2e 테스트 (인프라 도입 완료, 시나리오 확장 진행)
 
-- 현재 통합 테스트는 `auth-security.integration.spec.ts` 1개
-- 핵심 사용자 흐름 5~10개 시나리오 추가:
-  1. 회원가입 → 이메일 인증 → 로그인
-  2. 게시글 작성 → 댓글 → 리액션
-  3. 비밀번호 재설정 (이메일 발송 mock)
-  4. OAuth 로그인 (Google 모킹)
-  5. 어드민 콘텐츠 숨김/삭제
-  6. 신고 생성 → 처리
-  7. 2FA 설정·로그인
-  8. 세션 관리 (다른 기기 로그아웃)
-- CI에 별도 job 추가 (서비스 컨테이너 + Playwright runner)
+**완료**:
+- Playwright 1.59.1 + `apps/core-frontend/e2e/`
+- CI `test-e2e` job (Postgres service container + 빌드 + Playwright)
+- 시나리오 1개: 로그인 골든패스 (admin 시드 사용)
+
+**남은 시나리오 후보** (각 1 spec):
+1. ~~회원가입 → 이메일 인증 → 로그인~~ — 메일 인박스 모킹 인프라 필요 (별도 작업)
+2. 게시글 작성 → 댓글 → 리액션
+3. 비밀번호 재설정 (이메일 발송 mock)
+4. OAuth 로그인 (Google 모킹)
+5. 어드민 콘텐츠 숨김/삭제
+6. 신고 생성 → 처리
+7. 2FA 설정·로그인
+8. 세션 관리 (다른 기기 로그아웃)
 
 ### 운영 모니터링 (Observability)
 

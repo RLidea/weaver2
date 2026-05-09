@@ -295,6 +295,12 @@ pnpm db:reset         # DB 초기화 + 시드
 pnpm lint             # ESLint 검사
 pnpm format           # Prettier 포맷팅
 pnpm test             # 유닛 테스트
+pnpm test:integration # 통합 테스트 (Postgres 필요)
+
+# E2E (Playwright) — 풀 스택 시나리오, 자세한 안내는 apps/core-frontend/e2e/README.md
+pnpm --filter core-frontend e2e:install    # 1회: chromium 브라우저 설치
+pnpm --filter core-frontend e2e            # e2e 실행 (자동으로 frontend·backend 기동)
+pnpm --filter core-frontend e2e:ui         # Playwright UI 모드 (시나리오 작성/디버깅)
 ```
 
 ---

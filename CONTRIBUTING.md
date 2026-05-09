@@ -285,12 +285,15 @@ pnpm db:migrate
 |------|------|------|
 | **Unit** | `**/*.spec.ts` (소스 옆) | `pnpm test` |
 | **Integration** | `apps/core-backend/test/integration/**` | `pnpm test:integration` |
-| **e2e (예정)** | `apps/core-frontend/e2e/**` | (Playwright 도입 시) |
+| **E2E (Playwright)** | `apps/core-frontend/e2e/**` | `pnpm --filter core-frontend e2e` |
 
 ### 어떤 걸 작성?
 
 - **Unit** — 순수 로직, 분기, 검증, 변환 (DB 의존성 없는 것)
 - **Integration** — DB·외부 의존 통합, 권한 가드, 트랜잭션 cascade
+- **E2E** — 풀 스택 사용자 시나리오 (브라우저 → Next.js → backend → Postgres).
+  새 기능이 추가하는 골든 패스 1개씩 추가가 기준. 자세한 가이드는
+  [`apps/core-frontend/e2e/README.md`](apps/core-frontend/e2e/README.md)
 
 ### Mock 패턴 (이번 세션 정착됨)
 
