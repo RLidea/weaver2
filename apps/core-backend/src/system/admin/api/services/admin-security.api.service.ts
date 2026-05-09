@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { Prisma } from '@prisma/client';
 import { exec } from 'child_process';
@@ -51,6 +51,8 @@ const execAsync = promisify(exec);
 
 @Injectable()
 export class AdminSecurityApiService {
+  private readonly logger = new Logger(AdminSecurityApiService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -84,7 +86,7 @@ export class AdminSecurityApiService {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error('Error getting audit history:', error);
+      this.logger.error('Error getting audit history:', error);
       throw new Error('Failed to retrieve audit history');
     }
   }
@@ -106,7 +108,7 @@ export class AdminSecurityApiService {
         report as SecurityAuditReport,
       );
     } catch (error) {
-      console.error('Error getting audit report by ID:', error);
+      this.logger.error('Error getting audit report by ID:', error);
       throw new Error('Failed to retrieve audit report');
     }
   }
@@ -136,7 +138,7 @@ export class AdminSecurityApiService {
         };
       } else {
         // No stored data, return empty state
-        console.log('No stored audit data found, showing empty state');
+        this.logger.debug('No stored audit data found, showing empty state');
         return {
           statusCards: [
             {
@@ -152,7 +154,7 @@ export class AdminSecurityApiService {
         };
       }
     } catch (error) {
-      console.error('Error getting system status:', error);
+      this.logger.error('Error getting system status:', error);
       // Return error state
       return {
         statusCards: [
@@ -249,7 +251,7 @@ export class AdminSecurityApiService {
         },
       };
     } catch (error) {
-      console.error('Error parsing stored audit data:', error);
+      this.logger.error('Error parsing stored audit data:', error);
       throw new Error('Failed to parse stored security audit data');
     }
   }
@@ -331,7 +333,7 @@ export class AdminSecurityApiService {
 
       return Math.max(0, Math.min(100, score));
     } catch (error) {
-      console.error('Error calculating security score:', error);
+      this.logger.error('Error calculating security score:', error);
       return 50; // Default to moderate score on error
     }
   }
@@ -353,7 +355,7 @@ export class AdminSecurityApiService {
         }
       );
     } catch (error) {
-      console.error('Error getting vulnerabilities:', error);
+      this.logger.error('Error getting vulnerabilities:', error);
       // Fallback to mock data
       return {
         info: 0,
@@ -432,7 +434,7 @@ export class AdminSecurityApiService {
 
       return vulnerabilities;
     } catch (error) {
-      console.error('Error getting vulnerability details:', error);
+      this.logger.error('Error getting vulnerability details:', error);
       // Fallback to mock data
       return [
         {
@@ -529,7 +531,7 @@ export class AdminSecurityApiService {
         },
       });
 
-      console.log(`Security audit report saved with ID: ${auditReport.id}`);
+      this.logger.log(`Security audit report saved with ID: ${auditReport.id}`);
 
       return {
         success: true,
@@ -540,7 +542,7 @@ export class AdminSecurityApiService {
         message: 'Security scan completed and saved successfully',
       };
     } catch (error) {
-      console.error('Security scan failed:', error);
+      this.logger.error('Security scan failed:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Security scan failed: ${errorMessage}`);
@@ -554,12 +556,12 @@ export class AdminSecurityApiService {
    */
   private async runPnpmAudit(): Promise<AuditResult> {
     try {
-      console.log('Running pnpm audit from directory:', process.cwd());
+      this.logger.debug('Running pnpm audit from directory:', process.cwd());
       const { stdout } = await execAsync('pnpm audit --json --no-optional', {
         cwd: process.cwd(),
         timeout: 30000, // 30 second timeout
       });
-      console.log('pnpm audit completed successfully');
+      this.logger.debug('pnpm audit completed successfully');
 
       // Clean stdout to ensure it's valid JSON
       const cleanOutput = stdout.trim();
@@ -577,7 +579,7 @@ export class AdminSecurityApiService {
           message?: string;
         };
 
-        console.log('pnpm audit error details:', {
+        this.logger.debug('pnpm audit error details:', {
           code: execError.code,
           stdout: execError.stdout
             ? execError.stdout.substring(0, 200) + '...'
@@ -588,14 +590,14 @@ export class AdminSecurityApiService {
 
         // pnpm audit returns non-zero exit code when vulnerabilities are found
         if (execError.stdout) {
-          console.log('Parsing stdout from pnpm audit');
+          this.logger.debug('Parsing stdout from pnpm audit');
           const cleanOutput = execError.stdout.trim();
 
           // Check if output starts with JSON
           if (cleanOutput.startsWith('{')) {
             return JSON.parse(cleanOutput) as AuditResult;
           } else {
-            console.error(
+            this.logger.error(
               'stdout is not valid JSON:',
               cleanOutput.substring(0, 200),
             );
@@ -606,7 +608,7 @@ export class AdminSecurityApiService {
 
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error('pnpm audit failed completely:', errorMessage);
+      this.logger.error('pnpm audit failed completely:', errorMessage);
       throw new Error(`pnpm audit failed: ${errorMessage}`);
     }
   }
@@ -811,12 +813,12 @@ export class AdminSecurityApiService {
           .update(lockfileContent)
           .digest('hex');
       } catch {
-        console.log('pnpm-lock.yaml not found, skipping lockfile hash');
+        this.logger.debug('pnpm-lock.yaml not found, skipping lockfile hash');
       }
 
       return { packageJsonHash, lockfileHash };
     } catch (error) {
-      console.error('Error calculating file hashes:', error);
+      this.logger.error('Error calculating file hashes:', error);
       return { packageJsonHash: '', lockfileHash: '' };
     }
   }
@@ -881,7 +883,7 @@ export class AdminSecurityApiService {
       }
       throw new Error('Invalid vulnerability count data');
     } catch (error) {
-      console.error('Error parsing vulnerability count:', error);
+      this.logger.error('Error parsing vulnerability count:', error);
       return { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 };
     }
   }
@@ -896,7 +898,7 @@ export class AdminSecurityApiService {
       }
       return [];
     } catch (error) {
-      console.error('Error parsing stored vulnerabilities:', error);
+      this.logger.error('Error parsing stored vulnerabilities:', error);
       return [];
     }
   }
@@ -912,7 +914,7 @@ export class AdminSecurityApiService {
       // Return empty array if no data - don't use hardcoded fallback
       return [];
     } catch (error) {
-      console.error('Error parsing stored recommendations:', error);
+      this.logger.error('Error parsing stored recommendations:', error);
       return [];
     }
   }
@@ -926,7 +928,7 @@ export class AdminSecurityApiService {
       const jsonString = JSON.stringify(value);
       return JSON.parse(jsonString) as Prisma.InputJsonValue;
     } catch (error) {
-      console.error('Error converting to JSON value:', error);
+      this.logger.error('Error converting to JSON value:', error);
       return {};
     }
   }
