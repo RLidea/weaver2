@@ -5,9 +5,8 @@ import { welcomeTemplate } from '../../src/infrastructure/email/templates/welcom
 import { twoFactorCodeTemplate } from '../../src/infrastructure/email/templates/two-factor-code.template';
 import { emailChangeTemplate } from '../../src/infrastructure/email/templates/email-change.template';
 import { logSeedResult } from './seed-logger';
-const prisma = new PrismaClient();
 
-export async function seedEmailTemplates() {
+export async function seedEmailTemplates(prisma: PrismaClient) {
   const templates = [
     emailVerificationTemplate,
     passwordResetTemplate,

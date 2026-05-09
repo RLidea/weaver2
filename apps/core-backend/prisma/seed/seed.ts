@@ -91,7 +91,7 @@ async function main() {
   await seedPermissionGroups(prisma);
   await seedUserPermissionGroups(prisma);
   await seedBoardPermissions(prisma);
-  await seedEmailTemplates();
+  await seedEmailTemplates(prisma);
   await seedEmojis(prisma);
   await seedTestPost(prisma);
   await seedFreeboardCategories(prisma);

@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { logSeedResult } from './seed-logger';
 
-const ADMIN_USER_ID = 'cmbyuak4e00001rjcld47s4u9';
 const TEST_POST_TITLE = '자유게시판입니다.';
 
 export async function seedTestPost(prisma: PrismaClient) {
@@ -12,6 +11,14 @@ export async function seedTestPost(prisma: PrismaClient) {
   if (existing) {
     logSeedResult('Post', TEST_POST_TITLE, 'exists');
     return existing;
+  }
+
+  const admin = await prisma.user.findUnique({
+    where: { username: 'admin' },
+  });
+  if (!admin) {
+    console.warn('⚠️ admin user not found, skipping test post seed.');
+    return null;
   }
 
   const freeBoard = await prisma.board.findUnique({ where: { name: 'Free' } });
@@ -25,7 +32,7 @@ export async function seedTestPost(prisma: PrismaClient) {
       title: TEST_POST_TITLE,
       content: '자유 게시판입니다.\n\n자유롭게 글을 남겨보세요!',
       boardId: freeBoard.id,
-      authorId: ADMIN_USER_ID,
+      authorId: admin.id,
     },
   });
 
@@ -37,6 +44,14 @@ export async function seedFreeboardCategories(prisma: PrismaClient) {
   const freeBoard = await prisma.board.findUnique({ where: { name: 'Free' } });
   if (!freeBoard) {
     console.warn('⚠️ Free board not found, skipping category seed.');
+    return;
+  }
+
+  const admin = await prisma.user.findUnique({
+    where: { username: 'admin' },
+  });
+  if (!admin) {
+    console.warn('⚠️ admin user not found, skipping category seed.');
     return;
   }
 
@@ -98,7 +113,7 @@ export async function seedFreeboardCategories(prisma: PrismaClient) {
         title: p.title,
         content: p.content,
         boardId: freeBoard.id,
-        authorId: ADMIN_USER_ID,
+        authorId: admin.id,
         categoryId: categories[p.categoryName],
       },
     });
