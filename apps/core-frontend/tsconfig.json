@@ -37,6 +37,8 @@
     "node_modules",
     "**/*.stories.ts",
     "**/*.stories.tsx",
-    "src/stories/**"
+    "src/stories/**",
+    "e2e/**",
+    "playwright.config.ts"
   ]
 }
