@@ -284,7 +284,107 @@ jobs:
         env:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
-  # ── 8. 종합 게이트 (Branch protection이 이 job 하나만 require해도 OK) ─
+  # ── 8. E2E (Playwright + 풀 스택 서비스) ─────────────────────────
+  test-e2e:
+    name: E2E (Playwright)
+    needs: install
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: weaver
+          POSTGRES_PASSWORD: weaver
+          POSTGRES_DB: weaver_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://weaver:weaver@localhost:5432/weaver_e2e
+      JWT_SECRET: ci-jwt-secret-not-for-prod
+      CSRF_SECRET: ci-csrf-secret-not-for-prod
+      # NODE_ENV=test 으로 두면 secure-cookie 강제가 비활성화되어
+      # http://localhost로 cookie가 정상 전달됨. test-integration과 동일.
+      NODE_ENV: test
+      ORIGIN_URL: localhost:4000
+      CLIENT_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:4000
+      PORT: '4000'
+      # EmailService 생성자가 SMTP env 검증 후 throw하므로 더미 주입 필수.
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: '587'
+      SMTP_USER: ci-test
+      SMTP_PASS: ci-test-password
+      # frontend rewrites + browser-side ApiClient
+      NEXT_PUBLIC_API_URL: /api
+      API_URL: http://localhost:4000
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Restore deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            libs/*/node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
+
+      - name: Apply seeds (admin + permission groups + boards)
+        run: pnpm db:seed
+
+      - name: Build backend
+        run: npx nest build core-backend
+
+      - name: Build frontend
+        run: pnpm --filter core-frontend exec next build
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter core-frontend exec playwright install --with-deps chromium
+
+      - name: Run E2E
+        run: pnpm --filter core-frontend e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/core-frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload Playwright traces / screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: apps/core-frontend/test-results/
+          retention-days: 7
+
+  # ── 9. 종합 게이트 (Branch protection이 이 job 하나만 require해도 OK) ─
   ci-success:
     name: CI success
     if: always()
@@ -293,6 +393,7 @@ jobs:
       - lint
       - test-unit
       - test-integration
+      - test-e2e
       - build-backend
       - build-web
       - prisma-check

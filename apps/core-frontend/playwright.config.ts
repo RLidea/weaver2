@@ -39,20 +39,38 @@ export default defineConfig({
 
   webServer: process.env.E2E_NO_WEBSERVER
     ? undefined
-    : [
-        {
-          command: 'pnpm --filter core-frontend dev',
-          url: 'http://localhost:3000',
-          reuseExistingServer: !isCI,
-          cwd: '../..',
-          timeout: 120_000,
-        },
-        {
-          command: 'pnpm dev:core',
-          url: 'http://localhost:4000/v1/health',
-          reuseExistingServer: !isCI,
-          cwd: '../..',
-          timeout: 120_000,
-        },
-      ],
+    : isCI
+      ? [
+          // CI: backend dist + frontend .next must already be built
+          // before playwright runs (see .github/workflows/ci.yml e2e job).
+          {
+            command: 'pnpm prod:core',
+            url: 'http://localhost:4000/v1/health',
+            cwd: '../..',
+            timeout: 120_000,
+          },
+          {
+            command: 'pnpm --filter core-frontend exec next start -p 3000',
+            url: 'http://localhost:3000',
+            cwd: '../..',
+            timeout: 120_000,
+          },
+        ]
+      : [
+          // Local: reuse already-running pnpm dev:web / dev:core if any.
+          {
+            command: 'pnpm --filter core-frontend dev',
+            url: 'http://localhost:3000',
+            cwd: '../..',
+            reuseExistingServer: true,
+            timeout: 120_000,
+          },
+          {
+            command: 'pnpm dev:core',
+            url: 'http://localhost:4000/v1/health',
+            cwd: '../..',
+            reuseExistingServer: true,
+            timeout: 120_000,
+          },
+        ],
 });
