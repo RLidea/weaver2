@@ -67,8 +67,9 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Documentation
-docs
+# Documentation — 기존 drafts는 untracked 유지, 공식 audits만 추적
+docs/*
+!docs/audits/
 
 # AI
 .claude
