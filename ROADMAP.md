@@ -130,6 +130,8 @@
 
 ## 🔗 관련 문서
 
+- 보일러플레이트 헌장 (IN/OUT 범위 기준선): [`CHARTER.md`](CHARTER.md)
 - 초기 종합 감사: [`docs/audits/weaver2-audit-2026-05-09.md`](docs/audits/weaver2-audit-2026-05-09.md)
+- 헌장 점검 보고서: [`docs/audits/weaver2-charter-review-2026-05-09.md`](docs/audits/weaver2-charter-review-2026-05-09.md)
 - CI/Ruleset 가이드: [`README.md`](README.md#-ci--github-actions)
 - 기술 스택 / API: [`README.md`](README.md)

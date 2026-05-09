@@ -373,6 +373,7 @@ docker-compose -f docker-compose.prod.yml up -d
 | 문서 | 역할 |
 |------|------|
 | [`README.md`](README.md) | 프로젝트 소개, 기술 스택, API, CI 가이드 (이 문서) |
+| [`CHARTER.md`](CHARTER.md) | 보일러플레이트 헌장 — 미션, IN/OUT 범위, 설계 원칙, 확장 포인트, 분기 체크리스트 |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 일상 개발 워크플로우, 브랜치/커밋/PR/리뷰/마이그레이션/테스트/FAQ |
 | [`SECURITY.md`](SECURITY.md) | 보안 취약점 보고·대응 정책, 빌트인 보안 레이어 정리 |
 | [`ROADMAP.md`](ROADMAP.md) | 향후 권장 작업 (Dependabot, e2e, 운영 등) |
