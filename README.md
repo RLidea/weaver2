@@ -365,3 +365,17 @@ docker-compose -f docker-compose.prod.yml up -d
 3. `ci.yml`의 `secret-files` job — 트리 전체 검사 (push에서 차단)
 
 세 단계가 동일 패턴을 공유하므로 어느 하나가 뚫려도 다음에서 잡힙니다.
+
+---
+
+## 📚 문서 구조
+
+| 문서 | 역할 |
+|------|------|
+| [`README.md`](README.md) | 프로젝트 소개, 기술 스택, API, CI 가이드 (이 문서) |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | 일상 개발 워크플로우, 브랜치/커밋/PR/리뷰/마이그레이션/테스트/FAQ |
+| [`SECURITY.md`](SECURITY.md) | 보안 취약점 보고·대응 정책, 빌트인 보안 레이어 정리 |
+| [`ROADMAP.md`](ROADMAP.md) | 향후 권장 작업 (Dependabot, e2e, 운영 등) |
+| [`CLAUDE.md`](CLAUDE.md) | 코딩 철학·EDGE 방법론·금지 사항 (AI 협업 규칙 포함) |
+| [`apps/core-frontend/CLAUDE.md`](apps/core-frontend/CLAUDE.md) | 프론트엔드 디렉토리 구조·스킨 시스템·import 규칙 |
+| [`docs/audits/`](docs/audits/) | 종합 감사 보고서 archive |
