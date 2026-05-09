@@ -41,7 +41,7 @@ async function bootstrap() {
   });
 
   setNestApp(app);
-  const port = configService.get<number>('PORT') ?? 3000;
+  const port = configService.get<number>('PORT') ?? 4000;
   await app.listen(port);
 
   const bootTime = Date.now() - startTime;
