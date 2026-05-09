@@ -159,7 +159,10 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 9. [ ] 한국 프로젝트라면: 알림톡 / 본인인증 모듈 별도 추가
 10. [ ] 운영 분기라면: DB 풀링(PgBouncer), 모니터링(Sentry 등), K8s manifest, BullMQ 도입 검토
 11. [ ] `package.json` `name` / `description` / `author` 갱신
-12. [ ] `README.md`·`CHARTER.md` 프로젝트별 갱신 (또는 별도 변종으로 fork)
+12. [ ] `apps/core-frontend/src/app/layout.tsx` `metadata.title` / `metadata.description` 프로젝트별 교체 (현재 "Weaver" / "Weaver web application")
+13. [ ] e2e 시나리오 (`apps/core-frontend/e2e/`) 검토 — `auth-login.spec.ts`는 시드 admin(`admin@weaver.com`)에 의존하므로 시드 변경 시 함께 갱신
+14. [ ] VAPID 키 새로 발급 (`node -e "const wp=require('web-push'); console.log(wp.generateVAPIDKeys())"`) — 보일러플레이트의 키 재사용 금지
+15. [ ] `README.md`·`CHARTER.md` 프로젝트별 갱신 (또는 별도 변종으로 fork)
 
 ---
 

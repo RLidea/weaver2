@@ -194,3 +194,62 @@
 
 **이 리포트의 한 문장 요약**:
 *weaver2는 코드는 깨끗하지만 문서가 코드를 못 따라가고 있다. CHARTER는 그 격차를 메우는 한 장의 지도가 되어야 한다.*
+
+---
+
+## 📋 처리 매핑 (2026-05-09 본 세션 후속)
+
+본 보고서가 발견한 모든 항목과 그 처리 커밋의 매핑입니다.
+미래의 본인이 본 보고서를 다시 봤을 때 *"여기 적힌 건 모두 회수됐고, 다음 단계는 무엇인가"* 를 즉시 파악할 수 있도록 남겨둡니다.
+
+### 본인용 6개월 뒤 막힐 Top 5 — ✅ 모두 완료
+
+| # | 항목 | 처리 커밋 |
+|---|------|----------|
+| 1 | `production-readiness.md` 80% outdated | `5f66cd3` (audits/로 timestamped 아카이브) |
+| 2 | 헌장 부재 | `9b555b3` (`CHARTER.md` 신설) |
+| 3 | 잔재 파일 (`CLAUDE.md.backup`, `.temp/`, `GEMINI.md`) | `42ea69d` |
+| 4 | `.env.example` 어긋난 포트 (`PORT=3000`, `OAUTH_*=:5173`) | `f6d8224` |
+| 5 | `post.seed.ts`의 하드코딩 `ADMIN_USER_ID` | `c070ed7` |
+
+### Phase 2 진입 전 1차 정리 권장 8개 — ✅ 모두 완료
+
+| # | 항목 | 처리 커밋 |
+|---|------|----------|
+| 1·2 | `production-readiness.md` / `permission-plan.md` ARCHIVED 표기 + audits 이동 | `5f66cd3` |
+| 3·4·5 | `CLAUDE.md.backup` / `.temp/` / `GEMINI.md` 정리 | `42ea69d` |
+| 6·7 | `.env.example` `PORT` / `OAUTH_*` 정정 | `f6d8224` |
+| 8 | `post.seed.ts` `ADMIN_USER_ID` 하드코딩 정리 | `c070ed7` |
+
+### CHARTER.md 입력 후보 6섹션 — ✅ 모두 흡수
+
+`9b555b3` (CHARTER.md 신설) — 미션·타깃·IN/OUT·설계 원칙·확장 포인트·시드 원칙·메시지 위치·알려진 한계·분기 체크리스트 모두 반영.
+
+### 알려진 한계 후속 처리 (Plan A) — ✅ 완료
+
+| 항목 | 처리 커밋 |
+|------|----------|
+| `admin-security.api.service.ts` 22 `console.*` → NestJS Logger | `1c6b9b8` |
+| raw 쿼리 식별자 박힘 = 의도된 trade-off로 명문화 + Prisma 풀링 힌트 | `5f42db2` |
+
+### e2e 도입 (Plan B) — ✅ 인프라 + 첫 시나리오 완료
+
+| 항목 | 처리 커밋 |
+|------|----------|
+| Playwright 베이스라인 (config·디렉토리·스크립트·gitignore) | `726eca1` |
+| 첫 시나리오 (로그인 골든패스, admin 시드) | `5102364` |
+| CI `test-e2e` job + CI-aware webServer | `b56bf03` |
+| README/CONTRIBUTING/CHARTER §8/ROADMAP 안내 | `def1714` |
+
+시나리오 확장(Plan B-4)은 별도 세션으로 이관 — 페르소나 메모리에 보관.
+
+### 보너스 (본 리포트 외 처리)
+
+| 항목 | 처리 커밋 |
+|------|----------|
+| 개인 이름 표현 중립화 (audit / charter-review) | `404faad` |
+| README/ROADMAP에 `CHARTER.md` 링크 | `b0160af` |
+
+---
+
+> **상태**: 본 보고서가 발견한 모든 항목 처리 완료. 다음 audit이 작성되기 전까지 본 문서는 *시점 기록*으로 보존된다.
