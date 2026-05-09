@@ -137,10 +137,10 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 ## 8. 알려진 한계
 
 - 단일 언어 (`ko`), 단일 테넌트
-- DB 커넥션 풀링 미설정 — 운영 시 PgBouncer 도입
+- DB 커넥션 풀링은 기본값 — 본격 운영 시 PgBouncer 도입. Prisma 자체 풀 한도는 `DATABASE_URL` 쿼리 파라미터로 즉시 조절 가능 (`?connection_limit=10&pool_timeout=20`). `.env.example` 주석 참고.
 - 모니터링 미연동 — 프로젝트별 결정
-- `console.log` 23개 잔존 — Winston 전환 미완 (점진 정리)
-- DB raw 쿼리 일부에 테이블명 직접 박힘 (`@@map` snake_case 정책 — `README` 검색 섹션 참조)
+- `console.*` 잔존은 모두 **의도된 사용** — 시드 CLI 로깅(`prisma/seed/*`), React error boundary(`apps/core-frontend/src/app/error.tsx`), 빌드 타임 환경변수 경고(`server-api.ts`). 백엔드 서비스 코드는 NestJS `Logger`로 통일.
+- DB raw 쿼리에 테이블·컬럼 식별자 직접 박힘 — **의도된 trade-off**. Prisma 파라미터 바인딩은 식별자에 못 쓰므로 상수화하면 `${Prisma.raw(...)}` 보일러플레이트가 폭증. `@@map`/필드명 변경 빈도가 매우 낮으므로 박힌 채로 유지. 위치: `features/search/repositories/`, `features/board/services/reaction.service.ts`, `infrastructure/analytics/`.
 - 결제·송금·금융 미포함
 - e2e 테스트 부재 (현재 통합 테스트 1종, 유닛 102종)
 
