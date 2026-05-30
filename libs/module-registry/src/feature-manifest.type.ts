@@ -21,8 +21,8 @@ export interface FeatureFootprint {
   prismaModels?: string[];
   /** core 모델에 생긴 역참조 relation 필드 (제거 시 정리 — 무결성과 무관) */
   coreBackrefs?: string[];
-  /** 권한 상수 키 (예: 'PERMISSIONS.BOARD') */
-  permissions?: string;
+  /** 권한 상수 키들 (정렬된 배열, 예: ['PERMISSIONS.BOARD']) */
+  permissions?: string[];
   /** 시드 파일들 */
   seeds?: string[];
   /** Next.js 라우트 경로들 */

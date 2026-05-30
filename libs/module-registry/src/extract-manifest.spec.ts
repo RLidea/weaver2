@@ -26,7 +26,9 @@ describe('extractManifest(board)', () => {
 
   it('extracts footprint backendDir/prismaSchema/prismaModels/permissions', () => {
     expect(m.footprint.backendDir).toBe('apps/core-backend/src/features/board');
-    expect(m.footprint.prismaSchema).toBe('apps/core-backend/prisma/schema/board.prisma');
+    expect(m.footprint.prismaSchema).toBe(
+      'apps/core-backend/prisma/schema/board.prisma',
+    );
     expect(m.footprint.prismaModels?.sort()).toEqual([
       'Board',
       'Comment',
@@ -36,6 +38,10 @@ describe('extractManifest(board)', () => {
       'PostFile',
       'PostReaction',
     ]);
-    expect(m.footprint.permissions).toBe('PERMISSIONS.BOARD');
+    expect([...(m.footprint.permissions ?? [])].sort()).toEqual([
+      'PERMISSIONS.BOARD',
+      'PERMISSIONS.COMMENT',
+      'PERMISSIONS.POST',
+    ]);
   });
 });
