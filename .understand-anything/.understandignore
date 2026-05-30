@@ -1,0 +1,76 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+# Lines below are suggestions — uncomment to activate.
+# Use ! prefix to force-include something excluded by defaults.
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+# --- From .gitignore (uncomment to exclude) ---
+
+# /dist
+# /node_modules
+# /build
+# logs
+# npm-debug.log*
+# pnpm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+# lerna-debug.log*
+# .DS_Store
+# /coverage
+# /.nyc_output
+# test-results/
+# playwright-report/
+# playwright/.cache/
+# /.idea
+# .project
+# .classpath
+# .c9/
+# *.launch
+# .settings/
+# *.sublime-workspace
+# .vscode/*
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+# !.vscode/extensions.json
+# .env
+# .env.*
+# !.env.example
+# !.env.example.*
+# *.pem
+# *.key
+# *.p12
+# *.pfx
+# id_rsa*
+# id_ed25519*
+# *.crt
+# *.cer
+# .temp
+# .tmp
+# uploads
+# pids
+# *.pid
+# *.seed
+# *.pid.lock
+# report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# docs/*
+# !docs/audits/
+# .claude
+# .cursor
+# .gemini
+# .opencode
+# CLAUDE.md.backup
+# .agents/skills/nestjs-best-practices
+
+# --- Detected directories (uncomment to exclude) ---
+
+# docs/
+# scripts/
+
+# --- Test file patterns (uncomment to exclude) ---
+
+# *.test.*
+# *.spec.*
+# *.snap
