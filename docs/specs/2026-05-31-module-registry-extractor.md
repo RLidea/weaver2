@@ -111,7 +111,7 @@ export interface ExtractedManifest {
   - 의존 id 집합 불일치 → **에러 (exit 1)**
   - footprint 자동필드 불일치 → **에러**
   - kind 불일치 → **경고**
-- **CI 추가** — 기존 `.github/workflows`의 test/lint job에 `pnpm manifest:verify` 스텝 추가 → 코드와 매니페스트가 어긋난 PR을 차단.
+- **CI 편입** — `manifest:verify`는 `manifest-extract.spec.ts`(jest)다. 기존 CI test job(`ci.yml`의 `npx jest --config apps/core-backend/jest.config.js`)이 전체 jest 스위트를 돌리므로 verify는 **기존 test job에 자동 편입**된다 (별도 스텝 불필요). 코드와 매니페스트가 어긋난 PR은 이 test job에서 차단된다.
 
 ### 5.6 합격 기준 — board 정답지
 
