@@ -75,3 +75,7 @@ export function findCycles(graph: DependencyGraph): string[][] {
   }
   return cycles;
 }
+
+export function serializeGraph(graph: DependencyGraph): string {
+  return JSON.stringify(graph, null, 2);
+}

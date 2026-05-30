@@ -1,4 +1,4 @@
-import { buildDependencyGraph, analyzeRemoval, findCycles } from './build-graph';
+import { buildDependencyGraph, analyzeRemoval, findCycles, serializeGraph } from './build-graph';
 import type { FeatureManifest } from './feature-manifest.type';
 
 const fixtures: FeatureManifest[] = [
@@ -76,5 +76,15 @@ describe('findCycles', () => {
   it('ignores deps not present as nodes (core modules)', () => {
     const g = buildDependencyGraph(fixtures);
     expect(findCycles(g)).toEqual([]);
+  });
+});
+
+describe('serializeGraph', () => {
+  it('produces valid JSON round-trippable to the graph shape', () => {
+    const g = buildDependencyGraph(fixtures);
+    const json = serializeGraph(g);
+    const parsed = JSON.parse(json);
+    expect(parsed.nodes).toHaveLength(3);
+    expect(parsed.dependents.board.sort()).toEqual(['abuse-report', 'search']);
   });
 });
