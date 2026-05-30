@@ -1,4 +1,4 @@
-import { buildDependencyGraph, analyzeRemoval } from './build-graph';
+import { buildDependencyGraph, analyzeRemoval, findCycles } from './build-graph';
 import type { FeatureManifest } from './feature-manifest.type';
 
 const fixtures: FeatureManifest[] = [
@@ -55,5 +55,26 @@ describe('analyzeRemoval', () => {
     const impact = analyzeRemoval(g, 'board');
     expect(impact.hardBlockers.map((e) => e.from)).toEqual(['abuse-report']);
     expect(impact.softDegradations.map((e) => e.from)).toEqual(['search']);
+  });
+});
+
+describe('findCycles', () => {
+  it('returns empty for an acyclic graph', () => {
+    const g = buildDependencyGraph(fixtures);
+    expect(findCycles(g)).toEqual([]);
+  });
+
+  it('detects a cycle', () => {
+    const cyclic: FeatureManifest[] = [
+      { id: 'a', layer: 'features', description: 'a', dependsOn: [{ id: 'b', kind: 'hard' }], footprint: {}, removalNotes: [] },
+      { id: 'b', layer: 'features', description: 'b', dependsOn: [{ id: 'a', kind: 'hard' }], footprint: {}, removalNotes: [] },
+    ];
+    const g = buildDependencyGraph(cyclic);
+    expect(findCycles(g).length).toBeGreaterThan(0);
+  });
+
+  it('ignores deps not present as nodes (core modules)', () => {
+    const g = buildDependencyGraph(fixtures);
+    expect(findCycles(g)).toEqual([]);
   });
 });

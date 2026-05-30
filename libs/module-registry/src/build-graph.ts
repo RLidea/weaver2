@@ -45,3 +45,33 @@ export function analyzeRemoval(graph: DependencyGraph, targetId: string): Remova
     softDegradations: incoming.filter((e) => e.kind === 'soft'),
   };
 }
+
+export function findCycles(graph: DependencyGraph): string[][] {
+  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const color: Record<string, number> = {};
+  const known = new Set(graph.nodes.map((n) => n.id));
+  for (const n of graph.nodes) color[n.id] = WHITE;
+
+  const cycles: string[][] = [];
+  const stack: string[] = [];
+
+  function dfs(id: string): void {
+    color[id] = GRAY;
+    stack.push(id);
+    for (const dep of graph.dependencies[id] ?? []) {
+      if (!known.has(dep)) continue; // 노드가 아닌 의존(core 등)은 무시
+      if (color[dep] === GRAY) {
+        cycles.push(stack.slice(stack.indexOf(dep)));
+      } else if (color[dep] === WHITE) {
+        dfs(dep);
+      }
+    }
+    stack.pop();
+    color[id] = BLACK;
+  }
+
+  for (const n of graph.nodes) {
+    if (color[n.id] === WHITE) dfs(n.id);
+  }
+  return cycles;
+}
