@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   SettingsIcon,
   MailIcon,
+  PuzzleIcon,
 } from '@/shared/components/ui/icons';
 
 const NAV_ITEMS = [
@@ -71,6 +72,13 @@ const NAV_ITEMS = [
     href: '/admin/settings',
     Icon: SettingsIcon,
     permission: PERMISSIONS.ADMIN.SYSTEM_SETTINGS,
+    exact: false,
+  },
+  {
+    label: '모듈',
+    href: '/admin/modules',
+    Icon: PuzzleIcon,
+    permission: PERMISSIONS.ADMIN.ACCESS,
     exact: false,
   },
 ] as const;
