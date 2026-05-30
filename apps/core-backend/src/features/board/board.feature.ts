@@ -6,6 +6,7 @@ export const boardFeature: FeatureManifest = {
   description: '게시판 — 4단계 대댓글, 리액션, 고정글, 카테고리, 첨부, 풀텍스트 검색',
 
   dependsOn: [
+    { id: 'auth', kind: 'hard', reason: 'jwt-auth.guard 사용 (인증 가드)' },
     { id: 'permission', kind: 'hard', reason: 'RequirePermission 데코레이터·PermissionService 직접 사용' },
     { id: 'upload', kind: 'hard', reason: 'PostFile 첨부 — @weaver2/upload' },
     { id: 'notification', kind: 'soft', reason: "EventEmitter2로 'notification.created' emit (리스너 없으면 무시)" },
