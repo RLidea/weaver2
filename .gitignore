@@ -80,6 +80,7 @@ docs/local/
 .cursor
 .gemini
 .opencode
+.omc
 CLAUDE.md.backup
 
 # External skills (separate repos)

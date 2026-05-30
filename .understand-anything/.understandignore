@@ -6,6 +6,11 @@
 # Built-in defaults (always excluded unless negated):
 #   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
 #
+# --- Active exclusions ---
+
+# OMC 개인 작업 상태 — git 미추적, 분석 대상 아님
+.omc/
+
 # --- From .gitignore (uncomment to exclude) ---
 
 # /dist
