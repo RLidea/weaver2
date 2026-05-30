@@ -32,7 +32,7 @@ export const boardFeature: FeatureManifest = {
       'apps/core-frontend/src/proxy.ts → /boards',
       'apps/core-backend/prisma/seed/permission-group.seed.ts → PERMISSIONS.BOARD.*',
       'libs/shared/src/index.ts → PERMISSIONS.BOARD',
-      'libs/common/src/constants/permissions.const.ts → BOARD 레이블',
+      'libs/common/src/constants/permissions.const.ts → board:create',
     ],
   },
 
