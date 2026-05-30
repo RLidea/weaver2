@@ -15,5 +15,6 @@ module.exports = {
     '^@weaver2/prisma(|/.*)$': '<rootDir>/libs/prisma/src/$1',
     '^@weaver2/shared(|/.*)$': '<rootDir>/libs/shared/src/$1',
     '^@weaver2/upload(|/.*)$': '<rootDir>/libs/upload/src/$1',
+    '^@weaver2/module-registry(|/.*)$': '<rootDir>/libs/module-registry/src/$1',
   },
 };
