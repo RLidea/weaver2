@@ -86,13 +86,13 @@ export const PERMISSION_SECTIONS: PermissionSection[] = [
     ],
   },
   {
-    key: 'report',
+    key: 'abuse-report',
     label: '신고/모더레이션',
     permissions: [
-      { value: 'report:create', label: '신고 접수' },
-      { value: 'report:read', label: '신고 조회' },
-      { value: 'report:update', label: '신고 처리' },
-      { value: 'report:*', label: '신고 전체 권한' },
+      { value: 'abuse-report:create', label: '신고 접수' },
+      { value: 'abuse-report:read', label: '신고 조회' },
+      { value: 'abuse-report:update', label: '신고 처리' },
+      { value: 'abuse-report:*', label: '신고 전체 권한' },
       { value: 'moderation:content:hide', label: '콘텐츠 숨김/복원' },
       { value: 'moderation:content:delete', label: '콘텐츠 삭제' },
       { value: 'moderation:user:warn', label: '유저 경고' },

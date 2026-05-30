@@ -111,11 +111,11 @@ export const PERMISSIONS = {
   },
 
   /** 신고 */
-  REPORT: {
-    CREATE: 'report:create',
-    READ: 'report:read',
-    UPDATE: 'report:update',
-    ALL: 'report:*',
+  ABUSE_REPORT: {
+    CREATE: 'abuse-report:create',
+    READ: 'abuse-report:read',
+    UPDATE: 'abuse-report:update',
+    ALL: 'abuse-report:*',
   },
 
   /** 모더레이션 */
@@ -142,7 +142,7 @@ export type Permission =
   | (typeof PERMISSIONS.TERMS)[keyof typeof PERMISSIONS.TERMS]
   | (typeof PERMISSIONS.PERMISSION_GROUP)[keyof typeof PERMISSIONS.PERMISSION_GROUP]
   | (typeof PERMISSIONS.UPLOAD)[keyof typeof PERMISSIONS.UPLOAD]
-  | (typeof PERMISSIONS.REPORT)[keyof typeof PERMISSIONS.REPORT]
+  | (typeof PERMISSIONS.ABUSE_REPORT)[keyof typeof PERMISSIONS.ABUSE_REPORT]
   | (typeof PERMISSIONS.MODERATION)[keyof typeof PERMISSIONS.MODERATION]
   | typeof PERMISSIONS.SUPER;
 

@@ -47,9 +47,9 @@ const NAV_ITEMS = [
   },
   {
     label: '신고/제재',
-    href: '/admin/reports',
+    href: '/admin/abuse-reports',
     Icon: FlagIcon,
-    permission: PERMISSIONS.REPORT.READ,
+    permission: PERMISSIONS.ABUSE_REPORT.READ,
     exact: false,
   },
   {

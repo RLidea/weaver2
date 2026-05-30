@@ -38,7 +38,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.PERMISSION_GROUP.ALL,
       PERMISSIONS.UPLOAD.ALL,
       // 신고 및 모더레이션
-      PERMISSIONS.REPORT.ALL,
+      PERMISSIONS.ABUSE_REPORT.ALL,
       PERMISSIONS.MODERATION.ALL,
     ],
   },
@@ -68,7 +68,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.UPLOAD.READ,
       PERMISSIONS.UPLOAD.DELETE,
       // 신고 및 모더레이션 (삭제 포함)
-      PERMISSIONS.REPORT.ALL,
+      PERMISSIONS.ABUSE_REPORT.ALL,
       PERMISSIONS.MODERATION.ALL,
     ],
   },
@@ -96,8 +96,8 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       // 파일
       PERMISSIONS.UPLOAD.READ,
       // 신고 처리 + 숨김/경고만 (삭제·정지 제외)
-      PERMISSIONS.REPORT.READ,
-      PERMISSIONS.REPORT.UPDATE,
+      PERMISSIONS.ABUSE_REPORT.READ,
+      PERMISSIONS.ABUSE_REPORT.UPDATE,
       PERMISSIONS.MODERATION.CONTENT_HIDE,
       PERMISSIONS.MODERATION.USER_WARN,
     ],
@@ -129,7 +129,7 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       PERMISSIONS.UPLOAD.CREATE,
       PERMISSIONS.UPLOAD.READ,
       // 신고 접수
-      PERMISSIONS.REPORT.CREATE,
+      PERMISSIONS.ABUSE_REPORT.CREATE,
     ],
   },
   {

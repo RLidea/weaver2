@@ -81,11 +81,11 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: 'upload:delete', label: '파일 삭제' },
   { value: 'upload:*', label: '파일 전체 권한' },
 
-  // Report
-  { value: 'report:create', label: '신고 접수' },
-  { value: 'report:read', label: '신고 목록 조회' },
-  { value: 'report:update', label: '신고 처리' },
-  { value: 'report:*', label: '신고 전체 권한' },
+  // Abuse Report
+  { value: 'abuse-report:create', label: '신고 접수' },
+  { value: 'abuse-report:read', label: '신고 목록 조회' },
+  { value: 'abuse-report:update', label: '신고 처리' },
+  { value: 'abuse-report:*', label: '신고 전체 권한' },
 
   // Moderation
   { value: 'moderation:content:hide', label: '콘텐츠 숨김/복원' },

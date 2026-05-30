@@ -25,7 +25,7 @@ import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 import { PermissionModule } from './core/permission/permission.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationModule } from './core/notification/notification.module';
-import { ReportModule } from './features/report/report.module';
+import { AbuseReportModule } from './features/abuse-report/abuse-report.module';
 import { SystemSettingModule } from './infrastructure/config/system-setting.module';
 
 @Module({
@@ -71,7 +71,7 @@ import { SystemSettingModule } from './infrastructure/config/system-setting.modu
     SearchModule,
     AnalyticsModule,
     NotificationModule,
-    ReportModule,
+    AbuseReportModule,
     HealthModule,
     StaticModule,
   ],

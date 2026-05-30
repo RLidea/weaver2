@@ -67,8 +67,8 @@ export function UserMenu() {
 
   const permissions = user?.permissions ?? [];
   const hasAdminAccess = hasPermission(permissions, PERMISSIONS.ADMIN.ACCESS);
-  const hasReportAccess =
-    !hasAdminAccess && hasPermission(permissions, PERMISSIONS.REPORT.READ);
+  const hasAbuseReportAccess =
+    !hasAdminAccess && hasPermission(permissions, PERMISSIONS.ABUSE_REPORT.READ);
 
   const initial = user?.displayName?.[0]?.toUpperCase() ?? '?';
   const close = () => setIsOpen(false);
@@ -124,10 +124,10 @@ export function UserMenu() {
             </div>
           )}
 
-          {/* 신고 관리 — report:read (관리자 제외) */}
-          {hasReportAccess && (
+          {/* 신고 관리 — abuse-report:read (관리자 제외) */}
+          {hasAbuseReportAccess && (
             <div className="border-t border-border p-1">
-              <MenuItem href="/admin/reports" icon={<FlagIcon className="h-4 w-4 text-text-muted" />} onClick={close}>
+              <MenuItem href="/admin/abuse-reports" icon={<FlagIcon className="h-4 w-4 text-text-muted" />} onClick={close}>
                 신고 관리
               </MenuItem>
             </div>
