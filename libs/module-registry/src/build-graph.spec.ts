@@ -1,4 +1,4 @@
-import { buildDependencyGraph } from './build-graph';
+import { buildDependencyGraph, analyzeRemoval } from './build-graph';
 import type { FeatureManifest } from './feature-manifest.type';
 
 const fixtures: FeatureManifest[] = [
@@ -40,5 +40,20 @@ describe('buildDependencyGraph', () => {
     const g = buildDependencyGraph(fixtures);
     const e = g.edges.find((x) => x.from === 'search' && x.to === 'board');
     expect(e?.kind).toBe('soft');
+  });
+});
+
+describe('analyzeRemoval', () => {
+  it('lists all downstream dependents of board', () => {
+    const g = buildDependencyGraph(fixtures);
+    const impact = analyzeRemoval(g, 'board');
+    expect(impact.affectedDependents.sort()).toEqual(['abuse-report', 'search']);
+  });
+
+  it('separates hard blockers from soft degradations', () => {
+    const g = buildDependencyGraph(fixtures);
+    const impact = analyzeRemoval(g, 'board');
+    expect(impact.hardBlockers.map((e) => e.from)).toEqual(['abuse-report']);
+    expect(impact.softDegradations.map((e) => e.from)).toEqual(['search']);
   });
 });
