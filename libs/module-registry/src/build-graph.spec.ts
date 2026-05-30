@@ -79,6 +79,30 @@ describe('findCycles', () => {
   });
 });
 
+describe('buildDependencyGraph — dedupe', () => {
+  it('deduplicates duplicate dependsOn entries', () => {
+    const duped: FeatureManifest[] = [
+      {
+        id: 'a', layer: 'features', description: 'a',
+        dependsOn: [
+          { id: 'b', kind: 'hard' },
+          { id: 'b', kind: 'hard' }, // duplicate
+        ],
+        footprint: {}, removalNotes: [],
+      },
+      {
+        id: 'b', layer: 'features', description: 'b',
+        dependsOn: [],
+        footprint: {}, removalNotes: [],
+      },
+    ];
+    const g = buildDependencyGraph(duped);
+    expect(g.dependencies['a']).toEqual(['b']);
+    expect(g.dependents['b']).toEqual(['a']);
+    expect(g.edges.filter((e) => e.from === 'a' && e.to === 'b')).toHaveLength(1);
+  });
+});
+
 describe('serializeGraph', () => {
   it('produces valid JSON round-trippable to the graph shape', () => {
     const g = buildDependencyGraph(fixtures);

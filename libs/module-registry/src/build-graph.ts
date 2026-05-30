@@ -9,16 +9,23 @@ export function buildDependencyGraph(manifests: FeatureManifest[]): DependencyGr
   }));
 
   const edges: GraphEdge[] = [];
+  const edgeKeys = new Set<string>();
   const dependencies: Record<string, string[]> = {};
   const dependents: Record<string, string[]> = {};
 
   for (const m of manifests) {
-    dependencies[m.id] = m.dependsOn.map((d) => d.id);
+    dependencies[m.id] = [...new Set(m.dependsOn.map((d) => d.id))];
     dependents[m.id] = dependents[m.id] ?? [];
     for (const dep of m.dependsOn) {
-      edges.push({ from: m.id, to: dep.id, kind: dep.kind });
+      const edgeKey = `${m.id}->${dep.id}->${dep.kind}`;
+      if (!edgeKeys.has(edgeKey)) {
+        edgeKeys.add(edgeKey);
+        edges.push({ from: m.id, to: dep.id, kind: dep.kind });
+      }
       dependents[dep.id] = dependents[dep.id] ?? [];
-      dependents[dep.id].push(m.id);
+      if (!dependents[dep.id].includes(m.id)) {
+        dependents[dep.id].push(m.id);
+      }
     }
   }
 
@@ -35,6 +42,9 @@ export function analyzeRemoval(graph: DependencyGraph, targetId: string): Remova
     affected.add(id);
     queue.push(...(graph.dependents[id] ?? []));
   }
+
+  // 제거 대상 자신은 affectedDependents에서 제외
+  affected.delete(targetId);
 
   // target을 직접 가리키는 edge를 강도별로 분류
   const incoming = graph.edges.filter((e) => e.to === targetId);

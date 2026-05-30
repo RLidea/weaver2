@@ -30,7 +30,7 @@ describe('manifest ↔ code consistency', () => {
         const [file, ident] = pin.split('→').map((s) => s.trim());
         const full = resolve(ROOT, file);
         expect({ pin, exists: existsSync(full) }).toEqual({ pin, exists: true });
-        const token = ident.split(/[\s.*]/)[0];
+        const token = ident.replace(/\.\*$/, '').trim();
         expect({ pin, found: readFileSync(full, 'utf8').includes(token) })
           .toEqual({ pin, found: true });
       }
