@@ -20,3 +20,9 @@ export {
   findCycles,
   serializeGraph,
 } from './build-graph';
+
+export { resolveModuleId, KNOWN_MODULES } from './known-modules';
+export type { KnownModule } from './known-modules';
+
+export { extractManifest } from './extract-manifest';
+export type { ExtractedManifest } from './extract-manifest';
