@@ -668,10 +668,11 @@ export const bannerFeature: FeatureManifest = {
   layer: 'features',
   description: '배너/팝업 — 슬롯별 노출, 게시기간, 활성토글, 정렬. self-contained(인바운드 의존 0)',
 
+  // backend는 auth+permission만 코드 의존. upload는 import하지 않으므로 dependsOn 미포함
+  // (manifest-extract.spec이 추출 결과와 대조하므로 코드 의존만 적어야 한다).
   dependsOn: [
     { id: 'auth', kind: 'hard', reason: 'JwtAuthGuard 사용 (관리 컨트롤러 인증)' },
     { id: 'permission', kind: 'hard', reason: 'RequirePermission(BANNER.MANAGE) 데코레이터' },
-    { id: 'upload', kind: 'soft', reason: 'imageFileId 보관(문자열). 이미지 업로드는 프론트가 upload API 사용, backend 코드 의존 없음' },
   ],
 
   footprint: {
