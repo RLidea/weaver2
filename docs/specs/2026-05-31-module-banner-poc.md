@@ -95,7 +95,7 @@ enum BannerSlot { MAIN_TOP  MAIN_BOTTOM  SIDEBAR  POPUP }   // POPUP = 모달 �
 - `slot` 하나로 배너/팝업 통합 (별도 `type` 필드 없이 YAGNI). POPUP slot이면 프론트가 모달로 렌더.
 - 팝업 "오늘 그만보기"는 프론트 localStorage — 모델 불필요.
 - `createdBy` → auth.prisma의 User 모델에 `banners Banner[]` backref 1개 추가 (coreBackrefs).
-- `imageFileId`는 upload 모듈 File을 id 문자열로 참조 (모듈 경계상 relation 미설정, url은 서비스에서 조회).
+- `imageFileId`는 upload 모듈 File을 **id 문자열로만** 보관 (relation 미설정). 이미지 업로드는 프론트가 upload API로 처리하고 banner는 fileId만 받아 저장 → banner **backend는 upload를 코드 import하지 않음** → upload 의존은 **soft**(아래 8절).
 
 ## 5. 권한 (`PERMISSIONS.BANNER`)
 
@@ -128,7 +128,7 @@ enum BannerSlot { MAIN_TOP  MAIN_BOTTOM  SIDEBAR  POPUP }   // POPUP = 모달 �
 ```
 id:            'banner'
 layer:         'features'
-dependsOn:     auth(hard), permission(hard), upload(hard, 이미지)
+dependsOn:     auth(hard), permission(hard), upload(soft — imageFileId만 보관, backend 미import)
 footprint:
   backendDir:    apps/core-backend/src/features/banner
   frontendDirs:  [apps/core-frontend/src/features/banner,
