@@ -520,11 +520,15 @@ git commit -m "feat(banner): add BannerService with active-slot filtering"
 
 > 구현 전 `board.controller.ts`와 `post-admin.controller.ts`를 열어 정확한 import 경로(`RequirePermission`, `JwtAuthGuard`, `@ApiStandardResponses`/`ApiTags`)와 가드 스택을 확인하고 동일하게 맞춘다. 인증된 사용자 id 추출 데코레이터(예: `@CurrentUser()` 또는 `@Req()`) 역시 board 관리 컨트롤러에서 쓰는 방식을 그대로 복제한다.
 
-- [ ] **Step 1: banner.controller.ts (공개 조회 — 가드 없음)**
+- [ ] **Step 1: banner.controller.ts (공개 조회 — `@Public()` 필수)**
+
+> ⚠️ JwtAuthGuard가 글로벌 `APP_GUARD`(auth.module)로 등록돼 있다. 가드 데코레이터를 안 붙여도 글로벌 가드가 적용되어 401이 난다. 공개 엔드포인트는 **`@Public()` 데코레이터**(`@weaver2/common/decorator/public.decorator`)로 우회해야 한다(board의 post.controller 공개 GET 패턴).
 
 ```typescript
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Public } from '@weaver2/common/decorator/public.decorator';
+import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BannerService } from '../services/banner.service';
 import { BannerDto } from '../dto/banner.dto';
 import { FindBannersQueryDto } from '../dto/find-banners.query.dto';
@@ -535,6 +539,9 @@ export class BannerController {
   constructor(private readonly bannerService: BannerService) {}
 
   @Get()
+  @Public()
+  @ApiOperation({ summary: '활성 배너 조회 (슬롯별 필터 가능)' })
+  @ApiStandardResponses({ type: BannerDto, isArray: true })
   async findActive(@Query() query: FindBannersQueryDto): Promise<BannerDto[]> {
     return this.bannerService.findActiveBySlot(query.slot);
   }
