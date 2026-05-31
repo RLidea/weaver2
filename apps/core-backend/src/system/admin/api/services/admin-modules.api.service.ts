@@ -17,7 +17,10 @@ export class AdminModulesApiService {
         kind: dep.kind,
         reason: dep.reason,
       })),
-      dependents: graph.dependents[manifest.id] ?? [],
+      dependents: (graph.dependents[manifest.id] ?? []).map((dependentId) => ({
+        id: dependentId,
+        kind: graph.edges.find((e) => e.from === dependentId && e.to === manifest.id)?.kind ?? 'hard',
+      })),
       footprint: {
         backendDir: manifest.footprint.backendDir,
         prismaModels: manifest.footprint.prismaModels,

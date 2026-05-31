@@ -34,6 +34,14 @@ export class ModuleDependencyDto {
   reason?: string;
 }
 
+export class ModuleDependentDto {
+  @ApiProperty({ description: '의존하는 하류 모듈 id' })
+  id: string;
+
+  @ApiProperty({ enum: ['hard', 'soft'], description: '의존 강도' })
+  kind: DependencyKind;
+}
+
 export class ModuleItemDto {
   @ApiProperty({ description: '모듈 고유 id' })
   id: string;
@@ -47,8 +55,8 @@ export class ModuleItemDto {
   @ApiProperty({ type: [ModuleDependencyDto], description: '이 모듈이 의존하는 상류' })
   dependsOn: ModuleDependencyDto[];
 
-  @ApiProperty({ type: [String], description: '이 모듈에 의존하는 하류 모듈 id 목록 (계산됨)' })
-  dependents: string[];
+  @ApiProperty({ type: [ModuleDependentDto], description: '이 모듈에 의존하는 하류 모듈 목록 (계산됨)' })
+  dependents: ModuleDependentDto[];
 
   @ApiProperty({ type: ModuleFootprintDto, description: '모듈 발자국 정보' })
   footprint: ModuleFootprintDto;

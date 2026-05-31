@@ -17,12 +17,12 @@ describe('AdminModulesApiService', () => {
       }
     });
 
-    it('board의 dependents에 abuse-report와 search가 포함된다', () => {
+    it('board의 dependents에 abuse-report(hard)와 search(soft)가 포함된다', () => {
       const result = service.getModuleGraph();
       const boardModule = result.modules.find((m) => m.id === 'board');
       expect(boardModule).toBeDefined();
-      expect(boardModule!.dependents).toContain('abuse-report');
-      expect(boardModule!.dependents).toContain('search');
+      expect(boardModule!.dependents).toContainEqual({ id: 'abuse-report', kind: 'hard' });
+      expect(boardModule!.dependents).toContainEqual({ id: 'search', kind: 'soft' });
     });
 
     it('abuse-report의 dependents는 비어 있다', () => {
