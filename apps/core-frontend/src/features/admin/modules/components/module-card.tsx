@@ -1,9 +1,48 @@
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import type { Module } from '../types';
+import { DependencyChip } from './dependency-chip';
+import type { Module, ModuleDependency, ModuleDependent } from '../types';
 
 interface ModuleCardProps {
   module: Module;
+}
+
+/** 의존 흐름 한 레인(상류/하류)을 그린다. 빈 경우 placeholder 출력. */
+function DependencyLane({
+  arrow,
+  label,
+  hint,
+  items,
+  emptyText,
+}: {
+  arrow: string;
+  label: string;
+  hint: string;
+  items: Array<ModuleDependency | ModuleDependent>;
+  emptyText: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline gap-1.5">
+        <span aria-hidden="true" className="text-sm leading-none text-text-muted">
+          {arrow}
+        </span>
+        <span className="text-xs font-semibold text-text">{label}</span>
+        <span className="text-[0.625rem] text-text-muted">{hint}</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="pl-5 text-xs text-text-muted">{emptyText}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5 pl-5">
+          {items.map((item) => (
+            <li key={item.id}>
+              <DependencyChip id={item.id} kind={item.kind} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export function ModuleCard({ module }: ModuleCardProps) {
@@ -11,9 +50,15 @@ export function ModuleCard({ module }: ModuleCardProps) {
 
   const prismaModelCount = footprint.prismaModels?.length ?? 0;
   const permissionCount = footprint.permissions?.length ?? 0;
+  const hasFootprint =
+    prismaModelCount > 0 || permissionCount > 0 || Boolean(footprint.backendDir);
+
+  // 위험 요약: 끊기면 컴파일이 깨지는 hard 의존 개수 (상류 기준)
+  const hardDependsCount = dependsOn.filter((d) => d.kind === 'hard').length;
 
   return (
-    <Card glass>
+    <Card glass className="flex flex-col">
+      {/* ── 1. 헤더: 정체성 + 위험 요약 ── */}
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-semibold text-text">{id}</p>
@@ -21,79 +66,136 @@ export function ModuleCard({ module }: ModuleCardProps) {
             <p className="mt-0.5 text-xs text-text-muted">{description}</p>
           )}
         </div>
-        <Badge variant="default" className="shrink-0">
-          {layer}
-        </Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge variant="default">{layer}</Badge>
+          {hardDependsCount > 0 && (
+            <Badge variant="error" title="끊기면 컴파일이 깨지는 강한 의존">
+              hard {hardDependsCount}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* 의존 목록 (→) */}
-        <div>
-          <p className="mb-1.5 text-xs font-semibold text-text-muted">
-            의존 (→ dependsOn)
-          </p>
-          {dependsOn.length === 0 ? (
-            <p className="text-xs text-text-muted">없음</p>
-          ) : (
-            <ul className="flex flex-wrap gap-1.5">
-              {dependsOn.map((dep) => (
-                <li key={dep.id} className="flex items-center gap-1">
-                  <span className="text-xs text-text">{dep.id}</span>
-                  <Badge
-                    variant={dep.kind === 'hard' ? 'error' : 'default'}
-                    size="sm"
-                  >
-                    {dep.kind}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {/* ── 2. 의존 흐름 (카드의 주인공) ── */}
+      <CardContent className="flex-1 space-y-4">
+        <DependencyLane
+          arrow="⬆"
+          label="필요로 함"
+          hint="이 모듈이 의존하는 상류"
+          items={dependsOn}
+          emptyText="의존 없음 (독립 모듈)"
+        />
+        <DependencyLane
+          arrow="⬇"
+          label="이 모듈을 사용함"
+          hint="이 모듈에 의존하는 하류"
+          items={dependents}
+          emptyText="사용처 없음 (말단 모듈)"
+        />
 
-        {/* 역의존 목록 (←) */}
-        <div>
-          <p className="mb-1.5 text-xs font-semibold text-text-muted">
-            역의존 (← dependents)
-          </p>
-          {dependents.length === 0 ? (
-            <p className="text-xs text-text-muted">없음</p>
-          ) : (
-            <ul className="flex flex-wrap gap-1.5">
-              {dependents.map((dependent) => (
-                <li key={dependent}>
-                  <span className="text-xs text-text">{dependent}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* hard/soft 범례 — 칩 색의 의미를 카드 안에서 자체 설명 */}
+        <div className="flex items-center gap-3 pt-0.5 text-[0.625rem] text-text-muted">
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden="true" className="text-error">
+              ●
+            </span>
+            hard · 강한 결합
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden="true">○</span>
+            soft · 느슨한 결합
+          </span>
         </div>
-
-        {/* Footprint 요약 */}
-        {(prismaModelCount > 0 || permissionCount > 0 || footprint.backendDir) && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-text-muted">Footprint</p>
-            <div className="flex flex-wrap gap-2">
-              {footprint.backendDir && (
-                <span className="text-xs text-text-muted">
-                  <span className="font-medium text-text">디렉토리:</span>{' '}
-                  {footprint.backendDir}
-                </span>
-              )}
-              {prismaModelCount > 0 && (
-                <Badge variant="default" size="sm">
-                  모델 {prismaModelCount}개
-                </Badge>
-              )}
-              {permissionCount > 0 && (
-                <Badge variant="default" size="sm">
-                  권한 {permissionCount}개
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
       </CardContent>
+
+      {/* ── 3. Footprint: 아이콘 + 숫자 한 줄로 압축 ── */}
+      {hasFootprint && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border px-6 py-3 text-xs text-text-muted">
+          {footprint.backendDir && (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <FolderGlyph />
+              <span className="truncate font-mono text-text">
+                {footprint.backendDir}
+              </span>
+            </span>
+          )}
+          {prismaModelCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <DatabaseGlyph />
+              <span>
+                <span className="font-medium text-text">{prismaModelCount}</span>{' '}
+                모델
+              </span>
+            </span>
+          )}
+          {permissionCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <KeyGlyph />
+              <span>
+                <span className="font-medium text-text">{permissionCount}</span>{' '}
+                권한
+              </span>
+            </span>
+          )}
+        </div>
+      )}
     </Card>
+  );
+}
+
+/* ── footprint 압축용 인라인 글리프 (currentColor 상속) ── */
+
+function FolderGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+    </svg>
+  );
+}
+
+function DatabaseGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+      <path d="M3 12a9 3 0 0 0 18 0" />
+    </svg>
+  );
+}
+
+function KeyGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="7.5" cy="15.5" r="5.5" />
+      <path d="m21 2-9.6 9.6" />
+      <path d="m15.5 7.5 3 3L22 7l-3-3" />
+    </svg>
   );
 }

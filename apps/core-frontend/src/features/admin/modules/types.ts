@@ -6,6 +6,16 @@ export interface ModuleDependency {
   reason?: string;
 }
 
+/**
+ * 역의존(이 모듈을 사용하는 하류 모듈) 항목.
+ * 백엔드 변경으로 string[] → { id, kind }[] 로 확장되어
+ * 역의존도 hard/soft 위험도를 구분할 수 있다.
+ */
+export interface ModuleDependent {
+  id: string;
+  kind: DependencyKind;
+}
+
 export interface ModuleFootprint {
   backendDir?: string;
   prismaModels?: string[];
@@ -17,7 +27,7 @@ export interface Module {
   layer: string;
   description: string;
   dependsOn: ModuleDependency[];
-  dependents: string[];
+  dependents: ModuleDependent[];
   footprint: ModuleFootprint;
 }
 
