@@ -17,11 +17,12 @@ import { AdminPermissionApiService } from './services/admin-permission.api.servi
 import { AdminModulesApiController } from './controllers/admin-modules.api.controller';
 import { AdminModulesApiService } from './services/admin-modules.api.service';
 import { BoardModule } from '../../../features/board/board.module';
+import { BannerModule } from '../../../features/banner/banner.module';
 import { EmailModule } from '../../../infrastructure/email/email.module';
 import { AnalyticsModule } from '../../../infrastructure/analytics/analytics.module';
 
 @Module({
-  imports: [PrismaModule, BoardModule, EmailModule, AnalyticsModule],
+  imports: [PrismaModule, BoardModule, BannerModule, EmailModule, AnalyticsModule],
   controllers: [
     AdminDashboardApiController,
     AdminContentApiController,

@@ -20,6 +20,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UploadModule } from './infrastructure/upload/upload.module';
 import { TermsModule } from './core/terms/terms.module';
 import { BoardModule } from './features/board/board.module';
+import { BannerModule } from './features/banner/banner.module';
 import { SearchModule } from './features/search/search.module';
 import { AnalyticsModule } from './infrastructure/analytics/analytics.module';
 import { PermissionModule } from './core/permission/permission.module';
@@ -68,6 +69,7 @@ import { SystemSettingModule } from './infrastructure/config/system-setting.modu
     UploadModule,
     TermsModule,
     BoardModule,
+    BannerModule,
     SearchModule,
     AnalyticsModule,
     NotificationModule,

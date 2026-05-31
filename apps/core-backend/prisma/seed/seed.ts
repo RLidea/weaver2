@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { seedLocalCredentials, seedUsers } from './user.seed';
 import { seedEmailTemplates } from './email-templates.seed';
 import { seedBoardPermissions } from './board-permission.seed';
+import { seedBannerPermissions } from './banner-permission.seed';
 import { seedPermissionGroups } from './permission-group.seed';
 import { seedUserPermissionGroups } from './user-permission-group.seed';
 import { seedTestPost, seedFreeboardCategories } from './post.seed';
@@ -91,6 +92,7 @@ async function main() {
   await seedPermissionGroups(prisma);
   await seedUserPermissionGroups(prisma);
   await seedBoardPermissions(prisma);
+  await seedBannerPermissions(prisma);
   await seedEmailTemplates(prisma);
   await seedEmojis(prisma);
   await seedTestPost(prisma);

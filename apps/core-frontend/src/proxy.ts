@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+// /banners — public (auth 불필요). 실제 라우팅 등록은 Plan2 frontend에서.
 const PROTECTED_PATHS = [
   '/dashboard',
   '/boards',

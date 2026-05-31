@@ -40,6 +40,8 @@ const permissionGroupsToSeed: PermissionGroupSeed[] = [
       // 신고 및 모더레이션
       PERMISSIONS.ABUSE_REPORT.ALL,
       PERMISSIONS.MODERATION.ALL,
+      // 배너
+      PERMISSIONS.BANNER.ALL,
     ],
   },
   {
