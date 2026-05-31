@@ -50,6 +50,13 @@ export const PERMISSIONS = {
     ALL: 'board:*',
   },
 
+  /** 배너/팝업 */
+  BANNER: {
+    READ: 'banner:read',
+    MANAGE: 'banner:manage',
+    ALL: 'banner:*',
+  },
+
   /** 사용자 */
   USER: {
     READ: 'user:read',
@@ -135,6 +142,7 @@ export type Permission =
   | (typeof PERMISSIONS.POST)[keyof typeof PERMISSIONS.POST]
   | (typeof PERMISSIONS.COMMENT)[keyof typeof PERMISSIONS.COMMENT]
   | (typeof PERMISSIONS.BOARD)[keyof typeof PERMISSIONS.BOARD]
+  | (typeof PERMISSIONS.BANNER)[keyof typeof PERMISSIONS.BANNER]
   | (typeof PERMISSIONS.USER)[keyof typeof PERMISSIONS.USER]
   | (typeof PERMISSIONS.ADMIN)[keyof typeof PERMISSIONS.ADMIN]
   | (typeof PERMISSIONS.EMAIL)[keyof typeof PERMISSIONS.EMAIL]

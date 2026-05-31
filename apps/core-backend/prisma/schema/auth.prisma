@@ -34,6 +34,9 @@ model User {
   reactions PostReaction[]
   files     PostFile[]
 
+  // Project-specific relations (banner)
+  banners   Banner[]
+
   // Project-specific relations (abuse report)
   abuseReportsMade    AbuseReport[] @relation("AbuseReportsMade")
   abuseReportsHandled AbuseReport[] @relation("AbuseReportsHandled")

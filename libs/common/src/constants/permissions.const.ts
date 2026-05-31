@@ -35,6 +35,11 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: 'board:manage', label: '게시판 권한 관리' },
   { value: 'board:*', label: '게시판 전체 권한' },
 
+  // Banner
+  { value: 'banner:read', label: '배너 조회' },
+  { value: 'banner:manage', label: '배너 관리' },
+  { value: 'banner:*', label: '배너 전체 권한' },
+
   // User
   { value: 'user:read', label: '사용자 조회' },
   { value: 'user:update:own', label: '본인 정보 수정' },
