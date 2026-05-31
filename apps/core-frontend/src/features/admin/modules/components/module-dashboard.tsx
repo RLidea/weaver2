@@ -23,7 +23,8 @@ const TAB_ITEMS: TabItem<ModuleView>[] = [
  *
  * Focus 연동:
  *   - selectedId: 그래프 노드 클릭 또는 카드 클릭으로 설정됨.
- *   - 카드 클릭 → selectedId 설정 + 그래프 탭으로 자동 전환.
+ *   - 카드 클릭 → selectedId 토글 (탭 자동 전환 없음).
+ *   - 그래프 탭으로 전환하면 설정된 selectedId가 그대로 focus로 반영됨.
  *   - 그래프 pane 클릭 / 재클릭 → selectedId = null (전체 복귀).
  *   - 탭 수동 전환 시 selectedId는 유지 (돌아왔을 때 동일 focus 복원).
  */
@@ -33,20 +34,12 @@ export function ModuleDashboard() {
   const { data, isLoading, isError } = useModules();
 
   /**
-   * 카드 클릭 핸들러 — 그래프 탭으로 전환 후 해당 모듈 focus.
-   * 이미 선택된 카드를 다시 클릭하면 선택만 해제 (탭 전환 없음).
+   * 카드 클릭 핸들러 — selectedId 토글만 담당.
+   * 탭 자동 전환 없음 — 그래프 탭으로 직접 가면 동일한 focus 상태가 반영된다.
    */
-  const handleCardSelect = useCallback(
-    (id: string) => {
-      if (selectedId === id) {
-        setSelectedId(null);
-      } else {
-        setSelectedId(id);
-        setView('graph');
-      }
-    },
-    [selectedId],
-  );
+  const handleCardSelect = useCallback((id: string) => {
+    setSelectedId((prev) => (prev === id ? null : id));
+  }, []);
 
   if (isLoading) {
     return (

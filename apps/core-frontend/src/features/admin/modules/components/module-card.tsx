@@ -87,8 +87,6 @@ export function ModuleCard({ module, onSelect, selectedId }: ModuleCardProps) {
         isSelected && 'ring-2 ring-[var(--color-primary)] shadow-[0_0_0_2px_var(--color-primary)]',
       )}
     >
-      {/* 선택 상태 강조 바 (primary 토큰, 그래프 노드와 동일한 시각 언어) */}
-      {isSelected && <div aria-hidden="true" className="h-0.5 w-full rounded-t-lg bg-primary" />}
       {/* ── 1. 헤더: 정체성 + 위험 요약 ── */}
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div className="min-w-0">
