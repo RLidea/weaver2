@@ -1,5 +1,8 @@
 export type DependencyKind = 'hard' | 'soft';
 
+/** 백엔드 ModuleLayer와 동일 — 모듈이 속한 아키텍처 계층. */
+export type ModuleLayer = 'core' | 'features' | 'infrastructure' | 'system';
+
 export interface ModuleDependency {
   id: string;
   kind: DependencyKind;
@@ -24,7 +27,7 @@ export interface ModuleFootprint {
 
 export interface Module {
   id: string;
-  layer: string;
+  layer: ModuleLayer;
   description: string;
   dependsOn: ModuleDependency[];
   dependents: ModuleDependent[];
