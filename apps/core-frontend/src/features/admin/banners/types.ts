@@ -26,7 +26,9 @@ export interface CreateBannerRequest {
   endsAt?: string;
 }
 
-export type UpdateBannerRequest = Partial<CreateBannerRequest>;
+export type UpdateBannerRequest = Partial<Omit<CreateBannerRequest, 'linkUrl'>> & {
+  linkUrl?: string | null;
+};
 
 export const BANNER_SLOTS: { value: BannerSlotValue; label: string }[] = [
   { value: 'MAIN_TOP', label: '메인 상단' },

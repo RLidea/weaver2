@@ -15,6 +15,7 @@ import {
   SettingsIcon,
   MailIcon,
   PuzzleIcon,
+  ImageIcon,
 } from '@/shared/components/ui/icons';
 
 const NAV_ITEMS = [
@@ -51,6 +52,13 @@ const NAV_ITEMS = [
     href: '/admin/abuse-reports',
     Icon: FlagIcon,
     permission: PERMISSIONS.ABUSE_REPORT.READ,
+    exact: false,
+  },
+  {
+    label: '배너 관리',
+    href: '/admin/banners',
+    Icon: ImageIcon,
+    permission: PERMISSIONS.BANNER.MANAGE,
     exact: false,
   },
   {
