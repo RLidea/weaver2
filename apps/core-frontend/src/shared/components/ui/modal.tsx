@@ -54,14 +54,14 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
       <div
         ref={panelRef}
         className={cn(
-          'relative z-10 w-full rounded-lg border border-border bg-surface shadow-[var(--shadow-card)]',
+          'relative z-10 flex max-h-[calc(100vh-2rem)] w-full flex-col rounded-lg border border-border bg-surface shadow-[var(--shadow-card)]',
           'backdrop-blur-[var(--blur-backdrop)]',
           SIZE_CLASSES[size],
           className,
         )}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
             <h2 className="text-base font-semibold text-text">{title}</h2>
             <button
               onClick={onClose}
@@ -74,7 +74,7 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
       </div>
     </div>,
     document.body,
