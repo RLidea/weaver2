@@ -71,8 +71,8 @@ model Banner {
   sortOrder   Int        @default(0)
   startsAt    DateTime?
   endsAt      DateTime?
-  createdById String
-  createdBy   User       @relation(fields: [createdById], references: [id])
+  createdById String?
+  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
@@ -184,7 +184,7 @@ export class BannerDto {
   @ApiProperty() sortOrder: number;
   @ApiPropertyOptional({ nullable: true }) startsAt: Date | null;
   @ApiPropertyOptional({ nullable: true }) endsAt: Date | null;
-  @ApiProperty() createdById: string;
+  @ApiPropertyOptional({ nullable: true }) createdById: string | null;
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
