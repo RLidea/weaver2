@@ -1,3 +1,4 @@
+import { cn } from '@/shared/lib/cn';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { DependencyChip } from './dependency-chip';
@@ -5,6 +6,10 @@ import type { Module, ModuleDependency, ModuleDependent } from '../types';
 
 interface ModuleCardProps {
   module: Module;
+  /** 카드 클릭 시 호출 — 그래프 focus 연동용. */
+  onSelect?: (id: string) => void;
+  /** 현재 선택(focus)된 모듈 ID. 자신과 일치하면 선택 강조. */
+  selectedId?: string | null;
 }
 
 /** 의존 흐름 한 레인(상류/하류)을 그린다. 빈 경우 placeholder 출력. */
@@ -45,7 +50,7 @@ function DependencyLane({
   );
 }
 
-export function ModuleCard({ module }: ModuleCardProps) {
+export function ModuleCard({ module, onSelect, selectedId }: ModuleCardProps) {
   const { id, layer, description, dependsOn, dependents, footprint } = module;
 
   const prismaModelCount = footprint.prismaModels?.length ?? 0;
@@ -56,8 +61,34 @@ export function ModuleCard({ module }: ModuleCardProps) {
   // 위험 요약: 끊기면 컴파일이 깨지는 hard 의존 개수 (상류 기준)
   const hardDependsCount = dependsOn.filter((d) => d.kind === 'hard').length;
 
+  const isSelected = selectedId === id;
+
   return (
-    <Card glass className="flex flex-col">
+    /**
+     * 카드 전체를 클릭 가능하게 버튼으로 래핑한다.
+     * onSelect가 없으면 일반 div처럼 동작(pointer-events: auto이나 cursor는 기본).
+     * aria-pressed로 선택 상태를 보조 기술에 전달한다.
+     */
+    <button
+      type="button"
+      onClick={() => onSelect?.(id)}
+      aria-pressed={isSelected}
+      aria-label={`${id} 모듈 ${isSelected ? '(선택됨)' : '— 클릭하면 그래프에서 focus'}`}
+      className={cn(
+        'block w-full text-left',
+        onSelect ? 'cursor-pointer' : 'cursor-default',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 rounded-lg',
+      )}
+    >
+    <Card
+      glass
+      className={cn(
+        'flex flex-col transition-shadow duration-200',
+        isSelected && 'ring-2 ring-[var(--color-primary)] shadow-[0_0_0_2px_var(--color-primary)]',
+      )}
+    >
+      {/* 선택 상태 강조 바 (primary 토큰, 그래프 노드와 동일한 시각 언어) */}
+      {isSelected && <div aria-hidden="true" className="h-0.5 w-full rounded-t-lg bg-primary" />}
       {/* ── 1. 헤더: 정체성 + 위험 요약 ── */}
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div className="min-w-0">
@@ -140,6 +171,7 @@ export function ModuleCard({ module }: ModuleCardProps) {
         </div>
       )}
     </Card>
+    </button>
   );
 }
 
