@@ -42,7 +42,7 @@ function ModuleRegistryContent() {
 
 export default function AdminModulesPage() {
   return (
-    <RequirePermission permission={PERMISSIONS.ADMIN.ACCESS}>
+    <RequirePermission permission={PERMISSIONS.SUPER}>
       <div>
         <h1 className="text-2xl font-semibold text-text">모듈 레지스트리</h1>
         <p className="mt-1 text-sm text-text-muted">

@@ -6,7 +6,7 @@ import { AdminModulesApiService } from '../services/admin-modules.api.service';
 
 @ApiTags('Admin Modules')
 @Controller({ path: 'admin/modules', version: '1' })
-@RequirePermission(PERMISSIONS.ADMIN.ACCESS)
+@RequirePermission(PERMISSIONS.SUPER)
 export class AdminModulesApiController {
   constructor(
     private readonly adminModulesApiService: AdminModulesApiService,

@@ -78,7 +78,7 @@ const NAV_ITEMS = [
     label: '모듈',
     href: '/admin/modules',
     Icon: PuzzleIcon,
-    permission: PERMISSIONS.ADMIN.ACCESS,
+    permission: PERMISSIONS.SUPER,
     exact: false,
   },
 ] as const;
