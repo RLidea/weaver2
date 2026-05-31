@@ -33,6 +33,12 @@ const usersToSeed = [
     displayName: '정지계정',
     email: 'suspended@weaver.com',
   },
+  {
+    id: 'cmbyuak4u00051rjcus3r0000u',
+    username: 'user',
+    displayName: '일반사용자',
+    email: 'user@weaver.com',
+  },
 ];
 
 const localCredentialsToSeed = [
@@ -55,6 +61,10 @@ const localCredentialsToSeed = [
   {
     password: 'secret!!',
     userId: 'cmbyuak4t00041rjcsu5p3nd3d',
+  },
+  {
+    password: 'secret!!',
+    userId: 'cmbyuak4u00051rjcus3r0000u',
   },
 ];
 
