@@ -1,0 +1,30 @@
+// =============================================================================
+// Project: Banner Feature
+// =============================================================================
+
+model Banner {
+  id          String     @id @default(uuid())
+  title       String
+  imageFileId String
+  linkUrl     String?
+  slot        BannerSlot @default(MAIN_TOP)
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdById String?
+  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  @@index([slot, isActive, sortOrder], map: "banner_slot_idx")
+  @@map("banners")
+}
+
+enum BannerSlot {
+  MAIN_TOP
+  MAIN_BOTTOM
+  SIDEBAR
+  POPUP
+}
