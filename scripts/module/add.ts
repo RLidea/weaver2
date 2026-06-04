@@ -4,7 +4,6 @@
  * 사용: pnpm module:add banner
  *
  * remove의 역연산:
- *  0) assertCleanWorktree — 미커밋 변경 위에 덮어쓰기 방지
  *  1) catalog/modules/<id>/<원경로> → <원경로> 복원
  *     extract가 원경로 구조를 보존했으므로, catalog 하위를 walk해서
  *     `catalog/modules/<id>/` 접두를 떼면 원경로가 된다. footprint를 다시
@@ -14,7 +13,6 @@
  *       (PERMISSIONS.BANNER.ALL 참조)를 그 다음 — 참조 대상이 먼저 존재해야 함.
  *  3) migrate 안내 출력 (DB는 사용자가 직접)
  */
-import { assertCleanWorktree } from './lib/git-guard';
 import {
   addBackendRegistration,
   addPermissions,
@@ -53,8 +51,9 @@ if (!fs.existsSync(catDashboardSlots)) {
   console.warn(`   최신화: pnpm module:extract ${id}`);
 }
 
-// 0) 워킹트리 청결 확인
-assertCleanWorktree();
+// add는 git-guard를 두지 않는다: remove 직후(banner 삭제된 더러운 트리)에서
+// 복원하는 것이 정상 시나리오이고, 복사(cpSync)와 등록(registration)이 멱등이라
+// 안전하다. 실수 방지는 remove 쪽 git-guard가 담당(클린 상태에서만 제거 시작).
 
 // eslint-disable-next-line no-console
 console.log(`\n[module:add] ${id}`);
