@@ -23,6 +23,7 @@ import {
   addPermissionGroupSeed,
 } from './lib/registration';
 import { addBackref } from './lib/prisma-backref';
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -36,6 +37,20 @@ if (!fs.existsSync(catAbs)) {
   // eslint-disable-next-line no-console
   console.error(`카탈로그 없음: ${CAT} (먼저 pnpm module:extract ${id} 실행)`);
   process.exit(1);
+}
+
+// 0-pre) catalog에 dashboard-slots.tsx가 없으면 슬롯 등록이 빠질 수 있음을 경고
+const catDashboardSlots = path.join(
+  catAbs,
+  `apps/core-frontend/src/features/${id}/dashboard-slots.tsx`,
+);
+if (!fs.existsSync(catDashboardSlots)) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `⚠️  catalog에 dashboard-slots.tsx가 없습니다. 슬롯 등록 없이 복원됩니다.`,
+  );
+  // eslint-disable-next-line no-console
+  console.warn(`   최신화: pnpm module:extract ${id}`);
 }
 
 // 0) 워킹트리 청결 확인
@@ -83,6 +98,11 @@ addPermissionGroupSeed(ROOT); // 그 다음 참조(BANNER.ALL) 삽입
 addSidebar(ROOT);
 addCommonPermissions(ROOT);
 addBackref(ROOT);
+
+// 2.5) 슬롯 레지스트리 재생성 (frontend dashboard-slots.tsx 복원 반영)
+// eslint-disable-next-line no-console
+console.log('\n[슬롯 레지스트리 재생성]');
+execSync('tsx scripts/gen-slot-registry.ts', { cwd: ROOT, stdio: 'inherit' });
 
 // 3) migrate 안내
 // eslint-disable-next-line no-console

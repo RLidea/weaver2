@@ -7,8 +7,7 @@ import { useRecentNotifications } from '../hooks/use-recent-notifications';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { BellIcon, ShieldIcon, UserIcon } from '@/shared/components/ui/icons';
 import { Spinner } from '@/shared/components/ui/spinner';
-import { BannerSlot } from '@/features/banner/components/banner-slot';
-import { PopupBanner } from '@/features/banner/components/popup-banner';
+import { ModuleSlot } from '@/shared/components/module-slot';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -45,8 +44,6 @@ const ACCOUNT_SHORTCUTS = [
   },
 ] as const;
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
-
 export function DashboardOverview() {
   const { user } = useMe();
   const { data: recentNotifications = [], isLoading: notifLoading } = useRecentNotifications(3);
@@ -61,8 +58,8 @@ export function DashboardOverview() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <BannerSlot slot="MAIN_TOP" apiBase={API_BASE} />
-      <PopupBanner apiBase={API_BASE} />
+      <ModuleSlot name="dashboard-top" />
+      <ModuleSlot name="global-popup" />
       {/* 프로필 카드 */}
       <Card>
         <CardContent className="flex items-center gap-4 py-5">

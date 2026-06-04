@@ -25,6 +25,7 @@ import {
   removePermissionGroupSeed,
 } from './lib/registration';
 import { removeBackref } from './lib/prisma-backref';
+import { execSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 const id = process.argv[2] ?? 'banner';
@@ -88,6 +89,11 @@ const targets: string[] = [
 for (const rel of targets) {
   removePath(ROOT, rel);
 }
+
+// 3.5) 슬롯 레지스트리 재생성 (설치된 모듈 변경 반영)
+// eslint-disable-next-line no-console
+console.log('\n[슬롯 레지스트리 재생성]');
+execSync('tsx scripts/gen-slot-registry.ts', { cwd: ROOT, stdio: 'inherit' });
 
 // 4) migrate 안내
 // eslint-disable-next-line no-console
