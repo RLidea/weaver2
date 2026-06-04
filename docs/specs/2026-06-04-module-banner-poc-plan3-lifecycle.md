@@ -25,8 +25,13 @@
 | 5 | `apps/core-frontend/src/shared/components/layout/admin-sidebar.tsx` | `ImageIcon` import + `NAV_ITEMS` 항목 | ts-morph |
 | 6 | `libs/common/src/constants/permissions.const.ts` | banner 권한 카탈로그 항목 3개 | ts-morph |
 
-추가(텍스트 편집, .prisma는 ts-morph 불가):
+추가:
 | 7 | `apps/core-backend/prisma/schema/auth.prisma` | User 모델의 `banners Banner[]` backref (footprint.coreBackrefs) | 정규식/문자열 |
+| 8 | `apps/core-backend/prisma/seed/permission-group.seed.ts` | Admin 그룹 permissions 배열의 `PERMISSIONS.BANNER.ALL` 항목 | ts-morph |
+
+> **★ 8번은 리뷰에서 발견된 banner의 숨은 inbound 의존.** 공용 시드 `permission-group.seed.ts`가 `PERMISSIONS.BANNER.ALL`을 참조하므로, remove가 `PERMISSIONS.BANNER`를 지우기 전에/함께 이 라인도 제거해야 컴파일이 안 깨진다(self-contained 성립 조건). add 시 재삽입.
+
+> **NAV_ITEMS `as const` 주의:** `admin-sidebar.tsx`의 `NAV_ITEMS`는 `[...] as const` 형태다. ts-morph 접근 시 `getInitializerIfKind(ArrayLiteralExpression)`가 아니라 `getInitializerIfKind(AsExpression).getExpression().asKind(ArrayLiteralExpression)`로 거쳐야 한다(PERMISSIONS 객체와 동일 패턴).
 
 footprint 파일 처리(복사/삭제) 대상: `backendDir`, `frontendDirs[]`, `routes[]`, `prismaSchema`, `seeds[]`.
 
@@ -341,6 +346,31 @@ export function removeSidebar(root: string) {
 
 `ALL_PERMISSIONS` 배열에 3개 항목 add/remove. 배열 식별 후 `arr.addElement`/항목 제거.
 
+- [ ] **Step 2b: permission-group.seed.ts — Admin 그룹의 `PERMISSIONS.BANNER.ALL` (ts-morph) ★**
+
+리뷰에서 발견된 숨은 의존. `permission-group.seed.ts`의 Admin 그룹 `permissions` 배열에서 `PERMISSIONS.BANNER.ALL` 항목을 add/remove. **remove 시 이 항목을 `removePermissions`(libs/shared)보다 먼저 제거**해야 컴파일 안 깨짐.
+
+```typescript
+export function removePermissionGroupSeed(root: string) {
+  withSource(root, R.permissionGroupSeed.file, (sf) => {
+    sf.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .filter((e) => e.getText() === R.permissionGroupSeed.member)
+      .forEach((e) => {
+        const el = e.getParentWhileKind(SyntaxKind.ArrayLiteralExpression); // 항목 노드 탐색
+        e.getFirstAncestorByKind(SyntaxKind.ArrayLiteralExpression)
+          ?.getElements().find((x) => x.getText() === R.permissionGroupSeed.member)?.remove();
+      });
+  });
+}
+export function addPermissionGroupSeed(root: string) {
+  withSource(root, R.permissionGroupSeed.file, (sf) => {
+    // Admin 그룹 permissions 배열을 찾아 멱등 추가. 실제 그룹/배열 식별은 파일 구조 확인 후.
+  });
+}
+```
+
+> 구현 시 permission-group.seed.ts의 실제 구조(어느 그룹의 permissions 배열인지)를 보고 정확히 타겟팅. Admin 그룹만 banner를 가졌는지(Operator 등 다른 그룹도?) 확인.
+
 - [ ] **Step 3: prisma-backref.ts — auth.prisma 텍스트 편집**
 
 `.prisma`는 ts-morph 불가 → 정규식. User 모델 블록 내에 `banners   Banner[]` 라인 add(멱등: 이미 있으면 skip)/remove.
@@ -429,7 +459,7 @@ import { ALL_MANIFESTS } from '../../apps/core-backend/src/features/manifests';
 import { buildDependencyGraph, analyzeRemoval } from '@weaver2/module-registry';
 import { assertCleanWorktree } from './lib/git-guard';
 import { removePath } from './lib/footprint-io';
-import { removeBackendRegistration, removePermissions, removeSidebar, removeCommonPermissions } from './lib/registration';
+import { removeBackendRegistration, removePermissions, removeSidebar, removeCommonPermissions, removePermissionGroupSeed } from './lib/registration';
 import { removeBackref } from './lib/prisma-backref';
 
 const ROOT = process.cwd();
@@ -445,6 +475,7 @@ if (impact.dependents?.length) {
 const fp = ALL_MANIFESTS.find((m) => m.id === id)!.footprint;
 
 // 1) 등록 제거 (파일 삭제 전에)
+removePermissionGroupSeed(ROOT);  // ★ PERMISSIONS.BANNER 삭제보다 먼저 (참조 제거)
 removeBackendRegistration(ROOT);
 removePermissions(ROOT);
 removeSidebar(ROOT);
@@ -500,7 +531,7 @@ catalog에서 메인으로 복사 + 등록 삽입 + migrate 안내. (remove의 �
 ```typescript
 import { assertCleanWorktree } from './lib/git-guard';
 import { copyDir } from './lib/footprint-io';
-import { addBackendRegistration, addPermissions, addSidebar, addCommonPermissions } from './lib/registration';
+import { addBackendRegistration, addPermissions, addSidebar, addCommonPermissions, addPermissionGroupSeed } from './lib/registration';
 import { addBackref } from './lib/prisma-backref';
 import * as fs from 'node:fs';
 
@@ -517,7 +548,8 @@ if (!fs.existsSync(`${ROOT}/${CAT}`)) throw new Error(`카탈로그 없음: ${CA
 
 // 2) 등록 삽입
 addBackendRegistration(ROOT);
-addPermissions(ROOT);
+addPermissions(ROOT);          // PERMISSIONS.BANNER 먼저 삽입
+addPermissionGroupSeed(ROOT);  // 그 다음 참조(BANNER.ALL) 삽입
 addSidebar(ROOT);
 addCommonPermissions(ROOT);
 addBackref(ROOT);
