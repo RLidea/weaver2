@@ -16,11 +16,13 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 
 ## 2. Target User
 
-- **본인용** — 신규 프로젝트 분기의 출발점.
-- **Non-target** — 외부 OSS 배포, 외주 협업자 단독 사용.
+- **본인 + 사내 개발팀** — 신규 프로젝트 분기의 출발점이자, 팀이 함께 만지는 공용 기반.
+- **장기 방향 (북극성)** — 공개 OSS 보일러플레이트. 단 현 단계의 정체성은 아니며, 도달에 필요한 갭은 [`ROADMAP.md`](ROADMAP.md)의 "OSS 공개를 위한 준비"에 정리.
+- **Non-target (현 단계)** — 외부 OSS 일반 배포, 외주 협력사 단독 사용.
 
-> 본인용이라는 가정은 의사결정의 무게중심을 결정한다.
-> 외부 가독성·일반화보다 *6개월 뒤 본인이 헷갈리지 않는 것*이 우선.
+> 무게중심: 외부 일반 가독성보다, **본인과 새로 합류한 동료가 6개월 뒤 헷갈리지 않는 것**이 우선.
+> "본인용"이 아니라 "팀용"이 되었으므로 — 온보딩·코드 가독성은 더 이상 후순위가 아니다([`docs/onboarding/`](docs/onboarding/)).
+> 그럼에도 YAGNI는 유지한다: 팀용이 됐다고 쓰지도 않을 일반화를 미리 넣지 않는다. 필요해질 때 추가한다.
 
 ---
 
@@ -91,8 +93,19 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 | **CQRS 파일 분리** (`*.query.ts` / `*.command.ts`) | 읽기/쓰기 책임을 파일 레벨에서 시각화. |
 | **Soft-delete + 명시 hard-delete** | `ON DELETE CASCADE`는 hard DELETE에서만 동작 — soft-delete 시 명시적 hard-delete가 안전. |
 | **`@Public` 명시 + 글로벌 가드** | secure-by-default. 보호가 기본, 노출이 명시. |
-| **한국어 단일 / Asia/Seoul timezone 기본값** | 본인용 가정. 다국어 분기는 별도 변종(fork). |
+| **한국어 단일 / Asia/Seoul timezone 기본값** | 사내 팀(한국) 기준. 다국어 분기는 별도 변종(fork). |
 | **시드는 자연키 lookup** | `user.seed.ts`만 자기 ID 하드코딩 (leetspeak 디버깅 자산), 다른 시드는 username/name/code 등 자연키로 참조. |
+
+### 5.1 일반화의 기준 — 언제 추상화하고, 언제 참는가
+
+목표는 크게 잡되("어떤 외주 플랫폼이라도 커버"), **과도한 일반화(over-engineering)**와 **적정 일반화**는 다음 4렌즈로 가른다. 야심찬 *비전*은 과도한 일반화가 아니다 — 과도해지는 건 *아직 만나지 않은 요구를 지금 코드로 선제 구현*할 때다.
+
+1. **증거 기반인가, 상상 기반인가** (가장 중요) — *이미 겪은* 차이를 흡수하면 적정, *겪을지 모를* 차이를 상상하면 과도. 리트머스: **"이 유연성을 요구한 실제 사례가 있나, 아니면 '혹시 몰라서'인가?"**
+2. **Rule of Three** — 같은 패턴이 *실제로 3번* 나타나기 전엔 추상화하지 않는다. (1번 구현 → 2번 중복이 보여도 참기 → 3번 추상화)
+3. **되돌리는 비용** — 싸게 바꿀 수 있는 것(함수 시그니처·내부 구조)은 미루고, 비싸게 바뀌는 것(DB 스키마·공개 API 경계·핵심 데이터 모델)만 미리 신중히 설계한다.
+4. **확장 지점(seam) vs 구현** — 갈아끼울 *자리*(인터페이스)는 넉넉히 열되, *쓰지 않는 구현*은 미리 만들지 않는다. (예: `STORAGE_DRIVER`·`NOTIFICATION_EMITTER` — 자리는 열고 구현은 현재 필요한 것만; §6 참조)
+
+> **비전은 크게, 추상화는 사례가 끌어당길 때 따라간다(pull, not push).** 새 프로젝트마다 공통이면 `libs/`로 승격, 특수하면 분기(fork)에 남긴다. weaver2는 *미리 부풀린 만능 플랫폼*이 아니라, *거칠수록 공통이 자라는 살아있는 보일러플레이트*다.
 
 ---
 
@@ -129,7 +142,7 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 ### 7.3 커밋·문서 규칙
 
 - 커밋 메시지: 영어 + 한국어 번역 병기, AI 생성 표시 금지 (`CONTRIBUTING.md` 참조).
-- `docs/*` 는 git ignore (`!docs/audits/` 만 추적). 시점 보고서는 `docs/audits/<topic>-<YYYY-MM-DD>.md`.
+- `docs/` 는 git 추적 (단 `docs/local/` 만 제외 — 임시·로컬 작업 노트). 시점 보고서는 `docs/audits/<topic>-<YYYY-MM-DD>.md`.
 - AI 협업 규칙은 `CLAUDE.md`가 단일 진실 원천.
 
 ---
@@ -143,6 +156,7 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 - DB raw 쿼리에 테이블·컬럼 식별자 직접 박힘 — **의도된 trade-off**. Prisma 파라미터 바인딩은 식별자에 못 쓰므로 상수화하면 `${Prisma.raw(...)}` 보일러플레이트가 폭증. `@@map`/필드명 변경 빈도가 매우 낮으므로 박힌 채로 유지. 위치: `features/search/repositories/`, `features/board/services/reaction.service.ts`, `infrastructure/analytics/`.
 - 결제·송금·금융 미포함
 - e2e 커버리지 최소 — 현재 유닛 102 + 통합 1 + e2e 1(로그인 골든패스, Playwright). 시나리오 확장은 ROADMAP. 인프라(`apps/core-frontend/e2e/`, CI test-e2e job)는 갖춰져 있어 추가는 spec 파일 한 개씩 들어감.
+- **`module-registry`는 현재 banner 1례로 검증된 PoC** — 정직하게 둘로 나눠 본다. ✅ *합리적 절반*: 매니페스트 타입 + 의존성 추출기(`extract-manifest`)는 4개 모듈(board/abuse-report/search/banner)에 실제 적용되는 도구. ❌ *과도한 절반*: `scripts/module`의 add/remove와 `registration.ts`(471줄)·`catalog/`는 **banner 전용 하드코딩**이다 — banner 외 `id`를 넣어도 banner 블록을 삽입하므로 두 번째 모듈은 코드 재작성 없이 불가. `registry`/`catalog`/`dashboard` 명명이 실체(banner 전용 스크립트, UI 대시보드 없음, `generate.ts`=24줄 JSON 프린터)보다 크다. **"범용 모듈 시스템"이 아니라 "모듈 제거 가능성"의 검증된 1례로 읽을 것** — §5.1 Rule of Three(사례 1)·증거 기반 렌즈에 걸리는 의도된 선투자. 범용화 결정은 *두 번째 모듈을 떼어낼 때*로 미룬다(ROADMAP "OSS 공개를 위한 준비" ④).
 
 ---
 
