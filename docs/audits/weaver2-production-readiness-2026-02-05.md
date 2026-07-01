@@ -3,8 +3,8 @@
 > **📌 ARCHIVED (2026-05-09)** — 본 보고서의 Critical/Important 항목은 대부분 처리 완료되었습니다.
 > 본 문서는 2026-02-05 시점의 평가로, 현재 코드 상태와 다수 어긋나 있습니다(약 80% outdated).
 > 최신 상태:
-> - 종합 감사: [`audits/weaver2-audit-2026-05-09.md`](audits/weaver2-audit-2026-05-09.md)
-> - 헌장 점검: [`audits/weaver2-charter-review-2026-05-09.md`](audits/weaver2-charter-review-2026-05-09.md)
+> - 종합 감사: [`audits/weaver2-audit-2026-05-09.md`](weaver2-audit-2026-05-09.md)
+> - 헌장 점검: [`audits/weaver2-charter-review-2026-05-09.md`](weaver2-charter-review-2026-05-09.md)
 > - 향후 작업: [`../ROADMAP.md`](../ROADMAP.md)
 >
 > 본 문서는 이력 보존을 위해 남겨두며, 새로운 평가 결정의 근거로 사용하지 마세요.

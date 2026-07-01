@@ -4,7 +4,7 @@
 > RolesGuard 제거, BoardPermission → ResourcePermission 통합, `@RequirePermission` 데코레이터 적용,
 > 권한 그룹 시드(SuperAdmin/Admin/Operator/Moderator/User/Suspended), 관리자 그룹 CRUD 모두 동작 중.
 > 본 문서의 미체크 체크박스는 *체크 갱신 누락*이며, 실제로는 모두 처리되었습니다.
-> 현재 패턴 설명은 [`../README.md`](../README.md)의 "아키텍처 → 권한 시스템" 절 참조.
+> 현재 패턴 설명은 [`../README.md`](../../README.md)의 "아키텍처 → 권한 시스템" 절 참조.
 
 ---
 
