@@ -62,7 +62,7 @@ NestJS + Next.js 기반의 커뮤니티 플랫폼 보일러플레이트입니다
 | Backend | NestJS, TypeScript, Prisma ORM |
 | Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS |
 | Database | PostgreSQL |
-| Auth | JWT (HttpOnly Cookie), Passport 없이 native OAuth |
+| Auth | JWT (HttpOnly Cookie), 소셜 OAuth는 Passport 없이 native (JWT·로컬 로그인은 `passport-jwt`/`passport-local`) |
 | Realtime | SSE (Server-Sent Events), Web Push (VAPID) |
 | Storage | Local / AWS S3 (환경변수로 전환) |
 | Email | Nodemailer (SMTP) |
@@ -271,7 +271,7 @@ STORAGE_DRIVER=s3     → S3StorageProvider     (AWS S3 / MinIO)
 
 ## 🔐 보안
 
-- **JWT**: HttpOnly 쿠키 기반, Access Token 15분 / Refresh Token 최대 30일
+- **JWT**: HttpOnly 쿠키 기반, Access Token 15분(쿠키 maxAge; `JWT_EXPIRES_IN` 권장 `15m`·미설정 시 코드 기본 `1h`) / Refresh Token 최대 30일
 - **CSRF**: 뮤테이션 요청마다 `x-csrf-token` 헤더 검증
 - **Rate Limiting**: 전역 60초/100회, 로그인 60초/10회, 2FA 60초/3~5회
 - **계정 잠금**: 로그인 5회 실패 → 15분 잠금

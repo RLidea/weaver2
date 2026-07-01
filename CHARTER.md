@@ -86,7 +86,7 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 
 | 원칙 | 이유 |
 |------|------|
-| **Passport 미사용** | 의존성·블랙박스 최소화. 직접 OAuth 구현으로 디버깅 가능. |
+| **소셜 OAuth에 Passport 미사용** | 의존성·블랙박스 최소화. Google/Kakao/Naver를 직접 구현해 디버깅 가능. (단 JWT·로컬 인증 자체는 `passport-jwt`/`passport-local` 사용) |
 | **권한 그룹 + 와일드카드** | 역할(Role) 인플레이션 방지. AWS IAM 패턴. |
 | **SSE + Web Push (WebSocket 미사용)** | 단방향 알림이면 SSE로 충분. WebSocket 인프라 회피. |
 | **모노레포 + `libs/shared`** | 백·프론트가 `PERMISSIONS` 상수를 공유. 권한 정의가 한 곳. |
