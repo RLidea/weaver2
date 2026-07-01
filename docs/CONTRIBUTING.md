@@ -2,7 +2,7 @@
 
 본 문서는 **weaver2 자체에 기여하시는 분**과 **이 보일러플레이트를 복제해서 외주 프로젝트로 운영하시는 분** 양쪽을 위한 가이드입니다.
 
-> 핵심 철학과 코딩 스타일은 [`CLAUDE.md`](CLAUDE.md), 향후 작업은 [`ROADMAP.md`](ROADMAP.md), 종합 감사 결과는 [`docs/audits/`](docs/audits/) 참조.
+> 핵심 철학과 코딩 스타일은 [`CLAUDE.md`](../CLAUDE.md), 향후 작업은 [`ROADMAP.md`](ROADMAP.md), 종합 감사 결과는 [`docs/audits/`](audits/) 참조.
 
 ---
 
@@ -60,7 +60,7 @@ pnpm dev:web     # 프론트엔드 :3000
 
 - 그래프 데이터(`.understand-anything/knowledge-graph.json`)는 저장소에 커밋되어 있어, 별도 분석 없이 바로 열람할 수 있습니다.
 - 코드 변경 후 그래프를 갱신하려면 `/understand` 를 다시 실행하면 변경분만 반영됩니다.
-- 갱신 방법 상세는 [`docs/understand-incremental-guide.md`](docs/understand-incremental-guide.md) 참고.
+- 갱신 방법 상세는 [`docs/understand-incremental-guide.md`](understand-incremental-guide.md) 참고.
 
 ---
 
@@ -226,7 +226,7 @@ chore(deps): bump next from 16.1.6 to 16.2.6 (CVE patch)
 
 ## 🤖 CI 동작 이해
 
-`README.md`의 [CI / GitHub Actions](README.md#-ci--github-actions) 섹션 참조. 핵심 흐름:
+`README.md`의 [CI / GitHub Actions](../README.md#-ci--github-actions) 섹션 참조. 핵심 흐름:
 
 ```
 push/PR
@@ -309,7 +309,7 @@ pnpm db:migrate
 - **Integration** — DB·외부 의존 통합, 권한 가드, 트랜잭션 cascade
 - **E2E** — 풀 스택 사용자 시나리오 (브라우저 → Next.js → backend → Postgres).
   새 기능이 추가하는 골든 패스 1개씩 추가가 기준. 자세한 가이드는
-  [`apps/core-frontend/e2e/README.md`](apps/core-frontend/e2e/README.md)
+  [`apps/core-frontend/e2e/README.md`](../apps/core-frontend/e2e/README.md)
 
 ### Mock 패턴 (이번 세션 정착됨)
 
@@ -430,8 +430,8 @@ git push origin main
 
 - 보안 보고: [`SECURITY.md`](SECURITY.md)
 - 향후 작업: [`ROADMAP.md`](ROADMAP.md)
-- 핵심 코딩 가이드: [`CLAUDE.md`](CLAUDE.md), [`apps/core-frontend/CLAUDE.md`](apps/core-frontend/CLAUDE.md)
-- 종합 감사 기록: [`docs/audits/`](docs/audits/)
+- 핵심 코딩 가이드: [`CLAUDE.md`](../CLAUDE.md), [`apps/core-frontend/CLAUDE.md`](../apps/core-frontend/CLAUDE.md)
+- 종합 감사 기록: [`docs/audits/`](audits/)
 
 ---
 

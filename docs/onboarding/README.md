@@ -33,6 +33,6 @@
 | 문서 | 역할 |
 |------|------|
 | [`README.md`](../../README.md) | 기능 카탈로그·API·CI 가이드 (레퍼런스) |
-| [`CHARTER.md`](../../CHARTER.md) | 보일러플레이트 헌장 — 설계 의도·범위·원칙(§5.1 일반화 4렌즈 포함) |
-| [`CONTRIBUTING.md`](../../CONTRIBUTING.md) | 브랜치·커밋·PR·리뷰 워크플로우 |
+| [`CHARTER.md`](../CHARTER.md) | 보일러플레이트 헌장 — 설계 의도·범위·원칙(§5.1 일반화 4렌즈 포함) |
+| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | 브랜치·커밋·PR·리뷰 워크플로우 |
 | [`docs/specs/`](../specs/) | module-registry 등 설계 1차 자료 |

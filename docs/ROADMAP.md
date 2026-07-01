@@ -1,7 +1,7 @@
 # Weaver2 Roadmap
 
 `weaver2`는 NestJS + Next.js 보일러플레이트로서 핵심 보안·성능·아키텍처는 이미
-[`docs/audits/weaver2-audit-2026-05-09.md`](docs/audits/weaver2-audit-2026-05-09.md)
+[`docs/audits/weaver2-audit-2026-05-09.md`](audits/weaver2-audit-2026-05-09.md)
 의 P0~P2 항목을 모두 처리한 상태입니다 (2026-05-09 기준).
 
 본 문서는 **그 다음 단계**, 즉 외주/실제 서비스로 띄울 때 추가하면 좋은
@@ -147,7 +147,7 @@ weaver2의 장기 방향은 **공개 OSS 보일러플레이트**입니다 ([`CHA
 ## 🔗 관련 문서
 
 - 보일러플레이트 헌장 (IN/OUT 범위 기준선): [`CHARTER.md`](CHARTER.md)
-- 초기 종합 감사: [`docs/audits/weaver2-audit-2026-05-09.md`](docs/audits/weaver2-audit-2026-05-09.md)
-- 헌장 점검 보고서: [`docs/audits/weaver2-charter-review-2026-05-09.md`](docs/audits/weaver2-charter-review-2026-05-09.md)
-- CI/Ruleset 가이드: [`README.md`](README.md#-ci--github-actions)
-- 기술 스택 / API: [`README.md`](README.md)
+- 초기 종합 감사: [`docs/audits/weaver2-audit-2026-05-09.md`](audits/weaver2-audit-2026-05-09.md)
+- 헌장 점검 보고서: [`docs/audits/weaver2-charter-review-2026-05-09.md`](audits/weaver2-charter-review-2026-05-09.md)
+- CI/Ruleset 가이드: [`README.md`](../README.md#-ci--github-actions)
+- 기술 스택 / API: [`README.md`](../README.md)

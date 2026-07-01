@@ -5,7 +5,7 @@
 **규모**: TS 25,300줄 / 490 파일 / pnpm 모노레포
 
 > **📌 진행 상태 (2026-05-09 마감)**: 본 보고서의 모든 P0·P1·P2 항목 처리 완료.
-> 향후 권장 작업은 [`ROADMAP.md`](../../ROADMAP.md)로 분리.
+> 향후 권장 작업은 [`ROADMAP.md`](../ROADMAP.md)로 분리.
 >
 > - 총 **39개 커밋**으로 처리 (boilerplate 강화)
 > - 테스트: **49 → 102개** (+53개)
@@ -124,7 +124,7 @@
 
 - 본 보고서: `.omc/research/weaver2-audit-2026-05-09.md`
 - 영역별 원본 분석: 5개 에이전트 출력 (transcript 참조)
-- 향후 권장 작업: [`ROADMAP.md`](../../ROADMAP.md)
+- 향후 권장 작업: [`ROADMAP.md`](../ROADMAP.md)
 
 ---
 

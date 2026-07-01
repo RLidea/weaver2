@@ -21,7 +21,7 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 - **Non-target (현 단계)** — 외부 OSS 일반 배포, 외주 협력사 단독 사용.
 
 > 무게중심: 외부 일반 가독성보다, **본인과 새로 합류한 동료가 6개월 뒤 헷갈리지 않는 것**이 우선.
-> "본인용"이 아니라 "팀용"이 되었으므로 — 온보딩·코드 가독성은 더 이상 후순위가 아니다([`docs/onboarding/`](docs/onboarding/)).
+> "본인용"이 아니라 "팀용"이 되었으므로 — 온보딩·코드 가독성은 더 이상 후순위가 아니다([`docs/onboarding/`](onboarding/)).
 > 그럼에도 YAGNI는 유지한다: 팀용이 됐다고 쓰지도 않을 일반화를 미리 넣지 않는다. 필요해질 때 추가한다.
 
 ---
@@ -197,9 +197,9 @@ NestJS + Next.js 기반의 풀스택 커뮤니티 플랫폼 보일러플레이�
 
 | 문서 | 역할 |
 |------|------|
-| [`README.md`](README.md) | 기능 카탈로그·기술 스택·API·CI 가이드 |
+| [`README.md`](../README.md) | 기능 카탈로그·기술 스택·API·CI 가이드 |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 개발 워크플로우·브랜치/커밋/PR/리뷰/마이그레이션·테스트 |
 | [`SECURITY.md`](SECURITY.md) | 보안 취약점 보고·대응, 빌트인 보안 레이어 |
 | [`ROADMAP.md`](ROADMAP.md) | 향후 권장 작업 (Dependabot·e2e·운영) |
-| [`CLAUDE.md`](CLAUDE.md) | AI 협업 규칙·코딩 철학·EDGE 방법론 |
-| [`docs/audits/`](docs/audits/) | 시점 감사 보고서 아카이브 |
+| [`CLAUDE.md`](../CLAUDE.md) | AI 협업 규칙·코딩 철학·EDGE 방법론 |
+| [`docs/audits/`](audits/) | 시점 감사 보고서 아카이브 |

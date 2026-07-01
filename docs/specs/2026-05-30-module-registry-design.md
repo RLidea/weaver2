@@ -401,6 +401,6 @@ export const ALL_MANIFESTS: FeatureManifest[] = [boardFeature, abuseReportFeatur
 ---
 
 ## 관련 문서
-- [`CHARTER.md`](../../CHARTER.md) — 보일러플레이트 정체성 (§1·§7.3 갱신 예정)
-- [`ROADMAP.md`](../../ROADMAP.md) — 향후 권장 작업
+- [`CHARTER.md`](../CHARTER.md) — 보일러플레이트 정체성 (§1·§7.3 갱신 예정)
+- [`ROADMAP.md`](../ROADMAP.md) — 향후 권장 작업
 - board 발자국 전수 조사 (2026-05-30, 본 설계의 근거)
