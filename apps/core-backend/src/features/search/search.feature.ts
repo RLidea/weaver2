@@ -15,8 +15,8 @@ export const searchFeature: FeatureManifest = {
     pinpoints: [
       'apps/core-backend/src/core.module.ts → SearchModule',
       'apps/core-frontend/src/proxy.ts → /search',
-      'apps/core-frontend/src/shared/components/layout/header.tsx → /search 링크(SearchIcon)',
-      'apps/core-backend/prisma/schema/migrations/*_add_search_gin_indexes → Post/Comment GIN 인덱스(재사용형; 제거 시 별도 drop)',
+      'apps/core-frontend/src/shared/components/layout/header.tsx → SearchIcon',
+      'apps/core-backend/prisma/schema/migrations/20260509060314_add_search_gin_indexes/migration.sql → posts_search_gin_idx',
     ],
   },
   removalNotes: [],
