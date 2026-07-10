@@ -138,5 +138,6 @@ weaver2/
 
 **참고**:
 - 이 파일은 핵심 철학과 워크플로우만 포함
+- 설계·계획 문서 위치: `docs/design/` (`research/` 재료 → `specs/` 설계 → `plans/` 구현 계획, CHARTER §7.3) — 도구 기본 경로 대신 이 경로 사용
 - 상세 규칙은 `.agents/skills/`의 Skills에서 자동 적용
 - Skills는 컨텍스트 압박 시에도 설명이 유지되어 더 일관된 품질 보장

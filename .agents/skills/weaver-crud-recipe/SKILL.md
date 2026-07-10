@@ -14,7 +14,7 @@ weaver2에 새 레코드 엔티티의 **표준 CRUD 세트**를 조립하는 레
 
 > **v0.1 = 골격.** 표준 세트 정의 + 미러링 포인터 + 경계선만 담는다.
 > 단계별 상세 가이드(`references/`)는 **첫 실전 fork에서 실제로 엔티티를 얹으며** 그 경험으로 채운다
-> (CHARTER §5.1 — 증거 기반, pull-not-push). 설계 배경: `docs/superpowers/specs/2026-07-10-weaver2-crud-recipe-design.md`
+> (CHARTER §5.1 — 증거 기반, pull-not-push). 설계 배경: `docs/design/specs/2026-07-10-weaver2-crud-recipe-design.md`
 
 ## ⚠️ 신선도 점검 (이 스킬을 쓰기 전에, 매번)
 

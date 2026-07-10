@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 설계 v2(`docs/superpowers/specs/2026-07-10-weaver2-crud-recipe-design.md`)의 1차분 구현 — 죽은 참조 정정, nestjs-best-practices 스킬 복원·추적, 스킬 심링크 추적, `weaver-crud-recipe` 골격 SKILL.md 작성, 문서 반영.
+**Goal:** 설계 v2(`docs/design/specs/2026-07-10-weaver2-crud-recipe-design.md`)의 1차분 구현 — 죽은 참조 정정, nestjs-best-practices 스킬 복원·추적, 스킬 심링크 추적, `weaver-crud-recipe` 골격 SKILL.md 작성, 문서 반영.
 
 **Architecture:** 코드 변경 없음 — 문서·스킬·git 구성만 다룬다. 각 태스크는 독립 커밋 단위이며, 검증은 grep/ls/git 명령의 실제 출력 확인으로 한다 (pre-commit 훅이 jest 102개를 자동 실행하므로 커밋 성공 = 테스트 통과).
 
@@ -207,7 +207,7 @@ weaver2에 새 레코드 엔티티의 **표준 CRUD 세트**를 조립하는 레
 
 > **v0.1 = 골격.** 표준 세트 정의 + 미러링 포인터 + 경계선만 담는다.
 > 단계별 상세 가이드(`references/`)는 **첫 실전 fork에서 실제로 엔티티를 얹으며** 그 경험으로 채운다
-> (CHARTER §5.1 — 증거 기반, pull-not-push). 설계 배경: `docs/superpowers/specs/2026-07-10-weaver2-crud-recipe-design.md`
+> (CHARTER §5.1 — 증거 기반, pull-not-push). 설계 배경: `docs/design/specs/2026-07-10-weaver2-crud-recipe-design.md`
 
 ## ⚠️ 신선도 점검 (이 스킬을 쓰기 전에, 매번)
 
