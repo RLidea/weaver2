@@ -127,33 +127,43 @@ function UserList() {
 
 ## 🟡 HIGH - URL 상태 관리
 
-### 쿼리 파라미터 활용
+### 규칙: 필터/검색/정렬/페이지네이션 상태는 URL에 저장
 
-**규칙:** 필터/검색/페이지네이션 상태는 URL에 저장
+**공통 훅 `useUrlState`를 쓴다** (`@/shared/hooks/use-url-state`). 직접 `useSearchParams` + `URLSearchParams` + `router`를 조합하지 않는다.
 
 ```typescript
-// ✅ CORRECT
-import { useSearchParams } from 'next/navigation';
+// ✅ CORRECT — useUrlState
+import { useUrlState } from '@/shared/hooks/use-url-state';
 
-function UserList() {
-  const searchParams = useSearchParams();
-  const page = searchParams.get('page') || '1';
-  const search = searchParams.get('search') || '';
-
-  // URL: /users?page=2&search=john
+function UserTable() {
+  const [params, setParams] = useUrlState(
+    {
+      page: { default: 1, parse: Number },
+      search: { default: '' },
+      status: { default: 'all' as UserStatus },
+      sort: { default: 'createdAt:desc' },
+    },
+    { resetKeys: ['page'] }, // page 외 키가 바뀌면 page를 기본값으로 리셋
+  );
+  // 읽기: params.status / 쓰기: setParams({ status: 'active' })
+  // URL: /admin/users?status=active  (기본값과 같은 값은 URL에서 자동 제거)
 }
 
-// ❌ WRONG - 로컬 state만 사용
-function UserList() {
-  const [page, setPage] = useState(1);
-  // 새로고침 시 상태 손실
-}
+// ❌ WRONG - 로컬 state만 (새로고침 시 손실)
+const [page, setPage] = useState(1);
+
+// ❌ WRONG - 인라인 useSearchParams+URLSearchParams+router 복붙
 ```
 
-**이유:**
-- 북마크 가능
-- 뒤로가기 지원
-- 공유 가능한 URL
+**훅이 보장하는 것:**
+- 값이 기본값과 같으면 URL에서 제거 → 주소창·공유 URL이 깔끔
+- 히스토리는 `replace`로 통일 (필터 단계마다 뒤로가기 스택을 쌓지 않음)
+- `resetKeys`로 "필터 바꾸면 page=1" 자동
+- 타입 안전 (스키마로 default·parse 선언)
+
+**예외 (훅을 쓰지 않는 경우):** 탭 전환 시 다른 파라미터를 전부 초기화해야 하는 화면(예: `admin/content`), 토큰·redirect만 읽는 인증 페이지는 인라인이 맞다.
+
+**이유:** 북마크·뒤로가기·공유 가능한 URL. 참조 구현: `features/admin/users/components/user-table.tsx`.
 
 ---
 

@@ -84,7 +84,16 @@ import 별칭: `@/infrastructure`, `@/shared`, `@/core/{d}`, `@/features/{d}`, `
 - **mutation 에러는 전역 토스트가 기본** — `MutationCache.onError`가 처리하므로 개별 `onError`를 안 써도 사용자에게 에러가 보입니다. 끄려면 `meta.skipGlobalErrorToast`
 - 실시간: SSE 훅(`use-notification-stream.ts`)이 수신 이벤트로 React Query 캐시를 직접 조작합니다 → [05장 §3](05-notifications.md#3-sse--실시간-전달)
 
-**URL 상태 관리** — 검색·필터·탭 조건은 컴포넌트 state가 아니라 URL 쿼리에 둡니다 (공유·새로고침 생존). 현재 공통 래퍼 훅은 없고, 각 컴포넌트가 `useSearchParams()` + `router.replace()`를 직접 쓰는 인라인 패턴입니다 (대표: `features/search/components/search-page-view.tsx`, admin 테이블들). 같은 패턴이 10곳 이상 반복되고 있으므로, 새 화면도 이 관례를 따르되 추상화는 Rule of Three가 아니라 이미 충분히 겪었으니 공통 훅으로 승격할 후보입니다 (CHARTER §5.1).
+**URL 상태 관리** — 검색·필터·정렬·페이지 조건은 컴포넌트 state가 아니라 URL 쿼리에 둡니다 (공유·새로고침 생존). 공통 훅 **`useUrlState`**(`shared/hooks/use-url-state.ts`)를 씁니다 — 스키마로 default·parse를 선언하면 읽기(`params.status`)와 쓰기(`setParams({ status })`)가 되고, 히스토리는 `replace` 통일, 기본값은 URL에서 자동 제거, `resetKeys`로 "필터 바꾸면 page 리셋"이 자동입니다.
+
+```tsx
+const [params, setParams] = useUrlState(
+  { page: { default: 1, parse: Number }, status: { default: 'all' as UserStatus } },
+  { resetKeys: ['page'] },
+);
+```
+
+참조 구현: `features/admin/users/components/user-table.tsx`, `features/search/components/search-page-view.tsx`. **예외** — 탭 전환 시 다른 파라미터를 전부 초기화해야 하는 화면(`admin/content`)과 토큰·redirect만 읽는 인증 페이지는 훅을 쓰지 않고 인라인이 맞습니다.
 
 ## 7. 핵심 공통 컴포넌트
 
