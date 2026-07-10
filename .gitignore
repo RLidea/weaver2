@@ -76,7 +76,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 docs/local/
 
 # AI
-.claude
+.claude/*
+!.claude/skills
 .cursor
 .gemini
 .opencode
