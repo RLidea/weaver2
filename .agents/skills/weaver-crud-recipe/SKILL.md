@@ -49,13 +49,14 @@ weaver2에 새 레코드 엔티티의 **표준 CRUD 세트**를 조립하는 레
 | 컨트롤러 | `features/board/controllers/board.controller.ts` | `createBoard`/`findAllBoards`/`findBoardById`/`updateBoard`/`deleteBoard` — 노출은 `@Public` 명시 (secure-by-default) |
 | 서비스 | `features/board/services/board.service.ts` | |
 | 쿼리/커맨드 | `features/board/repositories/find-all-boards.query.ts` · `find-board-by-id.query.ts` · `create-board.command.ts` · `update-board.command.ts` · `delete-board.command.ts` | 읽기/쓰기 파일 분리 유지 |
-| DTO | `features/board/dto/board.dto.ts` · `create-board.dto.ts` · `update-board.dto.ts` | |
+| DTO | `features/board/dto/board.dto.ts` · `create-board.dto.ts` · `update-board.dto.ts` | 응답 DTO 필드에 `@ApiProperty` — 프론트 타입 자동생성(OpenAPI)의 소스. 목록 응답은 `Api{Offset,Keyset}Response(ElementDto)` 믹스인 사용 |
 | keyset 목록 | `features/board/dto/board-posts-query.dto.ts` + `libs/pagination/` | 대량 목록이 필요할 때 Post 목록 패턴을 미러링 |
 | 유닛 테스트 | `features/board/services/board-permission.service.spec.ts` 등 `services/*.spec.ts` | |
 | 관리자 화면 | `apps/core-frontend/src/app/(admin)/admin/boards/page.tsx` + `features/admin/boards/` (board-table, create/edit modal, hooks, query-keys, api) | |
 | 공개 목록 | `apps/core-frontend/src/app/(protected)/boards/page.tsx` + `features/board/components/board-list.tsx` | |
 | 공개 상세 | `app/(protected)/boards/[id]/posts/[postId]/page.tsx` 패턴 참고 | |
 | API 클라이언트 | `features/board/api/board.api.ts` | ApiClient 필수 — `fetch()` 직접 사용 금지 |
+| 프론트 타입 | `features/admin/users/types.ts` (참조) | 응답/요청 타입은 `components['schemas']`(생성된 `api-schema.d.ts`)에서 파생. union·쿼리 파라미터·응답 봉투·헬퍼는 손 정의 유지. 백엔드 DTO 변경 후 `pnpm openapi:types`로 재생성 (CI가 drift 검사) |
 
 ## 경계선 — 게시판에서 복제하지 말 것 (커뮤니티 도메인 특수)
 
