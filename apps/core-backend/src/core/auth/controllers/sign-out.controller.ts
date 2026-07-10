@@ -2,6 +2,8 @@ import { Controller, Post, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SignOutService } from '../services/sign-out.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import { clearAuthCookies } from '../utils/auth-cookie.util';
 
 @ApiTags('Auth')
 @Controller({
@@ -9,7 +11,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
   version: '1',
 })
 export class SignOutController {
-  constructor(private readonly signOutService: SignOutService) {}
+  constructor(
+    private readonly signOutService: SignOutService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('sign-out')
   @ApiOperation({ summary: '로그아웃 및 인증 쿠키 삭제' })
@@ -24,8 +29,10 @@ export class SignOutController {
         await this.signOutService.signOut(refreshToken);
       }
     } finally {
-      res.clearCookie('access_token');
-      res.clearCookie('refresh_token');
+      clearAuthCookies(
+        res,
+        this.configService.get('NODE_ENV') === 'production',
+      );
     }
     return { message: 'Successfully signed out' };
   }

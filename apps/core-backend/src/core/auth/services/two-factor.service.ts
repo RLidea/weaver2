@@ -25,6 +25,11 @@ import { CreateTwoFactorChallengeCommand } from '../repositories/create-two-fact
 import { DeleteTwoFactorChallengesCommand } from '../repositories/delete-two-factor-challenges.command';
 import { UpdateTotpSettingsCommand } from '../repositories/update-totp-settings.command';
 import { UpdateEmailOtpSettingsCommand } from '../repositories/update-email-otp-settings.command';
+import {
+  encryptSecret,
+  decryptSecret,
+  isEncryptedSecret,
+} from '../utils/auth-crypto.util';
 
 const TWO_FACTOR_CHALLENGE_METHOD_EMAIL = 'email';
 const TWO_FACTOR_CHALLENGE_METHOD_EMAIL_SETUP = 'email-setup';
@@ -95,9 +100,10 @@ export class TwoFactorService {
     });
     const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);
 
+    // 원문 secret은 QR/응답으로만 전달하고, DB에는 암호화해 저장한다.
     await UpdateTotpSettingsCommand(this.prisma, userId, {
       totpEnabled: false,
-      totpSecret: secret,
+      totpSecret: encryptSecret(secret),
     });
 
     return { secret, qrCodeUrl: qrCodeDataUrl, otpAuthUrl };
@@ -114,7 +120,7 @@ export class TwoFactorService {
 
     const result = await otpVerify({
       token: code,
-      secret: credential.totpSecret,
+      secret: decryptSecret(credential.totpSecret),
     });
     if (!result.valid) throw new BadRequestException('Invalid TOTP code');
 
@@ -230,9 +236,18 @@ export class TwoFactorService {
       }
       const result = await otpVerify({
         token: code,
-        secret: credential.totpSecret,
+        secret: decryptSecret(credential.totpSecret),
       });
       if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
+
+      // 배포 전 저장된 legacy 평문 secret이면 이 시점에 암호화로 재저장(lazy migration).
+      // 이 분기에 도달했다는 것은 totpEnabled === true가 보장된 상태.
+      if (!isEncryptedSecret(credential.totpSecret)) {
+        await UpdateTotpSettingsCommand(this.prisma, userId, {
+          totpEnabled: true,
+          totpSecret: encryptSecret(credential.totpSecret),
+        });
+      }
     } else {
       if (!credential.emailOtpEnabled) {
         throw new BadRequestException(
@@ -344,7 +359,7 @@ export class TwoFactorService {
     if (credential.totpEnabled && credential.totpSecret) {
       const result = await otpVerify({
         token: code,
-        secret: credential.totpSecret,
+        secret: decryptSecret(credential.totpSecret),
       });
       if (result.valid) return;
     }

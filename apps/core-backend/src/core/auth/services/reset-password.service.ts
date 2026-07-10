@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@weaver2/prisma';
 import { FindLocalCredentialByResetTokenQuery } from '../repositories/find-local-credential-by-reset-token.query';
 import { UpdateLocalCredentialPasswordCommand } from '../repositories/update-local-credential-password.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 
 @Injectable()
 export class ResetPasswordService {
@@ -28,5 +29,9 @@ export class ResetPasswordService {
       credential.userId,
       hashedPassword,
     );
+
+    // 비밀번호가 바뀌면 기존 세션을 전부 무효화한다(변경 경로와 동일 정책).
+    // 계정이 이미 탈취된 상태에서 재설정으로 복구할 때 공격자 세션이 살아남지 않게 함.
+    await DeleteRefreshTokensByUserIdCommand(this.prisma, credential.userId);
   }
 }

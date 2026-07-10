@@ -22,6 +22,7 @@ import {
   OAuthTokens,
   OAuthUserProfile,
 } from './interfaces/oauth-provider.interface';
+import { setAuthCookies } from '../utils/auth-cookie.util';
 
 @Injectable()
 export class OAuthService {
@@ -79,18 +80,11 @@ export class OAuthService {
       const tokenExpiry = 7 * 24 * 60 * 60 * 1000;
 
       const isProduction = this.configService.get('NODE_ENV') === 'production';
-      res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        path: '/',
-        maxAge: 15 * 60 * 1000,
-      });
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        path: '/',
-        maxAge: tokenExpiry,
-      });
+      setAuthCookies(
+        res,
+        { accessToken, refreshToken, tokenExpiry },
+        isProduction,
+      );
 
       res.redirect(successUrl);
     } catch (error) {

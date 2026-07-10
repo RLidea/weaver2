@@ -6,9 +6,17 @@ import { randomUUID } from 'crypto';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
 import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
-import { DeleteRefreshTokenCommand } from '../repositories/delete-refresh-token.command';
+import { MarkRefreshTokenRotatedCommand } from '../repositories/mark-refresh-token-rotated.command';
+import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refresh-tokens.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
+
+/**
+ * 회전된 토큰이 다시 제시됐을 때, 이 시간 이내면 정상 경합(응답 유실 후 재시도 등)으로 보고
+ * 조용히 거절만 한다. 초과 시 탈취로 간주해 전 세션을 무효화한다.
+ */
+const REFRESH_REUSE_GRACE_MS = 30 * 1000;
 
 @Injectable()
 export class SignInService {
@@ -139,8 +147,19 @@ export class SignInService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Rotation: 기존 토큰 삭제 후 새 토큰 발급
-    await DeleteRefreshTokenCommand(this.prisma, refreshToken);
+    // 재사용(탈취) 감지: 이미 회전된 토큰이 다시 제시됨.
+    // - grace window 이내: 정상 경합(응답 유실 후 재시도 등)으로 보고 조용히 거절만.
+    // - 초과: 탈취로 간주해 해당 유저의 전 세션을 무효화.
+    if (stored.rotatedAt) {
+      const sinceRotationMs = Date.now() - stored.rotatedAt.getTime();
+      if (sinceRotationMs > REFRESH_REUSE_GRACE_MS) {
+        this.logger.warn(
+          `Refresh token reuse detected for user ${stored.userId}; revoking all sessions`,
+        );
+        await DeleteRefreshTokensByUserIdCommand(this.prisma, stored.userId);
+      }
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
 
     // 사용자가 삭제되었거나 존재하지 않는지 확인
     if (!stored.user || stored.user.deletedAt) {
@@ -149,6 +168,11 @@ export class SignInService {
       );
       throw new UnauthorizedException('User account no longer exists');
     }
+
+    // Rotation: 삭제 대신 rotatedAt 마킹(재사용 감지용) + 만료·오래된 회전 토큰 정리
+    const now = new Date();
+    await MarkRefreshTokenRotatedCommand(this.prisma, refreshToken, now);
+    await PurgeStaleRefreshTokensCommand(this.prisma, stored.user.id, now);
 
     const remainingMs = stored.expires.getTime() - Date.now();
     const remainingDays = Math.max(

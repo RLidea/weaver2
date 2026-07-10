@@ -19,6 +19,7 @@ import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { setAuthCookies, clearAuthCookies } from '../utils/auth-cookie.util';
 
 @ApiTags('Auth')
 @Controller({
@@ -33,23 +34,8 @@ export class SignInController {
   ) {}
   private logger = new Logger(SignInController.name);
 
-  private setAuthCookies(
-    res: Response,
-    tokens: { accessToken: string; refreshToken: string; tokenExpiry: number },
-  ) {
-    const isProduction = this.configService.get('NODE_ENV') === 'production';
-    res.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      path: '/',
-      maxAge: 15 * 60 * 1000,
-    });
-    res.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      path: '/',
-      maxAge: tokens.tokenExpiry,
-    });
+  private get isProduction(): boolean {
+    return this.configService.get('NODE_ENV') === 'production';
   }
 
   /*
@@ -114,15 +100,10 @@ export class SignInController {
       ipAddress,
       userAgent,
     );
-    this.setAuthCookies(res, tokens);
+    setAuthCookies(res, tokens, this.isProduction);
 
-    return {
-      message: 'Login successful',
-      data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-    };
+    // 토큰은 HttpOnly 쿠키로만 전달한다(응답 body에 평문 노출 금지).
+    return { message: 'Login successful' };
   }
 
   @Public()
@@ -155,16 +136,12 @@ export class SignInController {
         ipAddress,
         userAgent,
       );
-      this.setAuthCookies(res, tokens);
+      setAuthCookies(res, tokens, this.isProduction);
 
-      return {
-        message: 'Token refreshed successfully',
-        data: { accessToken: tokens.accessToken },
-      };
+      return { message: 'Token refreshed successfully' };
     } catch (error) {
       this.logger.error('Token refresh failed:', (error as Error).message);
-      res.clearCookie('refresh_token');
-      res.clearCookie('access_token');
+      clearAuthCookies(res, this.isProduction);
       throw error;
     }
   }

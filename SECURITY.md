@@ -40,11 +40,13 @@
 
 ### 인증·세션
 
-- JWT HttpOnly 쿠키 (Access 15분 / Refresh 최대 30일)
-- Refresh token rotation (사용 후 즉시 폐기 + 새 토큰 발급)
+- JWT HttpOnly 쿠키 (Access 15분 / Refresh 최대 30일, `sameSite=lax`)
+- Refresh token rotation + **재사용(탈취) 감지** (회전 토큰 재제시 시 grace window 밖이면 전 세션 무효화)
+- 토큰은 저장 시 보호: refresh·비밀번호 재설정·이메일 인증 토큰은 SHA-256 해시, TOTP secret은 AES-256-GCM 암호화(`TOTP_ENCRYPTION_KEY`)
+- 인증 토큰은 HttpOnly 쿠키로만 전달 (응답 body에 평문 노출 안 함)
 - 계정 잠금 (5회 실패 → 15분)
 - 계정 정지 (`suspendedUntil`)
-- 비밀번호 변경 시 전체 세션 무효화
+- 비밀번호 변경·재설정 시 전체 세션 무효화
 - 2FA: TOTP + Email OTP
 
 ### 권한

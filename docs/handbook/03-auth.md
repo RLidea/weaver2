@@ -8,12 +8,12 @@
 | 이름 | 정체 | 만료 | 저장/전달 |
 |---|---|---|---|
 | `access_token` | JWT (payload `{ sub: userId }`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
-| `refresh_token` | JWT 아님 — `randomUUID()` 문자열, DB `RefreshToken` 테이블 | rememberMe 30일 / 기본 7일 | HttpOnly 쿠키 + DB |
+| `refresh_token` | JWT 아님 — `randomUUID()` 문자열, DB `RefreshToken` 테이블에 **SHA-256 해시로 저장** | rememberMe 30일 / 기본 7일 | HttpOnly 쿠키(원문) + DB(해시) |
 | preAuthToken | JWT (`type: 'pre-auth'`) — 2FA 진행용 | 5분 | 응답 body (쿠키 아님) |
 | `oauth_state` | OAuth CSRF 방지 state | 10분 | HttpOnly 쿠키, sameSite lax |
 | `csrf-token` (prod: `__Host-csrf-token`) | CSRF double-submit 쿠키 | — | HttpOnly 쿠키 |
 
-쿠키 옵션: `httpOnly: true`, `secure: production`, `path: '/'` (인증 쿠키 2종은 sameSite 미지정). 비밀번호 해시는 전 구간 **bcrypt cost 10**입니다.
+쿠키 옵션: `httpOnly: true`, `secure: production`, `path: '/'`, `sameSite: 'lax'` — 세팅·삭제가 공용 헬퍼(`core/auth/utils/auth-cookie.util.ts`) 하나로 통일되어 있습니다. 비밀번호 해시는 전 구간 **bcrypt cost 10**입니다.
 
 ## 1. 로그인 — `POST /v1/auth/sign-in`
 
@@ -58,20 +58,25 @@ sequenceDiagram
 
 ## 3. Refresh 회전 — `POST /v1/auth/refresh`
 
-1. 쿠키의 `refresh_token`으로 DB 조회 (`token @unique`) — 없거나 만료면 401 + 쿠키 정리
-2. **기존 토큰 즉시 삭제** (회전) 
+1. 쿠키의 `refresh_token`을 **해시해** DB 조회 (`token @unique`) — 없거나 만료면 401 + 쿠키 정리
+2. **회전** — 기존 토큰을 삭제하지 않고 `rotatedAt`으로 마킹(재사용 감지용), 만료·오래된(7일 경과) 회전 토큰은 정리
 3. 새 refresh 토큰 발급 — **잔여 유효기간을 승계**합니다 (연장 아님, 최소 1일). "30일마다 갱신하면 영원히 로그인"이 아니라 rememberMe 기간이 상한
 4. 새 access token + 쿠키 재설정
 
+**재사용(탈취) 감지** — 이미 회전된(`rotatedAt`이 찍힌) 토큰이 다시 제시되면:
+
+- **grace window(30초) 이내**: 정상 경합(응답 유실 후 재시도, admin 로그인 페이지 재방문 등)으로 보고 조용히 401만 반환
+- **초과**: 탈취로 간주해 **해당 유저의 전 세션을 무효화** + warn 로그. 회전된 토큰을 삭제하지 않고 보존하는 이유가 이 감지를 성립시키기 위해서입니다
+
 특성 (설계 판단 시 알아둘 것):
 
-- 토큰은 DB에 **평문 저장**이며, 회전된(삭제된) 토큰의 재사용을 **탈취로 감지하는 로직은 없습니다** — 단순 401 처리
+- 토큰은 DB에 **SHA-256 해시로 저장**됩니다(원문은 쿠키로만). DB가 유출돼도 토큰을 곧바로 재사용할 수 없습니다
 - `RefreshToken`에 `ipAddress`/`userAgent`가 기록되어 세션 관리 화면(§7)의 데이터가 됩니다 (단, OAuth 로그인 경로는 IP/UA 미기록)
-- 프론트 ApiClient는 401을 받으면 이 엔드포인트로 1회 자동 재시도합니다 → [08장 §3](08-frontend.md#3-apiclient)
+- 프론트 ApiClient는 401을 받으면 이 엔드포인트로 1회 자동 재시도하며, 동시 요청은 `refreshQueue`로 단일 refresh에 수렴시켜 오탐을 줄입니다 → [08장 §3](08-frontend.md#3-apiclient)
 
 ## 4. 2FA — TOTP + 이메일 OTP
 
-상태는 모두 `LocalCredential`에 있습니다: `totpEnabled`/`totpSecret`, `emailOtpEnabled`. 진행 중 코드는 `TwoFactorChallenge`(codeHash — bcrypt, 만료 10분).
+상태는 모두 `LocalCredential`에 있습니다: `totpEnabled`/`totpSecret`, `emailOtpEnabled`. 진행 중 코드는 `TwoFactorChallenge`(codeHash — bcrypt, 만료 10분). **`totpSecret`은 AES-256-GCM으로 암호화해 저장**됩니다(`TOTP_ENCRYPTION_KEY`, `v1:iv:tag:ct` 포맷). 배포 전 저장된 legacy 평문 secret은 다음 인증 성공 시점에 자동으로 암호문으로 재저장됩니다(lazy migration).
 
 **설정** (로그인 상태에서):
 
@@ -123,12 +128,12 @@ sequenceDiagram
 
 | 플로우 | 토큰/코드 | 만료 | 비고 |
 |---|---|---|---|
-| 회원가입 이메일 인증 | 64자 hex (`randomBytes(32)`) → 링크 | 1시간 | 약관 동의 필수, 재발송은 열거 방지 위해 항상 동일 응답 |
-| 비밀번호 재설정 (비로그인) | 64자 hex → 링크 | 1시간 | 유저 없어도 성공 응답 (열거 방지). **세션 무효화 없음** |
+| 회원가입 이메일 인증 | 64자 hex (`randomBytes(32)`), DB엔 SHA-256 해시 저장 → 원문은 링크 | 1시간 | 약관 동의 필수, 재발송은 열거 방지 위해 항상 동일 응답 |
+| 비밀번호 재설정 (비로그인) | 64자 hex, DB엔 해시 저장 → 원문은 링크 | 1시간 | 유저 없어도 성공 응답 (열거 방지). **전체 세션 무효화** |
 | 비밀번호 변경 (로그인) | 현재 비밀번호 확인 | — | **전체 세션 무효화** (`DeleteRefreshTokensByUserIdCommand`) |
 | 이메일 변경 (로그인) | 6자리 코드 (bcrypt 해시 저장) → 새 이메일로 발송 | 10분 | 현재 비밀번호 확인 필수. 세션 무효화 없음 |
 
-**변경(change)과 재설정(reset)의 세션 정책이 다르다**는 점을 기억하세요 — 재설정 경로는 기존 refresh 토큰을 지우지 않습니다.
+**변경(change)과 재설정(reset) 모두 전체 세션을 무효화**합니다 — 계정이 탈취된 상태에서 비밀번호로 복구할 때 공격자 세션이 살아남지 않게 하기 위함입니다. (이메일 변경은 세션을 건드리지 않습니다 — §10 out-of-scope.)
 
 ## 7. 세션 관리 — `auth/sessions`
 
@@ -165,14 +170,18 @@ sequenceDiagram
 
 ## 10. 알아둘 트레이드오프 (사실 기반)
 
-현재 구현이 의도적으로/단순화를 위해 택한 지점들입니다. 보안 요구가 높은 fork에서는 재검토 대상:
+**남은 트레이드오프** (보안 요구가 높은 fork에서 재검토 대상):
 
-1. refresh 토큰·비밀번호 재설정 토큰·이메일 인증 토큰·TOTP secret은 **DB에 평문 저장** (코드 계열만 bcrypt 해시)
-2. refresh 재사용 탈취 감지 없음 (회전만 수행)
-3. 비밀번호 **재설정** 시 세션 무효화 없음 (변경 시에만)
-4. 인증 쿠키 sameSite 미지정 (CSRF는 별도 토큰으로 방어)
-5. access_token 쿠키 수명(15분)과 JWT 만료(기본 1h)가 불일치 — 실효 수명은 짧은 쪽(15분)
-6. sign-in 응답 body에도 토큰이 평문 포함 (쿠키와 이중 전달)
+1. access_token 쿠키 수명(15분)과 JWT 만료(기본 1h)가 불일치 — 실효 수명은 짧은 쪽(15분)
+2. **이메일 변경·2FA 비활성화 시 세션 무효화 없음** (의도적 out-of-scope). 필요하면 변경/재설정 경로처럼 `DeleteRefreshTokensByUserIdCommand`를 추가
+
+**해소된 항목** (이전 버전 대비 — 심층 방어 보강):
+
+- refresh·비밀번호 재설정·이메일 인증 토큰은 DB에 **SHA-256 해시 저장**, TOTP secret은 **AES-256-GCM 암호화**
+- refresh **재사용(탈취) 감지** 도입 (grace window 30초, 초과 시 전 세션 무효화) → §3
+- 비밀번호 **재설정 시에도 전체 세션 무효화**
+- 인증 쿠키 **`sameSite: 'lax'` 명시**, 세팅·삭제 로직을 공용 헬퍼로 통일
+- sign-in·2FA 응답 body에서 **토큰 평문 제거** (HttpOnly 쿠키 단일 경로)
 
 ## 더 보기
 

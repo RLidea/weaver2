@@ -4,6 +4,7 @@ import { FindRefreshTokensByUserIdQuery } from '../repositories/find-refresh-tok
 import { DeleteRefreshTokenByIdCommand } from '../repositories/delete-refresh-token-by-id.command';
 import { DeleteOtherRefreshTokensCommand } from '../repositories/delete-other-refresh-tokens.command';
 import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query';
+import { hashToken } from '../utils/auth-crypto.util';
 
 @Injectable()
 export class SessionService {
@@ -15,7 +16,7 @@ export class SessionService {
     let currentTokenRecord: { id: string } | null = null;
     if (currentToken) {
       currentTokenRecord = await this.prisma.refreshToken.findUnique({
-        where: { token: currentToken },
+        where: { token: hashToken(currentToken) },
         select: { id: true },
       });
     }

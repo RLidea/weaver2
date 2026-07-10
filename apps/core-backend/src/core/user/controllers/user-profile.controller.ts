@@ -39,6 +39,8 @@ import { UpdateProfileService } from '../services/update-profile.service';
 import { EmailChangeService } from '../services/email-change.service';
 import { RequestEmailChangeDto } from '../dto/request-email-change.dto';
 import { ConfirmEmailChangeDto } from '../dto/confirm-email-change.dto';
+import { ConfigService } from '@nestjs/config';
+import { clearAuthCookies } from '../../auth/utils/auth-cookie.util';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
@@ -51,6 +53,7 @@ export class UserProfileController {
     private readonly changePasswordService: ChangePasswordService,
     private readonly updateProfileService: UpdateProfileService,
     private readonly emailChangeService: EmailChangeService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get()
@@ -71,8 +74,7 @@ export class UserProfileController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.deleteAccountService.execute(authUser.id);
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    clearAuthCookies(res, this.configService.get('NODE_ENV') === 'production');
   }
 
   @Patch()

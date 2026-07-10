@@ -11,6 +11,7 @@ import { SignInService } from '../services/sign-in.service';
 import { TwoFactorAuthenticateDto } from '../dto/two-factor-authenticate.dto';
 import { TwoFactorConfirmDto } from '../dto/two-factor-confirm.dto';
 import { TwoFactorSendEmailDto } from '../dto/two-factor-send-email.dto';
+import { setAuthCookies } from '../utils/auth-cookie.util';
 
 @ApiTags('Auth - Two Factor')
 @Controller({ path: 'auth/2fa', version: '1' })
@@ -21,23 +22,8 @@ export class TwoFactorController {
     private readonly configService: ConfigService,
   ) {}
 
-  private setAuthCookies(
-    res: Response,
-    tokens: { accessToken: string; refreshToken: string; tokenExpiry: number },
-  ) {
-    const isProduction = this.configService.get('NODE_ENV') === 'production';
-    res.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      path: '/',
-      maxAge: 15 * 60 * 1000,
-    });
-    res.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      path: '/',
-      maxAge: tokens.tokenExpiry,
-    });
+  private get isProduction(): boolean {
+    return this.configService.get('NODE_ENV') === 'production';
   }
 
   // ─────────────────────────────────────────
@@ -69,15 +55,10 @@ export class TwoFactorController {
       ipAddress,
       userAgent,
     );
-    this.setAuthCookies(res, tokens);
+    setAuthCookies(res, tokens, this.isProduction);
 
-    return {
-      message: 'Login successful',
-      data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-    };
+    // 토큰은 HttpOnly 쿠키로만 전달한다(응답 body에 평문 노출 금지).
+    return { message: 'Login successful' };
   }
 
   @Public()

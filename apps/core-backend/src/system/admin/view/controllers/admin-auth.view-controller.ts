@@ -7,6 +7,10 @@ import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.d
 import { SignInService } from '../../../../core/auth/services/sign-in.service';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
+import {
+  setAuthCookies,
+  clearAuthCookies,
+} from '../../../../core/auth/utils/auth-cookie.util';
 
 @ApiExcludeController()
 @Controller({ path: 'admin' })
@@ -31,33 +35,28 @@ export class AdminAuthViewController {
     const cookies = req.cookies as Record<string, string> | undefined;
     const refreshToken = cookies?.refresh_token;
 
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+
     if (refreshToken && typeof refreshToken === 'string') {
       try {
-        // refresh token으로 새로운 access token 발급
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const result = (await (this.signInService as any).refresh(
-          refreshToken,
-        )) as { accessToken: string };
+        // refresh token으로 토큰 회전(새 access + 새 refresh 발급)
+        const result = await this.signInService.refresh(refreshToken);
 
         if (result?.accessToken) {
-          // 새로운 access token을 쿠키에 설정
-          res.cookie('access_token', result.accessToken, {
-            httpOnly: true,
-            secure: this.configService.get('NODE_ENV') === 'production',
-            path: '/',
-            maxAge: 15 * 60 * 1000, // 15분
-          });
+          // 회전된 새 access·refresh 토큰을 모두 쿠키에 세팅한다.
+          // (새 refresh 토큰을 버리면 브라우저에 남은 옛 쿠키가 다음 refresh에서
+          //  재사용 감지에 걸려 정상 사용자의 전 세션이 무효화되는 오탐이 발생함)
+          setAuthCookies(res, result, isProduction);
 
           this.logger.debug(
-            'Valid refresh token found, new access token issued, redirecting to dashboard',
+            'Valid refresh token found, tokens rotated, redirecting to dashboard',
           );
           return res.redirect('/admin/dashboard');
         }
       } catch {
         this.logger.debug('Invalid refresh token, clearing cookies');
         // 무효한 토큰이면 쿠키 삭제
-        res.clearCookie('refresh_token');
-        res.clearCookie('access_token');
+        clearAuthCookies(res, isProduction);
       }
     }
 
