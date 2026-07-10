@@ -119,21 +119,9 @@ function UserList() {
 
 ### 컬러 팔레트
 
-**기본 스킨 팔레트:**
-- Primary: Gradient (blue → purple)
-- Background: Dark with transparency
-- Text: White/Light gray
-
-```css
-/* 프라이머리 그라데이션 */
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-/* 다크 배경 */
-background: rgba(0, 0, 0, 0.05);
-
-/* 텍스트 */
-color: rgba(255, 255, 255, 0.9);
-```
+색·그림자·블러 값의 **진실 원천은 `apps/core-frontend/src/skins/*.css`의 `--skin-*` 토큰**이다.
+스타일 지정 시 색상 하드코딩 대신 스킨 토큰(및 `globals.css`의 매핑 변수: `--shadow-card`, `--blur-backdrop` 등)을 사용한다.
+프로젝트별 색은 스킨 파일에서 정의/교체한다.
 
 ---
 
@@ -186,12 +174,12 @@ function UserList() {
 
 ---
 
-## 🟢 MEDIUM - 애니메이션
+## 애니메이션 (참고 — 기본 스킨의 모션 패턴)
 
 ### 부드러운 전환
 
 ```css
-/* ✅ CORRECT */
+/* 기본 스킨 hover 패턴 — 프로젝트별 교체 가능 */
 .card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -247,7 +235,6 @@ UI 작업 전 확인:
 - [ ] TabComponent/WeaverDataTable 사용 가능한지 확인
 - [ ] URL 상태 관리 (필터/검색)
 - [ ] 반응형 디자인 (Tailwind breakpoints)
-- [ ] 부드러운 애니메이션
 - [ ] 시맨틱 HTML & ARIA
 
 ---

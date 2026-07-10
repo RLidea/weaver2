@@ -66,5 +66,5 @@ weaver2에 새 레코드 엔티티의 **표준 CRUD 세트**를 조립하는 레
 ## 관련 스킬 (재선언 금지 — 참조만)
 
 - `weaver-coding-standards` — ApiClient·NestJS 컨벤션·DB 네이밍
-- `weaver-ui-patterns` — 글래스모피즘·테이블·탭 UI 패턴
+- `weaver-ui-patterns` — 테이블·탭 컴포넌트, URL 상태 관리, 스킨 토큰 사용법
 - `nestjs-best-practices` — NestJS 일반 베스트 프랙티스
