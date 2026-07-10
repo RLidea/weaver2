@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useUrlState } from '@/shared/hooks/use-url-state';
 import { useSearch } from '../hooks/use-search';
 import { SearchFilters } from './search-filters';
 import { SearchResults } from './search-results';
@@ -21,38 +21,26 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function SearchPageView() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const q = searchParams.get('q') ?? '';
-  const type = (searchParams.get('type') as SearchType) || 'all';
-  const boardId = searchParams.get('boardId') ?? '';
-  const page = Number(searchParams.get('page') ?? '1');
+  const [urlState, setValues] = useUrlState(
+    {
+      q: { default: '' },
+      type: { default: 'all' as SearchType },
+      boardId: { default: '' },
+      page: { default: 1, parse: Number },
+    },
+    { resetKeys: ['page'] },
+  );
+  const { q, type, boardId, page } = urlState;
 
   const [inputValue, setInputValue] = useState(q);
   const debouncedInput = useDebounce(inputValue, 400);
 
-  const updateParams = useCallback(
-    (updates: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      });
-      router.replace(`/search?${params.toString()}`);
-    },
-    [router, searchParams],
-  );
-
   // 디바운스된 입력으로 URL 업데이트
   useEffect(() => {
     if (debouncedInput !== q) {
-      updateParams({ q: debouncedInput, page: '' });
+      setValues({ q: debouncedInput });
     }
-  }, [debouncedInput, q, updateParams]);
+  }, [debouncedInput, q, setValues]);
 
   const { data, isLoading } = useSearch(
     { q, type, boardId: boardId || undefined, page, limit: LIMIT },
@@ -86,8 +74,8 @@ export function SearchPageView() {
       <SearchFilters
         type={type}
         boardId={boardId}
-        onTypeChange={(t) => updateParams({ type: t, page: '' })}
-        onBoardChange={(id) => updateParams({ boardId: id, page: '' })}
+        onTypeChange={(t) => setValues({ type: t })}
+        onBoardChange={(id) => setValues({ boardId: id })}
       />
 
       {/* 결과 */}
@@ -97,7 +85,7 @@ export function SearchPageView() {
       {q.trim() && !isLoading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => updateParams({ page: String(page - 1) })}
+            onClick={() => setValues({ page: page - 1 })}
             disabled={page <= 1}
             className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -107,7 +95,7 @@ export function SearchPageView() {
             {page} / {totalPages}
           </span>
           <button
-            onClick={() => updateParams({ page: String(page + 1) })}
+            onClick={() => setValues({ page: page + 1 })}
             disabled={page >= totalPages}
             className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
           >

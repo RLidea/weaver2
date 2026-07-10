@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useUrlState } from '@/shared/hooks/use-url-state';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -115,15 +115,17 @@ function PostDeleteDialog({
 
 // ─── 메인 탭 ─────────────────────────────────────────────────────
 export function ContentPostsTab() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const page = parseInt(searchParams.get('page') ?? '1', 10);
-  const boardId = searchParams.get('boardId') ?? '';
-  const status = (searchParams.get('status') ?? '') as PostStatus | '';
-  const search = searchParams.get('search') ?? '';
-  const includeDeleted = searchParams.get('includeDeleted') === 'true';
+  const [urlState, setValues] = useUrlState(
+    {
+      page: { default: 1, parse: Number },
+      boardId: { default: '' },
+      status: { default: '' as PostStatus | '' },
+      search: { default: '' },
+      includeDeleted: { default: false, parse: (r) => r === 'true' },
+    },
+    { resetKeys: ['page'] },
+  );
+  const { page, boardId, status, search, includeDeleted } = urlState;
 
   const [searchInput, setSearchInput] = useState(search);
   const [statusPost, setStatusPost] = useState<AdminPost | null>(null);
@@ -139,20 +141,9 @@ export function ContentPostsTab() {
     includeDeleted,
   });
 
-  const setParam = (updates: Record<string, string | undefined>) => {
-    const next = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(updates)) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    // 필터 변경 시 페이지 초기화
-    if (!('page' in updates)) next.set('page', '1');
-    router.push(`${pathname}?${next.toString()}`);
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setParam({ search: searchInput || undefined });
+    setValues({ search: searchInput });
   };
 
   const posts = data?.data ?? [];
@@ -167,7 +158,7 @@ export function ContentPostsTab() {
             label=""
             id="board-filter"
             value={boardId}
-            onChange={(e) => setParam({ boardId: e.target.value || undefined })}
+            onChange={(e) => setValues({ boardId: e.target.value })}
             options={[
               { value: '', label: '전체 게시판' },
               ...(boards ?? []).map((b) => ({ value: b.id, label: b.name })),
@@ -179,7 +170,7 @@ export function ContentPostsTab() {
             label=""
             id="status-filter"
             value={status}
-            onChange={(e) => setParam({ status: e.target.value || undefined })}
+            onChange={(e) => setValues({ status: e.target.value as PostStatus | '' })}
             options={STATUS_OPTIONS}
           />
         </div>
@@ -198,9 +189,7 @@ export function ContentPostsTab() {
           <input
             type="checkbox"
             checked={includeDeleted}
-            onChange={(e) =>
-              setParam({ includeDeleted: e.target.checked ? 'true' : undefined })
-            }
+            onChange={(e) => setValues({ includeDeleted: e.target.checked })}
             className="rounded border-border"
           />
           삭제됨 포함
@@ -323,7 +312,7 @@ export function ContentPostsTab() {
           lastPage={meta.totalPages}
           total={meta.total}
           limit={LIMIT}
-          onPageChange={(p) => setParam({ page: String(p) })}
+          onPageChange={(p) => setValues({ page: p })}
         />
       )}
 

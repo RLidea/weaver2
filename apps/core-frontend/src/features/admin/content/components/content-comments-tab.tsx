@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useUrlState } from '@/shared/hooks/use-url-state';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Spinner } from '@/shared/components/ui/spinner';
@@ -55,13 +55,15 @@ function CommentDeleteDialog({
 
 // ─── 메인 탭 ─────────────────────────────────────────────────────
 export function ContentCommentsTab() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const page = parseInt(searchParams.get('page') ?? '1', 10);
-  const search = searchParams.get('search') ?? '';
-  const includeDeleted = searchParams.get('includeDeleted') === 'true';
+  const [urlState, setValues] = useUrlState(
+    {
+      page: { default: 1, parse: Number },
+      search: { default: '' },
+      includeDeleted: { default: false, parse: (r) => r === 'true' },
+    },
+    { resetKeys: ['page'] },
+  );
+  const { page, search, includeDeleted } = urlState;
 
   const [searchInput, setSearchInput] = useState(search);
   const [deleteComment, setDeleteComment] = useState<AdminComment | null>(null);
@@ -73,19 +75,9 @@ export function ContentCommentsTab() {
     includeDeleted,
   });
 
-  const setParam = (updates: Record<string, string | undefined>) => {
-    const next = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(updates)) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    if (!('page' in updates)) next.set('page', '1');
-    router.push(`${pathname}?${next.toString()}`);
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setParam({ search: searchInput || undefined });
+    setValues({ search: searchInput });
   };
 
   const comments = data?.data ?? [];
@@ -110,9 +102,7 @@ export function ContentCommentsTab() {
           <input
             type="checkbox"
             checked={includeDeleted}
-            onChange={(e) =>
-              setParam({ includeDeleted: e.target.checked ? 'true' : undefined })
-            }
+            onChange={(e) => setValues({ includeDeleted: e.target.checked })}
             className="rounded border-border"
           />
           삭제됨 포함
@@ -219,7 +209,7 @@ export function ContentCommentsTab() {
           lastPage={meta.totalPages}
           total={meta.total}
           limit={LIMIT}
-          onPageChange={(p) => setParam({ page: String(p) })}
+          onPageChange={(p) => setValues({ page: p })}
         />
       )}
 

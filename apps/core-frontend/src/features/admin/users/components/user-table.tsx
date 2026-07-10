@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useUrlState } from '@/shared/hooks/use-url-state';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { Button } from '@/shared/components/ui/button';
 import { Pagination } from '@/shared/components/ui/pagination';
@@ -16,16 +16,21 @@ import { UserTableFilters } from './user-table-filters';
 import { getUserStatus, type AdminUser, type AdminUsersParams } from '../types';
 
 export function UserTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [urlState, updateParams] = useUrlState({
+    page: { default: 1, parse: Number },
+    search: { default: '' },
+    status: {
+      default: 'all' as NonNullable<AdminUsersParams['status']>,
+    },
+    sort: { default: 'createdAt:desc' },
+  });
 
   const params: AdminUsersParams = {
-    page: Number(searchParams.get('page') ?? 1),
+    page: urlState.page,
     limit: 20,
-    search: searchParams.get('search') ?? undefined,
-    status: (searchParams.get('status') as AdminUsersParams['status']) ?? 'all',
-    sort: searchParams.get('sort') ?? 'createdAt:desc',
+    search: urlState.search || undefined,
+    status: urlState.status,
+    sort: urlState.sort,
   };
 
   const { data, isLoading, isError } = useAdminUsers(params);
@@ -34,18 +39,6 @@ export function UserTable() {
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<AdminUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
-
-  const updateParams = (updates: Partial<AdminUsersParams>) => {
-    const next = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === undefined || value === null) {
-        next.delete(key);
-      } else {
-        next.set(key, String(value));
-      }
-    }
-    router.push(`${pathname}?${next.toString()}`);
-  };
 
   return (
     <div className="space-y-4">

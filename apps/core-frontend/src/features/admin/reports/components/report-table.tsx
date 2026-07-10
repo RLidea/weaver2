@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useUrlState } from '@/shared/hooks/use-url-state';
 import { Spinner } from '@/shared/components/ui/spinner';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -25,21 +25,20 @@ const STATUS_VARIANT: Record<ReportStatus, 'default' | 'warning' | 'primary' | '
 };
 
 export function ReportTable() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [urlState, setParams] = useUrlState({
+    status: { default: '' as ReportStatus | '' },
+    targetType: { default: '' as ReportTarget | '' },
+  });
 
-  const status = (searchParams.get('status') as ReportStatus) ?? undefined;
-  const targetType = (searchParams.get('targetType') as ReportTarget) ?? undefined;
+  const status = urlState.status || undefined;
+  const targetType = urlState.targetType || undefined;
 
   const { data, isLoading, isError } = useAdminReports({ status, targetType, limit: 30 });
   const { mutate: startReview, isPending: isStarting } = useStartReview();
   const [resolveReport, setResolveReport] = useState<Report | null>(null);
 
-  const setFilter = (key: string, value: string | undefined) => {
-    const next = new URLSearchParams(searchParams.toString());
-    if (value) next.set(key, value); else next.delete(key);
-    router.push(`${pathname}?${next.toString()}`);
+  const setFilter = (key: 'status' | 'targetType', value: string | undefined) => {
+    setParams({ [key]: value ?? '' } as Partial<typeof urlState>);
   };
 
   return (
