@@ -78,6 +78,8 @@ sequenceDiagram
 
 상태는 모두 `LocalCredential`에 있습니다: `totpEnabled`/`totpSecret`, `emailOtpEnabled`. 진행 중 코드는 `TwoFactorChallenge`(codeHash — bcrypt, 만료 10분). **`totpSecret`은 AES-256-GCM으로 암호화해 저장**됩니다(`TOTP_ENCRYPTION_KEY`, `v1:iv:tag:ct` 포맷). 배포 전 저장된 legacy 평문 secret은 다음 인증 성공 시점에 자동으로 암호문으로 재저장됩니다(lazy migration).
 
+> ⚠️ **`TOTP_ENCRYPTION_KEY`는 불변으로 취급하세요.** 키를 바꾸면 기존 암호문(GCM 태그)의 복호화가 실패해 해당 사용자의 TOTP가 잠깁니다. 키 로테이션이 필요해지면 `v2:` 포맷 + 이중 복호화 폴백을 도입하는 것이 안전합니다(현재 미구현).
+
 **설정** (로그인 상태에서):
 
 - TOTP: `GET /2fa/totp/setup` → secret 생성 + QR data URL(otplib+qrcode, issuer "Weaver2") → `POST /2fa/totp/confirm`으로 코드 검증 후 활성화
