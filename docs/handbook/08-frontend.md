@@ -54,7 +54,7 @@ import 별칭: `@/infrastructure`, `@/shared`, `@/core/{d}`, `@/features/{d}`, `
 | CSRF | 뮤테이션에만 `x-csrf-token` 자동 주입. `GET /v1/auth/csrf-token`으로 발급→캐시, 403이면 재발급 후 1회 재시도 |
 | 401 refresh | 최초 401이면 `POST /v1/auth/refresh` 후 원요청 1회 재시도. **동시다발 401은 `refreshQueue`로 refresh 1회에 수렴**. 최종 실패 시 `onAuthError`(→ `/login` 이동) |
 | 에러 | 백엔드 표준 에러를 `ApiError`로 파싱 (`isUnauthorized`, `isValidationError` 등 판별 프로퍼티) |
-| 응답 | `{ message, data }` 표준을 벗겨 `data` 반환, 204는 undefined |
+| 응답 | `{ message, data }` 표준을 `ApiResponse<T>` 타입 그대로 반환 (**언래핑은 호출부 책임** — 훅에서 `res.data` 접근), 204는 `data: undefined` |
 
 메서드: `get/post/put/patch/delete/deleteWithBody/postForm`(FormData). 로그인 화면처럼 401을 직접 다루고 싶으면 `RequestOptions.skipOnAuthError`.
 

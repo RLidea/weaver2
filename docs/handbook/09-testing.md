@@ -71,7 +71,7 @@ pnpm --filter core-frontend e2e:ui        # UI 모드 (작성·디버깅)
 
 | username | email | 그룹 | 특징 |
 |---|---|---|---|
-| admin | admin@weaver.com | Admin | e2e가 의존 |
+| admin | admin@weaver.com | SuperAdmin | e2e가 의존 (Admin 그룹에 매핑된 시드 사용자는 없음) |
 | weaver | weaver@weaver.com | User | 일반 회원 |
 | operator | operator@weaver.com | Operator | CUID 꼬리 `op3r4t0r` |
 | moderator | moderator@weaver.com | Moderator | CUID 꼬리 `m0d3r4t0` |

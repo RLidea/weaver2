@@ -5,7 +5,7 @@
 
 ## 한눈에 보기
 
-- PostgreSQL + Prisma (멀티파일 스키마) — 모델 **28개**, enum **7개**
+- PostgreSQL + Prisma (멀티파일 스키마) — 모델 **31개**, enum **7개**
 - 모든 PK는 `String @id @default(uuid())` (예외: `SystemSetting`은 `key`가 자연키 PK)
 - FK 네이밍은 `{참조모델}Id` 카멜케이스로 통일 (`userId`, `boardId`, `permissionGroupId` …)
 - 삭제는 3단계로 구분: **숨김(`hiddenAt`)** → **소프트 삭제(`deletedAt`)** → **하드 삭제(명시적)**
@@ -179,7 +179,7 @@ pnpm db:reset            # DB 초기화 + 전체 마이그레이션 + 시드
 
 진입점은 `apps/core-backend/prisma/seed/seed.ts`이며 `pnpm db:seed`로 실행합니다. 심는 순서:
 
-1. 약관 3건 → 2. 게시판(Notice/Free/Q&A) → 3. 사용자 5명(admin, weaver, operator, moderator, suspended) → 4. 로컬 자격증명 + 설정 → 5. **권한 그룹 6종**(SuperAdmin/Admin/Operator/Moderator/User/Suspended) → 6. 사용자↔그룹 매핑 → 7. 게시판 ACL(Notice: 쓰기 관리자만, Q&A: 회원 전용) → 8. 이메일 템플릿 → 9. 이모지 9종 → 10. 테스트 게시글 → 11. 자유게시판 카테고리
+1. 약관 3건 → 2. 게시판(Notice/Free/Q&A) → 3. 사용자 5명(admin, weaver, operator, moderator, suspended) → 4. 로컬 자격증명 + 설정 → 5. **권한 그룹 6종**(SuperAdmin/Admin/Operator/Moderator/User/Suspended) → 6. 사용자↔그룹 매핑 → 7. 게시판 ACL(Notice: 쓰기 관리자만, Q&A: 회원 전용) → 8. 이메일 템플릿 → 9. 이모지 6종 → 10. 테스트 게시글 → 11. 자유게시판 카테고리
 
 시드 원칙(CHARTER §7.1): **자연키 멱등성** — 모든 시드는 실행 전 `username`/`name`/`code` 같은 자연키로 존재 확인 후 없을 때만 생성합니다. 자기 ID 하드코딩은 `user.seed.ts`만 허용된 예외(디버깅 자산 + 테스트 픽스처)입니다.
 

@@ -60,11 +60,11 @@ User ←(UserPermissionGroup)→ PermissionGroup ←(PermissionGroupPermission)�
 | SuperAdmin | 전부 | `*:*` 단 하나 |
 | Admin | 관리 전권 (유저 삭제 제외) | `admin:*`, `post:*`, `board:*`, `user:suspend`, `report:*`, `moderation:*` … |
 | Operator | 운영 — 콘텐츠 전체 관리 + 정지 | `post:delete:all`, `user:suspend`, `report:*`, `moderation:*` |
-| Moderator | 모더레이션 — 숨김·경고까지만 | `moderation:content:hide`, `moderation:user:warn` (삭제·정지 없음) |
+| Moderator | 중재 — 콘텐츠 관리는 가능하나 **모더레이션(신고 처리) 액션은 숨김·경고까지** | `post:update:all`, `post:delete:all`, `comment:delete:all`, `report:read/update`, `moderation:content:hide`, `moderation:user:warn` (`moderation:content:delete`·`user:suspend` 없음) |
 | User | 일반 회원 | `post:create`, `post:update:own`, `comment:*:own` 계열, `report:create` |
 | Suspended | 정지 계정 | 권한 없음 `[]` |
 
-Moderator ⊂ Operator ⊂ Admin의 계단 구조가 신고 처리 권한 분리(숨김·경고 / 삭제·정지 / 전체)의 근거입니다 → [07장 신고](07-board-reference.md).
+**신고 처리(moderation) 액션의 계단** — 숨김·경고(Moderator) / +삭제·정지(Operator, `moderation:*`) / 전체(Admin) — 이 신고 워크플로우 권한 분리의 근거입니다 → [07장 신고](07-board-reference.md). 단, 일반 콘텐츠 관리 권한(`post:delete:all` 등)은 Moderator도 갖고 있다는 점에 유의하세요 — 계단은 모더레이션 도메인 액션에 대한 것입니다.
 
 ## 4. 전역 권한 검사 경로 (가드 체인)
 

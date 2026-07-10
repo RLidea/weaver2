@@ -54,7 +54,7 @@ BoardModule 하나에 컨트롤러 11개·서비스 9개가 모여 있습니다.
 
 ## 5. 리액션 — unique 제약 + raw 집계
 
-- 모델: `Emoji` 마스터(시드로 9종) + `PostReaction` 조인. `@@unique([postId, userId, emojiId])`.
+- 모델: `Emoji` 마스터(시드로 6종) + `PostReaction` 조인. `@@unique([postId, userId, emojiId])`.
 - **토글이 아닙니다** — 추가(POST)와 취소(DELETE)가 별개 엔드포인트입니다 (`post-reaction.controller.ts`).
 - 추가 시: 이모지 활성 확인 → 사용자당 개수 제한(SystemSetting `REACTION_MAX_PER_USER_PER_POST`, 기본 1) → create. **중복은 사전 조회가 아니라 DB unique 위반(P2002) catch로 처리** — 경쟁 조건에 안전한 패턴입니다 (`reaction.service.ts`).
 - 집계 조회는 `$queryRaw` 한 방: JOIN + GROUP BY로 이모지별 `COUNT` + `BOOL_OR(userId = ?)`(내가 눌렀는지)를 동시에 얻습니다. CHARTER §8이 말하는 "raw 쿼리에 식별자 직접 박힘" 의도된 트레이드오프 위치 중 하나입니다.
@@ -76,7 +76,7 @@ BoardModule 하나에 컨트롤러 11개·서비스 9개가 모여 있습니다.
 
 신고는 `targetType`(POST/COMMENT/USER/MEDIA) + `targetId` 다형 참조입니다 ([02장 §2.5](02-data-model.md#25-신고-reportprisma)). 컨트롤러 3개의 역할 분담:
 
-- `report.controller` — 사용자의 신고 생성/본인 신고 조회 (중복 신고는 409, 자기 자신 신고 방지)
+- `report.controller` — 사용자의 신고 생성 (엔드포인트는 `POST` 하나뿐 — 본인 신고 조회는 없음. 중복 신고는 409, 자기 자신 신고 방지)
 - `report-admin.controller` — 신고 목록/검토 시작/해결/기각 (상태 전이: PENDING → REVIEWING → RESOLVED/DISMISSED)
 - `moderation.controller` — 실제 제재 실행
 
@@ -100,7 +100,7 @@ BoardModule 하나에 컨트롤러 11개·서비스 9개가 모여 있습니다.
 
 ## 9. 조회수와 방문 통계는 별개
 
-- **게시글 조회수** — `Post.viewCount`. 상세 조회 시 읽기 권한 검증을 통과하면 `IncrementPostViewCountCommand`(`increment: 1`) 실행 (`post.controller.ts`)
+- **게시글 조회수** — `Post.viewCount`. 상세 조회 시 읽기 권한 검증을 통과하면 `post.service.ts`의 `incrementViewCount`가 `IncrementPostViewCountCommand`(`increment: 1`)를 실행
 - **방문 통계** — `infrastructure/analytics/`의 `PageView` 로깅(실패해도 요청을 막지 않음) + 월간 집계(`MonthlyAnalyticsReport`). 게시글 조회수와 연결되어 있지 않은 독립 지표입니다
 
 ## 새 도메인에 가져갈 패턴 체크리스트
