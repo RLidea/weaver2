@@ -99,6 +99,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 | **CQRS 파일 분리** (`*.query.ts` / `*.command.ts`) | 읽기/쓰기 책임을 파일 레벨에서 시각화. |
 | **Soft-delete + 명시 hard-delete** | `ON DELETE CASCADE`는 hard DELETE에서만 동작 — soft-delete 시 명시적 hard-delete가 안전. |
 | **`@Public` 명시 + 글로벌 가드** | secure-by-default. 보호가 기본, 노출이 명시. |
+| **Swagger 프로덕션 비활성** | 보안이 아니라 **노출 최소화**(hygiene). 진짜 방어는 authz·rate limit(이미 있음)이고, 이건 익명에게 전체 엔드포인트 지도+스키마를 공짜로 주지 않는 얇은 한 겹일 뿐. 비용 0이라 유지하되 "보안"으로 과신 금지. OpenAPI 타입 생성은 빌드/dev 타임 스펙이라 무관. 사내 운영 편의가 커지면 *인증 뒤 Swagger*로 확장(pull). |
 | **한국어 단일 / Asia/Seoul timezone 기본값** | 본인용 가정. 다국어 분기는 별도 변종(fork). |
 | **시드는 자연키 lookup** | `user.seed.ts`만 자기 ID 하드코딩 (leetspeak 디버깅 자산), 다른 시드는 username/name/code 등 자연키로 참조. |
 
