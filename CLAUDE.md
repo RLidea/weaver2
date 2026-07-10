@@ -50,7 +50,7 @@
 
 ### 프로젝트 스킬 (자동 적용)
 - **`weaver-coding-standards`** - ApiClient, NestJS 패턴, 코딩 스타일
-- **`weaver-ui-patterns`** - 글래스모피즘, TabComponent, WeaverDataTable
+- **`weaver-ui-patterns`** - TabComponent, WeaverDataTable, URL 상태 관리
 - **`nestjs-best-practices`** - NestJS 베스트 프랙티스 (40개 규칙)
 - **`weaver-crud-recipe`** - 새 엔티티 CRUD 표준 세트 조립 레시피 (골격)
 
@@ -75,7 +75,6 @@
 - 커밋 승인
 - ApiClient 사용
 - 공통 컴포넌트 우선
-- 글래스모피즘 디자인
 - ESLint/TypeScript 준수
 - FK 컬럼명: `{참조테이블명}Id` (예: `userId`, `permissionGroupId`)
 

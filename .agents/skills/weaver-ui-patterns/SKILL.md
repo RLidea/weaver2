@@ -1,6 +1,6 @@
 ---
 name: weaver-ui-patterns
-description: Weaver2 frontend UI patterns including glassmorphism design, common components (TabComponent, WeaverDataTable), and URL state management. Apply when building frontend views, components, or pages.
+description: Weaver2 frontend UI patterns including common components (TabComponent, WeaverDataTable), URL state management, and the default skin's reference styles. Apply when building frontend views, components, or pages.
 license: UNLICENSED
 metadata:
   author: Weaver2 Team
@@ -88,20 +88,19 @@ function UserList() {
 **이유:**
 - 일관된 스타일링
 - 내장된 페이지네이션/검색
-- 글래스모피즘 디자인 자동 적용
 - 반응형 지원
 
 ---
 
-## 🔴 CRITICAL - 글래스모피즘 디자인
+## 글래스모피즘 디자인 (참고 — 기본 스킨 스타일)
 
 ### 디자인 시스템
 
-**규칙:** 모든 카드/패널은 글래스모피즘 스타일 유지
+기본 스킨이 사용하는 글래스모피즘 패턴의 레퍼런스다. **의무 아님** — 프로젝트/스킨에 따라 자유롭게 교체한다 (`apps/core-frontend/src/skins/` 참조).
 
 **CSS 패턴:**
 ```css
-/* ✅ CORRECT - 글래스모피즘 */
+/* 글래스모피즘 카드 */
 .card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -109,30 +108,18 @@ function UserList() {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
-
-/* ❌ WRONG - 일반 배경 */
-.card {
-  background: #ffffff;
-  border: 1px solid #ddd;
-}
 ```
 
-**Tailwind 클래스 (권장):**
+**Tailwind 클래스:**
 ```tsx
-// ✅ CORRECT
 <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-glass">
-  {content}
-</div>
-
-// ❌ WRONG
-<div className="bg-white border border-gray-300 rounded">
   {content}
 </div>
 ```
 
 ### 컬러 팔레트
 
-**규칙:**
+**기본 스킨 팔레트:**
 - Primary: Gradient (blue → purple)
 - Background: Dark with transparency
 - Text: White/Light gray
@@ -258,7 +245,6 @@ function UserList() {
 
 UI 작업 전 확인:
 - [ ] TabComponent/WeaverDataTable 사용 가능한지 확인
-- [ ] 글래스모피즘 스타일 적용
 - [ ] URL 상태 관리 (필터/검색)
 - [ ] 반응형 디자인 (Tailwind breakpoints)
 - [ ] 부드러운 애니메이션
