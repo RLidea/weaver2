@@ -60,7 +60,7 @@ pnpm dev:web     # 프론트엔드 :3000
 
 - 그래프 데이터(`.understand-anything/knowledge-graph.json`)는 저장소에 커밋되어 있어, 별도 분석 없이 바로 열람할 수 있습니다.
 - 코드 변경 후 그래프를 갱신하려면 `/understand` 를 다시 실행하면 변경분만 반영됩니다.
-- 갱신 방법 상세는 [`docs/understand-incremental-guide.md`](docs/understand-incremental-guide.md) 참고.
+- 갱신 방법 상세는 [`docs/guides/understand-incremental-guide.md`](docs/guides/understand-incremental-guide.md) 참고.
 
 ---
 
