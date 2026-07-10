@@ -150,7 +150,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 
 - 커밋 메시지: 영어 + 한국어 번역 병기, AI 생성 표시 금지 (`CONTRIBUTING.md` 참조).
 - `docs/` 는 전체 git 추적, `docs/local/`만 제외(임시/로컬 작업 노트). 시점 보고서는 `docs/audits/<topic>-<YYYY-MM-DD>.md`.
-- docs 구조: `audits/`(시점 감사·보고서) · `design/`(설계 생명주기 — `research/` 재료 → `specs/` 설계 → `plans/` 구현 계획) · `guides/`(도구·운영 가이드) · `local/`(비추적 로컬 메모). 새 문서는 이 중 제자리에 둔다.
+- docs 구조: `handbook/`(개발자 온보딩 핸드북 — 시스템 내부 동작 해설, 살아있는 문서) · `audits/`(시점 감사·보고서) · `design/`(설계 생명주기 — `research/` 재료 → `specs/` 설계 → `plans/` 구현 계획) · `guides/`(도구·운영 가이드) · `local/`(비추적 로컬 메모). 새 문서는 이 중 제자리에 둔다.
 - AI 협업 규칙은 `CLAUDE.md`가 단일 진실 원천.
 
 ---
@@ -205,6 +205,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 | 문서 | 역할 |
 |------|------|
 | [`README.md`](README.md) | 기능 카탈로그·기술 스택·API·CI 가이드 |
+| [`docs/handbook/`](docs/handbook/) | 개발자 온보딩 핸드북 — 시스템 내부 동작 해설 |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 개발 워크플로우·브랜치/커밋/PR/리뷰/마이그레이션·테스트 |
 | [`SECURITY.md`](SECURITY.md) | 보안 취약점 보고·대응, 빌트인 보안 레이어 |
 | [`ROADMAP.md`](ROADMAP.md) | 향후 권장 작업 (Dependabot·e2e·운영) |

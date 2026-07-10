@@ -382,6 +382,7 @@ docker-compose -f docker-compose.prod.yml up -d
 |------|------|
 | [`README.md`](README.md) | 프로젝트 소개, 기술 스택, API, CI 가이드 (이 문서) |
 | [`CHARTER.md`](CHARTER.md) | 보일러플레이트 헌장 — 미션, IN/OUT 범위, 설계 원칙, 확장 포인트, 분기 체크리스트 |
+| [`docs/handbook/`](docs/handbook/) | **개발자 온보딩 핸드북** — 시스템 내부 동작 해설 (요청 수명주기, 인증·권한·알림·업로드 파이프라인, 데이터 모델, 프론트 구조, 새 기능 워크스루) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 일상 개발 워크플로우, 브랜치/커밋/PR/리뷰/마이그레이션/테스트/FAQ |
 | [`SECURITY.md`](SECURITY.md) | 보안 취약점 보고·대응 정책, 빌트인 보안 레이어 정리 |
 | [`ROADMAP.md`](ROADMAP.md) | 향후 권장 작업 (Dependabot, e2e, 운영 등) |
