@@ -2,9 +2,8 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
-import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { CommentDto } from '../dto/comment.dto';
-import { KeysetResponseDto } from '@weaver2/pagination';
+import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminCommentsQueryDto } from '../dto/admin-comments-query.dto';
@@ -23,7 +22,7 @@ export class CommentAdminController {
     description:
       '모든 게시글의 댓글을 평탄화된 목록으로 조회합니다. postId, authorId 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.',
   })
-  @ApiStandardResponses({ type: CommentDto, isArray: true })
+  @ApiKeysetResponse(CommentDto)
   async findAllComments(
     @Query() query: AdminCommentsQueryDto,
   ): Promise<KeysetResponseDto<CommentDto>> {

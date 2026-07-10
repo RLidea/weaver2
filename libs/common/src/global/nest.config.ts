@@ -5,6 +5,28 @@ import { setPipe } from './pipe';
 import { setInterceptor } from '@weaver2/common/global/interceptor';
 import { setExceptionFilter } from '@weaver2/common/global/exception-filter';
 
+/**
+ * Swagger 문서 설정. 런타임 /docs와 빌드 타임 스펙 추출 스크립트가 동일 설정을 공유하도록 export한다.
+ * (scripts/generate-openapi.ts 에서 재사용)
+ */
+export function buildSwaggerConfig() {
+  const title = process.env.APP_NAME;
+  return new DocumentBuilder()
+    .setTitle(`${title} Document`)
+    .setDescription(`The ${title} API description`)
+    .setVersion('1.0')
+    .addTag(title || 'doc')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'Token',
+      },
+      'ACCESS-TOKEN',
+    )
+    .build();
+}
+
 export function setNestApp<T extends INestApplication>(app: T): void {
   /* Request lifecycle */
 
@@ -18,21 +40,7 @@ export function setNestApp<T extends INestApplication>(app: T): void {
 
   // API document
   if (process.env.NODE_ENV !== 'production') {
-    const title = process.env.APP_NAME;
-    const config = new DocumentBuilder()
-      .setTitle(`${title} Document`)
-      .setDescription(`The ${title} API description`)
-      .setVersion('1.0')
-      .addTag(title || 'doc')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'Token',
-        },
-        'ACCESS-TOKEN',
-      )
-      .build();
+    const config = buildSwaggerConfig();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, documentFactory);
   }

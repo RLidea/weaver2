@@ -23,7 +23,7 @@ import { AdminUserDto } from '../dto/admin-user.dto';
 import { AdminUsersQueryDto } from '../dto/admin-users-query.dto';
 import { AdminUpdateUserDto } from '../dto/admin-update-user.dto';
 import { SuspendUserDto } from '../dto/suspend-user.dto';
-import { OffsetResponseDto } from '@weaver2/pagination';
+import { ApiOffsetResponse, OffsetResponseDto } from '@weaver2/pagination';
 
 @ApiTags('User Admin')
 @Controller({ path: 'admin/users', version: '1' })
@@ -35,7 +35,7 @@ export class UserAdminController {
   @Get()
   @RequirePermission(PERMISSIONS.USER.READ)
   @ApiOperation({ summary: '사용자 목록 조회 (관리자 전용)' })
-  @ApiStandardResponses({ type: OffsetResponseDto })
+  @ApiOffsetResponse(AdminUserDto)
   findAll(
     @Query() query: AdminUsersQueryDto,
   ): Promise<OffsetResponseDto<AdminUserDto>> {

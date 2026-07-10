@@ -19,7 +19,6 @@ import { UpdateBoardDto } from '../dto/update-board.dto';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
-import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { BoardPostsQueryDto } from '../dto/board-posts-query.dto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
@@ -82,7 +81,7 @@ export class BoardController {
   @ApiOperation({
     summary: '특정 게시판의 게시글 목록 조회 (preset으로 정렬 선택)',
   })
-  @ApiStandardResponses({ type: PostDto, isArray: true })
+  @ApiStandardResponses({ type: BoardPostsResponseDto })
   async getBoardPosts(
     @Param('boardId') boardId: string,
     @Query() queryDto: BoardPostsQueryDto,

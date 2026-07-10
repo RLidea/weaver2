@@ -14,7 +14,7 @@ import { RequirePermission } from '../../../core/permission/decorators/require-p
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { UploadService, FileDto, AdminFilesQueryDto } from '@weaver2/upload';
-import { KeysetResponseDto } from '@weaver2/pagination';
+import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 
 @ApiTags('Admin - Upload')
 @Controller({ path: 'admin/upload', version: '1' })
@@ -30,7 +30,7 @@ export class UploadAdminController {
     description:
       '업로더, 게시글 ID 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.',
   })
-  @ApiStandardResponses({ type: FileDto, isArray: true })
+  @ApiKeysetResponse(FileDto)
   async findAll(
     @Query() query: AdminFilesQueryDto,
   ): Promise<KeysetResponseDto<FileDto>> {

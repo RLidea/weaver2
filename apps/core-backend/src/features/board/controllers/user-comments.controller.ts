@@ -2,9 +2,12 @@ import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
-import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { CommentDto } from '../dto/comment.dto';
-import { KeysetRequestDto, KeysetResponseDto } from '@weaver2/pagination';
+import {
+  ApiKeysetResponse,
+  KeysetRequestDto,
+  KeysetResponseDto,
+} from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 
 @ApiTags('User Comments')
@@ -21,7 +24,7 @@ export class UserCommentsController {
     description:
       '삭제되지 않은 댓글만 반환하며, 어떤 게시글에 달린 댓글인지 post 정보를 포함합니다.',
   })
-  @ApiStandardResponses({ type: CommentDto, isArray: true })
+  @ApiKeysetResponse(CommentDto)
   async findCommentsByUserId(
     @Param('userId') userId: string,
     @Query() keysetDto: KeysetRequestDto,

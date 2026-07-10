@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationRequestDto } from '@weaver2/pagination/dto/pagination-request.dto';
-import { OffsetResponseDto } from '@weaver2/pagination';
+import { ApiOffsetResponse } from '@weaver2/pagination';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { UserDto } from '../dto/user.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
@@ -33,7 +33,7 @@ export class UserQueryController {
   @RequirePermission(PERMISSIONS.USER.READ)
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '사용자 목록 조회 (관리자 전용)' })
-  @ApiStandardResponses({ type: OffsetResponseDto })
+  @ApiOffsetResponse(UserDto)
   findAll(@Query() query: PaginationRequestDto) {
     return this.findUserService.findUsers(query);
   }

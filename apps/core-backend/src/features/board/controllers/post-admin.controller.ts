@@ -2,9 +2,8 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PostService } from '../services/post.service';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
-import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { PostDto } from '../dto/post.dto';
-import { KeysetResponseDto } from '@weaver2/pagination';
+import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminPostsQueryDto } from '../dto/admin-posts-query.dto';
@@ -23,7 +22,7 @@ export class PostAdminController {
     description:
       '모든 게시판의 게시글을 조회합니다. boardId, authorId, status 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.',
   })
-  @ApiStandardResponses({ type: PostDto, isArray: true })
+  @ApiKeysetResponse(PostDto)
   async findAllPosts(
     @Query() query: AdminPostsQueryDto,
   ): Promise<KeysetResponseDto<PostDto>> {

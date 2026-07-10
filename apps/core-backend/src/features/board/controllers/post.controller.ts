@@ -11,18 +11,32 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { PostService } from '../services/post.service';
 import { CommentService } from '../services/comment.service';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
+import {
+  NotFoundResponseDto,
+  UnauthorizedResponseDto,
+} from '@weaver2/common/global/dto/swagger/error-response.dto';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
 import { CommentDto } from '../dto/comment.dto';
-import { KeysetRequestDto, KeysetResponseDto } from '@weaver2/pagination';
+import {
+  ApiKeysetResponse,
+  KeysetRequestDto,
+  KeysetResponseDto,
+} from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import {
   BoardPermissionService,
@@ -67,8 +81,42 @@ export class PostController {
   @Public()
   @ApiOperation({
     summary: '게시글 목록 조회 (boardId로 필터링 가능, preset으로 정렬 선택)',
+    description:
+      'boardId 지정 시 고정 게시글(pinnedPosts)을 포함한 BoardPostsResponseDto를, 미지정 시 일반 KeysetResponseDto를 반환합니다.',
   })
-  @ApiStandardResponses({ type: PostDto, isArray: true })
+  @ApiExtraModels(BoardPostsResponseDto, KeysetResponseDto, PostDto)
+  @ApiResponse({
+    status: 200,
+    description: 'Success',
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(BoardPostsResponseDto) },
+        {
+          allOf: [
+            { $ref: getSchemaPath(KeysetResponseDto) },
+            {
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(PostDto) },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: UnauthorizedResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Not Found',
+    type: NotFoundResponseDto,
+  })
   async findPosts(
     @Query('boardId') boardId?: string,
     @Query('categoryId') categoryId?: string,
@@ -122,7 +170,7 @@ export class PostController {
   @Get(':postId/comments')
   @Public()
   @ApiOperation({ summary: '특정 게시글의 댓글 목록 조회 (시간순 무한스크롤)' })
-  @ApiStandardResponses({ type: CommentDto, isArray: true })
+  @ApiKeysetResponse(CommentDto)
   async getPostComments(
     @Param('postId') postId: string,
     @Query() keysetDto: KeysetRequestDto,

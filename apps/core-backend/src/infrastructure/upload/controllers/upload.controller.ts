@@ -35,7 +35,7 @@ import {
   LinkPostDto,
   UserFilesQueryDto,
 } from '@weaver2/upload';
-import { KeysetResponseDto } from '@weaver2/pagination';
+import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 import { SystemSettingService } from '../../config/system-setting.service';
 import { memoryStorage } from 'multer';
 
@@ -52,7 +52,7 @@ export class UploadController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('ACCESS-TOKEN')
   @ApiOperation({ summary: '내 파일 목록 조회 (keyset 페이지네이션)' })
-  @ApiStandardResponses({ type: FileDto, isArray: true })
+  @ApiKeysetResponse(FileDto)
   async getMyFiles(
     @Query() query: UserFilesQueryDto,
     @AuthUser() authUser: CommonAuthUserDto,
