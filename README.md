@@ -99,6 +99,8 @@ weaver2/
 └── scripts/                   # 유틸리티 스크립트
 ```
 
+> **새 엔티티(CRUD) 추가**: [.agents/skills/weaver-crud-recipe/SKILL.md](.agents/skills/weaver-crud-recipe/SKILL.md) 레시피를 따른다 — 표준 세트 정의·미러링 포인터·경계선. 배경은 [CHARTER §5.1](CHARTER.md).
+
 ---
 
 ## 🚀 시작하기

@@ -52,6 +52,7 @@
 - **`weaver-coding-standards`** - ApiClient, NestJS 패턴, 코딩 스타일
 - **`weaver-ui-patterns`** - 글래스모피즘, TabComponent, WeaverDataTable
 - **`nestjs-best-practices`** - NestJS 베스트 프랙티스 (40개 규칙)
+- **`weaver-crud-recipe`** - 새 엔티티 CRUD 표준 세트 조립 레시피 (골격)
 
 ### 글로벌 스킬 (모든 프로젝트 공통)
 - **`workflow-templates`** - 계획/완료 보고 템플릿, 커밋 메시지
@@ -62,6 +63,7 @@
 /weaver-ui           # UI 패턴 확인
 /workflow-templates  # 템플릿 확인 (글로벌)
 /nestjs-best-practices  # NestJS 베스트 프랙티스
+/weaver-crud-recipe  # 새 엔티티 얹기 레시피
 ```
 
 ---
@@ -119,7 +121,8 @@ weaver2/
 ├── .agents/skills/              # 프로젝트 스킬 중앙 저장소 (실제 파일)
 │   ├── weaver-coding-standards/
 │   ├── weaver-ui-patterns/
-│   └── nestjs-best-practices/
+│   ├── nestjs-best-practices/
+│   └── weaver-crud-recipe/
 └── .claude/skills/              # Claude Code 링크 (자동 로드)
     └── [symlinks to .agents/skills/]
 

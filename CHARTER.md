@@ -126,6 +126,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 | `libs/shared/src/index.ts`의 `PERMISSIONS` | 프로젝트별 권한 상수 확장 |
 | `apps/core-frontend/src/skins/` | 신규 스킨(테마) 추가 |
 | `apps/core-backend/src/infrastructure/email/templates/` | 이메일 템플릿 프로젝트별 교체 |
+| `.agents/skills/weaver-crud-recipe/` | 새 엔티티 CRUD 표준 세트 조립 레시피 (골격 — `references/` 상세는 fork 경험으로 확장) |
 
 ---
 
