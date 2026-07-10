@@ -148,7 +148,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 ### 7.3 커밋·문서 규칙
 
 - 커밋 메시지: 영어 + 한국어 번역 병기, AI 생성 표시 금지 (`CONTRIBUTING.md` 참조).
-- `docs/*` 는 git ignore (`!docs/audits/` 만 추적). 시점 보고서는 `docs/audits/<topic>-<YYYY-MM-DD>.md`.
+- `docs/` 는 전체 git 추적, `docs/local/`만 제외(임시/로컬 작업 노트). 시점 보고서는 `docs/audits/<topic>-<YYYY-MM-DD>.md`.
 - AI 협업 규칙은 `CLAUDE.md`가 단일 진실 원천.
 
 ---
