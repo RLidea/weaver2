@@ -47,6 +47,7 @@
     "---------------------------OPENAPI---------------------------": "",
     "openapi:metadata": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/generate-metadata.ts",
     "openapi:generate": "pnpm openapi:metadata && dotenv -e apps/core-backend/.env -- ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/generate-openapi.ts",
+    "openapi:types": "pnpm openapi:generate && pnpm --filter core-frontend gen:api-types",
     "---------------------------Security---------------------------": "",
     "audit:json": "pnpm audit --json --no-optional",
     "---------------------------OTHERs---------------------------": "",
