@@ -9,7 +9,7 @@ import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { useUploadProfileImage } from '@/core/user/hooks/use-upload-profile-image';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 const ProfileSchema = z.object({
   displayName: z

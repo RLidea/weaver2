@@ -1,4 +1,4 @@
-import { apiClient } from '@/infrastructure/api-client';
+import { apiClient } from '@weaver2/api-client';
 import type { DashboardSummary, UserAnalytics, ContentAnalytics, AnalyticsTimeRange } from '../types';
 
 function toQueryString(params: AnalyticsTimeRange): string {

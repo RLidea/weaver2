@@ -78,6 +78,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
   # ── 2. ESLint ────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -125,6 +127,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -133,7 +136,7 @@ jobs:
 
       - name: Fail if committed types are stale
         run: |
-          git diff --exit-code apps/core-frontend/src/types/api-schema.d.ts \
+          git diff --exit-code packages/api-client/src/types/api-schema.d.ts \
             || (echo "::error::api-schema.d.ts가 최신이 아닙니다. 'pnpm openapi:types' 실행 후 커밋하세요." && exit 1)
 
   # ── 3. Unit tests ────────────────────────────────────────────────
@@ -156,6 +159,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -209,6 +213,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -240,6 +245,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -269,6 +275,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -302,6 +309,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
@@ -370,6 +378,7 @@ jobs:
             node_modules
             apps/*/node_modules
             libs/*/node_modules
+            packages/*/node_modules
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useResetPassword } from '@/core/auth/hooks/use-password-reset';
 import { ResetPasswordSchema, type ResetPasswordFormValues } from '@/core/auth/types';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 
 export function ResetPasswordForm() {

@@ -84,7 +84,7 @@ import 별칭: `@/infrastructure`, `@/shared`, `@/core/{d}`, `@/features/{d}`, `
 - **mutation 에러는 전역 토스트가 기본** — `MutationCache.onError`가 처리하므로 개별 `onError`를 안 써도 사용자에게 에러가 보입니다. 끄려면 `meta.skipGlobalErrorToast`
 - 실시간: SSE 훅(`use-notification-stream.ts`)이 수신 이벤트로 React Query 캐시를 직접 조작합니다 → [05장 §3](05-notifications.md#3-sse--실시간-전달)
 
-**API 타입은 백엔드 OpenAPI에서 생성** — 응답/요청 타입은 손으로 미러링하지 않고 `src/types/api-schema.d.ts`(백엔드 스펙에서 생성)의 `components['schemas']`에서 파생합니다. 백엔드 DTO가 진실의 원천이고, 바꾼 뒤 `pnpm openapi:types`로 재생성하면 불일치가 **컴파일 에러**로 드러납니다(CI가 drift 검사). 파이프라인: 백엔드 DTO(`@ApiProperty`, 플러그인이 TS 타입 자동 추론) → `openapi.json`(preview 모드 추출) → `api-schema.d.ts`. union 리터럴·쿼리 파라미터·응답 봉투·계산 헬퍼처럼 스펙에서 파생 불가한 것만 손 정의로 남깁니다. 시범 적용: [`features/admin/users/types.ts`](../../apps/core-frontend/src/features/admin/users/types.ts). 전면 교체가 아니라 신규 도메인·시범 도메인부터 점진 적용합니다.
+**API 타입은 백엔드 OpenAPI에서 생성** — 응답/요청 타입은 손으로 미러링하지 않고 `@weaver2/api-client`의 `api-schema.d.ts`(packages/api-client/src/types/, 백엔드 스펙에서 생성)의 `components['schemas']`에서 파생합니다. 백엔드 DTO가 진실의 원천이고, 바꾼 뒤 `pnpm openapi:types`로 재생성하면 불일치가 **컴파일 에러**로 드러납니다(CI가 drift 검사). 파이프라인: 백엔드 DTO(`@ApiProperty`, 플러그인이 TS 타입 자동 추론) → `openapi.json`(preview 모드 추출) → `api-schema.d.ts`. union 리터럴·쿼리 파라미터·응답 봉투·계산 헬퍼처럼 스펙에서 파생 불가한 것만 손 정의로 남깁니다. 시범 적용: [`features/admin/users/types.ts`](../../apps/core-frontend/src/features/admin/users/types.ts). 전면 교체가 아니라 신규 도메인·시범 도메인부터 점진 적용합니다.
 
 **URL 상태 관리** — 검색·필터·정렬·페이지 조건은 컴포넌트 state가 아니라 URL 쿼리에 둡니다 (공유·새로고침 생존). 공통 훅 **`useUrlState`**(`shared/hooks/use-url-state.ts`)를 씁니다 — 스키마로 default·parse를 선언하면 읽기(`params.status`)와 쓰기(`setParams({ status })`)가 되고, 히스토리는 `replace` 통일, 기본값은 URL에서 자동 제거, `resetKeys`로 "필터 바꾸면 page 리셋"이 자동입니다.
 

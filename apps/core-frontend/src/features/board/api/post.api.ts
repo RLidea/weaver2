@@ -1,5 +1,4 @@
-import { apiClient } from '@/infrastructure/api-client';
-import type { KeysetResponse } from '@/types/pagination';
+import { apiClient, type KeysetResponse } from '@weaver2/api-client';
 import type {
   Post,
   BoardPostsResponse,

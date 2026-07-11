@@ -1,4 +1,4 @@
-import type { components } from '@/types/api-schema';
+import type { components } from '@weaver2/api-client/schema';
 
 /**
  * 백엔드 DTO에서 파생된 타입 (openapi:types로 생성된 api-schema.d.ts 참조).

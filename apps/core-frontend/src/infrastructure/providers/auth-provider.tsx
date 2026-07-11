@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/infrastructure/api-client';
+import { apiClient } from '@weaver2/api-client';
 
 /**
  * ApiClient에 onAuthError 콜백을 주입하는 얇은 레이어.

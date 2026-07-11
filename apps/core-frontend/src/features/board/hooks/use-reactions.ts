@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { commentApi } from '../api/comment.api';
 import { reactionKeys } from '../query-keys';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse } from '@weaver2/api-client';
 import type { PostReactions } from '../types';
 
 export function useReactions(postId: string) {

@@ -5,7 +5,7 @@ import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { Card, CardContent, CardHeader, useToast } from '@weaver2/ui';
 import { usePushSubscription } from '@/core/notification/hooks/use-push-subscription';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 interface ToggleItemProps {
   label: string;

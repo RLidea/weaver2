@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useOAuthConnections, useDisconnectOAuth } from '../hooks/use-oauth-connections';
 import { Button, Card, CardContent, CardHeader, ConfirmDialog, Spinner, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAdminEmailTemplates } from '../hooks/use-admin-email-templates';
 import { useUpdateEmailTemplate } from '../hooks/use-admin-email-template-mutations';
 import { Button, Input, Spinner, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 import type { EmailTemplate } from '../types';
 
 const TEMPLATE_LABELS: Record<string, string> = {

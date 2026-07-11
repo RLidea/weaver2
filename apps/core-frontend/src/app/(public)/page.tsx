@@ -27,7 +27,7 @@ export default function HomePage() {
  * RSC 패턴 가이드 (이 파일은 서버 컴포넌트)
  *
  * 서버에서 데이터를 fetch할 때:
- *   import { serverFetch } from '@/infrastructure/server-api';
+ *   import { serverFetch } from '@weaver2/api-client/server';
  *   const data = await serverFetch<MyType>('/v1/endpoint');
  *
  * 인터랙션이 필요한 부분만 클라이언트 컴포넌트로 분리:

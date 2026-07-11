@@ -9,7 +9,7 @@ import { useRegister } from '@/core/auth/hooks/use-register';
 import { useLatestTerms } from '@/core/terms/hooks/use-latest-terms';
 import { SignUpSchema, type SignUpFormValues } from '@/core/auth/types';
 import type { Terms } from '@/core/terms/types';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, Spinner } from '@weaver2/ui';
 
 function TermsModal({ terms, onClose }: { terms: Terms; onClose: () => void }) {

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '../api/user.api';
 import { userKeys } from '../query-keys';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 export function useMe() {
   const query = useQuery({

@@ -6,7 +6,7 @@
  * - 쿠키를 자동으로 백엔드에 전달 (인증 포함)
  */
 import { cookies } from 'next/headers';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse } from './types/api';
 
 const API_URL = process.env.API_URL;
 

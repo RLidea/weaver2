@@ -22,7 +22,7 @@ packages/                  # 프론트 전용 pnpm workspace 패키지 (nest lib
 │       └── lib/           # cn
 ├── api-client/            # @weaver2/api-client — ui 무의존
 │   └── src/
-│       ├── api-client.ts, query-client.ts, query-provider.tsx
+│       ├── api-client.ts, query-client.ts
 │       ├── server-api.ts  # "./server" 서브패스 (next/headers 사용 — 클라이언트 번들 격리)
 │       ├── error-messages.ts  # getApiErrorMessage (use-api-error에서 매핑 추출)
 │       └── types/         # api.ts(ApiError), pagination.ts, api-schema.d.ts(생성물)

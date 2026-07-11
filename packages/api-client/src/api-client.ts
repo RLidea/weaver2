@@ -1,4 +1,4 @@
-import { ApiError, ApiErrorResponse, ApiResponse } from '@/types/api';
+import { ApiError, ApiErrorResponse, ApiResponse } from './types/api';
 
 type RequestOptions = Omit<RequestInit, 'body' | 'method'> & {
   /** true이면 401 후 refresh 실패 시 onAuthError를 호출하지 않는다. */

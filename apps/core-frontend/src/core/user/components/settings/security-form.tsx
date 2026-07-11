@@ -10,7 +10,7 @@ import {
   useConfirmEmailChange,
 } from '@/core/user/hooks/use-email-change';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 /* ── 비밀번호 변경 ───────────────────────────────────────── */
 

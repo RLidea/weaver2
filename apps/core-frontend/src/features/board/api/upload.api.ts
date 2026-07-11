@@ -1,4 +1,4 @@
-import { apiClient } from '@/infrastructure/api-client';
+import { apiClient } from '@weaver2/api-client';
 
 export interface PostFileItem {
   id: string;

@@ -1,4 +1,4 @@
-import { apiClient } from '@/infrastructure/api-client';
+import { apiClient } from '@weaver2/api-client';
 import type { Terms, CreateTermsRequest, UpdateTermsRequest } from '../types';
 
 export const termsApi = {

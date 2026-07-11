@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { createQueryClient } from '@/infrastructure/query-client';
+import { createQueryClient } from '@weaver2/api-client';
 import { useApiError } from '@/shared/hooks/use-api-error';
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {

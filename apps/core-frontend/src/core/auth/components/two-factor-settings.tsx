@@ -15,7 +15,7 @@ import {
   useDisableEmailOtp,
 } from '../hooks/use-two-factor';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, Spinner, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 const CodeSchema = z.object({ code: z.string().min(1, '코드를 입력해주세요') });
 type CodeValues = z.infer<typeof CodeSchema>;

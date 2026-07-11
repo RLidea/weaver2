@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLogin, useTwoFactorLogin, useSendLoginEmailOtp } from '@/core/auth/hooks/use-login';
 import { SignInSchema, type SignInRequest, type SignInResponse } from '@/core/auth/types';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 import { authApi } from '../api/auth.api';
 

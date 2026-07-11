@@ -1,5 +1,5 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query';
-import { ApiError } from '@/types/api';
+import { ApiError } from './types/api';
 
 export interface CreateQueryClientOptions {
   /**

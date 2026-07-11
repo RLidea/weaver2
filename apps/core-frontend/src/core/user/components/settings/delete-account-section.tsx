@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDeleteAccount } from '@/core/user/hooks/use-delete-account';
 import { Button, Card, CardContent, CardHeader, Input, useToast } from '@weaver2/ui';
-import { ApiError } from '@/types/api';
+import { ApiError } from '@weaver2/api-client';
 
 export function DeleteAccountSection() {
   const [showConfirm, setShowConfirm] = useState(false);
