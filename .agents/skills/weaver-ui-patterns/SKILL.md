@@ -129,11 +129,11 @@ function UserList() {
 
 ### 규칙: 필터/검색/정렬/페이지네이션 상태는 URL에 저장
 
-**공통 훅 `useUrlState`를 쓴다** (`@/shared/hooks/use-url-state`). 직접 `useSearchParams` + `URLSearchParams` + `router`를 조합하지 않는다.
+**공통 훅 `useUrlState`를 쓴다** (`@weaver2/ui`). 직접 `useSearchParams` + `URLSearchParams` + `router`를 조합하지 않는다.
 
 ```typescript
 // ✅ CORRECT — useUrlState
-import { useUrlState } from '@/shared/hooks/use-url-state';
+import { useUrlState } from '@weaver2/ui';
 
 function UserTable() {
   const [params, setParams] = useUrlState(

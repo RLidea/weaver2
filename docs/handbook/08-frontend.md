@@ -41,7 +41,7 @@ src/
 └── types.ts
 ```
 
-import 별칭: `@/infrastructure`, `@/shared`, `@/core/{d}`, `@/features/{d}`, `@/skins`, `@/types`. 모노레포 공유 패키지 `@weaver2/shared`(권한 상수·`hasPermission`)는 `next.config.ts`의 `transpilePackages`로 포함됩니다.
+import 별칭: `@/infrastructure`, `@/shared`, `@/core/{d}`, `@/features/{d}`. 공유 코드는 workspace 패키지로 분리됨 — `@weaver2/ui`(UI 원자·스킨·토큰), `@weaver2/api-client`(ApiClient·React Query·생성 타입, 서버는 `/server`·스키마는 `/schema` 서브패스), `@weaver2/auth`(세션·로그인·권한 가드). 모노레포 공유 패키지 `@weaver2/shared`(권한 상수·`hasPermission`) 포함 전부 `next.config.ts`의 `transpilePackages`로 트랜스파일됩니다.
 
 ## 3. ApiClient
 
