@@ -249,6 +249,15 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.6)
+      '@weaver2/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@weaver2/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@weaver2/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -316,6 +325,70 @@ importers:
       typescript:
         specifier: ^5
         version: 5.8.3
+
+  packages/api-client:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.90.21(react@19.2.6)
+      next:
+        specifier: ^16.0.0
+        version: 16.2.6(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+    devDependencies:
+      openapi-typescript:
+        specifier: ^7.13.0
+        version: 7.13.0(typescript@5.8.3)
+
+  packages/auth:
+    dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.71.2(react@19.2.6))
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.90.21(react@19.2.6)
+      '@weaver2/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@weaver2/ui':
+        specifier: workspace:*
+        version: link:../ui
+      next:
+        specifier: ^16.0.0
+        version: 16.2.6(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.6(react@19.2.6)
+      react-hook-form:
+        specifier: ^7.71.2
+        version: 7.71.2(react@19.2.6)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+
+  packages/ui:
+    dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      next:
+        specifier: ^16.0.0
+        version: 16.2.6(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.6(react@19.2.6)
+      tailwind-merge:
+        specifier: ^3.5.0
+        version: 3.5.0
 
 packages:
 

@@ -1,0 +1,23 @@
+{
+  "name": "@weaver2/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "weaver2 API 클라이언트 + React Query 설정 + OpenAPI 생성 타입 (소스 배포)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server-api.ts"
+  },
+  "scripts": {
+    "gen:api-types": "openapi-typescript ../../apps/core-backend/openapi.json -o src/types/api-schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0"
+  }
+}

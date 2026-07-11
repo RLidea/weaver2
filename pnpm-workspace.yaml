@@ -1,5 +1,6 @@
 packages:
   - 'apps/core-frontend'
+  - 'packages/*'
 
 ignoredBuiltDependencies:
   - '@prisma/client'

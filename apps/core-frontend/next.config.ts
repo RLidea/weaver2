@@ -38,7 +38,8 @@ const apiUrl = process.env.API_URL || "http://localhost:4000";
 
 const nextConfig: NextConfig = {
   // libs/shared는 apps/core-frontend 외부에 있으므로 Next.js가 트랜스파일할 수 있도록 지정
-  transpilePackages: ['@weaver2/shared'],
+  // packages/*는 소스 배포(.ts) workspace 패키지라 동일하게 트랜스파일 필요
+  transpilePackages: ['@weaver2/shared', '@weaver2/ui', '@weaver2/api-client', '@weaver2/auth'],
   async rewrites() {
     return [
       {
