@@ -105,51 +105,57 @@ weaver2/
 
 ## 🚀 시작하기
 
-### 1. 환경 변수 설정
+### 0. 사전 요구사항
+
+| 도구 | 버전 | 비고 |
+|------|------|------|
+| Node.js | >= 22 | `.nvmrc` 제공 — `nvm use` |
+| pnpm | >= 11 | `corepack enable` 권장 |
+| PostgreSQL | 16 | 직접 설치 또는 아래 Docker로 구동 |
+
+### 1. 데이터베이스 준비
+
+로컬에 PostgreSQL이 없다면 docker-compose로 DB만 띄웁니다:
+```bash
+docker-compose up -d db
+```
+기본 접속 정보(`weaver` / `weaver1234` / DB `weaver2`)는 `.env.example`의 `DATABASE_URL` 기본값과 일치하므로 그대로 사용할 수 있습니다. 별도 PostgreSQL을 쓴다면 다음 단계에서 `DATABASE_URL`을 맞춰주세요.
+
+### 2. 초기화
+
+```bash
+pnpm run init
+```
+`.env` 생성 → 의존성 설치 → **Prisma 클라이언트 생성** → 마이그레이션 → 시드까지 한 번에 수행합니다.
+
+수동으로 진행하려면 (순서 중요 — `db:generate`를 건너뛰면 시드·서버 기동이 실패합니다):
 ```bash
 cp apps/core-backend/.env.example apps/core-backend/.env
 cp apps/core-frontend/.env.example apps/core-frontend/.env.local
-```
-
-`apps/core-backend/.env` 필수 항목:
-```env
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/<db>
-JWT_SECRET=<secret>
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=<email>
-SMTP_PASS=<app-password>
-
-# Web Push (VAPID) — node -e "const wp=require('web-push'); console.log(wp.generateVAPIDKeys())"
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:admin@example.com
-
-# 파일 저장 방식: local(기본) | s3
-STORAGE_DRIVER=local
-```
-
-### 2. 의존성 설치
-```bash
 pnpm install
+pnpm db:generate   # Prisma 클라이언트 생성
+pnpm db:migrate    # 마이그레이션
+pnpm db:seed       # 시드 (권한 그룹, 기본 계정, 이메일 템플릿 등)
 ```
 
-### 3. 데이터베이스 설정
-```bash
-# 마이그레이션 실행
-DATABASE_URL=<your-url> npx prisma migrate deploy --schema apps/core-backend/prisma/schema
+### 3. 환경 변수 확인
 
-# 시드 데이터 생성 (권한 그룹, 기본 관리자 계정, 이메일 템플릿 등)
-pnpm db:seed
-```
+`apps/core-backend/.env`에서 최소 아래 항목을 확인합니다:
+
+| 항목 | 필수 | 미설정 시 |
+|------|------|-----------|
+| `DATABASE_URL` | ✅ | DB 연결 실패 (docker-compose db 사용 시 기본값 그대로) |
+| `JWT_SECRET` | ✅ | 로그인 등 인증 동작 안 함 — `.env` 주석의 생성 명령 참고 |
+| `SMTP_*` | 선택 | 서버는 부팅되지만 이메일 발송(회원가입 인증 메일 등) 비활성화 |
+| `VAPID_*` | 선택 | 웹 푸시만 비활성화 — 생성 명령은 `.env.example` 주석 참고 |
+| `STORAGE_DRIVER` | 선택 | 기본 `local` (S3 사용 시 `s3`) |
 
 ### 4. 개발 서버 실행
 ```bash
-# 백엔드 (port 4000)
-pnpm dev
-
-# 프론트엔드 (port 3000) — 별도 터미널
-cd apps/core-frontend && pnpm dev
+pnpm dev:core   # 백엔드 (port 4000)
+pnpm dev:web    # 프론트엔드 (port 3000) — 별도 터미널
 ```
+> `pnpm dev`는 실행할 앱을 고르는 **대화형 선택 메뉴**를 띄웁니다. 특정 앱을 바로 띄우려면 위의 `dev:core` / `dev:web`을 사용하세요.
 
 ### 5. 확인
 | 서비스 | URL |
@@ -158,7 +164,16 @@ cd apps/core-frontend && pnpm dev
 | API 서버 | http://localhost:4000 |
 | Swagger | http://localhost:4000/docs |
 
-기본 관리자 계정은 시드 실행 후 `apps/core-backend/prisma/seed` 참조.
+시드 기본 계정 (비밀번호는 모두 `secret!!`):
+
+| 이메일 | 역할 |
+|--------|------|
+| `admin@weaver.com` | 관리자 (Admin) |
+| `operator@weaver.com` | 운영자 (Operator) |
+| `moderator@weaver.com` | 모더레이터 (Moderator) |
+| `weaver@weaver.com` | 일반 사용자 |
+
+> ⚠️ 실제 배포 시에는 시드 계정 비밀번호를 반드시 교체하세요 ([CHARTER §9 분기 체크리스트](CHARTER.md) 참고).
 
 ---
 
@@ -285,10 +300,13 @@ STORAGE_DRIVER=s3     → S3StorageProvider     (AWS S3 / MinIO)
 
 ```bash
 # 개발 서버
-pnpm dev              # 백엔드 개발 모드
+pnpm dev              # 실행할 앱 선택 (대화형 메뉴)
+pnpm dev:core         # 백엔드 개발 모드
+pnpm dev:web          # 프론트엔드 개발 모드
 pnpm build            # 백엔드 프로덕션 빌드
 
 # 데이터베이스
+pnpm db:generate      # Prisma 클라이언트 생성
 pnpm db:migrate       # 마이그레이션 실행
 pnpm db:seed          # 시드 데이터 생성
 pnpm db:reset         # DB 초기화 + 시드
