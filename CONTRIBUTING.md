@@ -1,6 +1,6 @@
 # Contributing to Weaver2
 
-본 문서는 **weaver2 자체에 기여하시는 분**과 **이 보일러플레이트를 복제해서 외주 프로젝트로 운영하시는 분** 양쪽을 위한 가이드입니다.
+본 문서는 **weaver2 자체에 기여하시는 분**과 **이 보일러플레이트를 fork해서 신규 프로젝트로 운영하시는 분** 양쪽을 위한 가이드입니다. (대상 독자는 [CHARTER §2](CHARTER.md) 기준 — 본인 + 사내 개발팀)
 
 > 핵심 철학과 코딩 스타일은 [`CLAUDE.md`](CLAUDE.md), 향후 작업은 [`ROADMAP.md`](ROADMAP.md), 종합 감사 결과는 [`docs/audits/`](docs/audits/) 참조.
 

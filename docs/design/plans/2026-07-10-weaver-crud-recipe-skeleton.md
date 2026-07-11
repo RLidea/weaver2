@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 커밋 메시지: 영어 제목 + 한국어 본문 병기, AI 생성 표시 절대 금지 (`CONTRIBUTING.md`)
-- `git push` 금지 — 로컬 커밋까지만 (push는 주인님 확인 필요)
+- `git push` 금지 — 로컬 커밋까지만 (push는 메인테이너 확인 필요)
 - 레시피 포인터는 파일·심볼 수준만 — 라인 번호 금지 (설계 v2 §5.3)
 - "관리자 화면"은 "골격 표준"으로 표현 — "완전 표준" 표현 금지 (설계 v2 §3-4)
 - `references/*` 상세 문서는 이번 계획 범위 밖 — 첫 실전 fork에서 작성 (설계 v2 §4-6)
@@ -73,12 +73,12 @@ git commit -m "docs(charter): fix stale docs gitignore description in 7.3
 
 - [ ] **Step 1: 업스트림을 스크래치에 클론**
 
-Run: `CLONE_DIR="/private/tmp/claude-501/-Users-devcjkim-Workspace-Centell-Projects-Tools-weaver2/b1d2f408-0edb-43f9-b903-0166010efadb/scratchpad/agent-nestjs-skills-clone"; git clone --depth 1 https://github.com/Kadajett/agent-nestjs-skills "$CLONE_DIR" 2>&1 | tail -1`
+Run: `CLONE_DIR="<SCRATCH>/agent-nestjs-skills-clone"; git clone --depth 1 https://github.com/Kadajett/agent-nestjs-skills "$CLONE_DIR" 2>&1 | tail -1`
 Expected: 클론 성공. 실패(네트워크/저장소 이동) 시 중단하고 보고 — 대체 출처를 임의로 고르지 말 것
 
 - [ ] **Step 2: 스킬 구성 확인 후 복사**
 
-(주의: 셸 변수는 호출 간 유지되지 않는다 — 아래처럼 전체 경로를 그대로 쓴다. 이하 `<SCRATCH>` = `/private/tmp/claude-501/-Users-devcjkim-Workspace-Centell-Projects-Tools-weaver2/b1d2f408-0edb-43f9-b903-0166010efadb/scratchpad`)
+(주의: 셸 변수는 호출 간 유지되지 않는다 — 아래처럼 전체 경로를 그대로 쓴다. 이하 `<SCRATCH>` = 실행 환경의 임시 작업 디렉토리, 예: `/tmp/weaver2-scratch`)
 
 Run: `ls <SCRATCH>/agent-nestjs-skills-clone/` — SKILL.md가 저장소 루트에 있는지, 스킬이 하위 디렉토리인지 확인.
 루트형이면:
@@ -372,4 +372,4 @@ weaver-crud-recipe 골격 스킬을 등록."
 - [ ] 5개 커밋 전부 성공 (pre-commit jest 102/102 통과 = 커밋 성공에 내포)
 - [ ] `git check-ignore` 검증 2건 통과 (Task 2 Step 5, Task 3 Step 3)
 - [ ] Task 4 Step 3 포인터 실재 검증 전부 OK
-- [ ] push는 하지 않음 — 주인님 확인 대기
+- [ ] push는 하지 않음 — 메인테이너 확인 대기

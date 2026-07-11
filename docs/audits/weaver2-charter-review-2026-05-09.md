@@ -17,7 +17,7 @@
 
 | 영역 | 발견 |
 |------|------|
-| 도메인 종속성 | **거의 0** — 코드/시드/UI/.env 깨끗, "펫민원24" 언급은 `docs/production-readiness.md` 2건뿐 |
+| 도메인 종속성 | **거의 0** — 코드/시드/UI/.env 깨끗, 실 서비스명 언급은 `docs/production-readiness.md` 2건뿐 |
 | 보안·아키 | 5/9 audit의 P0~P2 39커밋 모두 처리. IDOR/CSRF/IDOR/12 CVE/csurf→csrf-csrf 전부 정리됨 |
 | 권한 시스템 | RolesGuard 제거 완료, PermissionGroup 6종 시드 (SuperAdmin/Admin/Operator/Moderator/User/Suspended) |
 | 의도된 확장 포인트 | `STORAGE_DRIVER`(local/s3) + `NOTIFICATION_EMITTER` 심볼 토큰 — 명시적 추상화 |
@@ -50,7 +50,7 @@
 ### 2. 범용성 — 도메인 종속성
 
 - **코드/시드/UI/패키지 메타데이터**: 0건 (깨끗)
-- **`docs/production-readiness.md` L4, L161**: "펫민원24" 사례 언급 (영향도: 하 — 내부 문서)
+- **`docs/production-readiness.md` L4, L161**: 실 서비스 프로젝트 사례 언급 (영향도: 하 — 내부 문서)
 - **`.env.example` 한국 특화 기본값**: `APP_LOCALE=ko-KR`, `APP_TIMEZONE=Asia/Seoul` — 의도된 결정인지 헌장에 명시 필요
 - **`apps/core-frontend/src/app/layout.tsx` `lang="ko"`** 하드코딩 — i18n 미지원의 신호
 - **시드 게시판 카테고리**: `'일반', '질문', '공유'` (적절), 예시 글에 "Next.js App Router" — 개발자 친화

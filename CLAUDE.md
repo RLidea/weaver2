@@ -54,14 +54,10 @@
 - **`nestjs-best-practices`** - NestJS 베스트 프랙티스 (40개 규칙)
 - **`weaver-crud-recipe`** - 새 엔티티 CRUD 표준 세트 조립 레시피 (골격)
 
-### 글로벌 스킬 (모든 프로젝트 공통)
-- **`workflow-templates`** - 계획/완료 보고 템플릿, 커밋 메시지
-
 수동 호출 (필요시):
 ```
 /weaver-coding        # 코딩 표준 확인
 /weaver-ui           # UI 패턴 확인
-/workflow-templates  # 템플릿 확인 (글로벌)
 /nestjs-best-practices  # NestJS 베스트 프랙티스
 /weaver-crud-recipe  # 새 엔티티 얹기 레시피
 ```
@@ -124,15 +120,9 @@ weaver2/
 │   └── weaver-crud-recipe/
 └── .claude/skills/              # Claude Code 링크 (자동 로드)
     └── [symlinks to .agents/skills/]
-
-~/.agents/skills/                # 글로벌 스킬 중앙 저장소 (agent-agnostic)
-└── workflow-templates/          # 범용 워크플로우 템플릿
-
-~/.claude/skills/                # 모든 에이전트의 링크
-~/.cursor/skills/                # (~/.agents/skills/ 가리킨)
-~/.gemini/skills/
-~/.opencode/skills/
 ```
+
+> 개인 글로벌 스킬(예: 보고 템플릿)은 각자 홈 디렉토리의 스킬 저장소(`~/.claude/skills/` 등)에 두는 선택 사항이며, 이 저장소는 프로젝트 스킬만 전제한다.
 
 ---
 

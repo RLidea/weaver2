@@ -4,7 +4,7 @@
 - 상태: 완료 (2026-07-11) — 검증 4항목 통과 (build·패키지 lint·storybook build·openapi drift 0)
   - 앱 lint의 set-state-in-effect 4건은 이번 작업 이전부터 존재하던 오류로 범위 외 (아래 후속 참고)
 - 배경: 외주 프로젝트에서 어드민 분리(admin.xxx.com 또는 별도 앱) 요구가 잦음.
-  개인 프로젝트는 단일 앱(xxx.com/admin)을 유지하고 싶음.
+  단일 앱(xxx.com/admin) 구성도 기본 형태로 계속 지원해야 함.
   → 배포 형태를 포크가 아니라 설정/조립으로 다루기 위해,
   분리 비용의 8할인 **공유 코드 패키지화**를 템플릿에서 선불로 지불한다.
   앱 분리 자체(2단계)는 프로젝트별 결정으로 남기고, 검증 후 레시피로 기록한다.
@@ -41,7 +41,7 @@ packages/                  # 프론트 전용 pnpm workspace 패키지 (nest lib
 
 | 결정 | 내용 | 이유 |
 |------|------|------|
-| useMe 위치 | @weaver2/auth로 이동 (주인님 승인) | 세션 정체성 훅 — shell·require-permission·어드민 앱 모두 필요. 쿼리키 값 `['user','me']`는 유지해 기존 invalidation 호환 |
+| useMe 위치 | @weaver2/auth로 이동 (확정) | 세션 정체성 훅 — shell·require-permission·어드민 앱 모두 필요. 쿼리키 값 `['user','me']`는 유지해 기존 invalidation 호환 |
 | User 타입 | @weaver2/auth로 이동, core/user는 재참조 | useMe·require-permission(permissions 필드)이 사용 |
 | shell/layout | 앱 잔류 | core 훅(user/notification) 결합 — 2단계 분리 시 앱과 함께 이사 |
 | use-api-error | 앱 잔류, 메시지 매핑만 getApiErrorMessage로 api-client에 추출 | toast(ui)+ApiError(api) 양쪽 결합 — 패키지 의존 방향 오염 방지 |
