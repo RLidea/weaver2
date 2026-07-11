@@ -10,7 +10,7 @@ import { SendEmailOptions, EmailResult } from './interfaces/email.interface';
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
 
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('SMTP_HOST');
@@ -19,9 +19,11 @@ export class EmailService {
     const pass = this.configService.get<string>('SMTP_PASS');
 
     if (!host || !portRaw || !user || !pass) {
-      throw new Error(
-        'Missing required SMTP environment variables: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS',
+      // SMTP 미설정 환경(로컬 첫 구동 등)에서도 부팅은 가능해야 한다 — 발송만 비활성화
+      this.logger.warn(
+        'SMTP 환경변수(SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)가 설정되지 않아 이메일 발송이 비활성화됩니다.',
       );
+      return;
     }
 
     const port = parseInt(portRaw, 10);
@@ -39,10 +41,21 @@ export class EmailService {
    * 비즈니스 로직 없이 순수하게 이메일만 발송
    */
   async sendMail(options: SendEmailOptions): Promise<EmailResult> {
+    const transporter = this.transporter;
+    if (!transporter) {
+      this.logger.warn(
+        `SMTP 미설정으로 이메일 발송 스킵: ${options.subject} → ${options.to}`,
+      );
+      return {
+        success: false,
+        error: 'SMTP is not configured. Email sending is disabled.',
+      };
+    }
+
     try {
       // SMTP 연결 검증
       await new Promise<void>((resolve, reject) => {
-        this.transporter.verify((err) => {
+        transporter.verify((err) => {
           if (err) {
             this.logger.error(
               'SMTP 연결 실패',
@@ -61,7 +74,7 @@ export class EmailService {
 
       // 이메일 발송
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await this.transporter.sendMail({
+      const result = await transporter.sendMail({
         from: options.from ?? `"Weaver2" <no-reply@weaver2.com>`,
         to: options.to,
         subject: options.subject,
@@ -94,9 +107,14 @@ export class EmailService {
    * SMTP 연결 상태 확인
    */
   async verifyConnection(): Promise<boolean> {
+    const transporter = this.transporter;
+    if (!transporter) {
+      return false;
+    }
+
     try {
       await new Promise<void>((resolve, reject) => {
-        this.transporter.verify((err) => {
+        transporter.verify((err) => {
           if (err) {
             reject(err);
           } else {
