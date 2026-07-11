@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { hasPermission } from '@weaver2/shared';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from './hooks/use-me';
 import { Spinner } from '@weaver2/ui';
 
 interface Props {

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../api/user.api';
-import { userKeys } from '../query-keys';
+import { authKeys } from '@weaver2/auth';
 
 export function useUploadProfileImage() {
   const queryClient = useQueryClient();
@@ -8,7 +8,7 @@ export function useUploadProfileImage() {
   return useMutation({
     mutationFn: (file: File) => userApi.uploadProfileImage(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.me });
+      queryClient.invalidateQueries({ queryKey: authKeys.me });
     },
   });
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { useRecentNotifications } from '../hooks/use-recent-notifications';
 import { BellIcon, Card, CardContent, CardHeader, ShieldIcon, Spinner, UserIcon } from '@weaver2/ui';
 

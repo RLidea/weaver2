@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useMe } from '@/core/user/hooks/use-me';
-import { useLogout } from '@/core/auth/hooks/use-logout';
+import { useLogout, useMe } from '@weaver2/auth';
 import { BellIcon, ChevronDownIcon, cn, FlagIcon, HomeIcon, LogOutIcon, SettingsIcon, ShieldIcon, UserIcon } from '@weaver2/ui';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 

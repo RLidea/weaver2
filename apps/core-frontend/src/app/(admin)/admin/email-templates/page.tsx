@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { PERMISSIONS } from '@weaver2/shared';
 import { Spinner } from '@weaver2/ui';
-import { RequirePermission } from '@/shared/components/auth/require-permission';
+import { RequirePermission } from '@weaver2/auth';
 import { EmailTemplateList } from '@/features/admin/email-templates/components/email-template-list';
 
 export default function AdminEmailTemplatesPage() {

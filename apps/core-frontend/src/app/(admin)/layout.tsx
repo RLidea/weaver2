@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 import { AdminShell } from '@/shared/components/layout/admin-shell';
 

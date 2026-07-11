@@ -1,4 +1,4 @@
-import { VerifyEmailView } from '@/core/auth/components/verify-email-view';
+import { VerifyEmailView } from '@weaver2/auth';
 
 export default function VerifyPage() {
   return <VerifyEmailView />;

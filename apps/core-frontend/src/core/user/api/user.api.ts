@@ -8,9 +8,6 @@ import type {
 } from '../types';
 
 export const userApi = {
-  getMe: () =>
-    apiClient.get<User>('/v1/users/me', { skipOnAuthError: true }),
-
   getByUsername: (username: string) =>
     apiClient.get<User>(`/v1/users/${username}`),
 

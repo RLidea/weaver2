@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { useNotificationStream } from '@/core/notification/hooks/use-notification-stream';
 import { Spinner } from '@weaver2/ui';
 import { AppShell } from '@/shared/components/layout/app-shell';

@@ -12,6 +12,11 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "allowJs": false,
-    "incremental": false
+    "incremental": false,
+    "baseUrl": ".",
+    "paths": {
+      "@weaver2/shared": ["../libs/shared/src"],
+      "@weaver2/shared/*": ["../libs/shared/src/*"]
+    }
   }
 }

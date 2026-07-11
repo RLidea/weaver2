@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { Card, CardContent, CardHeader, useToast } from '@weaver2/ui';
 import { usePushSubscription } from '@/core/notification/hooks/use-push-subscription';

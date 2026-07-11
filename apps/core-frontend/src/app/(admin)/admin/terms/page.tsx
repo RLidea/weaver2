@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { PERMISSIONS } from '@weaver2/shared';
 import { Spinner } from '@weaver2/ui';
-import { RequirePermission } from '@/shared/components/auth/require-permission';
+import { RequirePermission } from '@weaver2/auth';
 import { AdminTermsTable } from '@/features/admin/terms/components/admin-terms-table';
 
 export default function AdminTermsPage() {

@@ -6,7 +6,7 @@ import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useBoard } from '../hooks/use-board';
 import { useBoardPosts } from '../hooks/use-board-posts';
 import { useBoardCategories } from '../hooks/use-board-categories';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { PostListItem } from './post-list-item';
 import { Button, Card, ChevronLeftIcon, PencilIcon, Spinner } from '@weaver2/ui';
 

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { ResetPasswordForm } from '@/core/auth/components/reset-password-form';
+import { ResetPasswordForm } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 
 export default function ResetPasswordPage() {

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../api/user.api';
-import { userKeys } from '../query-keys';
+import { authKeys } from '@weaver2/auth';
 import type { RequestEmailChangeRequest, ConfirmEmailChangeRequest } from '../types';
 
 export function useRequestEmailChange() {
@@ -15,7 +15,7 @@ export function useConfirmEmailChange() {
   return useMutation({
     mutationFn: (req: ConfirmEmailChangeRequest) => userApi.confirmEmailChange(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.me });
+      queryClient.invalidateQueries({ queryKey: authKeys.me });
     },
   });
 }

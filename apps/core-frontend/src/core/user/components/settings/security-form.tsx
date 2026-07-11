@@ -210,9 +210,7 @@ function ChangeEmailForm() {
 
 /* ── 통합 내보내기 ────────────────────────────────────────── */
 
-import { SessionList } from '@/core/auth/components/session-list';
-import { TwoFactorSettings } from '@/core/auth/components/two-factor-settings';
-import { OAuthConnections } from '@/core/auth/components/oauth-connections';
+import { OAuthConnections, SessionList, TwoFactorSettings } from '@weaver2/auth';
 
 export function SecurityForm() {
   return (

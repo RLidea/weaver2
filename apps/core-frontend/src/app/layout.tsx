@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/infrastructure/providers/query-provider";
-import { AuthProvider } from "@/infrastructure/providers/auth-provider";
+import { AuthProvider } from '@weaver2/auth';
 import { SkinProvider, ToastContainer, ToastProvider } from '@weaver2/ui';
 import "./globals.css";
 

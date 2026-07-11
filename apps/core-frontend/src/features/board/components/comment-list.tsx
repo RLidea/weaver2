@@ -5,7 +5,7 @@ import { Button, cn, ConfirmDialog, Spinner } from '@weaver2/ui';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useComments } from '../hooks/use-comments';
 import { useUpdateComment, useDeleteComment } from '../hooks/use-comment-mutations';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { CommentForm } from './comment-form';
 import type { Comment } from '../types';
 

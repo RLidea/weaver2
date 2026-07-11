@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { useUploadProfileImage } from '@/core/user/hooks/use-upload-profile-image';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, useToast } from '@weaver2/ui';

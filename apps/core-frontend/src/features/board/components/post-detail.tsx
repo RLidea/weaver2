@@ -7,7 +7,7 @@ import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { usePost } from '../hooks/use-post';
 import { useUpdatePost, useDeletePost } from '../hooks/use-post-mutations';
 import { usePostFiles } from '../hooks/use-post-files';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { uploadApi } from '../api/upload.api';
 import { Button, Card, CardContent, ChevronLeftIcon, ConfirmDialog, Spinner, useToast } from '@weaver2/ui';
 import { CommentList } from './comment-list';

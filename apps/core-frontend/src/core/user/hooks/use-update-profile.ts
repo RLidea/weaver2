@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../api/user.api';
-import { userKeys } from '../query-keys';
+import { authKeys } from '@weaver2/auth';
 import type { UpdateProfileRequest } from '../types';
 
 export function useUpdateProfile() {
@@ -9,7 +9,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (req: UpdateProfileRequest) => userApi.updateProfile(req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.me });
+      queryClient.invalidateQueries({ queryKey: authKeys.me });
     },
   });
 }

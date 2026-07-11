@@ -1,5 +1,6 @@
 import { apiClient } from '@weaver2/api-client';
 import type {
+  User,
   SignInRequest,
   SignInResponse,
   SignUpRequest,
@@ -13,6 +14,9 @@ import type {
 } from '../types';
 
 export const authApi = {
+  /** 현재 로그인 사용자 조회 — 비로그인(401)도 정상 플로우라 onAuthError를 건너뛴다 */
+  getMe: () => apiClient.get<User>('/v1/users/me', { skipOnAuthError: true }),
+
   signIn: (body: SignInRequest) =>
     apiClient.post<SignInResponse | null>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
 

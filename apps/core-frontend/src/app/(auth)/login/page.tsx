@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { LoginForm } from '@/core/auth/components/login-form';
+import { LoginForm } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 
 export default function LoginPage() {

@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PERMISSIONS } from '@weaver2/shared';
 import { Spinner, Tabs } from '@weaver2/ui';
-import { RequirePermission } from '@/shared/components/auth/require-permission';
+import { RequirePermission } from '@weaver2/auth';
 import { BoardTable } from '@/features/admin/boards/components/board-table';
 import { ContentPostsTab } from '@/features/admin/content/components/content-posts-tab';
 import { ContentCommentsTab } from '@/features/admin/content/components/content-comments-tab';

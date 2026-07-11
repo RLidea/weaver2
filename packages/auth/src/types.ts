@@ -110,3 +110,28 @@ export interface OAuthConnection {
   providerId: string;
   createdAt: string;
 }
+
+/**
+ * 백엔드 UserDto 기반 사용자 타입 (GET /v1/users/me 응답 데이터)
+ * 세션 정체성(useMe·require-permission)이 사용 — core/user에서 이동
+ */
+export interface UserSetting {
+  isEmailNotificationsEnabled: boolean;
+  isSmsNotificationsEnabled: boolean;
+  isPushNotificationsEnabled: boolean;
+  isMarketingConsentGiven: boolean;
+  isNewsletterSubscribed: boolean;
+  prefersDarkMode: boolean;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string | null;
+  profileImageUrl: string | null;
+  /** 부여된 permission 문자열 목록. 일반 사용자는 [] */
+  permissions: string[];
+  /** 사용자 설정 (GET /users/me 전용) */
+  userSetting?: UserSetting;
+}

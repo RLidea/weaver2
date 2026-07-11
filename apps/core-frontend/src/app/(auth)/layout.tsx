@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

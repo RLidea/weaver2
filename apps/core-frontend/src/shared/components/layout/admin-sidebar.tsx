@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { BoardIcon, cn, FileTextIcon, FlagIcon, HomeIcon, MailIcon, SettingsIcon, ShieldIcon, UsersIcon } from '@weaver2/ui';
-import { useMe } from '@/core/user/hooks/use-me';
+import { useMe } from '@weaver2/auth';
 
 const NAV_ITEMS = [
   {

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRequestPasswordReset } from '@/core/auth/hooks/use-password-reset';
-import { ForgotPasswordSchema, type ForgotPasswordFormValues } from '@/core/auth/types';
+import { useRequestPasswordReset } from '../hooks/use-password-reset';
+import { ForgotPasswordSchema, type ForgotPasswordFormValues } from '../types';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 
 export function ForgotPasswordForm() {
