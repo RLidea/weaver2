@@ -48,12 +48,15 @@ export default defineConfig({
             url: 'http://localhost:4000/v1/health',
             cwd: '../..',
             timeout: 120_000,
+            // 기동 실패 진단용 — stdout은 기본 무시라 서버가 침묵한 채 죽으면 단서가 없다
+            stdout: 'pipe',
           },
           {
             command: 'pnpm --filter core-frontend exec next start -p 3000',
             url: 'http://localhost:3000',
             cwd: '../..',
             timeout: 120_000,
+            stdout: 'pipe',
           },
         ]
       : [
