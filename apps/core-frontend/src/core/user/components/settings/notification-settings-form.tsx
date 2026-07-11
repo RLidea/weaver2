@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMe } from '@weaver2/auth';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { Card, CardContent, CardHeader, useToast } from '@weaver2/ui';
@@ -49,13 +49,15 @@ export function NotificationSettingsForm() {
   const [pushNotification, setPushNotification] = useState(false);
   const [isPushPending, setIsPushPending] = useState(false);
 
-  useEffect(() => {
-    if (user?.userSetting) {
-      setEmailNotification(user.userSetting.isEmailNotificationsEnabled);
-      setSmsNotification(user.userSetting.isSmsNotificationsEnabled);
-      setPushNotification(user.userSetting.isPushNotificationsEnabled);
-    }
-  }, [user]);
+  // 서버 설정이 바뀌면 토글 상태를 렌더 중에 동기화 (effect 내 동기 setState 회피)
+  const setting = user?.userSetting;
+  const [prevSetting, setPrevSetting] = useState<typeof setting>(undefined);
+  if (setting && setting !== prevSetting) {
+    setPrevSetting(setting);
+    setEmailNotification(setting.isEmailNotificationsEnabled);
+    setSmsNotification(setting.isSmsNotificationsEnabled);
+    setPushNotification(setting.isPushNotificationsEnabled);
+  }
 
   function handleToggle(
     key: 'emailNotification' | 'smsNotification',

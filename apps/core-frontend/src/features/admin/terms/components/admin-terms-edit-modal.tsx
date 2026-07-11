@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Input, Modal } from '@weaver2/ui';
 import { useUpdateTerms } from '@/core/terms/hooks/use-terms-mutations';
 import type { Terms } from '@/core/terms/types';
@@ -16,13 +16,16 @@ export function AdminTermsEditModal({ terms, onClose }: Props) {
   const [effectiveAt, setEffectiveAt] = useState('');
   const { mutate, isPending } = useUpdateTerms();
 
-  useEffect(() => {
+  // 대상 terms가 바뀌면 폼 상태를 렌더 중에 재설정 (effect 내 동기 setState 회피)
+  const [prevTerms, setPrevTerms] = useState<Terms | null>(null);
+  if (terms !== prevTerms) {
+    setPrevTerms(terms);
     if (terms) {
       setTitle(terms.title);
       setContent(terms.content);
       setEffectiveAt(terms.effectiveAt.split('T')[0]);
     }
-  }, [terms]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

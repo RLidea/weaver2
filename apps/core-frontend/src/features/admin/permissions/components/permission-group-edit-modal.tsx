@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Input, Modal } from '@weaver2/ui';
 import { useUpdatePermissionGroup } from '../hooks/use-permission-group-mutations';
 import type { PermissionGroup } from '../types';
@@ -15,12 +15,15 @@ export function PermissionGroupEditModal({ group, onClose }: Props) {
   const [description, setDescription] = useState('');
   const { mutate, isPending } = useUpdatePermissionGroup();
 
-  useEffect(() => {
+  // 대상 group이 바뀌면 폼 상태를 렌더 중에 재설정 (effect 내 동기 setState 회피)
+  const [prevGroup, setPrevGroup] = useState<PermissionGroup | null>(null);
+  if (group !== prevGroup) {
+    setPrevGroup(group);
     if (group) {
       setName(group.name);
       setDescription(group.description ?? '');
     }
-  }, [group]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

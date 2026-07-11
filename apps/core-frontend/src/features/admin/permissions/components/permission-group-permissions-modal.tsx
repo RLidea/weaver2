@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Modal, Spinner } from '@weaver2/ui';
 import { usePermissionGroup } from '../hooks/use-permission-group';
 import { useSetGroupPermissions } from '../hooks/use-permission-group-mutations';
@@ -17,11 +17,14 @@ export function PermissionGroupPermissionsModal({ group, onClose }: Props) {
   const { mutate, isPending } = useSetGroupPermissions();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  // 서버 상세가 바뀌면 선택 상태를 렌더 중에 재구성 (effect 내 동기 setState 회피)
+  const [prevDetail, setPrevDetail] = useState<typeof detail>(undefined);
+  if (detail !== prevDetail) {
+    setPrevDetail(detail);
     if (detail) {
       setSelected(new Set(detail.permissions.map((p) => p.permission)));
     }
-  }, [detail]);
+  }
 
   const toggle = (value: string) => {
     setSelected((prev) => {

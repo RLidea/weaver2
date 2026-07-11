@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Modal, Spinner } from '@weaver2/ui';
 import { useBoardPermissions } from '../hooks/use-admin-boards';
 import { useUpdateBoardPermissions } from '../hooks/use-admin-board-mutations';
@@ -20,7 +20,10 @@ export function BoardPermissionsModal({ board, onClose }: Props) {
   // local state: { [action]: { allowAnonymous, allowedGroupNames } }
   const [draft, setDraft] = useState<Record<string, { allowAnonymous: boolean; allowedGroupNames: string[] }>>({});
 
-  useEffect(() => {
+  // 서버 권한 데이터가 바뀌면 draft를 렌더 중에 재구성 (effect 내 동기 setState 회피)
+  const [prevPerms, setPrevPerms] = useState<typeof perms>(undefined);
+  if (perms !== prevPerms) {
+    setPrevPerms(perms);
     if (perms) {
       const initial: typeof draft = {};
       for (const action of BOARD_ACTIONS) {
@@ -32,7 +35,7 @@ export function BoardPermissionsModal({ board, onClose }: Props) {
       }
       setDraft(initial);
     }
-  }, [perms]);
+  }
 
   const toggleAnonymous = (action: string) => {
     setDraft((prev) => ({

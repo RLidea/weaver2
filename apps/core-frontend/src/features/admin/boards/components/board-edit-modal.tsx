@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Input, Modal } from '@weaver2/ui';
 import { useUpdateBoard } from '../hooks/use-admin-board-mutations';
 import type { AdminBoard } from '../types';
@@ -15,12 +15,15 @@ export function BoardEditModal({ board, onClose }: Props) {
   const [description, setDescription] = useState('');
   const { mutate, isPending } = useUpdateBoard();
 
-  useEffect(() => {
+  // 대상 board가 바뀌면 폼 상태를 렌더 중에 재설정 (effect 내 동기 setState 회피)
+  const [prevBoard, setPrevBoard] = useState<AdminBoard | null>(null);
+  if (board !== prevBoard) {
+    setPrevBoard(board);
     if (board) {
       setName(board.name);
       setDescription(board.description ?? '');
     }
-  }, [board]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
