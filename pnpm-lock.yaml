@@ -338,6 +338,9 @@ importers:
       '@types/react':
         specifier: ^19
         version: 19.2.14
+      eslint:
+        specifier: ^9.32.0
+        version: 9.32.0(jiti@2.6.1)
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.8.3)
@@ -381,6 +384,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
+      eslint:
+        specifier: ^9.32.0
+        version: 9.32.0(jiti@2.6.1)
       typescript:
         specifier: ^5
         version: 5.8.3
@@ -409,6 +415,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
+      eslint:
+        specifier: ^9.32.0
+        version: 9.32.0(jiti@2.6.1)
       typescript:
         specifier: ^5
         version: 5.8.3

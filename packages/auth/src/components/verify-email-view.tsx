@@ -11,13 +11,11 @@ export function VerifyEmailView() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
-  const [status, setStatus] = useState<Status>('loading');
+  // 토큰 없음은 렌더 시점에 알 수 있으므로 초기 상태로 처리 (effect 내 동기 setState 회피)
+  const [status, setStatus] = useState<Status>(() => (token ? 'loading' : 'error'));
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      return;
-    }
+    if (!token) return;
 
     authApi
       .verifyEmail(token)

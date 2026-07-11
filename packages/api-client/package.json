@@ -11,10 +11,12 @@
     "./schema": "./src/types/api-schema.d.ts"
   },
   "scripts": {
-    "gen:api-types": "openapi-typescript ../../apps/core-backend/openapi.json -o src/types/api-schema.d.ts"
+    "gen:api-types": "openapi-typescript ../../apps/core-backend/openapi.json -o src/types/api-schema.d.ts",
+    "lint": "eslint src"
   },
   "devDependencies": {
     "@types/react": "^19",
+    "eslint": "^9.32.0",
     "openapi-typescript": "^7.13.0",
     "typescript": "^5"
   },
