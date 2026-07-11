@@ -1,10 +1,7 @@
 'use client';
 
 import { useSessions, useRevokeSession, useRevokeOtherSessions } from '../hooks/use-sessions';
-import { useToast } from '@/infrastructure/providers/toast-provider';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Card, CardContent, CardHeader, Spinner, useToast } from '@weaver2/ui';
 
 function parseUserAgent(ua: string | null): string {
   if (!ua) return '알 수 없는 기기';

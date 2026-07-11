@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authApi } from '../api/auth.api';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Spinner } from '@weaver2/ui';
 
 type Status = 'loading' | 'success' | 'error';
 

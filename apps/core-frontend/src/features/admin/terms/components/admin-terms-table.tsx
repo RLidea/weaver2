@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Spinner } from '@weaver2/ui';
 import { useLatestTerms } from '@/core/terms/hooks/use-latest-terms';
 import { AdminTermsCreateModal } from './admin-terms-create-modal';
 import { AdminTermsEditModal } from './admin-terms-edit-modal';

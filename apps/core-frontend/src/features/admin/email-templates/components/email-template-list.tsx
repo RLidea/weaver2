@@ -3,11 +3,8 @@
 import { useState } from 'react';
 import { useAdminEmailTemplates } from '../hooks/use-admin-email-templates';
 import { useUpdateEmailTemplate } from '../hooks/use-admin-email-template-mutations';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Input, Spinner, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Spinner } from '@/shared/components/ui/spinner';
 import type { EmailTemplate } from '../types';
 
 const TEMPLATE_LABELS: Record<string, string> = {

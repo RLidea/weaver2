@@ -1,6 +1,6 @@
 'use client';
 
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import { useAdminDashboard } from '../hooks/use-admin-dashboard';
 
 interface StatCardProps {

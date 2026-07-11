@@ -1,4 +1,4 @@
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge } from '@weaver2/ui';
 import { type AdminUser, getUserStatus } from '../types';
 
 interface UserStatusBadgeProps {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ExternalLinkIcon } from '@/shared/components/ui/icons';
+import { ExternalLinkIcon } from '@weaver2/ui';
 import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';
 

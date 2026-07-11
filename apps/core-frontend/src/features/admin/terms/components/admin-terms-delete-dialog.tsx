@@ -1,7 +1,6 @@
 'use client';
 
-import { Modal } from '@/shared/components/ui/modal';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Modal } from '@weaver2/ui';
 import { useDeleteTerms } from '@/core/terms/hooks/use-terms-mutations';
 import type { Terms } from '@/core/terms/types';
 

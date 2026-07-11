@@ -6,11 +6,7 @@ import Link from 'next/link';
 import { useCreatePost } from '../hooks/use-post-mutations';
 import { useBoard } from '../hooks/use-board';
 import { uploadApi } from '../api/upload.api';
-import { useToast } from '@/infrastructure/providers/toast-provider';
-import { Card, CardContent, CardFooter, CardHeader } from '@/shared/components/ui/card';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
-import { ChevronLeftIcon } from '@/shared/components/ui/icons';
+import { Button, Card, CardContent, CardFooter, CardHeader, ChevronLeftIcon, Input, useToast } from '@weaver2/ui';
 
 const MAX_FILES = 10;
 const MAX_SIZE_MB = 50;

@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/shared/components/ui/modal';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Modal, Spinner } from '@weaver2/ui';
 import { useBoardPermissions } from '../hooks/use-admin-boards';
 import { useUpdateBoardPermissions } from '../hooks/use-admin-board-mutations';
 import { usePermissionGroups } from '@/features/admin/permissions/hooks/use-permission-groups';

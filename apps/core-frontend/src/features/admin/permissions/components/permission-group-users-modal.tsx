@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Modal } from '@/shared/components/ui/modal';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Input, Modal, Spinner } from '@weaver2/ui';
 import { useGroupUsers } from '../hooks/use-permission-group';
 import {
   useAssignUsersToGroup,

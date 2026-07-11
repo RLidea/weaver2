@@ -1,4 +1,4 @@
-import { cn } from '@/shared/lib/cn';
+import { cn } from '../lib/cn';
 
 const VARIANT_CLASSES = {
   default: 'bg-surface-2 text-text-muted',

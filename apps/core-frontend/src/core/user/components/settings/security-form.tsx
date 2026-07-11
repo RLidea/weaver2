@@ -9,11 +9,8 @@ import {
   useRequestEmailChange,
   useConfirmEmailChange,
 } from '@/core/user/hooks/use-email-change';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
 
 /* ── 비밀번호 변경 ───────────────────────────────────────── */
 

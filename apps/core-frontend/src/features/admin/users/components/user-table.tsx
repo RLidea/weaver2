@@ -2,10 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useUrlState } from '@/shared/hooks/use-url-state';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
-import { Pagination } from '@/shared/components/ui/pagination';
+import { Button, Pagination, Spinner, useUrlState } from '@weaver2/ui';
 import { useAdminUsers } from '../hooks/use-admin-users';
 import { UserStatusBadge } from './user-status-badge';
 import { UserDetailModal } from './user-detail-modal';

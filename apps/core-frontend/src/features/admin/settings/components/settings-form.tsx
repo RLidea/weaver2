@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { cn } from '@/shared/lib/cn';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Select } from '@/shared/components/ui/select';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Tabs } from '@/shared/components/ui/tabs';
+import { Button, cn, Input, Select, Spinner, Tabs } from '@weaver2/ui';
 import { useAdminSettings } from '../hooks/use-admin-settings';
 import { useUpdateAdminSettings, useResetAdminSettings } from '../hooks/use-admin-settings-mutations';
 import type { SystemSettings } from '../types';

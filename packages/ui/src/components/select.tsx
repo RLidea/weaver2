@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { cn } from '@/shared/lib/cn';
+import { cn } from '../lib/cn';
 
 interface SelectOption {
   value: string;

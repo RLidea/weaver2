@@ -13,7 +13,9 @@
     "gen:api-types": "openapi-typescript ../../apps/core-backend/openapi.json -o src/types/api-schema.d.ts"
   },
   "devDependencies": {
-    "openapi-typescript": "^7.13.0"
+    "@types/react": "^19",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",

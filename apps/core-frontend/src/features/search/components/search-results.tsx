@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { SearchHighlight } from './search-highlight';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import type { SearchResult, SearchType } from '../types';
 import type { Post, Comment } from '@/features/board/types';
 

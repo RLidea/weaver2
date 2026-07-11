@@ -338,9 +338,15 @@ importers:
         specifier: ^19.0.0
         version: 19.2.6
     devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.8.3)
+      typescript:
+        specifier: ^5
+        version: 5.8.3
 
   packages/auth:
     dependencies:
@@ -371,6 +377,16 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: ^5
+        version: 5.8.3
 
   packages/ui:
     dependencies:
@@ -389,6 +405,16 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: ^5
+        version: 5.8.3
 
 packages:
 

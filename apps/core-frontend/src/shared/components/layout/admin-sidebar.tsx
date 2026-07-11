@@ -3,18 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
-import { cn } from '@/shared/lib/cn';
+import { BoardIcon, cn, FileTextIcon, FlagIcon, HomeIcon, MailIcon, SettingsIcon, ShieldIcon, UsersIcon } from '@weaver2/ui';
 import { useMe } from '@/core/user/hooks/use-me';
-import {
-  HomeIcon,
-  UsersIcon,
-  BoardIcon,
-  ShieldIcon,
-  FlagIcon,
-  FileTextIcon,
-  SettingsIcon,
-  MailIcon,
-} from '@/shared/components/ui/icons';
 
 const NAV_ITEMS = [
   {

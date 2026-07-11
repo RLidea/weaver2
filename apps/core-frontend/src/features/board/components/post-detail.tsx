@@ -9,15 +9,10 @@ import { useUpdatePost, useDeletePost } from '../hooks/use-post-mutations';
 import { usePostFiles } from '../hooks/use-post-files';
 import { useMe } from '@/core/user/hooks/use-me';
 import { uploadApi } from '../api/upload.api';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, ChevronLeftIcon, ConfirmDialog, Spinner, useToast } from '@weaver2/ui';
 import { CommentList } from './comment-list';
 import { ReactionBar } from './reaction-bar';
 import { PostFiles } from './post-files';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { ChevronLeftIcon } from '@/shared/components/ui/icons';
-import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 
 const MAX_FILES = 10;
 const MAX_SIZE_MB = 50;

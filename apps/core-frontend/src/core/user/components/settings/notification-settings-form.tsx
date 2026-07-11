@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Card, CardContent, CardHeader, useToast } from '@weaver2/ui';
 import { usePushSubscription } from '@/core/notification/hooks/use-push-subscription';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
 
 interface ToggleItemProps {
   label: string;

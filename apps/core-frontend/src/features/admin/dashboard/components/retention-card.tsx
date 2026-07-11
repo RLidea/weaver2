@@ -1,6 +1,6 @@
 'use client';
 
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import { useUserAnalytics } from '../hooks/use-admin-analytics';
 
 interface RetentionItemProps {

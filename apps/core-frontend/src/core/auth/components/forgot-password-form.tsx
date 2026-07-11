@@ -6,9 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRequestPasswordReset } from '@/core/auth/hooks/use-password-reset';
 import { ForgotPasswordSchema, type ForgotPasswordFormValues } from '@/core/auth/types';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);

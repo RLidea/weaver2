@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useBoards } from '../hooks/use-boards';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Card, CardContent, Spinner } from '@weaver2/ui';
 
 export function BoardList() {
   const { data: boards = [], isLoading } = useBoards();

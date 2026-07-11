@@ -14,12 +14,8 @@ import {
   useConfirmEmailOtp,
   useDisableEmailOtp,
 } from '../hooks/use-two-factor';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input, Spinner, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Spinner } from '@/shared/components/ui/spinner';
 
 const CodeSchema = z.object({ code: z.string().min(1, '코드를 입력해주세요') });
 type CodeValues = z.infer<typeof CodeSchema>;

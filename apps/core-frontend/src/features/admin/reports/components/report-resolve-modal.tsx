@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Modal } from '@/shared/components/ui/modal';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Modal } from '@weaver2/ui';
 import { useResolveReport, useDismissReport } from '../hooks/use-admin-report-mutations';
 import {
   REPORT_ACTION_LABELS,

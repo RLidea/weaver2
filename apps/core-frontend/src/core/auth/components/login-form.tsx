@@ -8,9 +8,7 @@ import Link from 'next/link';
 import { useLogin, useTwoFactorLogin, useSendLoginEmailOtp } from '@/core/auth/hooks/use-login';
 import { SignInSchema, type SignInRequest, type SignInResponse } from '@/core/auth/types';
 import { ApiError } from '@/types/api';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 import { authApi } from '../api/auth.api';
 
 export function LoginForm() {

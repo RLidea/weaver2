@@ -2,12 +2,8 @@
 
 import { useState } from 'react';
 import { useOAuthConnections, useDisconnectOAuth } from '../hooks/use-oauth-connections';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, CardHeader, ConfirmDialog, Spinner, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: 'Google',

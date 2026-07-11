@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@weaver2/ui';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };

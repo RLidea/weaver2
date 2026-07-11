@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { useNotifications } from '../hooks/use-notifications';
 import { useMarkRead, useMarkAllRead } from '../hooks/use-notification-mutations';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Card, CardContent, CardHeader, Spinner } from '@weaver2/ui';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);

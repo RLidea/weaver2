@@ -2,7 +2,7 @@
 // 'use client' 없이 async 함수로 선언하면 RSC로 동작
 // 인터랙션이 필요한 부분은 별도 'use client' 컴포넌트로 분리
 import Link from 'next/link';
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@weaver2/ui';
 
 export default function HomePage() {
   return (

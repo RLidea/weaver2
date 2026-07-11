@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { SKINS, type SkinId } from '@/skins/index';
+import { type SkinId, SKINS } from '@weaver2/ui';
 
 const COLOR_TOKENS = [
   { cls: 'bg-bg',         label: 'bg',         var: '--skin-bg',         desc: '페이지 배경' },

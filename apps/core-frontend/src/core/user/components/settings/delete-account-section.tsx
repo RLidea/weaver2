@@ -2,11 +2,8 @@
 
 import { useState } from 'react';
 import { useDeleteAccount } from '@/core/user/hooks/use-delete-account';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, CardHeader, Input, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
 
 export function DeleteAccountSection() {
   const [showConfirm, setShowConfirm] = useState(false);

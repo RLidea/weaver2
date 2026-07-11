@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/shared/lib/cn';
+import { cn } from '@weaver2/ui';
 
 const TABS = [
   { label: '프로필 편집', href: '/settings/profile' },

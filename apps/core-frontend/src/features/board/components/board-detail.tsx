@@ -8,10 +8,7 @@ import { useBoardPosts } from '../hooks/use-board-posts';
 import { useBoardCategories } from '../hooks/use-board-categories';
 import { useMe } from '@/core/user/hooks/use-me';
 import { PostListItem } from './post-list-item';
-import { Card } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { ChevronLeftIcon, PencilIcon } from '@/shared/components/ui/icons';
+import { Button, Card, ChevronLeftIcon, PencilIcon, Spinner } from '@weaver2/ui';
 
 interface BoardDetailProps {
   boardId: string;

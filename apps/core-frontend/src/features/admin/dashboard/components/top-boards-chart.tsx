@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import { useContentAnalytics } from '../hooks/use-admin-analytics';
 
 export function TopBoardsChart() {

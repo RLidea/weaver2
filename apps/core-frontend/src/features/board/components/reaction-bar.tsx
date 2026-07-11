@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { cn } from '@/shared/lib/cn';
+import { cn } from '@weaver2/ui';
 import { useReactions, useAddReaction, useRemoveReaction } from '../hooks/use-reactions';
 import { useEmojis } from '../hooks/use-emojis';
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { SignUpForm } from '@/core/auth/components/sign-up-form';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 
 export default function SignUpPage() {
   return (

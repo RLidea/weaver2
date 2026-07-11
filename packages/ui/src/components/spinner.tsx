@@ -1,4 +1,4 @@
-import { cn } from '@/shared/lib/cn';
+import { cn } from '../lib/cn';
 
 const SIZE_CLASSES = {
   sm: 'h-4 w-4 border-2',

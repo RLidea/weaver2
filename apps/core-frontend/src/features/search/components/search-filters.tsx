@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/shared/lib/cn';
+import { cn } from '@weaver2/ui';
 import { useBoards } from '@/features/board/hooks/use-boards';
 import type { SearchType } from '../types';
 

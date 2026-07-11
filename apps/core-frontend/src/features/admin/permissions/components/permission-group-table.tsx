@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge, Button, Spinner } from '@weaver2/ui';
 import { usePermissionGroups } from '../hooks/use-permission-groups';
 import { PermissionGroupCreateModal } from './permission-group-create-modal';
 import { PermissionGroupEditModal } from './permission-group-edit-modal';

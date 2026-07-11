@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUrlState } from '@/shared/hooks/use-url-state';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge, Button, Spinner, useUrlState } from '@weaver2/ui';
 import { useAdminReports } from '../hooks/use-admin-reports';
 import { useStartReview } from '../hooks/use-admin-report-mutations';
 import { ReportResolveModal } from './report-resolve-modal';

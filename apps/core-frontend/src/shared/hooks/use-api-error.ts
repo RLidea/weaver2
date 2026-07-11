@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
 
 const ERROR_MESSAGES: Partial<Record<number, string>> = {

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Post } from '../types';
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge } from '@weaver2/ui';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);

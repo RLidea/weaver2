@@ -1,4 +1,4 @@
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 
 export default function Loading() {
   return (

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useMe } from '@/core/user/hooks/use-me';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import { AdminShell } from '@/shared/components/layout/admin-shell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

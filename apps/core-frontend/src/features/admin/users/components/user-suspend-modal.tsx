@@ -1,10 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
-import { Modal } from '@/shared/components/ui/modal';
-import { Select } from '@/shared/components/ui/select';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Input, Modal, Select } from '@weaver2/ui';
 import { useSuspendUser, useUnsuspendUser } from '../hooks/use-admin-user-mutations';
 import { getUserStatus, type AdminUser, type SuspendUserRequest } from '../types';
 

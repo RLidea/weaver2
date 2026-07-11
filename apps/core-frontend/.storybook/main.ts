@@ -6,7 +6,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  stories: [
+    '../src/**/*.stories.@(ts|tsx)',
+    // @weaver2/ui 패키지의 stories 포함 (stories는 컴포넌트 옆에 유지)
+    '../../../packages/ui/src/**/*.stories.@(ts|tsx)',
+  ],
   framework: {
     name: '@storybook/nextjs',
     options: {},

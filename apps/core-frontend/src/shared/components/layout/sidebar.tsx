@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/shared/lib/cn';
-import { HomeIcon, BellIcon, SettingsIcon, XIcon } from '@/shared/components/ui/icons';
+import { BellIcon, cn, HomeIcon, SettingsIcon, XIcon } from '@weaver2/ui';
 import { useSidebar } from './sidebar-context';
 
 const NAV_ITEMS = [

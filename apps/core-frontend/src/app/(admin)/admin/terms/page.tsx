@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { PERMISSIONS } from '@weaver2/shared';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 import { RequirePermission } from '@/shared/components/auth/require-permission';
 import { AdminTermsTable } from '@/features/admin/terms/components/admin-terms-table';
 

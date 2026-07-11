@@ -3,8 +3,7 @@
 import { Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PERMISSIONS } from '@weaver2/shared';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Tabs } from '@/shared/components/ui/tabs';
+import { Spinner, Tabs } from '@weaver2/ui';
 import { RequirePermission } from '@/shared/components/auth/require-permission';
 import { BoardTable } from '@/features/admin/boards/components/board-table';
 import { ContentPostsTab } from '@/features/admin/content/components/content-posts-tab';

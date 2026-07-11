@@ -1,8 +1,6 @@
 'use client';
 
-import { Modal } from '@/shared/components/ui/modal';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge, Modal, Spinner } from '@weaver2/ui';
 import { useAdminUser } from '../hooks/use-admin-user';
 import { UserStatusBadge } from './user-status-badge';
 

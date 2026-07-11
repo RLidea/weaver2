@@ -4,9 +4,7 @@ import Image from 'next/image';
 import { useUserProfile } from '../hooks/use-user-profile';
 import { useUserPosts } from '../hooks/use-user-posts';
 import { PostListItem } from '@/features/board/components/post-list-item';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Card, CardContent, Spinner } from '@weaver2/ui';
 import type { Post } from '@/features/board/types';
 
 interface UserProfileViewProps {

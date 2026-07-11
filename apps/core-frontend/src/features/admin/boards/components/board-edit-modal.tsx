@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/shared/components/ui/modal';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Input, Modal } from '@weaver2/ui';
 import { useUpdateBoard } from '../hooks/use-admin-board-mutations';
 import type { AdminBoard } from '../types';
 

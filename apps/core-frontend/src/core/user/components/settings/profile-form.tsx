@@ -8,11 +8,8 @@ import { z } from 'zod';
 import { useMe } from '@/core/user/hooks/use-me';
 import { useUpdateProfile } from '@/core/user/hooks/use-update-profile';
 import { useUploadProfileImage } from '@/core/user/hooks/use-upload-profile-image';
-import { useToast } from '@/infrastructure/providers/toast-provider';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input, useToast } from '@weaver2/ui';
 import { ApiError } from '@/types/api';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
 
 const ProfileSchema = z.object({
   displayName: z

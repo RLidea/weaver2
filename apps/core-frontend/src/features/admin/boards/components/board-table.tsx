@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Spinner } from '@weaver2/ui';
 import { useAdminBoards } from '../hooks/use-admin-boards';
 import { BoardCreateModal } from './board-create-modal';
 import { BoardEditModal } from './board-edit-modal';

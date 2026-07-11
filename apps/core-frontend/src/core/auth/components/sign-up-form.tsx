@@ -10,10 +10,7 @@ import { useLatestTerms } from '@/core/terms/hooks/use-latest-terms';
 import { SignUpSchema, type SignUpFormValues } from '@/core/auth/types';
 import type { Terms } from '@/core/terms/types';
 import { ApiError } from '@/types/api';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Card, CardHeader, CardContent, CardFooter } from '@/shared/components/ui/card';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Card, CardContent, CardFooter, CardHeader, Input, Spinner } from '@weaver2/ui';
 
 function TermsModal({ terms, onClose }: { terms: Terms; onClose: () => void }) {
   useEffect(() => {

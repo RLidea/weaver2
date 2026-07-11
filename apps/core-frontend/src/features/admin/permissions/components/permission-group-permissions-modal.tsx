@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/shared/components/ui/modal';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Button, Modal, Spinner } from '@weaver2/ui';
 import { usePermissionGroup } from '../hooks/use-permission-group';
 import { useSetGroupPermissions } from '../hooks/use-permission-group-mutations';
 import { PERMISSION_SECTIONS } from '../constants';

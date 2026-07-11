@@ -1,15 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/shared/lib/cn';
+import { Button, cn, ConfirmDialog, Spinner } from '@weaver2/ui';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useComments } from '../hooks/use-comments';
 import { useUpdateComment, useDeleteComment } from '../hooks/use-comment-mutations';
 import { useMe } from '@/core/user/hooks/use-me';
 import { CommentForm } from './comment-form';
-import { Button } from '@/shared/components/ui/button';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import type { Comment } from '../types';
 
 function formatRelativeTime(dateString: string): string {

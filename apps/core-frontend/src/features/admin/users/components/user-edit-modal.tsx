@@ -2,9 +2,7 @@
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Modal } from '@/shared/components/ui/modal';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
+import { Button, Input, Modal } from '@weaver2/ui';
 import { useUpdateAdminUser } from '../hooks/use-admin-user-mutations';
 import type { AdminUser, AdminUpdateUserRequest } from '../types';
 

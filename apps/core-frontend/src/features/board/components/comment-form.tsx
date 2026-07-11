@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/shared/components/ui/button';
+import { Button } from '@weaver2/ui';
 import { useCreateComment } from '../hooks/use-comment-mutations';
 
 interface CommentFormProps {

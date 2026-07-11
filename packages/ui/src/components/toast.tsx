@@ -1,7 +1,7 @@
 'use client';
 
-import { useToast } from '@/infrastructure/providers/toast-provider';
-import { cn } from '@/shared/lib/cn';
+import { useToast } from '../providers/toast-provider';
+import { cn } from '../lib/cn';
 
 const STYLES = {
   success: 'bg-success text-success-fg',

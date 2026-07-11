@@ -1,4 +1,4 @@
-import { cn } from '@/shared/lib/cn';
+import { cn } from '../lib/cn';
 
 /**
  * 시맨틱 타이포그래피 컴포넌트.

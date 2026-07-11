@@ -1,13 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUrlState } from '@/shared/hooks/use-url-state';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Spinner } from '@/shared/components/ui/spinner';
-import { Modal } from '@/shared/components/ui/modal';
-import { Pagination } from '@/shared/components/ui/pagination';
-import { Badge } from '@/shared/components/ui/badge';
+import { Badge, Button, Input, Modal, Pagination, Spinner, useUrlState } from '@weaver2/ui';
 import { useAdminComments } from '../hooks/use-admin-comments';
 import { useDeleteComment } from '../hooks/use-admin-comment-mutations';
 import type { AdminComment } from '../types';

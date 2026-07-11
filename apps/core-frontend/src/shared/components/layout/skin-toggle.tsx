@@ -1,7 +1,6 @@
 'use client';
 
-import { useSkin } from '@/infrastructure/providers/skin-provider';
-import { MoonIcon, SunIcon } from '@/shared/components/ui/icons';
+import { MoonIcon, SunIcon, useSkin } from '@weaver2/ui';
 
 export function SkinToggle() {
   const { skin, setSkin } = useSkin();

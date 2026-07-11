@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { ForgotPasswordForm } from '@/core/auth/components/forgot-password-form';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { Spinner } from '@weaver2/ui';
 
 export default function ForgotPasswordPage() {
   return (

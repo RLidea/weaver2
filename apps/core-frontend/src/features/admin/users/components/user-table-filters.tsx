@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Input } from '@/shared/components/ui/input';
-import { Select } from '@/shared/components/ui/select';
+import { Input, Select } from '@weaver2/ui';
 import type { AdminUsersParams, UserStatusFilter } from '../types';
 
 interface UserTableFiltersProps {

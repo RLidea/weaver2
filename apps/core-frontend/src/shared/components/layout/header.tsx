@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useUnreadCount } from '@/core/notification/hooks/use-unread-count';
-import { Badge } from '@/shared/components/ui/badge';
-import { BellIcon, MenuIcon, SearchIcon } from '@/shared/components/ui/icons';
+import { Badge, BellIcon, MenuIcon, SearchIcon } from '@weaver2/ui';
 import { useSidebar } from './sidebar-context';
 import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';

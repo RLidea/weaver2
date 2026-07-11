@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUrlState } from '@/shared/hooks/use-url-state';
+import { SearchIcon, useUrlState } from '@weaver2/ui';
 import { useSearch } from '../hooks/use-search';
 import { SearchFilters } from './search-filters';
 import { SearchResults } from './search-results';
-import { SearchIcon } from '@/shared/components/ui/icons';
 import type { SearchType } from '../types';
 
 const LIMIT = 20;

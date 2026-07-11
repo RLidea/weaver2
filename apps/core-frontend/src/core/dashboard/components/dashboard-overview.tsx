@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { useMe } from '@/core/user/hooks/use-me';
 import { useRecentNotifications } from '../hooks/use-recent-notifications';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
-import { BellIcon, ShieldIcon, UserIcon } from '@/shared/components/ui/icons';
-import { Spinner } from '@/shared/components/ui/spinner';
+import { BellIcon, Card, CardContent, CardHeader, ShieldIcon, Spinner, UserIcon } from '@weaver2/ui';
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
