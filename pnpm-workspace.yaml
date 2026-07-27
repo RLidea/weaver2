@@ -2,9 +2,27 @@ packages:
   - 'apps/core-frontend'
   - 'packages/*'
 
-ignoredBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - prisma
-  - sharp
-  - unrs-resolver
+# 빌드 스크립트(postinstall 등) 실행 허용 여부 — 전부 false = 돌리지 않는다.
+#
+# 이 저장소는 install 시 임의 스크립트 실행을 열지 않는 것이 기본이며,
+# Prisma 클라이언트는 `pnpm db:generate` 로 명시적으로 생성한다 (README §2, `pnpm run init`에 포함).
+#
+# pnpm 11 은 빌드 스크립트를 가진 패키지 "전부"에 대해 명시적 boolean 결정을 요구한다.
+# 미선언 항목이 하나라도 있으면 install 이 ERR_PNPM_IGNORED_BUILDS 로 종료 코드 1을 내고,
+# 결정을 받으려 이 `allowBuilds:` 블록을 placeholder 값으로 자동 주입한다.
+# 그러면 deps 체크를 거치는 모든 pnpm 스크립트(테스트·pre-commit 훅 포함)가 막힌다.
+#
+# 아래는 그 결정을 "기록"한 것이다 — 실제 동작은 기존과 동일하고, 허용을 넓히지 않는다.
+# 특정 패키지의 빌드를 열어야 하면 해당 항목만 true 로 바꾼다(공급망 영향 검토 후).
+allowBuilds:
+  '@nestjs/core': false
+  '@prisma/client': false
+  '@prisma/engines': false
+  '@scarf/scarf': false
+  '@swc/core': false
+  bcrypt: false
+  core-js-pure: false
+  esbuild: false
+  prisma: false
+  sharp: false
+  unrs-resolver: false
