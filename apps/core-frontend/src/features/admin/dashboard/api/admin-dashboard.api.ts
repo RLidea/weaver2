@@ -1,13 +1,5 @@
-import { apiClient } from '@weaver2/api-client';
+import { apiClient, toQueryString } from '@weaver2/api-client';
 import type { DashboardSummary, UserAnalytics, ContentAnalytics, AnalyticsTimeRange } from '../types';
-
-function toQueryString(params: AnalyticsTimeRange): string {
-  const qs = new URLSearchParams();
-  if (params.from) qs.set('from', params.from);
-  if (params.to) qs.set('to', params.to);
-  const str = qs.toString();
-  return str ? `?${str}` : '';
-}
 
 export const adminDashboardApi = {
   getSummary: () => apiClient.get<DashboardSummary>('/v1/admin/dashboard/summary'),

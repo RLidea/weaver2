@@ -1,14 +1,5 @@
-import { apiClient } from '@weaver2/api-client';
+import { apiClient, toQueryString } from '@weaver2/api-client';
 import type { Board, BoardPostsResponse, Category, KeysetParams } from '../types';
-
-function toQueryString(params: object): string {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) qs.set(key, String(value));
-  }
-  const str = qs.toString();
-  return str ? `?${str}` : '';
-}
 
 export const boardApi = {
   getAll: () =>

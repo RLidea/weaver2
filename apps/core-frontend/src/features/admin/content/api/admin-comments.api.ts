@@ -1,16 +1,5 @@
-import { apiClient } from '@weaver2/api-client';
+import { apiClient, toQueryString } from '@weaver2/api-client';
 import type { AdminCommentsParams, AdminCommentsResponse } from '../types';
-
-function toQueryString(params: object): string {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== '') {
-      qs.set(key, String(value));
-    }
-  }
-  const str = qs.toString();
-  return str ? `?${str}` : '';
-}
 
 export const adminCommentsApi = {
   getAll: (params?: AdminCommentsParams) =>

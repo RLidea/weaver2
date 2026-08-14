@@ -3,5 +3,6 @@
 export * from './api-client';
 export * from './query-client';
 export * from './error-messages';
+export * from './query-string';
 export * from './types/api';
 export * from './types/pagination';

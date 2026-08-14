@@ -1,4 +1,4 @@
-import { apiClient, type KeysetResponse } from '@weaver2/api-client';
+import { apiClient, type KeysetResponse, toQueryString } from '@weaver2/api-client';
 import type {
   Post,
   BoardPostsResponse,
@@ -7,15 +7,6 @@ import type {
   UpdatePostRequest,
   KeysetParams,
 } from '../types';
-
-function toQueryString(params: object): string {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) qs.set(key, String(value));
-  }
-  const str = qs.toString();
-  return str ? `?${str}` : '';
-}
 
 export const postApi = {
   getAll: (params?: KeysetParams & { boardId?: string }) =>
