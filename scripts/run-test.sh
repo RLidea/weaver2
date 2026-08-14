@@ -35,7 +35,7 @@ case "$COMMAND" in
     ;;
   integration)
     echo "NODE_ENV=test_automation jest --config apps/$SELECTED_PROJECT/test/jest-integration.json"
-    NODE_ENV=test_automation jest --watch --config "apps/$SELECTED_PROJECT/test/jest-integration.json"   
+    NODE_ENV=test_automation jest --config "apps/$SELECTED_PROJECT/test/jest-integration.json"
     ;;
   debug)
     echo "NODE_ENV=test_automation node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand --config apps/$SELECTED_PROJECT/jest.config.js"
