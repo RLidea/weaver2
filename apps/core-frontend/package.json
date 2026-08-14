@@ -29,7 +29,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@storybook/nextjs": "^10.2.13",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
