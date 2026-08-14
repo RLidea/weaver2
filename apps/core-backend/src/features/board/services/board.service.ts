@@ -29,15 +29,16 @@ export class BoardService {
         `Board with name '${dto.name}' already exists.`,
       );
     }
-    const board = await CreateBoardCommand(
-      this.prisma,
-      dto.name,
-      dto.description,
-    );
+    // 게시판과 그 권한 규칙을 **한 덩어리로** 만든다. 사이에서 실패하면 규칙이
+    // 하나도 없는 게시판이 남는데, 규칙 부재는 곧 거부라 아무도 읽지 못하면서
+    // unique 한 이름만 붙잡고 있어 같은 이름으로 다시 만들 수도 없다.
+    return this.prisma.$transaction(async (tx) => {
+      const board = await CreateBoardCommand(tx, dto.name, dto.description);
 
-    await this.permissionService.createDefaultPermissions(board.id);
+      await this.permissionService.createDefaultPermissions(board.id, tx);
 
-    return board;
+      return board;
+    });
   }
 
   async findAllBoards(): Promise<BoardDto[]> {

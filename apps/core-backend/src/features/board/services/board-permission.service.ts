@@ -1,7 +1,14 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaService } from '@weaver2/prisma';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { PermissionService } from '../../../core/permission/services/permission.service';
+
+/**
+ * 권한 행을 만드는 쪽은 트랜잭션 안에서도 불린다 — 게시판 생성이 게시판과 권한을
+ * 한 덩어리로 묶기 때문이다(`board.service.ts`).
+ */
+type Db = PrismaClient | Prisma.TransactionClient;
 
 export enum BoardActionType {
   READ = 'read',
@@ -120,10 +127,11 @@ export class BoardPermissionService {
       allowAnonymous?: boolean;
       allowedGroupNames?: string[];
     },
+    db: Db = this.prisma,
   ): Promise<void> {
     const { allowAnonymous = false, allowedGroupNames = [] } = options;
 
-    const resourcePermission = await this.prisma.resourcePermission.upsert({
+    const resourcePermission = await db.resourcePermission.upsert({
       where: {
         resourceType_resourceId_action: {
           resourceType: 'board',
@@ -141,13 +149,13 @@ export class BoardPermissionService {
     });
 
     if (allowedGroupNames.length > 0) {
-      const groups = await this.prisma.permissionGroup.findMany({
+      const groups = await db.permissionGroup.findMany({
         where: { name: { in: allowedGroupNames } },
         select: { id: true },
       });
 
       for (const group of groups) {
-        await this.prisma.resourcePermissionAllowedGroup.upsert({
+        await db.resourcePermissionAllowedGroup.upsert({
           where: {
             resourcePermissionId_permissionGroupId: {
               resourcePermissionId: resourcePermission.id,
@@ -165,63 +173,111 @@ export class BoardPermissionService {
   }
 
   /** 공개 게시판 기본 권한 설정 */
-  async createDefaultPermissions(boardId: string): Promise<void> {
+  async createDefaultPermissions(
+    boardId: string,
+    db: Db = this.prisma,
+  ): Promise<void> {
     // 익명 허용
-    await this.createBoardResourcePermission(boardId, 'read', {
-      allowAnonymous: true,
-    });
-    await this.createBoardResourcePermission(boardId, 'write', {
-      allowAnonymous: true,
-    });
-    await this.createBoardResourcePermission(boardId, 'edit_own', {
-      allowAnonymous: true,
-    });
-    await this.createBoardResourcePermission(boardId, 'delete_own', {
-      allowAnonymous: true,
-    });
-    await this.createBoardResourcePermission(boardId, 'comment', {
-      allowAnonymous: true,
-    });
+    await this.createBoardResourcePermission(
+      boardId,
+      'read',
+      { allowAnonymous: true },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'write',
+      { allowAnonymous: true },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'edit_own',
+      { allowAnonymous: true },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'delete_own',
+      { allowAnonymous: true },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'comment',
+      { allowAnonymous: true },
+      db,
+    );
     // 관리 권한
-    await this.createBoardResourcePermission(boardId, 'edit_all', {
-      allowedGroupNames: ['Moderator', 'Admin'],
-    });
-    await this.createBoardResourcePermission(boardId, 'delete_all', {
-      allowedGroupNames: ['Admin'],
-    });
+    await this.createBoardResourcePermission(
+      boardId,
+      'edit_all',
+      { allowedGroupNames: ['Moderator', 'Admin'] },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'delete_all',
+      { allowedGroupNames: ['Admin'] },
+      db,
+    );
   }
 
   /** 회원 전용 게시판 권한 설정 */
-  async createMemberOnlyPermissions(boardId: string): Promise<void> {
+  async createMemberOnlyPermissions(
+    boardId: string,
+    db: Db = this.prisma,
+  ): Promise<void> {
     // 로그인 사용자만 (allowedGroups 비어있으면 로그인만으로 허용)
-    await this.createBoardResourcePermission(boardId, 'read', {});
-    await this.createBoardResourcePermission(boardId, 'write', {});
-    await this.createBoardResourcePermission(boardId, 'edit_own', {});
-    await this.createBoardResourcePermission(boardId, 'delete_own', {});
-    await this.createBoardResourcePermission(boardId, 'comment', {});
+    await this.createBoardResourcePermission(boardId, 'read', {}, db);
+    await this.createBoardResourcePermission(boardId, 'write', {}, db);
+    await this.createBoardResourcePermission(boardId, 'edit_own', {}, db);
+    await this.createBoardResourcePermission(boardId, 'delete_own', {}, db);
+    await this.createBoardResourcePermission(boardId, 'comment', {}, db);
     // 관리 권한
-    await this.createBoardResourcePermission(boardId, 'edit_all', {
-      allowedGroupNames: ['Moderator', 'Admin'],
-    });
-    await this.createBoardResourcePermission(boardId, 'delete_all', {
-      allowedGroupNames: ['Admin'],
-    });
+    await this.createBoardResourcePermission(
+      boardId,
+      'edit_all',
+      { allowedGroupNames: ['Moderator', 'Admin'] },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'delete_all',
+      { allowedGroupNames: ['Admin'] },
+      db,
+    );
   }
 
   /** 공지사항 게시판 권한 설정 */
-  async createNoticePermissions(boardId: string): Promise<void> {
-    await this.createBoardResourcePermission(boardId, 'read', {
-      allowAnonymous: true,
-    });
-    await this.createBoardResourcePermission(boardId, 'write', {
-      allowedGroupNames: ['Admin'],
-    });
-    await this.createBoardResourcePermission(boardId, 'edit_all', {
-      allowedGroupNames: ['Admin'],
-    });
-    await this.createBoardResourcePermission(boardId, 'delete_all', {
-      allowedGroupNames: ['Admin'],
-    });
+  async createNoticePermissions(
+    boardId: string,
+    db: Db = this.prisma,
+  ): Promise<void> {
+    await this.createBoardResourcePermission(
+      boardId,
+      'read',
+      { allowAnonymous: true },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'write',
+      { allowedGroupNames: ['Admin'] },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'edit_all',
+      { allowedGroupNames: ['Admin'] },
+      db,
+    );
+    await this.createBoardResourcePermission(
+      boardId,
+      'delete_all',
+      { allowedGroupNames: ['Admin'] },
+      db,
+    );
     // 본인 글 수정·삭제. **`edit_all` 이 있으니 필요 없다고 보면 틀린다** —
     // `canEdit`/`canDelete` 는 작성자 본인이면 `*_OWN` 만 보고 끝내고 `*_ALL` 로
     // 넘어가지 않는다. 이 두 줄이 없으면 규칙 부재로 거부되어, 공지를 쓴 관리자가
@@ -229,9 +285,9 @@ export class BoardPermissionService {
     //
     // 허용 그룹을 비워 로그인 사용자로 두는 것은 넓히는 것이 아니다. 이 게시판에
     // 글을 쓸 수 있는 사람이 `Admin` 뿐이므로 본인 글을 가진 사람도 그들뿐이다.
-    await this.createBoardResourcePermission(boardId, 'edit_own', {});
-    await this.createBoardResourcePermission(boardId, 'delete_own', {});
+    await this.createBoardResourcePermission(boardId, 'edit_own', {}, db);
+    await this.createBoardResourcePermission(boardId, 'delete_own', {}, db);
     // 댓글은 로그인 사용자만
-    await this.createBoardResourcePermission(boardId, 'comment', {});
+    await this.createBoardResourcePermission(boardId, 'comment', {}, db);
   }
 }
