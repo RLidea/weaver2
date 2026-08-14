@@ -9,6 +9,76 @@ interface BoardResourcePermission {
 }
 
 /**
+ * 그룹 이름을 id 로 바꾼다. 없는 이름은 **조용히 넘기지 않고 로그로 남긴다** —
+ * 그룹 이름이 바뀌었는데 시드만 옛 이름을 들고 있으면, 허용 그룹이 하나도 없는
+ * 규칙이 만들어져 "로그인만 하면 통과" 로 조용히 넓어진다.
+ */
+async function resolveGroupIds(
+  prisma: PrismaClient,
+  names: string[],
+  label: string,
+): Promise<string[]> {
+  if (names.length === 0) {
+    return [];
+  }
+
+  const groups = await prisma.permissionGroup.findMany({
+    where: { name: { in: names } },
+    select: { id: true, name: true },
+  });
+
+  const found = new Set(groups.map((g) => g.name));
+  const missing = names.filter((name) => !found.has(name));
+  if (missing.length > 0) {
+    logSeedResult(
+      'ResourcePermission',
+      `${label} 허용그룹 ${missing.join('·')}`,
+      'skipped',
+      '그런 이름의 권한 그룹이 없다',
+    );
+  }
+
+  return groups.map((g) => g.id);
+}
+
+/**
+ * 규칙 하나의 허용 그룹을 목표 상태에 맞춘다. 바뀐 것이 있으면 `true`.
+ *
+ * **없는 것을 더하는 것만으로는 부족하다.** 빠진 그룹을 지우지 않으면 시드에서
+ * 걷어낸 그룹이 DB에 계속 남아, 코드는 좁혔는데 실제 권한은 그대로가 된다.
+ */
+async function syncAllowedGroups(
+  prisma: PrismaClient,
+  resourcePermissionId: string,
+  targetGroupIds: string[],
+): Promise<boolean> {
+  const existing = await prisma.resourcePermissionAllowedGroup.findMany({
+    where: { resourcePermissionId },
+    select: { permissionGroupId: true },
+  });
+
+  const have = new Set(existing.map((e) => e.permissionGroupId));
+  const want = new Set(targetGroupIds);
+
+  const toAdd = targetGroupIds.filter((id) => !have.has(id));
+  const toRemove = [...have].filter((id) => !want.has(id));
+
+  for (const permissionGroupId of toAdd) {
+    await prisma.resourcePermissionAllowedGroup.create({
+      data: { resourcePermissionId, permissionGroupId },
+    });
+  }
+
+  if (toRemove.length > 0) {
+    await prisma.resourcePermissionAllowedGroup.deleteMany({
+      where: { resourcePermissionId, permissionGroupId: { in: toRemove } },
+    });
+  }
+
+  return toAdd.length > 0 || toRemove.length > 0;
+}
+
+/**
  * ResourcePermission 기반 게시판 권한 시드 헬퍼
  */
 async function seedResourcePermission(
@@ -16,6 +86,8 @@ async function seedResourcePermission(
   perm: BoardResourcePermission,
   boardName: string,
 ) {
+  const label = `${boardName} - ${perm.action}`;
+
   const existing = await prisma.resourcePermission.findUnique({
     where: {
       resourceType_resourceId_action: {
@@ -26,12 +98,44 @@ async function seedResourcePermission(
     },
   });
 
+  const targetGroupIds = await resolveGroupIds(
+    prisma,
+    perm.allowedGroupNames,
+    label,
+  );
+
   if (existing) {
-    logSeedResult(
-      'ResourcePermission',
-      `${boardName} - ${perm.action}`,
-      'exists',
+    // 기존 규칙도 **고쳐 쓴다.** 없을 때만 만들면, 이미 깔린 DB 는 시드를 아무리
+    // 다시 돌려도 옛 상태로 남는다 — 열어둔 `allowAnonymous: true` 나 걷어낸 그룹이
+    // 그렇게 살아남는다. "고쳤는데 안 닫힌다" 는 사고는 이렇게 난다.
+    const anonymousChanged = existing.allowAnonymous !== perm.allowAnonymous;
+    if (anonymousChanged) {
+      await prisma.resourcePermission.update({
+        where: { id: existing.id },
+        data: { allowAnonymous: perm.allowAnonymous },
+      });
+    }
+
+    const groupsChanged = await syncAllowedGroups(
+      prisma,
+      existing.id,
+      targetGroupIds,
     );
+
+    if (anonymousChanged || groupsChanged) {
+      const what = [
+        anonymousChanged
+          ? `익명 ${perm.allowAnonymous ? '허용' : '차단'}`
+          : null,
+        groupsChanged ? '허용그룹' : null,
+      ]
+        .filter(Boolean)
+        .join(', ');
+      logSeedResult('ResourcePermission', `${label} (${what})`, 'updated');
+      return;
+    }
+
+    logSeedResult('ResourcePermission', label, 'exists');
     return;
   }
 
@@ -44,28 +148,9 @@ async function seedResourcePermission(
     },
   });
 
-  // allowedGroups 연결
-  if (perm.allowedGroupNames.length > 0) {
-    const groups = await prisma.permissionGroup.findMany({
-      where: { name: { in: perm.allowedGroupNames } },
-      select: { id: true },
-    });
+  await syncAllowedGroups(prisma, resourcePermission.id, targetGroupIds);
 
-    for (const group of groups) {
-      await prisma.resourcePermissionAllowedGroup.create({
-        data: {
-          resourcePermissionId: resourcePermission.id,
-          permissionGroupId: group.id,
-        },
-      });
-    }
-  }
-
-  logSeedResult(
-    'ResourcePermission',
-    `${boardName} - ${perm.action}`,
-    'created',
-  );
+  logSeedResult('ResourcePermission', label, 'created');
 }
 
 export async function seedBoardPermissions(prisma: PrismaClient) {
