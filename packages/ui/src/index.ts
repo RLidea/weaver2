@@ -8,6 +8,7 @@ export * from './components/icons';
 export * from './components/input';
 export * from './components/modal';
 export * from './components/pagination';
+export * from './components/search-input';
 export * from './components/select';
 export * from './components/spinner';
 export * from './components/tabs';

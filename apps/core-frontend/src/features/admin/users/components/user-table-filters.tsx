@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Input, Select } from '@weaver2/ui';
+import { SearchInput, Select } from '@weaver2/ui';
 import type { AdminUsersParams, UserStatusFilter } from '../types';
 
 interface UserTableFiltersProps {
@@ -24,25 +23,13 @@ const SORT_OPTIONS = [
 ];
 
 export function UserTableFilters({ params, onChange }: UserTableFiltersProps) {
-  const [search, setSearch] = useState(params.search ?? '');
-
-  // 검색 debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (search !== (params.search ?? '')) {
-        onChange({ search: search || undefined, page: 1 });
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);  // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="min-w-[200px] flex-1">
-        <Input
+        <SearchInput
           placeholder="이름, 사용자명, 이메일 검색..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={params.search ?? ''}
+          onSearch={(search) => onChange({ search: search || undefined, page: 1 })}
         />
       </div>
       <div className="w-36">
