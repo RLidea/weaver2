@@ -1,8 +1,9 @@
 import { Badge } from '@weaver2/ui';
-import { type AdminUser, getUserStatus } from '../types';
+import { getUserStatus, type UserStatusSource } from '../types';
 
 interface UserStatusBadgeProps {
-  user: AdminUser;
+  /** 판정에 쓰이는 두 필드만 받는다 — 자세한 이유는 `UserStatusSource` 주석 참고. */
+  user: UserStatusSource;
 }
 
 const STATUS_CONFIG = {

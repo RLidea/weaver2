@@ -41,7 +41,17 @@ export interface AdminUsersResponse {
   data: AdminUser[];
 }
 
-export function getUserStatus(user: AdminUser): UserStatus {
+/**
+ * 상태 판정에 실제로 쓰이는 두 필드만 요구한다. `AdminUser` 로 못 박아두면 같은 규칙을
+ * 쓰는 다른 목록이 판정을 **한 벌 더 만들게** 되고, 두 벌은 언젠가 어긋난다.
+ * `AdminUser` 는 이 모양을 만족하므로 기존 호출부는 그대로다.
+ */
+export interface UserStatusSource {
+  deletedAt?: string | null;
+  suspendedUntil?: string | null;
+}
+
+export function getUserStatus(user: UserStatusSource): UserStatus {
   if (user.deletedAt) return 'deleted';
   if (user.suspendedUntil && new Date(user.suspendedUntil) > new Date()) return 'suspended';
   return 'active';
