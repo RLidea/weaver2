@@ -113,4 +113,50 @@ describe('BoardPermissionService', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('권한 템플릿이 까는 규칙', () => {
+    let created: string[];
+
+    beforeEach(() => {
+      created = [];
+      // 권한 행을 실제로 만들지 않고, 어떤 action 이 요청되었는지만 받아 적는다.
+      jest
+        .spyOn(
+          service as unknown as {
+            createBoardResourcePermission: (
+              boardId: string,
+              action: string,
+              options: object,
+            ) => Promise<void>;
+          },
+          'createBoardResourcePermission',
+        )
+        .mockImplementation((_boardId, action) => {
+          created.push(action);
+          return Promise.resolve();
+        });
+    });
+
+    /**
+     * **부재는 grep 으로 잡히지 않는다.** 빠진 규칙은 코드에 아무 흔적도 남기지 않아,
+     * 눈으로 훑어서는 "없어도 되는 것" 과 구분되지 않는다.
+     *
+     * 실제로 공지 템플릿이 그렇게 비어 있었다 — `edit_all` 이 있으니 본인 글 규칙은
+     * 필요 없다고 읽기 쉬운데, `canEdit`/`canDelete` 는 작성자 본인이면 `*_OWN` 만
+     * 보고 끝낸다. 그래서 공지를 쓴 관리자가 자기 글에 갇혔다.
+     */
+    it('공지 템플릿은 본인 글 수정·삭제 규칙을 깐다', async () => {
+      await service.createNoticePermissions('board-1');
+
+      expect(created).toContain('edit_own');
+      expect(created).toContain('delete_own');
+    });
+
+    it('회원 전용 템플릿도 마찬가지다', async () => {
+      await service.createMemberOnlyPermissions('board-1');
+
+      expect(created).toContain('edit_own');
+      expect(created).toContain('delete_own');
+    });
+  });
 });

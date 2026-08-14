@@ -222,6 +222,15 @@ export class BoardPermissionService {
     await this.createBoardResourcePermission(boardId, 'delete_all', {
       allowedGroupNames: ['Admin'],
     });
+    // 본인 글 수정·삭제. **`edit_all` 이 있으니 필요 없다고 보면 틀린다** —
+    // `canEdit`/`canDelete` 는 작성자 본인이면 `*_OWN` 만 보고 끝내고 `*_ALL` 로
+    // 넘어가지 않는다. 이 두 줄이 없으면 규칙 부재로 거부되어, 공지를 쓴 관리자가
+    // 자기 공지를 고치지도 지우지도 못한다.
+    //
+    // 허용 그룹을 비워 로그인 사용자로 두는 것은 넓히는 것이 아니다. 이 게시판에
+    // 글을 쓸 수 있는 사람이 `Admin` 뿐이므로 본인 글을 가진 사람도 그들뿐이다.
+    await this.createBoardResourcePermission(boardId, 'edit_own', {});
+    await this.createBoardResourcePermission(boardId, 'delete_own', {});
     // 댓글은 로그인 사용자만
     await this.createBoardResourcePermission(boardId, 'comment', {});
   }

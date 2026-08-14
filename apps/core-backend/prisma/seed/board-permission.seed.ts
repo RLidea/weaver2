@@ -106,6 +106,21 @@ export async function seedBoardPermissions(prisma: PrismaClient) {
       allowAnonymous: false,
       allowedGroupNames: ['Admin'],
     },
+    // 본인 글 수정·삭제. `edit_all` 이 있으니 없어도 된다고 보면 틀린다 —
+    // `canEdit`/`canDelete` 는 작성자 본인이면 `*_OWN` 만 보고 끝낸다.
+    // 이 두 줄이 없으면 공지를 쓴 관리자가 자기 공지를 못 고친다.
+    {
+      boardId: noticeBoard.id,
+      action: 'edit_own',
+      allowAnonymous: false,
+      allowedGroupNames: [],
+    },
+    {
+      boardId: noticeBoard.id,
+      action: 'delete_own',
+      allowAnonymous: false,
+      allowedGroupNames: [],
+    },
     {
       boardId: noticeBoard.id,
       action: 'comment',
