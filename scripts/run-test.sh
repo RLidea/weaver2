@@ -30,8 +30,8 @@ case "$COMMAND" in
     NODE_ENV=test_automation jest --coverage --config "apps/$SELECTED_PROJECT/jest.config.js"
     ;;
   e2e)
-    echo "NODE_ENV=test_automation jest --config ./test/jest-e2e.json --rootDir apps/$SELECTED_PROJECT"
-    NODE_ENV=test_automation jest --config "/test/jest-e2e.json" --rootDir "apps/$SELECTED_PROJECT"
+    echo "NODE_ENV=test_automation jest --config apps/$SELECTED_PROJECT/test/jest-e2e.json"
+    NODE_ENV=test_automation jest --config "apps/$SELECTED_PROJECT/test/jest-e2e.json"
     ;;
   integration)
     echo "NODE_ENV=test_automation jest --config apps/$SELECTED_PROJECT/test/jest-integration.json"

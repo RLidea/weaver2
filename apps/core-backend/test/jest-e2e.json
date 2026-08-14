@@ -1,9 +1,17 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": ".",
+  "rootDir": "../../..",
+  "testRegex": "\\.e2e-spec\\.ts$",
+  "transform": { "^.+\\.ts$": "ts-jest" },
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
-  "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+  "roots": ["<rootDir>/apps/core-backend/test"],
+  "testTimeout": 30000,
+  "moduleNameMapper": {
+    "^@weaver2/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+    "^@weaver2/email(|/.*)$": "<rootDir>/libs/email/src/$1",
+    "^@weaver2/pagination(|/.*)$": "<rootDir>/libs/pagination/src/$1",
+    "^@weaver2/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
+    "^@weaver2/shared(|/.*)$": "<rootDir>/libs/shared/src/$1",
+    "^@weaver2/upload(|/.*)$": "<rootDir>/libs/upload/src/$1"
   }
 }
