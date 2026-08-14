@@ -21,7 +21,15 @@ export class UpdateProfileService {
   ): Promise<void> {
     const { displayName, username, ...userSettings } = updateProfileDto;
 
-    if (displayName) {
+    // **지금 쓰고 있는 값 그대로면 통과시킨다.** 예약어는 *새로 차지하는 것*을 막는
+    // 장치인데, 바뀌지 않은 값까지 막으면 그 이름을 이미 가진 사람은 프로필의 다른
+    // 칸조차 영영 못 고친다 — 폼이 이름을 늘 함께 보내기 때문이다.
+    const current = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true, username: true },
+    });
+
+    if (displayName && displayName !== current?.displayName) {
       if (isReservedDisplayName(displayName)) {
         throw new BadRequestException('사용할 수 없는 닉네임입니다.');
       }
@@ -36,7 +44,7 @@ export class UpdateProfileService {
       }
     }
 
-    if (username) {
+    if (username && username !== current?.username) {
       if (isReservedUsername(username)) {
         throw new BadRequestException('사용할 수 없는 사용자 이름입니다.');
       }
