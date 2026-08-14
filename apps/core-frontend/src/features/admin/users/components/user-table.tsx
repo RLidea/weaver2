@@ -173,6 +173,7 @@ export function UserTable() {
                 lastPage={data.lastPage}
                 total={data.total}
                 limit={data.limit}
+                unit="명"
                 onPageChange={(p) => updateParams({ page: p })}
               />
             </div>

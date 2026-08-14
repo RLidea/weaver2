@@ -7,6 +7,14 @@ interface PaginationProps {
   total: number;
   limit: number;
   onPageChange: (page: number) => void;
+  /**
+   * 세는 단위. 기본은 `건` — 무엇을 세든 통한다.
+   *
+   * 이 prop 이 생기기 전에는 `명` 이 박혀 있었다. 사용자 목록에서 태어난 컴포넌트라
+   * 그랬는데, 그 탓에 다른 목록에 붙이면 게시글을 **"12명"** 이라고 셌다.
+   * 재사용을 막는 것은 대개 이런 한 단어다.
+   */
+  unit?: string;
   className?: string;
 }
 
@@ -16,6 +24,7 @@ export function Pagination({
   total,
   limit,
   onPageChange,
+  unit = '건',
   className,
 }: PaginationProps) {
   const from = total === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -28,7 +37,8 @@ export function Pagination({
       <p className="text-sm text-text-muted">
         {total > 0 ? (
           <>
-            <span className="font-medium text-text">{from}–{to}</span> / {total}명
+            <span className="font-medium text-text">{from}–{to}</span> / {total}
+            {unit}
           </>
         ) : (
           '결과 없음'
