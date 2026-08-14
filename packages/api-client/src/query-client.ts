@@ -24,8 +24,13 @@ export function createQueryClient(options: CreateQueryClientOptions = {}) {
       queries: {
         staleTime: 1000 * 60, // 1분
         retry: (failureCount, error) => {
-          // 인증/권한 에러는 재시도 하지 않음
-          if (error instanceof ApiError && (error.isUnauthorized || error.isForbidden)) {
+          // 다시 물어도 답이 달라지지 않는 응답은 재시도하지 않는다.
+          // 404 도 그중 하나다 — 없는 것은 두 번 더 물어도 없고, 그 사이 사용자는
+          // 아무 일도 일어나지 않는 스피너를 본다.
+          if (
+            error instanceof ApiError &&
+            (error.isUnauthorized || error.isForbidden || error.isNotFound)
+          ) {
             return false;
           }
           return failureCount < 2;
