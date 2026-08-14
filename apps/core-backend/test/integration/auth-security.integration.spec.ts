@@ -7,7 +7,7 @@
  * 검증 대상:
  * 1. 계정 잠금 — 5회 실패 후 올바른 비밀번호로도 차단
  * 2. 권한 가드 — 권한 없는 유저는 보호된 엔드포인트 403
- * 3. 정지 계정 — suspendedUntil이 미래인 계정은 로그인 차단
+ * 3. 정지 계정 — 로그인 차단 + **이미 로그인된 세션도 즉시 차단**
  */
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -19,6 +19,7 @@ import {
   getTestingModule,
 } from './helpers/test-app.helper';
 import { loginAs, getAuthCookies } from './helpers/auth.helper';
+import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 
 const TEST_PASSWORD = 'TestPass1234!';
 const WRONG_PASSWORD = 'WrongPass0000!';
@@ -31,11 +32,13 @@ function uniqueEmail(prefix: string) {
 describe('Auth Security (Integration)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let userAdminService: UserAdminService;
   const createdUserIds: string[] = [];
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = getTestingModule().get(PrismaService);
+    userAdminService = getTestingModule().get(UserAdminService);
   });
 
   afterAll(async () => {
@@ -138,6 +141,57 @@ describe('Auth Security (Integration)', () => {
 
       expect(res.status).toBe(401);
       expect(JSON.stringify(res.body)).toContain('suspended until');
+    });
+
+    /**
+     * **정지는 「지금부터 못 쓴다」는 뜻이어야 한다.**
+     *
+     * 새 로그인만 막으면 **이미 브라우저에 들어 있는 access token** 이 만료(기본 1시간)
+     * 까지 그대로 통한다 — 정지당한 사람이 열어둔 탭으로 계속 일한다. 그래서
+     * `jwt.strategy.validate()` 가 정지를 본다.
+     *
+     * 이 테스트는 **정지 전에 받은 쿠키를 그대로 들고** 요청해 그 즉시성을 증명한다.
+     * 로그인을 다시 시도하면 (이미 막히는) 로그인 경로만 확인하게 되어 아무것도
+     * 증명하지 못한다.
+     */
+    it('정지되면 이미 로그인된 세션도 즉시 401 — access token 이 남아 있어도', async () => {
+      const email = uniqueEmail('suspended-live');
+      const user = await createVerifiedUser(email);
+      const cookies = await getAuthCookies(app, email, TEST_PASSWORD);
+
+      // 정지 전에는 통과한다. 이 줄이 없으면 아래 401 이 "정지 때문" 인지
+      // "원래부터 안 되던 것" 인지 구별되지 않는다.
+      await request(app.getHttpServer())
+        .get('/v1/auth/sessions')
+        .set('Cookie', cookies)
+        .expect(200);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { suspendedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      });
+
+      await request(app.getHttpServer())
+        .get('/v1/auth/sessions')
+        .set('Cookie', cookies)
+        .expect(401);
+    });
+
+    /** 정지는 세션도 함께 끊는다 — 갱신으로 되살아나는 길을 막는다. */
+    it('정지되면 기존 refresh 토큰이 남지 않는다', async () => {
+      const email = uniqueEmail('suspended-sessions');
+      const user = await createVerifiedUser(email);
+      await getAuthCookies(app, email, TEST_PASSWORD);
+
+      expect(
+        await prisma.refreshToken.count({ where: { userId: user.id } }),
+      ).toBeGreaterThan(0);
+
+      await userAdminService.suspendUser('admin-actor', user.id, { days: 1 });
+
+      expect(
+        await prisma.refreshToken.count({ where: { userId: user.id } }),
+      ).toBe(0);
     });
 
     it('suspendedUntil이 과거이면 정상 로그인', async () => {

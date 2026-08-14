@@ -20,6 +20,7 @@ import { FindAdminUserByIdQuery } from '../repositories/find-admin-user-by-id.qu
 import { SuspendUserCommand } from '../repositories/suspend-user.command';
 import { UnsuspendUserCommand } from '../repositories/unsuspend-user.command';
 import { SoftDeleteUserCommand } from '../repositories/soft-delete-user.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
 
 @Injectable()
 export class UserAdminService {
@@ -96,6 +97,21 @@ export class UserAdminService {
       : new Date('9999-12-31T23:59:59.999Z');
 
     await SuspendUserCommand(this.prisma, targetId, suspendedUntil);
+
+    /*
+      **정지는 「지금부터 못 쓴다」는 뜻이어야 한다.**
+
+      그러려면 세 겹이 다 필요하다:
+      1. 새 로그인 차단 — `sign-in.service.ts` (기존)
+      2. **이미 발급된 access token 차단** — `jwt.strategy.validate()` 가 정지를 본다
+      3. 세션 회수 — 여기
+
+      3만으로는 부족하다. refresh 를 지워도 브라우저에 남은 access token 이 만료
+      (기본 1시간)까지 통해서, 정지당한 사람이 열어둔 탭으로 계속 일한다. 2가 그걸
+      막고, 3은 **갱신으로 되살아나는 길**을 끊는다.
+    */
+    await DeleteRefreshTokensByUserIdCommand(this.prisma, targetId);
+
     return this.findUserById(targetId);
   }
 
