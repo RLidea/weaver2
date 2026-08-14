@@ -4,8 +4,18 @@ import { PrismaService } from '@weaver2/prisma';
 
 type CacheStrategy = 'memory' | 'none';
 
-interface CacheEntry {
+/**
+ * 한 사용자에 대해 캐시가 드는 것. **권한과 그룹을 함께 든다.**
+ *
+ * 둘은 `userPermissionGroup` 한 번의 조회에서 같이 나오는데, 예전에는 권한만
+ * 캐시하고 그룹은 자원 검사마다 다시 조회했다. 같은 테이블을 두 번 읽던 셈이다.
+ */
+interface UserAccess {
   permissions: Set<string>;
+  groupIds: string[];
+}
+
+interface CacheEntry extends UserAccess {
   expiresAt: number;
 }
 
@@ -31,9 +41,13 @@ export class PermissionService {
   }
 
   /**
-   * 유저의 모든 권한을 DB에서 로드
+   * 유저의 권한과 소속 그룹을 한 번에 얻는다 (캐시 경유).
+   *
+   * 그룹을 함께 캐시해도 신선도가 어긋나지 않는다 — 그룹 배정·해제 지점이 모두
+   * `invalidateCache` 를 부르고(`admin-permission.api.service.ts`), 구성원이 있는
+   * 그룹은 삭제 자체가 막혀 있다.
    */
-  async getUserPermissions(userId: string): Promise<Set<string>> {
+  private async getUserAccess(userId: string): Promise<UserAccess> {
     // 캐시 전략이 memory일 때만 캐시 확인
     if (this.cacheStrategy === 'memory') {
       const cached = this.cache.get(userId);
@@ -41,12 +55,12 @@ export class PermissionService {
         // LRU 순서 갱신: 삭제 후 재삽입으로 맨 뒤로 이동
         this.cache.delete(userId);
         this.cache.set(userId, cached);
-        return cached.permissions;
+        return { permissions: cached.permissions, groupIds: cached.groupIds };
       }
     }
 
     // DB에서 유저의 모든 권한 그룹과 권한 조회
-    const permissions = await this.loadPermissionsFromDb(userId);
+    const access = await this.loadAccessFromDb(userId);
 
     // 캐시 전략이 memory일 때만 캐시 저장
     if (this.cacheStrategy === 'memory') {
@@ -59,18 +73,26 @@ export class PermissionService {
       }
 
       this.cache.set(userId, {
-        permissions,
+        ...access,
         expiresAt: Date.now() + this.cacheTtlMs,
       });
     }
 
+    return access;
+  }
+
+  /**
+   * 유저의 모든 권한을 조회
+   */
+  async getUserPermissions(userId: string): Promise<Set<string>> {
+    const { permissions } = await this.getUserAccess(userId);
     return permissions;
   }
 
   /**
-   * DB에서 유저의 권한을 직접 조회
+   * DB에서 유저의 권한과 소속 그룹을 함께 조회
    */
-  private async loadPermissionsFromDb(userId: string): Promise<Set<string>> {
+  private async loadAccessFromDb(userId: string): Promise<UserAccess> {
     const userGroups = await this.prisma.userPermissionGroup.findMany({
       where: { userId },
       include: {
@@ -83,13 +105,15 @@ export class PermissionService {
     });
 
     const permissions = new Set<string>();
+    const groupIds: string[] = [];
     for (const userGroup of userGroups) {
+      groupIds.push(userGroup.permissionGroupId);
       for (const perm of userGroup.permissionGroup.permissions) {
         permissions.add(perm.permission);
       }
     }
 
-    return permissions;
+    return { permissions, groupIds };
   }
 
   /**
@@ -201,44 +225,33 @@ export class PermissionService {
     // ⚠️ `hasPermission()` 을 부르면 안 된다. 그 함수는 `*:*` 보유자에게 어떤 문자열도
     // 참으로 주므로 검사가 항상 통과해 의미가 없어진다. 캐시된 권한 집합에서 **정확
     // 일치**로 본다(추가 조회 없음).
-    const userPermissions = await this.getUserPermissions(userId);
+    //
+    // 권한과 그룹은 `getUserAccess` 한 번으로 같이 받는다 — 같은 조회에서 나오는
+    // 값이라 따로 부르면 같은 테이블을 두 번 읽는다.
+    const { permissions: userPermissions, groupIds: userGroupIds } =
+      await this.getUserAccess(userId);
     if (userPermissions.has('*:*')) {
       return true;
     }
 
-    // 5. 유저의 그룹 목록 조회
-    const userGroupIds = await this.getUserGroupIds(userId);
-
-    // 6. 거부 그룹 체크 (일반 사용자 중에서는 우선)
+    // 5. 거부 그룹 체크 (일반 사용자 중에서는 우선)
     const deniedGroupIds = rule.deniedGroups.map((g) => g.permissionGroupId);
     if (userGroupIds.some((id) => deniedGroupIds.includes(id))) {
       return false;
     }
 
-    // 7. 허용 그룹이 비어있으면 로그인만 하면 허용
+    // 6. 허용 그룹이 비어있으면 로그인만 하면 허용
     const allowedGroupIds = rule.allowedGroups.map((g) => g.permissionGroupId);
     if (allowedGroupIds.length === 0) {
       return true;
     }
 
-    // 8. 허용 그룹 체크
+    // 7. 허용 그룹 체크
     return userGroupIds.some((id) => allowedGroupIds.includes(id));
   }
 
   /**
-   * 유저가 속한 그룹 ID 목록 조회
-   */
-  private async getUserGroupIds(userId: string): Promise<string[]> {
-    const userGroups = await this.prisma.userPermissionGroup.findMany({
-      where: { userId },
-      select: { permissionGroupId: true },
-    });
-
-    return userGroups.map((ug) => ug.permissionGroupId);
-  }
-
-  /**
-   * 특정 유저의 캐시 무효화
+   * 특정 유저의 캐시 무효화 — 권한과 소속 그룹이 함께 버려진다.
    */
   invalidateCache(userId: string): void {
     this.cache.delete(userId);

@@ -64,7 +64,14 @@ describe('PermissionService.hasResourcePermission', () => {
         key === 'PERMISSION_CACHE_STRATEGY' ? 'none' : undefined,
     } as unknown as ConfigService;
 
-    return new PermissionService(prisma, config);
+    const service = new PermissionService(prisma, config);
+    return Object.assign(service, {
+      __userGroupFindMany: (
+        prisma as unknown as {
+          userPermissionGroup: { findMany: jest.Mock };
+        }
+      ).userPermissionGroup.findMany,
+    });
   }
 
   const ask = (service: PermissionService, userId: string | null) =>
@@ -155,6 +162,24 @@ describe('PermissionService.hasResourcePermission', () => {
       });
 
       await expect(ask(service, 'user-admin')).resolves.toBe(false);
+    });
+  });
+
+  describe('조회 횟수', () => {
+    /**
+     * 권한 집합과 소속 그룹은 `userPermissionGroup` **한 행에서 같이 나온다.**
+     * 예전에는 권한만 캐시하고 그룹은 자원 검사마다 따로 조회해, 같은 테이블을
+     * 두 번 읽었다. 캐시를 꺼도(`none`) 한 번이어야 한다.
+     */
+    it('자원 검사 한 번에 사용자 그룹 테이블을 한 번만 읽는다', async () => {
+      const service = build({
+        rule: { allowAnonymous: false, allowedGroupIds: [ADMIN_GROUP] },
+        userGroupIds: [ADMIN_GROUP],
+      });
+
+      await ask(service, 'user-admin');
+
+      expect(service.__userGroupFindMany).toHaveBeenCalledTimes(1);
     });
   });
 
