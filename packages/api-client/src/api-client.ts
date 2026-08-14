@@ -91,6 +91,10 @@ class ApiClient {
       // 액세스 토큰 만료 → refresh 후 1회 재시도
       // skipOnAuthError=true여도 세션이 살아있을 수 있으므로(리프레시 토큰 존재 가능성) 우선 리프레시를 시도한다.
       if (response.status === 401 && !isRetry) {
+        // 본문을 **재시도 판단 전에** 읽어둔다. Response 본문은 한 번만 소비할 수 있어,
+        // 재시도 분기를 지나고 나면 서버가 보낸 이유를 되찾을 방법이 없다.
+        const unauthorizedBody = await this.readErrorBody(response);
+
         if (this.isRefreshing) {
           const refreshed = await new Promise<boolean>((resolve) => {
             this.refreshQueue.push(resolve);
@@ -99,7 +103,7 @@ class ApiClient {
           if (refreshed) {
             return this.request<T>(method, path, body, options, true);
           }
-          throw new ApiError(401, 'Unauthorized (Refresh failed)');
+          throw this.toApiError(response, unauthorizedBody, path);
         }
 
         const refreshed = await this.refresh();
@@ -113,25 +117,46 @@ class ApiClient {
           this.onAuthError?.();
         }
 
-        throw new ApiError(401, 'Unauthorized');
+        throw this.toApiError(response, unauthorizedBody, path);
       }
 
-      const errorBody = (await response.json().catch(() => null)) as ApiErrorResponse | null;
-      const message = errorBody?.error?.message ?? 'Request failed';
-      const errorPath = errorBody?.error?.path ?? path;
-      const timestamp = errorBody?.error?.timestamp ?? new Date().toISOString();
-
-      throw new ApiError(
-        response.status,
-        Array.isArray(message) ? message.join(', ') : message,
-        errorPath,
-        timestamp,
-      );
+      throw this.toApiError(response, await this.readErrorBody(response), path);
     }
 
     return response.json().catch(() => {
       throw new ApiError(response.status, '응답을 처리할 수 없습니다.');
     }) as Promise<ApiResponse<T>>;
+  }
+
+  /** 에러 응답 본문. JSON 이 아니거나 이미 소비됐으면 null. */
+  private async readErrorBody(
+    response: Response,
+  ): Promise<ApiErrorResponse | null> {
+    return (await response.json().catch(() => null)) as ApiErrorResponse | null;
+  }
+
+  /**
+   * 서버가 보낸 메시지를 그대로 살려 `ApiError` 를 만든다.
+   *
+   * 401 도 여기를 지난다. 예전에는 401 만 `'Unauthorized'` 라는 고정 문자열로 덮었는데,
+   * **401 이 언제나 "세션 만료" 인 것은 아니다** — 비밀번호가 틀렸다거나 하는 이유를
+   * 서버가 401 에 담아 보내도, 화면에는 영어 프레임워크 단어만 떴다.
+   *
+   * 세션 만료 쪽 처리는 그대로다 — 로그인 페이지로 보내는 것은 `onAuthError` 가 하고,
+   * 이 함수는 무엇이 틀렸는지 말하는 일만 한다.
+   */
+  private toApiError(
+    response: Response,
+    errorBody: ApiErrorResponse | null,
+    path: string,
+  ): ApiError {
+    const message = errorBody?.error?.message ?? 'Request failed';
+    return new ApiError(
+      response.status,
+      Array.isArray(message) ? message.join(', ') : message,
+      errorBody?.error?.path ?? path,
+      errorBody?.error?.timestamp ?? new Date().toISOString(),
+    );
   }
 
   private async refresh(): Promise<boolean> {
