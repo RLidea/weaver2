@@ -91,6 +91,7 @@ pnpm lane:rm <이름>      # 커밋 안 된 변경·안 올린 커밋이 있으�
 - **`dev` = 레인들이 모이고 검사가 도는 곳.** `lane:land` 도 여기로 넣는다. 레인은 `dev` 에서 갈라진다. `dev` push 마다 CI 11잡(lint·단위·통합·e2e·빌드·prisma)이 전부 돈다.
 - 🔴 **`main` = 배포 가지. push 하는 것이 곧 배포하는 것이다.** 서버의 cron 이 1분마다 `origin/main` 을 폴링해 받아서 pm2 를 재시작한다 (`scripts/auto-deploy.sh`). 그래서 `main` 에는 **PR 로만** 들어간다.
 - 🔴 **`main` push 에는 CI 가 걸려 있지 않다** (배포만 책임지므로). 따라서 **`dev`→`main` PR 검사가 배포 직전의 마지막 관문**이다. 그 PR 을 빨간 채로 머지하면 그대로 나간다.
+- 🔴 **`ci.yml` 의 `pull_request:` 에서 `main` 을 빼지 마라.** GitHub 저장소 ruleset 이 `main` 에 **`CI success` 상태검사를 요구**한다 (그 외 `pull_request`·`non_fast_forward`·`deletion`·`code_scanning`). PR 트리거에서 main 을 빼면 그 검사가 아예 생성되지 않아 **`dev`→`main` PR 이 영원히 머지 불가**가 된다. 「main 은 배포만 하니까 검사를 다 떼자」가 밟기 쉬운 함정이다. (`dev` 에는 ruleset 이 없다 — 레인이 착륙하는 곳이라 그대로 둔다.)
 - 🔴 **런타임 레인(저장소 루트)은 `dev` 를 달고 있어야 한다.** `lane:land` 는 **루트가 지금 체크아웃한 가지**로 넣기 때문이다 — 루트가 `main` 을 달고 있으면 레인이 배포 가지로 직행한다. `pnpm lane:brief` 의 「런타임」 줄에서 확인한다.
 
 ### e2e 는 격리 레인에서 — 줄 서지 않는다
