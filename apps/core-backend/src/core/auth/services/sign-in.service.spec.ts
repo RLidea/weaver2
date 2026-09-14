@@ -210,7 +210,7 @@ describe('SignInService.refresh', () => {
     } as any);
     const revokeSpy = jest
       .spyOn(delMod, 'DeleteRefreshTokensByUserIdCommand')
-      .mockResolvedValueOnce({ count: 1 } as any);
+      .mockResolvedValueOnce({ count: 1 });
 
     await expect(service.refresh('tok')).rejects.toBeInstanceOf(
       UnauthorizedException,
