@@ -25,7 +25,7 @@ set -e  # 오류 발생 시 즉시 중단
 # ================================================================
 APP_DIR="/app/weaver2"
 REPO_URL="git@github.com:your-org/weaver2.git"   # SSH URL
-BRANCH="production"
+BRANCH="main"
 PM2_APP_NAME="weaver2-core"
 # ================================================================
 

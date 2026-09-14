@@ -64,11 +64,12 @@
 #   레인에서 본 트리와 통합 브랜치에 들어갈 트리가 같아진다 (fast-forward).
 #   lane:land 는 rebase 가 안 됐으면 거절해서 그 순서를 강제한다.
 #
-#   레인은 dev 로 착륙한다. main 은 내보내는 가지라 직접 쓰지 않는다 —
-#   dev 에 모인 것을 PR dev→main 으로 올린다.
-#   ⚠ 2026-09-14 현재 weaver2 의 CI(ci.yml)는 **main 만** 본다. dev 착륙분은
-#     PR 을 열기 전까지 원격 검사를 안 받으므로, 레인에서 검증 3종을 돌리는 것이
-#     지금은 유일한 관문이다.
+#   레인은 dev 로 착륙한다. CI(ci.yml)가 dev push 마다 전수 검사를 돈다.
+#   main 은 **배포 가지**다 — 서버의 cron 이 origin/main 을 폴링해 받아서 pm2 를
+#   재시작한다 (scripts/auto-deploy.sh). 그래서 main 에 push 하는 것은 곧 배포하는
+#   것이고, main 에는 PR 로만 들어간다.
+#   ⚠ main push 에는 CI 가 없다 (배포만 책임지므로). dev→main PR 검사가 배포 직전의
+#     마지막 관문이다.
 #
 #   --with-frontend  이 레인에 프론트 포트를 배정한다 (3001~3009 중 빈 것).
 #                    화면 확인이 잦은 작업이 여럿일 때만. 백엔드는 계속 공유.
@@ -740,12 +741,13 @@ cmd_brief() {
   printf '\n%s━━ 이 저장소는 병렬 레인으로 돌아갑니다 ━━%s\n\n' "$c_bld" "$c_off"
 
   # ── 지형
-  printf '  %s지형%s   편집 레인 ──→ %s ──(PR)──→ main\n' \
+  printf '  %s지형%s   편집 레인 ──→ %s ──(PR)──→ main ──→ 서버가 물어서 배포\n' \
     "$c_dim" "$c_off" "$INTEGRATION_BRANCH"
-  printf '         %s레인은 %s 로 rebase·착륙합니다. main 은 내보내는 가지라 직접 안 씁니다.%s\n' \
-    "$c_dim" "$INTEGRATION_BRANCH" "$c_off"
-  printf '         %s⚠ CI 는 지금 main 만 봅니다 — %s 착륙분의 관문은 레인의 검증 3종뿐입니다.%s\n\n' \
+  printf '         %s레인은 %s 로 rebase·착륙하고, CI 는 %s push 마다 돕니다.%s\n' \
+    "$c_dim" "$INTEGRATION_BRANCH" "$INTEGRATION_BRANCH" "$c_off"
+  printf '         %s⚠ main 은 배포 가지입니다 — push = 배포. CI 가 없으니 %s→main PR 검사가%s\n' \
     "$c_ylw" "$INTEGRATION_BRANCH" "$c_off"
+  printf '         %s  배포 직전의 마지막 관문입니다.%s\n\n' "$c_ylw" "$c_off"
 
   # ── 내 자리
   if [ "$is_runtime" = yes ]; then
@@ -882,7 +884,7 @@ cmd_brief() {
   fi
   printf '    스키마 동시 변경      바꿀 레인만 pnpm lane:prep <이름> --isolated\n'
   printf '                          %s--with-backend 는 포트만 가릅니다 — DB 는 공용 그대로%s\n' "$c_dim" "$c_off"
-  printf '    git push origin main  main 은 내보내는 가지입니다 (PR %s→main 으로만)\n\n' "$INTEGRATION_BRANCH"
+  printf '    git push origin main  main 은 배포 가지입니다 — push = 배포 (PR %s→main 으로만)\n\n' "$INTEGRATION_BRANCH"
 
   printf '  %s자세한 규칙은 CLAUDE.md 「병렬 레인」 절.%s\n\n' "$c_dim" "$c_off"
 }
