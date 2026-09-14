@@ -8,6 +8,10 @@
 # 들어오는 순간 이 스크립트가 물어 배포한다 (2026-09-14 에 production 에서 옮김).
 # 그래서 main 에 push 하는 것은 곧 배포하는 것이다.
 #
+# ⚠ weaver2 저장소 자신은 보일러플레이트라 붙은 서버가 없다. 이 스크립트는
+#   파생 프로젝트가 자기 서버에 얹어 쓰는 틀이다 — APP_DIR·REPO_URL·PM2_APP_NAME
+#   을 그 프로젝트 것으로 바꿔서 쓴다.
+#
 # [cron 등록 방법]
 #   crontab -e
 #   → * * * * * /bin/bash /app/weaver2/scripts/auto-deploy.sh
