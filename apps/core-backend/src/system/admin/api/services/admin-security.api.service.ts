@@ -104,9 +104,7 @@ export class AdminSecurityApiService {
         throw new Error('Audit report not found');
       }
 
-      return this.getSecurityOverviewFromStoredData(
-        report as SecurityAuditReport,
-      );
+      return this.getSecurityOverviewFromStoredData(report);
     } catch (error) {
       this.logger.error('Error getting audit report by ID:', error);
       throw new Error('Failed to retrieve audit report');
@@ -127,9 +125,8 @@ export class AdminSecurityApiService {
 
       if (latestAuditReport) {
         // Use stored audit data
-        const securityOverview = this.getSecurityOverviewFromStoredData(
-          latestAuditReport as SecurityAuditReport,
-        );
+        const securityOverview =
+          this.getSecurityOverviewFromStoredData(latestAuditReport);
         return {
           statusCards: securityOverview.statusCards,
           vulnerabilities: securityOverview.vulnerabilities,

@@ -110,7 +110,11 @@ jobs:
           key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
 
-      - run: pnpm lint
+      # 🔴 lint 가 아니라 lint:check 다. 루트의 `lint` 는 `eslint … --fix` 라
+      #    러너에서 고치고 초록을 낸다 — 검사가 아니라 수정이다. 그래서 고칠 수 있는
+      #    위반은 CI 를 통과해 그대로 쌓인다 (2026-09-14 에 25건이 그렇게 쌓여 있었다).
+      #    프론트(core-frontend)까지 함께 본다.
+      - run: pnpm lint:check
 
   # ── OpenAPI 타입 최신성 (drift 검사) ──────────────────────────────
   openapi-types:

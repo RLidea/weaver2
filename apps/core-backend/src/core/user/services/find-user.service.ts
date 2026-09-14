@@ -35,9 +35,7 @@ export class FindUserService {
       this.permissionService.getUserPermissions(id),
     ]);
 
-    const setting = (
-      user as typeof user & { userSetting?: Record<string, unknown> | null }
-    ).userSetting;
+    const setting = user.userSetting;
 
     return {
       id: userWithImage.id,

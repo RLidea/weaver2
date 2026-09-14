@@ -53,7 +53,7 @@ export async function UpdateCategoryCommand(
 ) {
   return prisma.postCategory.update({
     where: { id },
-    data: data as Prisma.PostCategoryUpdateInput,
+    data: data,
   });
 }
 
