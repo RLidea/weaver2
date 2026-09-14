@@ -1,10 +1,15 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
+  # dev = 레인들이 착륙하는 곳. 전수 검사는 여기서 돈다.
   push:
-    branches: [main]
+    branches: [dev]
+  # dev 로 들어가는 PR 과, 내보내는 PR(dev→main) 둘 다 검사한다.
+  # main push 에는 검사를 걸지 않는다 — main 은 배포만 책임진다
+  # (scripts/auto-deploy.sh 가 서버에서 origin/main 을 폴링한다).
+  # 그래서 main 에 들어가기 전 마지막 관문이 이 PR 검사다.
+  pull_request:
+    branches: [dev, main]
   workflow_dispatch:
 
 # 동일 PR/branch에 새 push 들어오면 진행 중인 run 취소

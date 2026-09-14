@@ -2,9 +2,9 @@ name: CodeQL
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   schedule:
     # 매주 월요일 05:00 UTC = 14:00 KST
     # main에 변경이 없어도 정기적으로 분석을 돌려 신규 룰을 적용한다.

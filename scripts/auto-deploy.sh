@@ -1,8 +1,12 @@
 #!/bin/bash
 # scripts/auto-deploy.sh
 #
-# production 브랜치 변경을 감지하여 자동으로 배포하는 스크립트
+# main 브랜치 변경을 감지하여 자동으로 배포하는 스크립트
 # cron에 등록하여 주기적으로 실행합니다
+#
+# main = 배포 가지다. dev 에서 검사가 끝난 것만 PR 로 main 에 들어오고,
+# 들어오는 순간 이 스크립트가 물어 배포한다 (2026-09-14 에 production 에서 옮김).
+# 그래서 main 에 push 하는 것은 곧 배포하는 것이다.
 #
 # [cron 등록 방법]
 #   crontab -e
@@ -16,7 +20,7 @@
 # 설정값 (setup.sh 의 설정값과 동일하게 맞추세요)
 # ================================================================
 APP_DIR="/app/weaver2"
-BRANCH="production"
+BRANCH="main"
 PM2_APP_NAME="weaver2-core"
 LOG_FILE="/var/log/weaver2-deploy.log"
 # ================================================================
