@@ -125,7 +125,7 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
       - name: Cache .next
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: apps/core-frontend/.next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('apps/core-frontend/package.json', 'apps/core-frontend/**/*.[jt]s', 'apps/core-frontend/**/*.[jt]sx') }}
@@ -261,7 +261,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: pw-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
