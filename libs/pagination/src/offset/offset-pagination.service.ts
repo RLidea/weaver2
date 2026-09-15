@@ -102,7 +102,10 @@ export class OffsetPaginationService {
     // 사용자 sort·filter 는 각각 allowlist 에 있는 키만 통과시킨다. 기본(allowlist
     // 미지정)은 전부 차단 — 위 sortableFields·filterableFields 주석 참조.
     const orderBy = pickAllowed(parseSort(options.sort), sortableFields);
-    const safeFilter = pickAllowed(parseFilter(options.filter), filterableFields);
+    const safeFilter = pickAllowed(
+      parseFilter(options.filter),
+      filterableFields,
+    );
 
     const finalWhere = { ...where, ...safeFilter };
 
