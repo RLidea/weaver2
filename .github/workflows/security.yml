@@ -43,7 +43,7 @@ jobs:
       #    이 워크플로의 이슈 생성이 조용히 깨질 수 있어서, 검증 없이 올리지 않는다.
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
