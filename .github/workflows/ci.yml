@@ -1,15 +1,23 @@
 name: CI
 
+# 비용 정책 (2026-09-15, 「중간」): GitHub Actions 는 잡을 분 단위 올림으로 과금하므로,
+# 벽시계가 아니라 「잡 수 × 트리거 빈도」가 비용이다. 그래서:
+#   · 빠른 검사(lint·openapi·prisma·unit·build)를 잡 둘로 통합했다 (전엔 8잡).
+#   · 무거운 검사(integration·E2E)는 **dev→main PR 에서만** 돈다 — 브라우저·DB 가
+#     필요해 로컬·dev 마다 돌리기엔 비싸고, 배포 직전에만 있으면 충분하다.
+#   · dev PR 트리거는 뺐다 — dev 로 들어가는 변경은 로컬 pre-push 게이트(.husky/pre-push)가
+#     본다. CI 는 dev push(전수 요약)와 dev→main PR(배포 관문)에서만 돈다.
 on:
-  # dev = 레인들이 착륙하는 곳. 전수 검사는 여기서 돈다.
+  # dev = 레인들이 착륙하는 곳. push 마다 빠른 검사(통합 2잡)를 돌린다.
   push:
     branches: [dev]
-  # dev 로 들어가는 PR 과, 내보내는 PR(dev→main) 둘 다 검사한다.
-  # main push 에는 검사를 걸지 않는다 — main 은 배포만 책임진다
-  # (scripts/auto-deploy.sh 가 서버에서 origin/main 을 폴링한다).
-  # 그래서 main 에 들어가기 전 마지막 관문이 이 PR 검사다.
+  # 🔴 dev→main PR 만. main push 에는 검사가 없으므로(배포 전용) 이 PR 이 배포 직전
+  #    마지막 관문이고, GitHub ruleset 이 여기 'CI success' 상태검사를 요구한다.
+  #    이 트리거에서 main 을 빼면 그 검사가 생성되지 않아 dev→main PR 이 영영 머지
+  #    불가가 된다 (CLAUDE.md). integration·E2E 도 여기서만 돈다.
+  #    dev 는 뺐다 — dev PR 은 로컬 pre-push 가 본다.
   pull_request:
-    branches: [dev, main]
+    branches: [main]
   workflow_dispatch:
 
 # 동일 PR/branch에 새 push 들어오면 진행 중인 run 취소
@@ -24,15 +32,19 @@ env:
   NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
-  # ── 0. Secret/key 파일 staging 차단 (Push ruleset 대체) ──────────
-  secret-files:
-    name: Forbidden file check
+  # ── 빠른 검사 (dev push·main PR 둘 다) ────────────────────────────
+  # 전엔 secret-files·install·lint·openapi·unit·prisma 6잡이었다. 잡마다 1분씩
+  # 올림 과금되므로 한 잡에서 순차로 돌려 과금 분을 줄인다. install 은 이 잡 안에서
+  # 한 번 하고, 후속 잡(build)이 따로 install 한다 — 캐시 save/restore 춤보다 단순하다.
+  checks:
+    name: Checks (lint·openapi·prisma·unit)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # secret/key 파일이 트리에 들어왔는지 (Push ruleset 대체)
       - name: Reject .env*/keys in tree
         run: |
           set -euo pipefail
@@ -48,20 +60,10 @@ jobs:
           fi
           echo "✓ Secret/key 파일 없음."
 
-  # ── 1. 의존성 설치 + 캐시 (모든 후속 job의 prerequisite) ─────────────
-  install:
-    name: Install dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
@@ -72,109 +74,76 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
         env:
-          # prisma generate는 DB에 연결하지 않으므로 더미 URL이면 충분
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
-      # 다음 job들이 재사용할 수 있도록 .prisma client + node_modules 캐시
-      - name: Cache node_modules + prisma client
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+      # 🔴 lint 가 아니라 lint:check 다. 루트의 `lint` 는 `eslint … --fix` 라 러너에서
+      #    고치고 초록을 낸다 — 검사가 아니라 수정이다. 프론트까지 함께 본다.
+      - name: Lint
+        run: pnpm lint:check
 
-  # ── 2. ESLint ────────────────────────────────────────────────────
-  lint:
-    name: Lint
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - run: pnpm lint
-
-  # ── OpenAPI 타입 최신성 (drift 검사) ──────────────────────────────
-  openapi-types:
-    name: OpenAPI types up-to-date
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Regenerate types from OpenAPI spec
-        run: pnpm openapi:types
-
-      - name: Fail if committed types are stale
+      - name: OpenAPI types up-to-date
         run: |
+          pnpm openapi:types
           git diff --exit-code packages/api-client/src/types/api-schema.d.ts \
             || (echo "::error::api-schema.d.ts가 최신이 아닙니다. 'pnpm openapi:types' 실행 후 커밋하세요." && exit 1)
 
-  # ── 3. Unit tests ────────────────────────────────────────────────
-  test-unit:
-    name: Unit tests
-    needs: install
+      - name: Prisma schema validate + format
+        run: |
+          pnpm prisma validate --schema=apps/core-backend/prisma/schema
+          pnpm prisma format --schema=apps/core-backend/prisma/schema --check
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      # --ci: watch off, --maxWorkers=2: GitHub-hosted runner CPU 매칭
+      - name: Unit tests
+        run: npx jest --config apps/core-backend/jest.config.js --ci --maxWorkers=2
+
+  # ── 빌드 (dev push·main PR 둘 다) ─────────────────────────────────
+  # 백엔드·프론트 빌드를 한 잡에서 순차로. build-web 은 타입 검증을 겸한다.
+  build:
+    name: Build (backend·web)
     runs-on: ubuntu-latest
+    env:
+      # 빌드 prerender 에서 ApiClient 모듈이 평가되므로 더미 URL 주입.
+      NEXT_PUBLIC_API_URL: http://localhost:4000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Restore deps
-        uses: actions/cache/restore@v4
+      - name: Install (frozen lockfile, no scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - name: Cache .next
+        uses: actions/cache@v4
         with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
+          path: apps/core-frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/core-frontend/package.json', 'apps/core-frontend/**/*.[jt]s', 'apps/core-frontend/**/*.[jt]sx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-
 
-      # --ci: watch off, --maxWorkers=2: GitHub-hosted runner CPU 매칭
-      - run: npx jest --config apps/core-backend/jest.config.js --ci --maxWorkers=2
+      - name: Build backend
+        run: npx nest build core-backend
 
-  # ── 4. Integration tests (Postgres 서비스 컨테이너) ────────────────
+      - name: Build web
+        run: pnpm --filter core-frontend exec next build
+
+  # ── Integration tests (dev→main PR 에서만) ────────────────────────
+  # 🔵 if: pull_request → main PR 에서만. dev push 에는 안 돈다 (DB 서비스 컨테이너가
+  #    무겁고, 배포 직전에만 있으면 충분). Postgres 서비스 컨테이너 사용.
   test-integration:
     name: Integration tests
-    needs: install
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -196,8 +165,6 @@ jobs:
       JWT_SECRET: ci-jwt-secret-not-for-prod
       CSRF_SECRET: ci-csrf-secret-not-for-prod
       NODE_ENV: test
-      # EmailService 생성자가 SMTP env 검증 후 throw하므로 더미 주입 필수.
-      # 실제 발송은 일어나지 않음 (테스트가 EmailService를 호출하지 않음).
       SMTP_HOST: smtp.example.com
       SMTP_PORT: '587'
       SMTP_USER: ci-test
@@ -206,132 +173,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
+      - name: Install (frozen lockfile, no scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
 
       - name: Apply migrations
         run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
 
       - name: Run integration tests
-        # pnpm test:integration:run의 -- forwarding이 jest --ci 인자로 안 넘어가서
-        # 직접 jest를 호출. config는 동일.
         run: npx jest --config apps/core-backend/test/jest-integration.json --no-coverage --ci --maxWorkers=2
 
-  # ── 5. Backend build ─────────────────────────────────────────────
-  build-backend:
-    name: Build backend
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - run: npx nest build core-backend
-
-  # ── 6. Frontend build (포함: TypeScript 검증) ─────────────────────
-  build-web:
-    name: Build web
-    needs: install
-    runs-on: ubuntu-latest
-    env:
-      # 빌드 단계 prerender에서 ApiClient 모듈이 평가되므로 더미 URL 주입.
-      # 변수명은 apps/core-frontend/src/infrastructure/api-client.ts와 일치해야 함.
-      NEXT_PUBLIC_API_URL: http://localhost:4000
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Cache .next
-        uses: actions/cache@v4
-        with:
-          path: apps/core-frontend/.next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/core-frontend/package.json', 'apps/core-frontend/**/*.[jt]s', 'apps/core-frontend/**/*.[jt]sx') }}
-          restore-keys: |
-            nextjs-${{ runner.os }}-
-
-      - run: pnpm --filter core-frontend exec next build
-
-  # ── 7. Prisma schema drift / format ──────────────────────────────
-  prisma-check:
-    name: Prisma schema check
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Validate schema
-        run: pnpm prisma validate --schema=apps/core-backend/prisma/schema
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
-
-      - name: Format check
-        run: pnpm prisma format --schema=apps/core-backend/prisma/schema --check
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
-
-  # ── 8. E2E (Playwright + 풀 스택 서비스) ─────────────────────────
+  # ── E2E (dev→main PR 에서만) ──────────────────────────────────────
+  # 🔵 if: pull_request → main PR 에서만. 브라우저 + 풀스택이라 가장 무겁다.
   test-e2e:
     name: E2E (Playwright)
-    needs: install
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -353,39 +218,34 @@ jobs:
       JWT_SECRET: ci-jwt-secret-not-for-prod
       CSRF_SECRET: ci-csrf-secret-not-for-prod
       # NODE_ENV=test 으로 두면 secure-cookie 강제가 비활성화되어
-      # http://localhost로 cookie가 정상 전달됨. test-integration과 동일.
+      # http://localhost로 cookie가 정상 전달됨.
       NODE_ENV: test
       ORIGIN_URL: localhost:4000
       CLIENT_URL: http://localhost:3000
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:4000
       PORT: '4000'
-      # EmailService 생성자가 SMTP env 검증 후 throw하므로 더미 주입 필수.
       SMTP_HOST: smtp.example.com
       SMTP_PORT: '587'
       SMTP_USER: ci-test
       SMTP_PASS: ci-test-password
-      # frontend rewrites + browser-side ApiClient
       NEXT_PUBLIC_API_URL: /api
       API_URL: http://localhost:4000
 
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Restore deps
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            libs/*/node_modules
-            packages/*/node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          fail-on-cache-miss: true
+      - name: Install (frozen lockfile, no scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
 
       - name: Apply migrations
         run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
@@ -429,20 +289,17 @@ jobs:
           path: apps/core-frontend/test-results/
           retention-days: 7
 
-  # ── 9. 종합 게이트 (Branch protection이 이 job 하나만 require해도 OK) ─
+  # ── 종합 게이트 (ruleset 이 이 잡 하나만 require) ──────────────────
+  # if: always() + skip 관용. dev push 에선 integration·e2e 가 skip 되며(if false),
+  # skip 은 failure·cancelled 가 아니라 통과로 친다. main PR 에선 둘 다 돌아 반드시 통과.
   ci-success:
     name: CI success
     if: always()
     needs:
-      - secret-files
-      - lint
-      - openapi-types
-      - test-unit
+      - checks
+      - build
       - test-integration
       - test-e2e
-      - build-backend
-      - build-web
-      - prisma-check
     runs-on: ubuntu-latest
     steps:
       - name: Verify all checks passed

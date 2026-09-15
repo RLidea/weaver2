@@ -9,8 +9,26 @@ on:
     paths:
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'apps/*/package.json'
-      - 'libs/*/package.json'
+      # libs/* 는 넣지 않는다 — Nest 라이브러리라 자체 package.json 이 없다.
+      - 'packages/*/package.json'
+      - 'scripts/audit-gate.mjs'
+      - '.github/workflows/security.yml'
+
+# 🔴 이 블록이 없으면 이슈 생성이 403 으로 막힌다 — 그리고 조용히 막힌다.
+#
+# 이 저장소는 지금 기본 토큰 권한이 write 라 명시 없이도 이슈가 열리고 있다.
+# 하지만 그건 운이다. 같은 워크플로를 물려받은 mayoube-studio 는 기본값이
+# read-only 여서, 2026-08-03 부터 09-14 까지 **일곱 주 연속** 감사가 제때 돌고
+# 취약점을 정확히 세고 이슈 본문까지 다 만든 뒤 마지막 한 걸음에서 죽었다:
+#   RequestError [HttpError]: Resource not accessible by integration (403)
+# 경보는 일곱 번 울렸고 일곱 번 다 문 앞에서 버려졌다 — 아무도 몰랐다.
+#
+# 저장소나 org 기본값이 바뀌면 여기도 같은 병에 걸린다. 운에 맡기지 않고 명시한다.
+permissions:
+  contents: read
+  issues: write
 
 env:
   HUSKY: '0'
@@ -20,6 +38,9 @@ jobs:
     name: pnpm audit
     runs-on: ubuntu-latest
     steps:
+      # 🔵 Actions 판은 손으로 올리지 않는다 — .github/dependabot.yml 이 월간으로
+      #    PR 을 올리고 CI 가 검증한다. github-script 같은 건 메이저가 갈리면
+      #    이 워크플로의 이슈 생성이 조용히 깨질 수 있어서, 검증 없이 올리지 않는다.
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -30,11 +51,26 @@ jobs:
       - name: Install (no scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # 1) High/Critical만 fail-fast — 정기 알림용
-      - name: Audit (High/Critical)
+      # 관문(막는 것)과 경보(알리는 것)의 눈금을 나눈다.
+      #
+      # PR 은 **막는** 자리다 — high 부터. 관문이 늘 빨가면 아무도 안 본다.
+      # 주간 감사는 **알리는** 자리다 — moderate 부터. 눈금이 high 하나뿐이어서
+      # 2026-09-15 에 이 저장소에도 운영 경로 moderate 스물다섯이 조용히 쌓여 있었다.
+      #
+      # 세는 자는 scripts/audit-gate.mjs 하나다 — 로컬에서 돌리는 것과 CI 가
+      # 보는 것이 같아야 한다. `pnpm audit --audit-level=` 을 안 쓰는 이유는
+      # 그 스크립트 머리말에 적혀 있다 (metadata 가 넘긴 것까지 세는 함정).
+      - name: Audit
         id: audit
-        run: pnpm audit --audit-level=high --json > audit-report.json || echo "audit_failed=true" >> $GITHUB_OUTPUT
         continue-on-error: true
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            LEVEL=high
+          else
+            LEVEL=moderate
+          fi
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          node scripts/audit-gate.mjs --level="$LEVEL"
 
       - name: Upload audit report
         if: always()
@@ -44,9 +80,12 @@ jobs:
           path: audit-report.json
           retention-days: 30
 
-      # 2) 스케줄 실행에서 취약점 발견 시 GitHub Issue 생성
-      - name: Open issue on vulnerabilities
-        if: steps.audit.outputs.audit_failed == 'true' && github.event_name == 'schedule'
+      # 스케줄 실행에서 눈금을 넘었으면 이슈로 올린다.
+      #
+      # 이미 열려 있는 같은 이슈가 있으면 새로 만들지 않고 댓글만 단다 —
+      # 일곱 주가 밀려 이슈가 일곱 개 쌓이면 그것도 아무도 안 보게 된다.
+      - name: Open or update issue on vulnerabilities
+        if: steps.audit.outcome == 'failure' && github.event_name == 'schedule'
         uses: actions/github-script@v7
         with:
           script: |
@@ -54,26 +93,65 @@ jobs:
             let summary = '취약점 감지됨. 상세는 artifact 참조.';
             try {
               const data = JSON.parse(fs.readFileSync('audit-report.json', 'utf8'));
-              summary = '```json\n' + JSON.stringify(data.metadata?.vulnerabilities ?? data, null, 2) + '\n```';
+              const advisories = Object.values(data.advisories ?? {});
+              const rows = advisories
+                .map((a) => {
+                  const prod = (a.findings ?? []).some((f) => !f.dev);
+                  return `- [${a.severity}]${prod ? '(프로덕션)' : '(dev)'} \`${a.module_name}\` → 패치 ${a.patched_versions ?? '없음'}\n  ${a.title}\n  ${a.url}`;
+                })
+                .join('\n');
+              summary = [
+                '```json',
+                JSON.stringify(data.metadata?.vulnerabilities ?? {}, null, 2),
+                '```',
+                '',
+                '> `metadata` 는 `auditConfig.ignoreGhsas` 로 드러내 놓고 넘긴 것까지 셉니다.',
+                '> 아래 목록이 실제로 남은 권고입니다.',
+                '',
+                rows || '(권고 없음)',
+              ].join('\n');
             } catch (_) {}
 
-            await github.rest.issues.create({
+            const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
+            const marker = '<!-- weekly-dependency-audit -->';
+            const body = [
+              `주간 의존성 감사에서 \`${{ steps.audit.outputs.level }}\` 이상 취약점이 발견되었습니다.`,
+              '',
+              summary,
+              '',
+              `- workflow run: ${runUrl}`,
+              marker,
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `[security] pnpm audit found vulnerabilities (${new Date().toISOString().slice(0, 10)})`,
-              body: [
-                '주간 의존성 감사에서 High/Critical 취약점이 발견되었습니다.',
-                '',
-                summary,
-                '',
-                `- workflow run: ${context.payload.repository.html_url}/actions/runs/${context.runId}`,
-              ].join('\n'),
-              labels: ['security', 'dependencies'],
+              state: 'open',
+              labels: 'security,dependencies',
+              per_page: 20,
             });
+            const open = existing.data.find((i) => (i.body ?? '').includes(marker));
 
-      # 3) PR에서 발견된 경우 PR 상태 fail로 전파
-      - name: Fail PR if audit found High/Critical
-        if: steps.audit.outputs.audit_failed == 'true' && github.event_name == 'pull_request'
+            if (open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: open.number,
+                body: `${new Date().toISOString().slice(0, 10)} 감사 결과입니다.\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[security] 주간 의존성 감사에서 취약점이 발견되었습니다`,
+                body,
+                labels: ['security', 'dependencies'],
+              });
+            }
+
+      # PR 에서 눈금을 넘었으면 상태를 fail 로 전파한다.
+      - name: Fail PR if audit found vulnerabilities
+        if: steps.audit.outcome == 'failure' && github.event_name == 'pull_request'
         run: |
-          echo "::error::pnpm audit reported High/Critical vulnerabilities."
+          echo "::error::pnpm audit 이 ${{ steps.audit.outputs.level }} 이상 취약점을 보고했습니다. 위 Audit 단계의 표를 보세요."
           exit 1

@@ -70,9 +70,7 @@ export class CursorPaginationService {
       const payload: CursorPayload = { id: lastItem.id };
       for (const cf of cursorFields) {
         payload[cf.field] = (lastItem as Record<string, unknown>)[cf.field] as
-          | string
-          | number
-          | Date;
+          string | number | Date;
       }
       nextCursor = encodeCursor(payload);
     }

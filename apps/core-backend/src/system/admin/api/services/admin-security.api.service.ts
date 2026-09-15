@@ -87,7 +87,7 @@ export class AdminSecurityApiService {
       };
     } catch (error) {
       this.logger.error('Error getting audit history:', error);
-      throw new Error('Failed to retrieve audit history');
+      throw new Error('Failed to retrieve audit history', { cause: error });
     }
   }
 
@@ -104,12 +104,10 @@ export class AdminSecurityApiService {
         throw new Error('Audit report not found');
       }
 
-      return this.getSecurityOverviewFromStoredData(
-        report as SecurityAuditReport,
-      );
+      return this.getSecurityOverviewFromStoredData(report);
     } catch (error) {
       this.logger.error('Error getting audit report by ID:', error);
-      throw new Error('Failed to retrieve audit report');
+      throw new Error('Failed to retrieve audit report', { cause: error });
     }
   }
 
@@ -127,9 +125,8 @@ export class AdminSecurityApiService {
 
       if (latestAuditReport) {
         // Use stored audit data
-        const securityOverview = this.getSecurityOverviewFromStoredData(
-          latestAuditReport as SecurityAuditReport,
-        );
+        const securityOverview =
+          this.getSecurityOverviewFromStoredData(latestAuditReport);
         return {
           statusCards: securityOverview.statusCards,
           vulnerabilities: securityOverview.vulnerabilities,
@@ -252,7 +249,9 @@ export class AdminSecurityApiService {
       };
     } catch (error) {
       this.logger.error('Error parsing stored audit data:', error);
-      throw new Error('Failed to parse stored security audit data');
+      throw new Error('Failed to parse stored security audit data', {
+        cause: error,
+      });
     }
   }
 
@@ -545,7 +544,9 @@ export class AdminSecurityApiService {
       this.logger.error('Security scan failed:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Security scan failed: ${errorMessage}`);
+      throw new Error(`Security scan failed: ${errorMessage}`, {
+        cause: error,
+      });
     }
   }
 
@@ -601,7 +602,9 @@ export class AdminSecurityApiService {
               'stdout is not valid JSON:',
               cleanOutput.substring(0, 200),
             );
-            throw new Error('pnpm audit did not return valid JSON');
+            throw new Error('pnpm audit did not return valid JSON', {
+              cause: error,
+            });
           }
         }
       }
@@ -609,7 +612,7 @@ export class AdminSecurityApiService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error('pnpm audit failed completely:', errorMessage);
-      throw new Error(`pnpm audit failed: ${errorMessage}`);
+      throw new Error(`pnpm audit failed: ${errorMessage}`, { cause: error });
     }
   }
 

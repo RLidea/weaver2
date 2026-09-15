@@ -58,6 +58,9 @@ export async function findUserQuery(
   return OffsetPaginationService.buildFromPrisma({
     prisma: prisma.user,
     options,
+    // 사용자 목록 UI 가 실제로 주는 정렬 컬럼만 연다 (user-table-filters 의
+    // SORT_OPTIONS). 그 외 컬럼으로 정렬해 값을 유추하는 것을 막는다.
+    sortableFields: ['createdAt', 'displayName'],
     where: {
       // deletedAt: null,
       ...searchConditions,

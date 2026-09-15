@@ -65,9 +65,10 @@
 #   lane:land 는 rebase 가 안 됐으면 거절해서 그 순서를 강제한다.
 #
 #   레인은 dev 로 착륙한다. CI(ci.yml)가 dev push 마다 전수 검사를 돈다.
-#   main 은 **배포 가지**다 — 서버의 cron 이 origin/main 을 폴링해 받아서 pm2 를
-#   재시작한다 (scripts/auto-deploy.sh). 그래서 main 에 push 하는 것은 곧 배포하는
-#   것이고, main 에는 PR 로만 들어간다.
+#   main 은 **배포 가지**다. 다만 weaver2 자신은 보일러플레이트라 붙은 서버가 없다 —
+#   auto-deploy.sh·setup.sh 는 파생 프로젝트가 서버에 얹는 틀이고, 그 틀이 origin/main
+#   을 폴링한다. 그러니 「main = 배포」는 파생 프로젝트에서 참이 되는 약속이고,
+#   여기서도 그 약속대로 main 에는 PR 로만 넣는다.
 #   ⚠ main push 에는 CI 가 없다 (배포만 책임지므로). dev→main PR 검사가 배포 직전의
 #     마지막 관문이다.
 #
@@ -741,13 +742,15 @@ cmd_brief() {
   printf '\n%s━━ 이 저장소는 병렬 레인으로 돌아갑니다 ━━%s\n\n' "$c_bld" "$c_off"
 
   # ── 지형
-  printf '  %s지형%s   편집 레인 ──→ %s ──(PR)──→ main ──→ 서버가 물어서 배포\n' \
+  printf '  %s지형%s   편집 레인 ──→ %s ──(PR)──→ main\n' \
     "$c_dim" "$c_off" "$INTEGRATION_BRANCH"
   printf '         %s레인은 %s 로 rebase·착륙하고, CI 는 %s push 마다 돕니다.%s\n' \
     "$c_dim" "$INTEGRATION_BRANCH" "$INTEGRATION_BRANCH" "$c_off"
-  printf '         %s⚠ main 은 배포 가지입니다 — push = 배포. CI 가 없으니 %s→main PR 검사가%s\n' \
-    "$c_ylw" "$INTEGRATION_BRANCH" "$c_off"
-  printf '         %s  배포 직전의 마지막 관문입니다.%s\n\n' "$c_ylw" "$c_off"
+  printf '         %s⚠ main 은 배포 가지입니다 (이 저장소는 보일러플레이트라 붙은 서버는%s\n' \
+    "$c_ylw" "$c_off"
+  printf '         %s  없습니다 — 파생 프로젝트에서 참이 됩니다). main push 에는 CI 가 없으니%s\n' \
+    "$c_ylw" "$c_off"
+  printf '         %s  %s→main PR 검사가 마지막 관문입니다.%s\n\n' "$c_ylw" "$INTEGRATION_BRANCH" "$c_off"
 
   # ── 내 자리
   if [ "$is_runtime" = yes ]; then
@@ -884,7 +887,7 @@ cmd_brief() {
   fi
   printf '    스키마 동시 변경      바꿀 레인만 pnpm lane:prep <이름> --isolated\n'
   printf '                          %s--with-backend 는 포트만 가릅니다 — DB 는 공용 그대로%s\n' "$c_dim" "$c_off"
-  printf '    git push origin main  main 은 배포 가지입니다 — push = 배포 (PR %s→main 으로만)\n\n' "$INTEGRATION_BRANCH"
+  printf '    git push origin main  main 은 배포 가지입니다 (PR %s→main 으로만)\n\n' "$INTEGRATION_BRANCH"
 
   printf '  %s자세한 규칙은 CLAUDE.md 「병렬 레인」 절.%s\n\n' "$c_dim" "$c_off"
 }

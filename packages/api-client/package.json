@@ -15,14 +15,15 @@
     "lint": "eslint src"
   },
   "devDependencies": {
-    "@types/react": "^19",
-    "eslint": "^9.32.0",
+    "@types/react": "^19.3.0",
+    "eslint": "^9.39.5",
     "openapi-typescript": "^7.13.0",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
     "next": "^16.0.0",
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

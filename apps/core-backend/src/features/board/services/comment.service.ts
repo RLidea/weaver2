@@ -123,7 +123,7 @@ export class CommentService {
       }
     }
 
-    return comment as CommentDto;
+    return comment;
   }
 
   async findCommentsByUserId(
@@ -131,8 +131,7 @@ export class CommentService {
     dto: KeysetRequestDto,
   ): Promise<KeysetResponseDto<CommentDto>> {
     return KeysetPaginationService.paginate<CommentDto>({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.comment as any,
+      prisma: this.prisma.comment,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
@@ -154,8 +153,7 @@ export class CommentService {
     if (!dto.includeDeleted) where.deletedAt = null;
 
     return KeysetPaginationService.paginate<CommentDto>({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.comment as any,
+      prisma: this.prisma.comment,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
@@ -170,7 +168,7 @@ export class CommentService {
   async findAllCommentsByPostId(postId: string): Promise<CommentDto[]> {
     await this.postService.findPostById(postId);
     const flat = await FindFlatCommentsByPostIdQuery(this.prisma, postId);
-    return buildCommentTree(flat as unknown as CommentDto[]);
+    return buildCommentTree(flat);
   }
 
   async findCommentsByPostIdWithKeyset(
@@ -181,8 +179,7 @@ export class CommentService {
 
     // 1. 루트 댓글만 keyset 페이지네이션 (children은 include 안 함)
     const result = await KeysetPaginationService.paginate<CommentDto>({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.comment as any,
+      prisma: this.prisma.comment,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
@@ -213,12 +210,12 @@ export class CommentService {
     if (!comment) {
       throw new NotFoundException(`Comment with ID '${id}' not found.`);
     }
-    return comment as CommentDto;
+    return comment;
   }
 
   async updateComment(id: string, dto: UpdateCommentDto): Promise<CommentDto> {
     const updatedComment = await UpdateCommentCommand(this.prisma, id, dto);
-    return updatedComment as CommentDto;
+    return updatedComment;
   }
 
   async deleteComment(id: string): Promise<void> {

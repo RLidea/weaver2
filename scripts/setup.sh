@@ -62,8 +62,11 @@ echo "🏗️  빌드 중..."
 pnpm build:core
 
 # PM2로 실행
+# 🔴 NODE_ENV=production 을 명시적으로 세운다. 안 그러면 apps/core-backend/.env 의
+#    NODE_ENV=development 가 dotenv 로 채워져 프로덕션에서 쿠키 secure·CSRF __Host-·
+#    스로틀이 조용히 꺼진다. (@nestjs/config 는 process.env 를 .env 보다 우선한다.)
 echo "🚀 PM2로 앱 시작 중..."
-pm2 start dist/apps/core-backend/main.js --name "$PM2_APP_NAME"
+NODE_ENV=production pm2 start dist/apps/core-backend/main.js --name "$PM2_APP_NAME"
 pm2 save
 pm2 startup  # 서버 재시작 시 자동 실행 등록
 

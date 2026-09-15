@@ -21,15 +21,13 @@ export class EmojiService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(includeInactive = false): Promise<EmojiDto[]> {
-    return FindAllEmojisQuery(this.prisma, { includeInactive }) as Promise<
-      EmojiDto[]
-    >;
+    return FindAllEmojisQuery(this.prisma, { includeInactive });
   }
 
   async findById(id: string): Promise<EmojiDto> {
     const emoji = await FindEmojiByIdQuery(this.prisma, id);
     if (!emoji) throw new NotFoundException(`Emoji with ID '${id}' not found.`);
-    return emoji as EmojiDto;
+    return emoji;
   }
 
   async create(dto: CreateEmojiDto): Promise<EmojiDto> {
@@ -50,7 +48,7 @@ export class EmojiService {
       unicode: dto.unicode ?? null,
       imageUrl: dto.imageUrl ?? null,
       isActive: dto.isActive ?? true,
-    }) as Promise<EmojiDto>;
+    });
   }
 
   async update(id: string, dto: UpdateEmojiDto): Promise<EmojiDto> {
@@ -60,7 +58,7 @@ export class EmojiService {
       ...(dto.unicode !== undefined && { unicode: dto.unicode }),
       ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
       ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-    }) as Promise<EmojiDto>;
+    });
   }
 
   async remove(id: string): Promise<void> {

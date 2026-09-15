@@ -197,9 +197,8 @@ describe('SignInService.refresh', () => {
 
   it('회전된 토큰 재제시 + grace window 초과 → 전 세션 무효화 후 401', async () => {
     const findMod = await import('../repositories/find-refresh-token.query');
-    const delMod = await import(
-      '../repositories/delete-refresh-tokens-by-user-id.command'
-    );
+    const delMod =
+      await import('../repositories/delete-refresh-tokens-by-user-id.command');
     const rotatedLongAgo = new Date(Date.now() - 60 * 1000); // 60초 전(grace 30초 초과)
     jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
       id: 'rt1',
@@ -210,7 +209,7 @@ describe('SignInService.refresh', () => {
     } as any);
     const revokeSpy = jest
       .spyOn(delMod, 'DeleteRefreshTokensByUserIdCommand')
-      .mockResolvedValueOnce({ count: 1 } as any);
+      .mockResolvedValueOnce({ count: 1 });
 
     await expect(service.refresh('tok')).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -220,9 +219,8 @@ describe('SignInService.refresh', () => {
 
   it('회전된 토큰 재제시 + grace window 이내 → 무효화 없이 401 (정상 경합)', async () => {
     const findMod = await import('../repositories/find-refresh-token.query');
-    const delMod = await import(
-      '../repositories/delete-refresh-tokens-by-user-id.command'
-    );
+    const delMod =
+      await import('../repositories/delete-refresh-tokens-by-user-id.command');
     const rotatedJustNow = new Date(Date.now() - 1000); // 1초 전
     jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
       id: 'rt1',
