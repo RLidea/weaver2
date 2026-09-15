@@ -1,0 +1,102 @@
+# push 전 게이트 — CI 가 무너지는 자리를 여기서 먼저 막는다.
+#
+# 【왜 pre-commit 이 아니라 pre-push 인가】
+# pre-commit 은 이미 secret 검사와 `pnpm test` 를 돌린다. 여기에 더 얹으면 커밋
+# 리듬이 깨진다. push 는 하루에 몇 번이고, **일이 내 기계를 떠나는 순간**이라
+# 게이트 자리로 맞다.
+#
+# 【무엇을 보는가 — 근거를 정직하게 적는다】
+# 이 저장소의 CI 실패 통계로는 이 게이트를 정당화할 수 없다. 실측: 최근 34회 중
+# 실패 4회인데 **넷 다 2026-05-08, CI 를 처음 세우던 날 main 에서** 났다. 그 뒤로는
+# 30/30 성공이다. 즉 여기엔 「자주 깨지는 자리」의 이력이 없다.
+#
+# 그래서 근거를 다른 데서 가져온다. 셋이다.
+#
+#  ① 2026-09-15 의존성 판올림에서 **두 번 놓칠 뻔했다.**
+#     - `openapi:types` 가 죽었다(@nestjs/swagger 11.4 의 exports 맵). 그런데
+#       typecheck 둘·lint·시험 133개·빌드 둘이 **전부 초록이었다.** 다른 게 다
+#       초록이라 오히려 더 안 봤고, 그대로 push 했으면 CI 의 openapi-types 잡
+#       (필수 의존)에서 처음 만났을 것이다.
+#     - react 가 두 벌로 갈려 프론트 빌드가 죽었다. 오류는 `No QueryClient set` 이라
+#       react 와 아무 상관 없어 보이는 자리에서 났다.
+#  ② 같은 뼈대의 파생 저장소(mayoube-studio)는 2026-08-15 기준 CI 49회 중 19회
+#     실패(39%)였고, 1위가 **OpenAPI types 15건**이었다. 이 저장소에 이력이 없는
+#     것은 아직 사람이 적게 지나갔기 때문이지, 이 자리가 안 깨지기 때문이 아니다.
+#  ③ weaver2 는 보일러플레이트다. 파생 프로젝트가 이 게이트를 물려받는다 —
+#     ②가 그 증거다.
+#
+# 【무엇을 안 보는가 — 조용히 건너뛰지 않으려고 적어 둔다】
+# 통합시험은 넣지 않았다. 이 저장소에는 전용 시험 DB 관례(.env.test)가 없어서
+# `pnpm test:integration` 이 **공용 개발 DB** 를 문다. 옆 레인이 도는 중에 push 하면
+# 남의 데이터를 밟는다 (CLAUDE.md 「레인에서 하지 말 것」). 전용 DB 관례가 생기면
+# 그때 여기 한 줄 늘린다.
+#
+# 【비용】 실측 약 29초 — react 0.2 · prisma 0.9 · typecheck 5.2 · openapi 7.3 ·
+# lint 15.5. 싼 것부터 돌려 빨리 틀리게 한다.
+#
+# 【급할 때】 git push --no-verify
+
+set -e
+
+fail() {
+  echo ""
+  echo "❌ $1"
+  shift
+  for line in "$@"; do echo "   $line"; done
+  echo ""
+  echo "   (급하면 git push --no-verify)"
+  exit 1
+}
+
+# react 가 두 벌이면 context 우주도 둘이라, provider 는 멀쩡히 있는데 프리렌더가
+# `No QueryClient set, use QueryClientProvider to set one` 으로 죽는다. 오류 문구가
+# 「provider 를 감싸라」고 말하므로, 없는 provider 를 찾아 한참 헤매게 된다.
+#
+# 어쩌다 갈리는가: apps/core-frontend 는 react 를 정확한 판으로 못박는데
+# packages/* 는 peerDependencies 에 `^19.0.0` 으로 적는다. 레지스트리에 새 판이
+# 나오면 peer 쪽만 그리로 올라간다. 지금은 `pnpm dedupe` 로 모아 둔 상태인데
+# 그건 **한 번의 정리**라, 다음에 판을 올리면 또 갈린다. 그래서 기계가 본다.
+#
+# 세는 법에 함정이 있다: 락파일은 같은 항목을 packages/snapshots 두 구획에 적으므로
+# 줄을 그냥 세면 **판이 하나여도 2가 나온다.** 괄호 앞까지 자르고 중복을 없애야 한다.
+echo "▸ react 단일 판"
+for pkg in react react-dom; do
+  n=$(grep -oE "^  ${pkg}@[0-9][^:(]*" pnpm-lock.yaml | sort -u | wc -l | tr -d ' ')
+  [ "$n" -eq 1 ] || fail \
+    "$pkg 이 ${n} 벌입니다 — 하나여야 합니다." \
+    "무엇이 깔렸는지 보기:" \
+    "  grep -oE '^  ${pkg}@[0-9][^:(]*' pnpm-lock.yaml | sort -u" \
+    "대개 판을 올린 뒤 모으는 것을 잊은 것입니다. 고치기: pnpm dedupe"
+done
+
+echo "▸ prisma format"
+pnpm prisma format --schema=apps/core-backend/prisma/schema --check >/dev/null 2>&1 || fail \
+  "Prisma 스키마 포맷이 어긋났습니다." \
+  "고치기: pnpm prisma format --schema=apps/core-backend/prisma/schema"
+
+echo "▸ typecheck"
+pnpm typecheck || fail "타입 오류가 있습니다 — 위 출력을 보세요."
+
+# 생성 타입은 손으로 갱신해야 하는데 그걸 잊기 쉽다. 여기서 **재생성하고 달라졌는지**
+# 본다. 달라졌으면 이미 고쳐진 상태이므로 사람이 할 일은 커밋뿐이다.
+# 2026-09-15 에 판올림이 생성 자체를 막은 적이 있어, 생성 실패와 드리프트를 나눠 본다.
+echo "▸ openapi 드리프트"
+GENERATED="packages/api-client/src/types/api-schema.d.ts"
+pnpm openapi:types >/dev/null 2>&1 || fail \
+  "OpenAPI 타입 생성이 실패했습니다." \
+  "직접 돌려 원인을 보세요: pnpm openapi:types"
+git diff --exit-code --quiet "$GENERATED" || fail \
+  "생성 타입이 최신이 아니라 고쳐두었습니다." \
+  "커밋에 담고 다시 push 해주세요:" \
+  "  $GENERATED"
+
+# 🔴 `pnpm lint` 가 아니라 `pnpm lint:check` 다. 루트의 lint 는 `eslint --fix` 라
+#    검사가 아니라 수정이고, 내가 안 건드린 파일까지 서식을 다시 쓴다 (CLAUDE.md).
+#    로컬 어디에도 lint 가 없어서 CI 의 Lint 잡이 유일한 관문이었는데,
+#    2026-09-15 prettier 3.6→3.9 판올림이 안 건드린 파일 넷을 빨갛게 만들었다.
+echo "▸ lint:check"
+pnpm lint:check >/dev/null 2>&1 || fail \
+  "lint 오류가 있습니다." \
+  "어디인지 보기: pnpm lint:check"
+
+echo "✅ push 게이트 통과"
