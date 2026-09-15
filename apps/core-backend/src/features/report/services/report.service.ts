@@ -52,7 +52,7 @@ export class ReportService {
       reporterId,
       ...dto,
     });
-    return report as ReportDto;
+    return report;
   }
 
   async findReports(dto: ReportsQueryDto) {
@@ -69,7 +69,7 @@ export class ReportService {
     if (!report) {
       throw new NotFoundException(`Report with ID '${id}' not found.`);
     }
-    return report as ReportDto;
+    return report;
   }
 
   async startReview(id: string, moderatorId: string): Promise<ReportDto> {
@@ -83,7 +83,7 @@ export class ReportService {
       status: 'REVIEWING',
       resolvedById: moderatorId,
     });
-    return updated as ReportDto;
+    return updated;
   }
 
   async resolveReport(
@@ -114,7 +114,7 @@ export class ReportService {
     };
     this.eventEmitter.emit('notification.created', event);
 
-    return updated as ReportDto;
+    return updated;
   }
 
   async dismissReport(
@@ -145,6 +145,6 @@ export class ReportService {
     };
     this.eventEmitter.emit('notification.created', event);
 
-    return updated as ReportDto;
+    return updated;
   }
 }

@@ -6,8 +6,7 @@ export async function getCsrfToken(
 ): Promise<{ token: string; cookies: string }> {
   const res = await request(app.getHttpServer()).get('/v1/auth/csrf-token');
   const setCookie = res.headers['set-cookie'] as unknown as
-    | string[]
-    | undefined;
+    string[] | undefined;
   const cookies = setCookie?.join('; ') ?? '';
   const token =
     (res.body as { data?: { csrfToken?: string } }).data?.csrfToken ?? '';
@@ -35,7 +34,6 @@ export async function getAuthCookies(
 ): Promise<string> {
   const res = await loginAs(app, email, password);
   const setCookie = res.headers['set-cookie'] as unknown as
-    | string[]
-    | undefined;
+    string[] | undefined;
   return setCookie?.join('; ') ?? '';
 }

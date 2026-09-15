@@ -22,7 +22,7 @@ export class NotificationService {
     link?: string;
   }): Promise<NotificationDto> {
     const notification = await CreateNotificationCommand(this.prisma, data);
-    return notification as NotificationDto;
+    return notification;
   }
 
   async findNotificationsByUserId(userId: string, cursor?: string, limit = 20) {

@@ -58,7 +58,7 @@ export class PostService {
       this.prisma,
       createData as Prisma.PostCreateInput,
     );
-    return post as PostDto;
+    return post;
   }
 
   async findAllPostsForAdmin(
@@ -162,7 +162,7 @@ export class PostService {
 
     return {
       ...paginated,
-      pinnedPosts: pinnedPosts as PostDto[],
+      pinnedPosts: pinnedPosts,
     };
   }
 
@@ -191,7 +191,7 @@ export class PostService {
       post.viewCount = post.viewCount + 1;
     }
 
-    return post as PostDto;
+    return post;
   }
 
   async incrementViewCount(postId: string): Promise<void> {
