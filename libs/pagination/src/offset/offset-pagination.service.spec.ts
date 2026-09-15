@@ -54,4 +54,27 @@ describe('OffsetPaginationService — 자유형 filter 차단', () => {
     expect(whereArg).toEqual({ status: 'ACTIVE' });
     expect(whereArg).not.toHaveProperty('passwordHash');
   });
+
+  it('allowlist 없으면 sort 가 orderBy 에 반영되지 않는다', async () => {
+    const spy = makePrismaSpy();
+    await OffsetPaginationService.buildFromPrisma({
+      prisma: spy.prisma,
+      options: { sort: 'passwordResetToken:asc' },
+      where: {},
+    });
+    // 허용 안 된 컬럼으로 정렬해 값을 유추하는 길을 막는다 — orderBy 는 비어야 한다.
+    expect(spy.calls[0].orderBy).toEqual({});
+  });
+
+  it('sort 는 sortableFields 에 있는 컬럼만 통과시킨다', async () => {
+    const spy = makePrismaSpy();
+    await OffsetPaginationService.buildFromPrisma({
+      prisma: spy.prisma,
+      options: { sort: 'createdAt:desc,twoFactorSecret:asc' },
+      where: {},
+      sortableFields: ['createdAt', 'displayName'],
+    });
+    // 허용된 createdAt 는 통과, 허용 안 된 twoFactorSecret 는 차단.
+    expect(spy.calls[0].orderBy).toEqual({ createdAt: 'desc' });
+  });
 });
