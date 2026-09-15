@@ -31,6 +31,16 @@ LOG_FILE="/var/log/weaver2-deploy.log"
 
 cd "$APP_DIR" || exit 1
 
+# 🔴 프로덕션임을 명시적으로 고정한다.
+#   이걸 안 하면 apps/core-backend/.env 의 NODE_ENV=development 가 dotenv 로
+#   process.env 에 채워져, 프로덕션에서 보안 동작이 조용히 꺼진다:
+#     · 인증 쿠키(access_token·refresh_token)·CSRF 쿠키의 secure 플래그
+#     · CSRF 쿠키의 __Host- 접두사
+#     · 스로틀(무차별 대입 방어)  ※ 스로틀은 THROTTLE_DISABLED 로도 이중 보호됨
+#   @nestjs/config 는 process.env 를 .env 보다 우선하므로, 여기서 export 하면
+#   .env 값이 무엇이든 production 이 이긴다. (docker 배포는 compose 가 이미 세운다)
+export NODE_ENV=production
+
 # 원격 최신 상태 조회
 git fetch origin "$BRANCH" --quiet
 
@@ -62,7 +72,9 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] 🏗️  빌드 중..." >> "$LOG_FILE"
 pnpm build:core >> "$LOG_FILE" 2>&1
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 🚀 PM2 재시작 중..." >> "$LOG_FILE"
-pm2 restart "$PM2_APP_NAME" >> "$LOG_FILE" 2>&1
+# --update-env: pm2 restart 는 기본적으로 처음 start 때 잡은 env 를 재사용한다.
+# 위에서 export 한 NODE_ENV=production 을 실제로 반영하려면 이 플래그가 필요하다.
+pm2 restart "$PM2_APP_NAME" --update-env >> "$LOG_FILE" 2>&1
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ 배포 완료" >> "$LOG_FILE"
 echo "======================================" >> "$LOG_FILE"
