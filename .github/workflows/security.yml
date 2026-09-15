@@ -12,6 +12,20 @@ on:
       - 'apps/*/package.json'
       - 'libs/*/package.json'
 
+# 🔴 이 블록이 없으면 이슈 생성이 403 으로 막힌다 — 그리고 조용히 막힌다.
+#
+# 이 저장소는 지금 기본 토큰 권한이 write 라 명시 없이도 이슈가 열리고 있다(#1~#19).
+# 하지만 그건 **운**이다. 같은 워크플로를 물려받은 mayoube-studio 는 기본값이
+# read-only 여서, 2026-08-03~09-14 **일곱 주 연속** 감사가 제때 돌고 취약점을 정확히
+# 세고 이슈 본문까지 다 만든 뒤 마지막 한 걸음에서 죽었다:
+#   RequestError [HttpError]: Resource not accessible by integration (403)
+# 경보는 일곱 번 울렸고 일곱 번 다 문 앞에서 버려졌다 — 아무도 몰랐다.
+#
+# 저장소/org 기본값이 바뀌면 여기도 같은 병에 걸린다. 운에 맡기지 않고 명시한다.
+permissions:
+  contents: read
+  issues: write
+
 env:
   HUSKY: '0'
 
