@@ -19,10 +19,33 @@ allowBuilds:
   '@prisma/client': false
   '@prisma/engines': false
   '@scarf/scarf': false
-  '@swc/core': false
   bcrypt: false
   core-js-pure: false
   esbuild: false
   prisma: false
   sharp: false
   unrs-resolver: false
+
+# 남이 끌고 오는 취약 패키지를 여기서 못박는다 (2026-09-15).
+#
+# 🔴 **먼저 `pnpm update -r --depth Infinity` 를 돌려 보고, 그래도 남는 것만 적는다.**
+#    이 저장소에서 실측: 락파일을 당기는 것만으로 권고 106건이 19건이 되었다
+#    (critical 1 포함). validator·js-yaml·lodash·qs·path-to-regexp·body-parser·
+#    fast-xml-parser·file-type·fflate·jws 는 **전부 override 없이 닫혔다** —
+#    상위가 이미 `^` 로 고친 판을 허용하는데 락파일만 낡아서 안 받고 있었을 뿐이다.
+#    override 는 남의 트리를 강제로 비트는 일이라, 상위가 판을 올릴 때 발목을 잡는다.
+#
+# 🔴 **오른쪽에 상한을 둔다 (`^`).** `>=2.3.0` 처럼 열어두면 pnpm 이 최신을 고르고
+#    그 최신이 다음 메이저일 수 있다. audit 은 초록이 되지만 그건 취약점을 고친 것이
+#    아니라 판을 갈아엎은 것이다. (mayoube-studio 에서 실제로 밟았다 — `>=` 로 적었더니
+#    jws 3→4, fast-uri 3→4, js-yaml 4→5 로 갈아끼워졌다.)
+#
+# 지울 수 있는 때: 그 줄이 가리키는 상위가 스스로 판을 올려 audit 에 안 잡히게 되면.
+# 확인법: 한 줄 지우고 `pnpm install && pnpm audit` 로 다시 나오는지 본다.
+overrides:
+  # 위에서 안 내려오는 유일한 것. @nestjs/platform-express 가 multer 를 `^` 없이
+  # **못으로 박는다** — 11.1.5→2.0.2, 11.2.4(v11 마지막)→2.2.0, 12.x→2.3.0.
+  # 즉 NestJS 11 에 머무는 한 위에서 절대 안 내려온다. 그리고 이건 FileInterceptor 가
+  # 실제로 쓰는 그 multer 라, 루트 dependencies 의 multer 를 올려도 해결되지 않는다.
+  # 지울 신호: NestJS 12 로 올라가면 (12.x 가 2.3.0 을 물고 온다).
+  multer@<2.3.0: ^2.4.0

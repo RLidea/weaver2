@@ -3,7 +3,10 @@
 import { useCallback } from 'react';
 import { notificationApi } from '../api/notification.api';
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+// TS 5.7 부터 TypedArray 가 버퍼 종류를 제네릭으로 받는다. 표기를 그냥 `Uint8Array`
+// 로 두면 기본값 `Uint8Array<ArrayBufferLike>` 가 되어 BufferSource(= ArrayBufferView
+// <ArrayBuffer>)에 안 들어간다 — pushManager.subscribe 의 applicationServerKey 자리다.
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
