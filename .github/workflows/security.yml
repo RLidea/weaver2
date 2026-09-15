@@ -86,7 +86,7 @@ jobs:
       # 일곱 주가 밀려 이슈가 일곱 개 쌓이면 그것도 아무도 안 보게 된다.
       - name: Open or update issue on vulnerabilities
         if: steps.audit.outcome == 'failure' && github.event_name == 'schedule'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
