@@ -44,8 +44,14 @@ allowBuilds:
 # 확인법: 한 줄 지우고 `pnpm install && pnpm audit` 로 다시 나오는지 본다.
 overrides:
   # 위에서 안 내려오는 유일한 것. @nestjs/platform-express 가 multer 를 `^` 없이
-  # **못으로 박는다** — 11.1.5→2.0.2, 11.2.4(v11 마지막)→2.2.0, 12.x→2.3.0.
-  # 즉 NestJS 11 에 머무는 한 위에서 절대 안 내려온다. 그리고 이건 FileInterceptor 가
-  # 실제로 쓰는 그 multer 라, 루트 dependencies 의 multer 를 올려도 해결되지 않는다.
-  # 지울 신호: NestJS 12 로 올라가면 (12.x 가 2.3.0 을 물고 온다).
+  # **못으로 박는다.** 실측(2026-09-15):
+  #   11.1.5 → 2.0.2 · 11.2.3 → 2.2.0 · 11.2.4 → 2.2.0 · 12.0.0 → 2.2.0 · 12.0.1 → 2.2.0
+  # 그리고 이건 FileInterceptor 가 실제로 쓰는 그 multer 라, 루트 dependencies 의
+  # multer 를 올려도 해결되지 않는다.
+  #
+  # 🔴 「NestJS 12 로 올라가면 지울 수 있다」가 아니다. 처음에 그렇게 적었는데 틀렸다 —
+  #    12.0.1 도 2.2.0 을 문다. 권고가 요구하는 것은 >=2.3.0 이므로 12 에서도 필요하다.
+  #
+  # 지울 신호: @nestjs/platform-express 가 multer >=2.3.0 을 무는 판을 내면.
+  # 확인법: npm view @nestjs/platform-express dependencies.multer
   multer@<2.3.0: ^2.4.0
