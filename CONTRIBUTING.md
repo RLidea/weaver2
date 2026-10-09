@@ -26,7 +26,7 @@
 
 | 항목 | 버전 |
 |------|------|
-| Node | `>=22` (`.nvmrc` 참조) |
+| Node | `>=24.9` (`.nvmrc` 참조) |
 | pnpm | `>=11` (`packageManager` 필드 참조) |
 | PostgreSQL | 16+ |
 
