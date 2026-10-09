@@ -55,3 +55,21 @@ overrides:
   # 지울 신호: @nestjs/platform-express 가 multer >=2.3.0 을 무는 판을 내면.
   # 확인법: npm view @nestjs/platform-express dependencies.multer
   multer@<2.3.0: ^2.4.0
+
+  # packages/* 가 peer 로만 받는 next 는 앱과 다른 @types/node 조합으로 따로 잠겨,
+  # 앱의 next 를 올려도 낡은 판(16.3.5 · sharp 0.35.4)이 락파일에 남는다 (2026-10-09 실측).
+  # `pnpm update -r --depth Infinity next sharp` 로도 안 내려왔다.
+  # 지울 신호: 이 두 줄을 지우고 `pnpm install && pnpm audit --prod` 에 next·sharp 가 안 나오면.
+  next@<16.3.8: 16.3.8
+  sharp@<0.35.5: ^0.35.5
+
+# 고칠 판이 아직 없어 «드러내 놓고» 넘기는 권고 (2026-10-09). 둘 다 dev 도구 전용이고
+# 운영 번들·서버에는 실리지 않는다. audit-gate 가 「넘긴 것」으로 따로 세어 보여 준다.
+auditConfig:
+  ignoreGhsas:
+    # braces — 권고의 패치판 >=3.0.4 가 npm 에 아직 없다 (최신 3.0.3).
+    # jest 29 → micromatch 4 가 문다. 지울 신호: npm view braces versions 에 3.0.4 가 생기면.
+    - GHSA-vfj7-8cjw-p6xm
+    # webpack-dev-middleware — 패치는 7.4.5 인데 @storybook/builder-webpack5 10.6.x 가 ^6 을 문다.
+    # Storybook 로컬 개발 서버에서만 돈다. 지울 신호: 빌더가 ^7 을 물면.
+    - GHSA-g84c-rxfj-3j2c
