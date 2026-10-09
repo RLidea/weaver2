@@ -288,6 +288,12 @@ pnpm db:migrate
 | **Integration** | `apps/core-backend/test/integration/**` | `pnpm test:integration` |
 | **E2E (Playwright)** | `apps/core-frontend/e2e/**` | `pnpm --filter core-frontend e2e` |
 
+> **jest 를 직접 부를 때** — NestJS 12 는 ESM 전용이라, CJS 인 이 앱의 jest 는 Node 24.9+ 와
+> `NODE_OPTIONS=--experimental-vm-modules` 로만 그것을 불러온다. 위 스크립트에는 이미 들어 있다.
+> `npx jest …` 를 손으로 칠 때 빠뜨리면 `Must use import to load ES Module` 으로 스위트가 통째로 죽는다.
+> 이 방식에서 `jest.mock` 은 CJS 모듈에만 듣는다 — `@nestjs/*` 같은 ESM 패키지는 목킹하지 말고
+> `Test.createTestingModule` 의 provider 교체로 갈음한다.
+
 ### 어떤 걸 작성?
 
 - **Unit** — 순수 로직, 분기, 검증, 변환 (DB 의존성 없는 것)
