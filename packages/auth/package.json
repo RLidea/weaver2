@@ -12,7 +12,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@weaver2/api-client": "workspace:*",
     "@weaver2/ui": "workspace:*",
-    "react-hook-form": "^7.88.0",
+    "react-hook-form": "^7.89.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

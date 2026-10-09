@@ -41,9 +41,9 @@ jobs:
       # 🔵 Actions 판은 손으로 올리지 않는다 — .github/dependabot.yml 이 월간으로
       #    PR 을 올리고 CI 가 검증한다. github-script 같은 건 메이저가 갈리면
       #    이 워크플로의 이슈 생성이 조용히 깨질 수 있어서, 검증 없이 올리지 않는다.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -86,7 +86,7 @@ jobs:
       # 일곱 주가 밀려 이슈가 일곱 개 쌓이면 그것도 아무도 안 보게 된다.
       - name: Open or update issue on vulnerabilities
         if: steps.audit.outcome == 'failure' && github.event_name == 'schedule'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
