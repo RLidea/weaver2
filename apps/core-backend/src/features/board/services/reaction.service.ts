@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@weaver2/prisma';
 import { PrismaService } from '@weaver2/prisma';
 import { PostReactionsResponseDto } from '../dto/post-reactions-response.dto';
 import {

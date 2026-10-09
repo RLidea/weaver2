@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { User } from '@prisma/client';
+import { User } from '@weaver2/prisma';
 import { STORAGE_PROVIDER, StorageProvider } from '@weaver2/upload';
 
 import { findUserQuery } from '../repositories/find-user.query';

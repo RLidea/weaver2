@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User } from '@weaver2/prisma';
 
 declare global {
   namespace Express {

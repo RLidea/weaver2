@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { PostStatus } from '@prisma/client';
+import { PostStatus } from '@weaver2/prisma';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';

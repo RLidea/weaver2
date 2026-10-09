@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@weaver2/prisma';
 
 export async function CreateCommentCommand(
   prisma: PrismaClient,

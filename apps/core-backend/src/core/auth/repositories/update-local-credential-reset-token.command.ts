@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { hashToken } from '../utils/auth-crypto.util';
 
 /** 원문 재설정 토큰을 받아 해시로 저장한다(원문은 이메일 링크로만 전달). */

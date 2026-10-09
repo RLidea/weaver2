@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 
 export async function FindCommentByIdQuery(prisma: PrismaClient, id: string) {
   return prisma.comment.findUnique({

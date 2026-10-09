@@ -30,7 +30,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'apps/core-frontend/**'],
+    // libs/prisma/src/generated: Prisma 7 생성물 (커밋하지 않는다 — pnpm db:generate)
+    ignores: [
+      'eslint.config.mjs',
+      'apps/core-frontend/**',
+      'libs/prisma/src/generated/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -57,7 +62,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/return-await': ['error', 'in-try-catch']
+      '@typescript-eslint/return-await': ['error', 'in-try-catch'],
     },
   },
 );
