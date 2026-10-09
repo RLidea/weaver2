@@ -60,6 +60,11 @@ describe('StaticController 경로 순회 방어 (통합)', () => {
     expect(res.text ?? '').not.toContain('root:x:0:0');
   });
 
+  it('base 디렉토리 자신으로 풀리는 경로는 500 이 아니라 404 다', async () => {
+    const res = await request(server()).get('/static/shared/%2e/%2e');
+    expect(res.status).toBe(404);
+  });
+
   // 회귀 방지: 정상 자원은 여전히 서빙돼야 한다 (고침이 정상 경로를 막으면 안 된다).
   it('정상 자원은 그대로 서빙한다', async () => {
     const res = await request(server()).get(
