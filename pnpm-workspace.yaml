@@ -16,6 +16,7 @@ packages:
 # 특정 패키지의 빌드를 열어야 하면 해당 항목만 true 로 바꾼다(공급망 영향 검토 후).
 allowBuilds:
   '@nestjs/core': false
+  '@parcel/watcher': false
   '@prisma/client': false
   '@prisma/engines': false
   '@scarf/scarf': false
