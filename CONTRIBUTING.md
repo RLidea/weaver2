@@ -64,7 +64,7 @@ git switch -c <type>/<short-description>
 
 - **자주 커밋** — 의미 단위로 작은 커밋 권장 (5분~30분 단위가 이상적)
 - **로컬 검증** — pre-commit 훅이 자동으로 secret 차단 + `pnpm test` 실행
-- **prisma 변경** 후 → `pnpm db:generate`로 타입 동기화 (또는 자동으로 다음 install 시 실행)
+- **prisma 변경** 후 → `pnpm db:generate`로 타입 동기화 (install 이 대신 해 주지 않는다 — 생성물은 `libs/prisma/src/generated`, 커밋 안 함)
 
 ### 3️⃣ 푸시 + PR
 
@@ -235,7 +235,7 @@ push/PR
 2. **test-unit** — 로컬에서 `pnpm test`로 동일 실행
 3. **test-integration** — `.env`의 SMTP/VAPID/JWT 등 채워져 있는지 확인. 로컬에서 `pnpm test:integration:run`
 4. **build-web** — `NEXT_PUBLIC_API_URL` 등 빌드 시 필요한 env 확인
-5. **prisma-check** — `pnpm prisma format --schema=apps/core-backend/prisma/schema` 실행 후 재커밋
+5. **prisma-check** — `pnpm prisma format` 실행 후 재커밋 (스키마 경로는 `prisma.config.ts` 가 준다)
 
 ---
 
@@ -257,7 +257,7 @@ pnpm db:migrate
 | 환경 | 명령 |
 |------|------|
 | **로컬 개발** | `pnpm db:migrate` (인터랙티브) |
-| **로컬 검증** | `pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema` |
+| **로컬 검증** | `pnpm db:deploy` |
 | **CI/staging/prod** | `prisma migrate deploy` (자동) |
 | **로컬 초기화** | `pnpm db:reset` ⚠️ 데이터 모두 삭제 |
 
@@ -376,7 +376,7 @@ prisma.$transaction = jest.fn((cb) => cb(prisma));
 → `prisma format` 자동 적용 후 재커밋:
 
 ```bash
-pnpm prisma format --schema=apps/core-backend/prisma/schema
+pnpm prisma format
 git add apps/core-backend/prisma/schema/
 git commit -m "chore(db): apply prisma format"
 ```

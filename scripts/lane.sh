@@ -799,7 +799,7 @@ cmd_brief() {
     printf '         %s  「없다」가 아니라 「모른다」입니다 — 뒤처진 채로 돌 수 있습니다%s\n' "$c_ylw" "$c_off"
   elif [ "$pend" != 0 ]; then
     printf '         %sDB(%s)에 안 올라간 마이그레이션 %s개%s\n' "$c_ylw" "$my_db" "$pend" "$c_off"
-    printf '         %s  pnpm prisma migrate deploy --schema apps/core-backend/prisma/schema%s\n' "$c_ylw" "$c_off"
+    printf '         %s  pnpm db:deploy%s\n' "$c_ylw" "$c_off"
     printf '         %s  그다음 pnpm db:generate — 클라이언트는 워크트리마다 따로입니다%s\n' "$c_dim" "$c_off"
   fi
   printf '\n'
