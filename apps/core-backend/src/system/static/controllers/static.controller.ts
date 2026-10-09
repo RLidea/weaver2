@@ -41,6 +41,8 @@ function safeAssetPath(base: string, ...segments: string[]): string {
 // 아래(레인)에 있으면 정상 자원까지 404 가 된다. root 를 주면 그 아래 부분만 본다.
 function sendAsset(res: Response, base: string, ...segments: string[]) {
   const filePath = safeAssetPath(base, ...segments);
+  // base 자신이면 relative() 가 '' 라 sendFile 이 500 을 낸다 — 디렉토리는 자원이 아니다
+  if (filePath === base) throw new NotFoundException();
   setStaticContentType(res, filePath);
   return res.sendFile(relative(base, filePath), { root: base });
 }
