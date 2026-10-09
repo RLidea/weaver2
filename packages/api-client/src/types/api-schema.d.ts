@@ -8997,18 +8997,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example ok */
-                        status?: string;
+                        /**
+                         * @example ok
+                         * @enum {string}
+                         */
+                        status?: "ok" | "degraded";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9016,7 +9023,10 @@ export interface operations {
                         /** @example {} */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9024,13 +9034,17 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9049,18 +9063,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example error */
-                        status?: string;
+                        /**
+                         * @example error
+                         * @enum {string}
+                         */
+                        status?: "error" | "shutting_down";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9069,13 +9090,17 @@ export interface operations {
                          * @example {
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9083,17 +9108,22 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       },
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9123,18 +9153,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example ok */
-                        status?: string;
+                        /**
+                         * @example ok
+                         * @enum {string}
+                         */
+                        status?: "ok" | "degraded";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9142,7 +9179,10 @@ export interface operations {
                         /** @example {} */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9150,13 +9190,17 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9175,18 +9219,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example error */
-                        status?: string;
+                        /**
+                         * @example error
+                         * @enum {string}
+                         */
+                        status?: "error" | "shutting_down";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9195,13 +9246,17 @@ export interface operations {
                          * @example {
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9209,17 +9264,22 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       },
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9249,18 +9309,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example ok */
-                        status?: string;
+                        /**
+                         * @example ok
+                         * @enum {string}
+                         */
+                        status?: "ok" | "degraded";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9268,7 +9335,10 @@ export interface operations {
                         /** @example {} */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9276,13 +9346,17 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9301,18 +9375,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example error */
-                        status?: string;
+                        /**
+                         * @example error
+                         * @enum {string}
+                         */
+                        status?: "error" | "shutting_down";
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       }
                          *     }
                          */
                         info?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9321,13 +9402,17 @@ export interface operations {
                          * @example {
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         error?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -9335,17 +9420,22 @@ export interface operations {
                         /**
                          * @example {
                          *       "database": {
-                         *         "status": "up"
+                         *         "status": "up",
+                         *         "responseTime": 12
                          *       },
                          *       "redis": {
                          *         "status": "down",
-                         *         "message": "Could not connect"
+                         *         "message": "Could not connect",
+                         *         "responseTime": 3005
                          *       }
                          *     }
                          */
                         details?: {
                             [key: string]: {
-                                status: string;
+                                /** @enum {string} */
+                                status: "up" | "degraded" | "down";
+                                /** @description Time the health indicator took to respond, in ms */
+                                responseTime?: number;
                             } & {
                                 [key: string]: unknown;
                             };
