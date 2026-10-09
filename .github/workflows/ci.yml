@@ -40,7 +40,7 @@ jobs:
     name: Checks (lint·openapi·prisma·unit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -63,7 +63,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -107,11 +107,11 @@ jobs:
       # 빌드 prerender 에서 ApiClient 모듈이 평가되므로 더미 URL 주입.
       NEXT_PUBLIC_API_URL: http://localhost:4000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -125,7 +125,7 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
       - name: Cache .next
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: apps/core-frontend/.next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('apps/core-frontend/package.json', 'apps/core-frontend/**/*.[jt]s', 'apps/core-frontend/**/*.[jt]sx') }}
@@ -171,11 +171,11 @@ jobs:
       SMTP_PASS: ci-test-password
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -232,11 +232,11 @@ jobs:
       API_URL: http://localhost:4000
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -261,7 +261,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: pw-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
