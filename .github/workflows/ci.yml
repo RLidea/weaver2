@@ -65,7 +65,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install (frozen lockfile, no scripts)
@@ -94,6 +94,8 @@ jobs:
 
       # --ci: watch off, --maxWorkers=2: GitHub-hosted runner CPU 매칭
       - name: Unit tests
+        env:
+          NODE_OPTIONS: --experimental-vm-modules --no-warnings=ExperimentalWarning
         run: npx jest --config apps/core-backend/jest.config.js --ci --maxWorkers=2
 
   # ── 빌드 (dev push·main PR 둘 다) ─────────────────────────────────
@@ -111,7 +113,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install (frozen lockfile, no scripts)
@@ -175,7 +177,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install (frozen lockfile, no scripts)
@@ -188,6 +190,8 @@ jobs:
         run: pnpm prisma migrate deploy
 
       - name: Run integration tests
+        env:
+          NODE_OPTIONS: --experimental-vm-modules --no-warnings=ExperimentalWarning
         run: npx jest --config apps/core-backend/test/jest-integration.json --no-coverage --ci --maxWorkers=2
 
   # ── E2E (dev→main PR 에서만) ──────────────────────────────────────
@@ -236,7 +240,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install (frozen lockfile, no scripts)
