@@ -61,9 +61,10 @@ COPY package.json pnpm-lock.yaml ./
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy Prisma schema and generate client for production
+# Prisma 7: 생성된 클라이언트(libs/prisma/src/generated)는 webpack 번들(dist)에 함께 들어가므로
+# 여기서 다시 generate 하지 않는다. 스키마·마이그레이션·prisma.config.ts 는 migrate deploy 용으로 둔다.
+COPY prisma.config.ts ./
 COPY apps/${APP_NAME}/prisma ./apps/${APP_NAME}/prisma
-RUN pnpm db:generate
 
 # Copy built application
 COPY --from=build /app/dist ./dist

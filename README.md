@@ -133,10 +133,15 @@ pnpm run init
 cp apps/core-backend/.env.example apps/core-backend/.env
 cp apps/core-frontend/.env.example apps/core-frontend/.env.local
 pnpm install
-pnpm db:generate   # Prisma 클라이언트 생성
-pnpm db:migrate    # 마이그레이션
+pnpm db:generate   # Prisma 클라이언트 생성 → libs/prisma/src/generated (커밋 안 함)
+pnpm db:migrate    # 마이그레이션 (+ generate)
 pnpm db:seed       # 시드 (권한 그룹, 기본 계정, 이메일 템플릿 등)
 ```
+
+> Prisma 7: CLI 설정은 루트의 `prisma.config.ts`(스키마·마이그레이션 경로·시드 명령·`DATABASE_URL`)가 갖고,
+> `apps/core-backend/.env` 도 거기서 읽습니다 (셸에 이미 있는 변수가 우선). 앱 코드는 Prisma 타입·클라이언트를
+> `@prisma/client` 가 아니라 **`@weaver2/prisma`** 에서 가져옵니다. `migrate dev`/`reset` 은 더 이상 시드를
+> 대신 돌리지 않으므로 스크립트(`db:migrate`·`db:reset`)가 generate·seed 를 명시적으로 잇습니다.
 
 ### 3. 환경 변수 확인
 
@@ -307,9 +312,9 @@ pnpm build            # 백엔드 프로덕션 빌드
 
 # 데이터베이스
 pnpm db:generate      # Prisma 클라이언트 생성
-pnpm db:migrate       # 마이그레이션 실행
+pnpm db:migrate       # 마이그레이션 실행 (+ generate)
 pnpm db:seed          # 시드 데이터 생성
-pnpm db:reset         # DB 초기화 + 시드
+pnpm db:reset         # DB 초기화 + generate + 시드
 
 # 코드 품질
 pnpm lint             # ESLint 검사

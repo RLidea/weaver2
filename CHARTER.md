@@ -159,7 +159,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 ## 8. 알려진 한계
 
 - 단일 언어 (`ko`), 단일 테넌트
-- DB 커넥션 풀링은 기본값 — 본격 운영 시 PgBouncer 도입. Prisma 자체 풀 한도는 `DATABASE_URL` 쿼리 파라미터로 즉시 조절 가능 (`?connection_limit=10&pool_timeout=20`). `.env.example` 주석 참고.
+- DB 커넥션 풀링은 기본값 — 본격 운영 시 PgBouncer 도입. Prisma 7 은 드라이버 어댑터(node-pg 풀)를 쓰므로 URL 의 `connection_limit`·`pool_timeout` 은 읽히지 않는다 — 풀 크기는 `DATABASE_POOL_MAX`(기본 10)로 조절한다. `.env.example` 주석 참고.
 - 모니터링 미연동 — 프로젝트별 결정
 - `console.*` 잔존은 모두 **의도된 사용** — 시드 CLI 로깅(`prisma/seed/*`), React error boundary(`apps/core-frontend/src/app/error.tsx`), 빌드 타임 환경변수 경고(`server-api.ts`). 백엔드 서비스 코드는 NestJS `Logger`로 통일.
 - DB raw 쿼리에 테이블·컬럼 식별자 직접 박힘 — **의도된 trade-off**. Prisma 파라미터 바인딩은 식별자에 못 쓰므로 상수화하면 `${Prisma.raw(...)}` 보일러플레이트가 폭증. `@@map`/필드명 변경 빈도가 매우 낮으므로 박힌 채로 유지. 위치: `features/search/repositories/`, `features/board/services/reaction.service.ts`, `infrastructure/analytics/`.
