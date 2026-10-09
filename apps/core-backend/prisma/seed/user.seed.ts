@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { logSeedResult } from './seed-logger';
 

@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@weaver2/prisma';
 
 type Db = PrismaClient | Prisma.TransactionClient;
 

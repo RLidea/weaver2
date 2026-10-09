@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 
 export async function FindUserByIdQuery(prisma: PrismaClient, id: string) {
   return prisma.user.findFirst({

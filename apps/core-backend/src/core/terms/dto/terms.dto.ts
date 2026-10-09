@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TermsAndConditions } from '@prisma/client';
+import { TermsAndConditions } from '@weaver2/prisma';
 
 export class TermsDto {
   @ApiProperty()

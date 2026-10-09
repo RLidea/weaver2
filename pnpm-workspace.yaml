@@ -64,6 +64,18 @@ overrides:
   next@<16.3.8: 16.3.8
   sharp@<0.35.5: ^0.35.5
 
+  # prisma 7.10 CLI 가 못으로 박는 둘 (2026-10-09). @prisma/client 가 prisma 를 peer 로 물어
+  # audit 은 「프로덕션」으로 세지만, 둘 다 CLI(설정 병합·prisma dev 의 MySQL)에서만 돌고
+  # 앱 번들·서버 런타임에는 실리지 않는다.
+  #   mysql2 — prisma 가 3.15.3 을 박는다. 패치는 >=3.22.0, 같은 메이저라 그대로 올린다.
+  #   deepmerge-ts — @prisma/config 가 7.1.5 를 박는다. 패치는 8 뿐이다. 8 의 깨지는 변경은
+  #     Map 값 병합·타입 이름 변경·deepmergeInto 인데, @prisma/config 는 deepmerge() 로
+  #     평범한 설정 객체만 합친다 — generate·validate·migrate deploy·db seed 로 확인했다.
+  # 지울 신호: npm view prisma@<새판> dependencies.mysql2 가 >=3.22.0 이고
+  #   npm view @prisma/config@<새판> dependencies 의 deepmerge-ts 가 >=8 이면.
+  mysql2@<3.22.0: ^3.22.0
+  deepmerge-ts@<8.0.0: ^8.0.0
+
 # 고칠 판이 아직 없어 «드러내 놓고» 넘기는 권고 (2026-10-09). 둘 다 dev 도구 전용이고
 # 운영 번들·서버에는 실리지 않는다. audit-gate 가 「넘긴 것」으로 따로 세어 보여 준다.
 auditConfig:

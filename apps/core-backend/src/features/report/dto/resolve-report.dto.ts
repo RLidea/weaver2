@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ReportAction } from '@prisma/client';
+import { ReportAction } from '@weaver2/prisma';
 
 export class ResolveReportDto {
   @ApiProperty({ enum: ReportAction, description: '취한 조치' })

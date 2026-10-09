@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
-import { ReportStatus, ReportTarget } from '@prisma/client';
+import { ReportStatus, ReportTarget } from '@weaver2/prisma';
 
 export class ReportsQueryDto {
   @ApiPropertyOptional({ enum: ReportStatus })

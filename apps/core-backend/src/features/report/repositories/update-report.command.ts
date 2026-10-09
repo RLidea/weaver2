@@ -4,7 +4,7 @@ import {
   ReportStatus,
   ReportAction,
   ReportTarget,
-} from '@prisma/client';
+} from '@weaver2/prisma';
 
 type ReportDb = PrismaClient | Prisma.TransactionClient;
 

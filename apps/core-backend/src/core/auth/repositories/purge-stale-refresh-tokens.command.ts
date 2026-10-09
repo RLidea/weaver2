@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 
 /** 회전된 토큰의 재사용 감지 유예 기간(일). 이보다 오래된 회전 토큰은 정리 대상. */
 export const ROTATED_TOKEN_RETENTION_DAYS = 7;

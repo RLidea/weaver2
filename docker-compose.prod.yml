@@ -32,7 +32,7 @@ services:
     restart: always
     command: >
       sh -c "
-        npx prisma migrate deploy --schema=apps/${DOCKER_APP_TARGET:-core}/prisma/schema.prisma &&
+        npx prisma migrate deploy &&
         node dist/apps/${DOCKER_APP_TARGET:-core}/main
       "
     environment:

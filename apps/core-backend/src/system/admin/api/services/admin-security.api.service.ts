@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@weaver2/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createHash } from 'crypto';

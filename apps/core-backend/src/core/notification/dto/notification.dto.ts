@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { NotificationType } from '@prisma/client';
+import { NotificationType } from '@weaver2/prisma';
 
 export class NotificationDto {
   @ApiProperty({ description: '알림 ID' })

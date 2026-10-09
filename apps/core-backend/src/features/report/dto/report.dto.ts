@@ -4,7 +4,7 @@ import {
   ReportReason,
   ReportStatus,
   ReportAction,
-} from '@prisma/client';
+} from '@weaver2/prisma';
 
 export class ReportDto {
   @ApiProperty()

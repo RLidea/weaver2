@@ -70,9 +70,9 @@ for pkg in react react-dom; do
 done
 
 echo "▸ prisma format"
-pnpm prisma format --schema=apps/core-backend/prisma/schema --check >/dev/null 2>&1 || fail \
+pnpm prisma format --check >/dev/null 2>&1 || fail \
   "Prisma 스키마 포맷이 어긋났습니다." \
-  "고치기: pnpm prisma format --schema=apps/core-backend/prisma/schema"
+  "고치기: pnpm prisma format"
 
 echo "▸ typecheck"
 pnpm typecheck || fail "타입 오류가 있습니다 — 위 출력을 보세요."

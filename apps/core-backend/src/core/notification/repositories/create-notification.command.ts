@@ -1,4 +1,4 @@
-import { PrismaClient, NotificationType } from '@prisma/client';
+import { PrismaClient, NotificationType } from '@weaver2/prisma';
 
 export async function CreateNotificationCommand(
   prisma: PrismaClient,

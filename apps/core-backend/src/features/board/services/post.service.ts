@@ -18,7 +18,7 @@ import {
   KeysetResponseDto,
 } from '@weaver2/pagination';
 import { CommonAuthUserDto } from '@weaver2/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@weaver2/prisma';
 
 const POST_INCLUDE = {
   board: true,

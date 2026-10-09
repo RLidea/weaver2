@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { OffsetPaginationService, OffsetRequestDto } from '@weaver2/pagination';
 import { EmailLogService } from '../../../../infrastructure/email/services/email-log.service';
-import { Prisma, EmailStatus } from '@prisma/client';
+import { Prisma, EmailStatus } from '@weaver2/prisma';
 
 interface EmailLogsFilterOptions {
   pagination: OffsetRequestDto;

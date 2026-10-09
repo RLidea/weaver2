@@ -92,3 +92,6 @@ apps/core-backend/openapi.json
 
 # scripts/audit-gate.mjs 가 남기는 감사 결과 — CI 는 artifact 로 올리고, 로컬은 일회용이다.
 audit-report.json
+
+# Prisma 7 generated client (pnpm db:generate)
+/libs/prisma/src/generated
