@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@weaver2/prisma';
 
 export type AdminUserDetail = Prisma.UserGetPayload<{
   include: {

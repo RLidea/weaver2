@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailService as LibEmailService } from '@weaver2/email';
-import { EmailStatus, Prisma } from '@prisma/client';
+import { EmailStatus, Prisma } from '@weaver2/prisma';
 import { EmailLogService } from './email-log.service';
 import { EmailTemplateService } from './email-template.service';
 import {

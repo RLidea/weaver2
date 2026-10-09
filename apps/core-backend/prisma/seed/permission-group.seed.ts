@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { logSeedResult } from './seed-logger';
 

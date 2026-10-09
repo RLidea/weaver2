@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { hashToken } from '../utils/auth-crypto.util';
 
 /** 원문 토큰을 해시해 해당 행을 삭제한다(로그아웃 등 실제 폐기). */

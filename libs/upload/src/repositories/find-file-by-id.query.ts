@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { PostFile } from '@prisma/client';
+import { PostFile } from '@weaver2/prisma';
 
 @Injectable()
 export class FindFileByIdQuery {

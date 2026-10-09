@@ -3,7 +3,7 @@ import {
   PrismaClient,
   ReportStatus,
   ReportTarget,
-} from '@prisma/client';
+} from '@weaver2/prisma';
 
 export async function FindReportsQuery(
   prisma: PrismaClient,

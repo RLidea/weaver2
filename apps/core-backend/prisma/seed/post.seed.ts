@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { logSeedResult } from './seed-logger';
 
 const TEST_POST_TITLE = '자유게시판입니다.';

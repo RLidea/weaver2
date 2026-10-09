@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PostStatus } from '@prisma/client';
+import { PostStatus } from '@weaver2/prisma';
 import { BoardDto } from './board.dto';
 
 export class PostDto {

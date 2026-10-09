@@ -7,7 +7,7 @@ import {
   AdminUsersQueryDto,
   UserStatusFilter,
 } from '../dto/admin-users-query.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@weaver2/prisma';
 
 export type AdminUserWithGroups = Prisma.UserGetPayload<{
   include: {

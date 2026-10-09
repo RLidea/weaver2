@@ -6,7 +6,7 @@ import {
   IsEmail,
   IsDateString,
 } from 'class-validator';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus } from '@weaver2/prisma';
 
 export class EmailLogDto {
   @IsUUID()

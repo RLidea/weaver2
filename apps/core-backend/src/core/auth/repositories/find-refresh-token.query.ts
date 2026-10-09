@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { hashToken } from '../utils/auth-crypto.util';
 
 /** 원문 토큰을 해시해 조회한다. rotatedAt·user 포함(회전/탈취 판정용). */

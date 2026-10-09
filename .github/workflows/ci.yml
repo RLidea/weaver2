@@ -71,10 +71,10 @@ jobs:
       - name: Install (frozen lockfile, no scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # 스키마 경로·URL 은 prisma.config.ts 가 준다. URL 이 없으면 config 가 자리표시자를 쓴다
+      # (generate 는 DB 에 붙지 않는다). 생성물은 libs/prisma/src/generated (커밋 안 함).
       - name: Generate Prisma Client
-        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+        run: pnpm prisma generate
 
       # 🔴 lint 가 아니라 lint:check 다. 루트의 `lint` 는 `eslint … --fix` 라 러너에서
       #    고치고 초록을 낸다 — 검사가 아니라 수정이다. 프론트까지 함께 본다.
@@ -89,10 +89,8 @@ jobs:
 
       - name: Prisma schema validate + format
         run: |
-          pnpm prisma validate --schema=apps/core-backend/prisma/schema
-          pnpm prisma format --schema=apps/core-backend/prisma/schema --check
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          pnpm prisma validate
+          pnpm prisma format --check
 
       # --ci: watch off, --maxWorkers=2: GitHub-hosted runner CPU 매칭
       - name: Unit tests
@@ -119,10 +117,10 @@ jobs:
       - name: Install (frozen lockfile, no scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # 스키마 경로·URL 은 prisma.config.ts 가 준다. URL 이 없으면 config 가 자리표시자를 쓴다
+      # (generate 는 DB 에 붙지 않는다). 생성물은 libs/prisma/src/generated (커밋 안 함).
       - name: Generate Prisma Client
-        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+        run: pnpm prisma generate
 
       - name: Cache .next
         uses: actions/cache@v6
@@ -184,10 +182,10 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Generate Prisma Client
-        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
+        run: pnpm prisma generate
 
       - name: Apply migrations
-        run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
+        run: pnpm prisma migrate deploy
 
       - name: Run integration tests
         run: npx jest --config apps/core-backend/test/jest-integration.json --no-coverage --ci --maxWorkers=2
@@ -245,11 +243,12 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Generate Prisma Client
-        run: pnpm prisma generate --schema=apps/core-backend/prisma/schema
+        run: pnpm prisma generate
 
       - name: Apply migrations
-        run: pnpm prisma migrate deploy --schema=apps/core-backend/prisma/schema
+        run: pnpm prisma migrate deploy
 
+      # Prisma 7: migrate 가 시드를 대신 돌리지 않는다 — prisma.config.ts 의 migrations.seed 를 명시적으로 부른다.
       - name: Apply seeds (admin + permission groups + boards)
         run: pnpm db:seed
 

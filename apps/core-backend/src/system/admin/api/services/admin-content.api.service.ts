@@ -8,7 +8,7 @@ import {
   ContentPurgeService,
   PurgeResult,
 } from '../../../../features/board/services/content-purge.service';
-import { Prisma, PostStatus } from '@prisma/client';
+import { Prisma, PostStatus } from '@weaver2/prisma';
 import { BoardPermissionDto } from '../dto/board-permission.dto';
 import { AdminContentPostsQueryDto } from '../dto/admin-content-posts-query.dto';
 import { AdminContentCommentsQueryDto } from '../dto/admin-content-comments-query.dto';

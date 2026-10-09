@@ -1,5 +1,5 @@
 import { ModuleMetadata, Type } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../client';
 
 export interface PrismaModuleOptions {
   /**
@@ -14,9 +14,10 @@ export interface PrismaModuleOptions {
 export interface PrismaServiceOptions {
   /**
    * Pass options directly to the `PrismaClient`.
+   * `adapter` is built by `PrismaService` from `DATABASE_URL`, so it is not accepted here.
    * See: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference/#prismaclient
    */
-  prismaOptions?: Prisma.PrismaClientOptions;
+  prismaOptions?: Prisma.PrismaClientBaseOptions;
 
   /**
    * If "true", `PrismaClient` explicitly creates a connection pool and your first query will respond instantly.

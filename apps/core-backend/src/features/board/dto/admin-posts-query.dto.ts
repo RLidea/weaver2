@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { PostStatus } from '@prisma/client';
+import { PostStatus } from '@weaver2/prisma';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { KeysetRequestDto } from '@weaver2/pagination';

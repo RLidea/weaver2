@@ -1,5 +1,5 @@
 import { PrismaService } from '@weaver2/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@weaver2/prisma';
 
 export async function CreateOAuthUserCommand(
   prisma: PrismaService,

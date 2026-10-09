@@ -1,4 +1,4 @@
-import { PrismaClient, ReportTarget, ReportReason } from '@prisma/client';
+import { PrismaClient, ReportTarget, ReportReason } from '@weaver2/prisma';
 
 export async function CreateReportCommand(
   prisma: PrismaClient,

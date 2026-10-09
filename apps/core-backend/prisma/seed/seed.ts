@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { createSeedPrismaClient } from './seed-client';
 import { seedLocalCredentials, seedUsers } from './user.seed';
 import { seedEmailTemplates } from './email-templates.seed';
 import { seedBoardPermissions } from './board-permission.seed';
@@ -7,7 +7,7 @@ import { seedUserPermissionGroups } from './user-permission-group.seed';
 import { seedTestPost, seedFreeboardCategories } from './post.seed';
 import { seedEmojis } from './emoji.seed';
 import { logSeedResult } from './seed-logger';
-const prisma = new PrismaClient();
+const prisma = createSeedPrismaClient();
 
 async function main() {
   console.log('Starting the seeding process...');

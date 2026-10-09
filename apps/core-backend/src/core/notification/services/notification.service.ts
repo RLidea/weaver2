@@ -8,7 +8,7 @@ import {
   MarkAllNotificationsReadCommand,
 } from '../repositories/mark-notification-read.command';
 import { CountUnreadNotificationsQuery } from '../repositories/count-unread-notifications.query';
-import { NotificationType } from '@prisma/client';
+import { NotificationType } from '@weaver2/prisma';
 
 @Injectable()
 export class NotificationService {

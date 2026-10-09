@@ -8,7 +8,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { PostStatus } from '@prisma/client';
+import { PostStatus } from '@weaver2/prisma';
 
 export class UpdatePostDto {
   @ApiPropertyOptional({ description: 'Post title' })
