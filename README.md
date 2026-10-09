@@ -109,7 +109,7 @@ weaver2/
 
 | 도구 | 버전 | 비고 |
 |------|------|------|
-| Node.js | >= 22 | `.nvmrc` 제공 — `nvm use` |
+| Node.js | >= 24.9 | `.nvmrc` 제공 — `nvm use` |
 | pnpm | >= 11 | `corepack enable` 권장 |
 | PostgreSQL | 16 | 직접 설치 또는 아래 Docker로 구동 |
 

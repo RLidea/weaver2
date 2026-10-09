@@ -7,7 +7,7 @@ ARG APP_NAME=core
 # ============================================
 # Stage 1: Install dependencies
 # ============================================
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -20,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 # ============================================
 # Stage 2: Build application
 # ============================================
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 ARG APP_NAME
 
@@ -40,7 +40,7 @@ RUN pnpm build:${APP_NAME}
 # ============================================
 # Stage 3: Production image
 # ============================================
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 ARG APP_NAME
 
