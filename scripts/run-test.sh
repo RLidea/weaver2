@@ -3,6 +3,11 @@
 # select_project.sh 파일을 불러와서 프로젝트 선택
 source $(dirname "$0")/select-project.sh
 
+# NestJS 12 는 ESM 전용으로 배포된다. CJS 인 이 앱의 jest 가 그것을 require(esm) 으로
+# 부르려면 Node 24.9+ 와 --experimental-vm-modules 가 필요하다
+# (https://jestjs.io/docs/ecmascript-modules#require-of-esm). 실험 경고는 워커마다 찍혀 끈다.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--experimental-vm-modules --no-warnings=ExperimentalWarning"
+
 # 명령어에 따라 선택된 프로젝트에서 테스트 실행
 COMMAND=$1
 
