@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 
 const AUTHOR_SELECT = {
   select: { id: true, username: true, displayName: true },

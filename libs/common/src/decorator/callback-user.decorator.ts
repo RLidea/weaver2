@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { User } from '@weaver2/prisma';
 
 export const CallbackUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): User => {

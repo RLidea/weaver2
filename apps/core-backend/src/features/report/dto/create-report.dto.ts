@@ -6,7 +6,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { ReportTarget, ReportReason } from '@prisma/client';
+import { ReportTarget, ReportReason } from '@weaver2/prisma';
 
 export class CreateReportDto {
   @ApiProperty({ enum: ReportTarget, description: '신고 대상 타입' })

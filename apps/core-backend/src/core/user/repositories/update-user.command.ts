@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 
 export async function UpdateUserCommand(
   prisma: PrismaClient,

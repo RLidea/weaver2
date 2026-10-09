@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User } from '@weaver2/prisma';
 import { PrismaService } from '@weaver2/prisma';
 import { OffsetPaginationService } from '@weaver2/pagination';
 import { OffsetResponseDto } from '@weaver2/pagination';

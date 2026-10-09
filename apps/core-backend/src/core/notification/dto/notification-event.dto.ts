@@ -1,4 +1,4 @@
-import { NotificationType } from '@prisma/client';
+import { NotificationType } from '@weaver2/prisma';
 
 export class NotificationEventDto {
   recipientId: string;

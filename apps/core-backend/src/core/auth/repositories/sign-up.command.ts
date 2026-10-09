@@ -1,5 +1,5 @@
 import { PrismaService } from '@weaver2/prisma';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, User } from '@weaver2/prisma';
 
 export function SignUpCommand(
   prisma: PrismaService,

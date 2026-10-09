@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TermsAndConditions } from '@prisma/client';
+import { TermsAndConditions } from '@weaver2/prisma';
 import { PrismaService } from '@weaver2/prisma';
 import { CreateTermsDto } from '../dto/create-terms.dto';
 import { UpdateTermsDto } from '../dto/update-terms.dto';

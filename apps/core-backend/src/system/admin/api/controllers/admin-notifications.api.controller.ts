@@ -2,7 +2,7 @@ import { Controller, Get, Query, Param, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus } from '@weaver2/prisma';
 import { AdminNotificationsApiService } from '../services/admin-notifications.api.service';
 import { OffsetRequestDto } from '@weaver2/pagination';
 

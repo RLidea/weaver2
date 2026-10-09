@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EmailStatus } from '@prisma/client';
+import { EmailStatus } from '@weaver2/prisma';
 import { PrismaService } from '@weaver2/prisma';
 import {
   CreateEmailLogCommand,

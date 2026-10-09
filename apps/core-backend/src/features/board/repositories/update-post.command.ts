@@ -1,4 +1,4 @@
-import { PrismaClient, PostStatus } from '@prisma/client';
+import { PrismaClient, PostStatus } from '@weaver2/prisma';
 
 export async function UpdatePostCommand(
   prisma: PrismaClient,

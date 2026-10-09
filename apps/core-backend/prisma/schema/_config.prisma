@@ -1,8 +1,13 @@
+// Prisma 7: 생성물은 node_modules 가 아니라 libs/prisma/src/generated 에 TS 소스로 떨어진다
+// (커밋하지 않는다 — `pnpm db:generate`). 앱은 `@weaver2/prisma` 에서만 꺼내 쓴다.
+// 앱이 CommonJS 이므로 moduleFormat 을 명시한다 (추론에 맡기지 않는다).
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../../../../libs/prisma/src/generated"
+  moduleFormat = "cjs"
 }
 
+// 접속 URL 은 저장소 루트의 prisma.config.ts 가 준다 (Prisma 7 에서 스키마의 url 은 제거됐다).
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }

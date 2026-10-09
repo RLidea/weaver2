@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@weaver2/prisma';
 
 /**
  * tsquery로 매칭되는 게시글 ID 목록을 rank 순으로 페이지 단위로 반환.

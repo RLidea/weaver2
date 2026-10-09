@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@weaver2/prisma';
 import { emailVerificationTemplate } from '../../src/infrastructure/email/templates/email-verification.template';
 import { passwordResetTemplate } from '../../src/infrastructure/email/templates/password-reset.template';
 import { welcomeTemplate } from '../../src/infrastructure/email/templates/welcome.template';

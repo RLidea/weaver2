@@ -1,5 +1,5 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@weaver2/prisma';
 import { PrismaService } from '@weaver2/prisma';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { PermissionService } from '../../../core/permission/services/permission.service';

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { EmailStatus, Prisma } from '@prisma/client';
+import { EmailStatus, Prisma } from '@weaver2/prisma';
 
 export interface FindEmailLogsOptions {
   userId?: string;
