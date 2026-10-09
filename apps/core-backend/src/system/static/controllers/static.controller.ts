@@ -2,7 +2,7 @@ import { Controller, Get, Res, Param, NotFoundException } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Public } from '@weaver2/common/decorator/public.decorator';
-import { join, resolve, sep } from 'path';
+import { join, relative, resolve, sep } from 'path';
 
 // 이 컨트롤러는 @Public() 이라 인증이 없다. 그래서 사용자가 준 경로 조각(:type·:file·
 // :component)이 그대로 파일 경로가 되면, 인증 없는 임의 파일 읽기가 된다.
@@ -36,6 +36,15 @@ function safeAssetPath(base: string, ...segments: string[]): string {
   return candidate;
 }
 
+// sendFile 에 root 를 꼭 준다. root 가 없으면 `send` 가 **절대경로 전체**에서
+// 점으로 시작하는 세그먼트를 찾아 404 를 낸다 — 저장소가 `.claude/worktrees/…`
+// 아래(레인)에 있으면 정상 자원까지 404 가 된다. root 를 주면 그 아래 부분만 본다.
+function sendAsset(res: Response, base: string, ...segments: string[]) {
+  const filePath = safeAssetPath(base, ...segments);
+  setStaticContentType(res, filePath);
+  return res.sendFile(relative(base, filePath), { root: base });
+}
+
 function setStaticContentType(res: Response, file: string): void {
   if (file.endsWith('.css')) {
     res.setHeader('Content-Type', 'text/css');
@@ -54,9 +63,7 @@ export class StaticController {
     @Param('file') file: string,
     @Res() res: Response,
   ) {
-    const filePath = safeAssetPath(BASE_SHARED, type, file);
-    setStaticContentType(res, file);
-    return res.sendFile(filePath);
+    return sendAsset(res, BASE_SHARED, type, file);
   }
 
   @Get('/shared/components/:component/:file')
@@ -65,9 +72,7 @@ export class StaticController {
     @Param('file') file: string,
     @Res() res: Response,
   ) {
-    const filePath = safeAssetPath(BASE_SHARED_COMPONENTS, component, file);
-    setStaticContentType(res, file);
-    return res.sendFile(filePath);
+    return sendAsset(res, BASE_SHARED_COMPONENTS, component, file);
   }
 
   @Get('/admin/:type/:file')
@@ -76,8 +81,6 @@ export class StaticController {
     @Param('file') file: string,
     @Res() res: Response,
   ) {
-    const filePath = safeAssetPath(BASE_ADMIN, type, file);
-    setStaticContentType(res, file);
-    return res.sendFile(filePath);
+    return sendAsset(res, BASE_ADMIN, type, file);
   }
 }
