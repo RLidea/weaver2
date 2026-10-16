@@ -4,7 +4,12 @@ import { join } from 'path';
 import { Test } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { UPLOAD_FILE_TYPES, setUploadResponseHeaders } from './file-types';
+import {
+  UPLOAD_FILE_TYPES,
+  setUploadResponseHeaders,
+  uploadFileType,
+  uploadTypeByExtension,
+} from './file-types';
 
 describe('UPLOAD_FILE_TYPES 시그니처', () => {
   const html = Buffer.from('<!doctype html><script>alert(1)</script>');
@@ -38,6 +43,33 @@ describe('UPLOAD_FILE_TYPES 시그니처', () => {
 
   it('SVG 는 표에 없다 (스크립트를 품을 수 있다)', () => {
     expect(UPLOAD_FILE_TYPES['image/svg+xml']).toBeUndefined();
+  });
+});
+
+describe('uploadFileType · uploadTypeByExtension', () => {
+  it('표에 있는 형식만 찾는다 — 프로토타입 이름은 형식이 아니다', () => {
+    expect(uploadFileType('image/png')?.ext).toBe('.png');
+    for (const name of [
+      'constructor',
+      '__proto__',
+      'toString',
+      'hasOwnProperty',
+    ]) {
+      expect(uploadFileType(name)).toBeUndefined();
+    }
+  });
+
+  it('저장 확장자로 형식을 되짚는다 (대소문자 무시)', () => {
+    expect(uploadTypeByExtension('.png')).toEqual({
+      contentType: 'image/png',
+      inline: true,
+    });
+    expect(uploadTypeByExtension('.PDF')).toEqual({
+      contentType: 'application/pdf',
+      inline: false,
+    });
+    expect(uploadTypeByExtension('.html')).toBeUndefined();
+    expect(uploadTypeByExtension('')).toBeUndefined();
   });
 });
 

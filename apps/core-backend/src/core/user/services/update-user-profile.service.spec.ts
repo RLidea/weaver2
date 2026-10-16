@@ -51,4 +51,14 @@ describe('UpdateUserProfileService.uploadProfileImage', () => {
       inline: true,
     });
   });
+
+  it.each(['constructor', '__proto__'])(
+    '프로토타입 이름(%s)을 형식으로 보내면 400 으로 거절한다',
+    async (mimetype) => {
+      await expect(
+        service.uploadProfileImage('u1', file('x.png', mimetype, PNG)),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
 });

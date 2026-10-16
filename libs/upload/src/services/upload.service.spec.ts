@@ -129,4 +129,18 @@ describe('UploadService.uploadFiles — 형식 확인', () => {
     ).rejects.toThrow(/내용을 확인할 수 없는 형식/);
     expect(save).not.toHaveBeenCalled();
   });
+
+  // 표를 `[mime]` 으로 찾으면 프로토타입의 함수가 형식으로 잡혀 `.matches` 에서 500 이 났다
+  it.each(['constructor', '__proto__', 'toString'])(
+    '프로토타입 이름(%s)을 형식으로 보내면 400 으로 거절한다',
+    async (mimetype) => {
+      await expect(
+        service.uploadFiles([multerFile('x.png', mimetype, PNG)], 'u1', {
+          ...options,
+          allowedMimeTypes: [mimetype],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
 });

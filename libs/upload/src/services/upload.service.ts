@@ -23,7 +23,7 @@ import { UpdateFileCommand } from '../repositories/update-file.command';
 import { FileDto } from '../dto/file.dto';
 import { AdminFilesQueryDto } from '../dto/admin-files-query.dto';
 import { UserFilesQueryDto } from '../dto/user-files-query.dto';
-import { UPLOAD_FILE_TYPES } from '../file-types';
+import { uploadFileType } from '../file-types';
 
 @Injectable()
 export class UploadService {
@@ -65,7 +65,7 @@ export class UploadService {
       }
 
       // 선언한 형식(클라이언트가 보낸 Content-Type)은 믿지 않는다 — 시그니처가 맞아야 받는다
-      const fileType = UPLOAD_FILE_TYPES[file.mimetype];
+      const fileType = uploadFileType(file.mimetype);
       if (!fileType) {
         throw new BadRequestException(
           `내용을 확인할 수 없는 형식이라 받지 않습니다: ${file.mimetype}`,
