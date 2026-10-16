@@ -6,7 +6,7 @@ NestJS + Next.js 기반의, 타입 안전하고 안정적인 **범용 레코드-
 
 ### 인증 & 사용자
 - **이메일/비밀번호 로그인·회원가입** — JWT HttpOnly 쿠키 기반, 이메일 인증
-- **OAuth 소셜 로그인** — Google, Kakao, Naver (native fetch, passport 미사용)
+- **OAuth 소셜 로그인** — Google, Kakao, Naver, Apple(기본 꺼짐) (native fetch, passport 미사용)
 - **2단계 인증(2FA)** — TOTP(Google Authenticator 등) + 이메일 OTP 선택 지원
 - **계정 잠금** — 로그인 5회 실패 시 15분 잠금
 - **세션 관리** — 기기별 RefreshToken 조회·삭제, 비밀번호 변경 시 전체 세션 무효화
@@ -194,7 +194,8 @@ POST /v1/auth/refresh                    # 토큰 갱신
 POST /v1/auth/sign-out                   # 로그아웃
 POST /v1/auth/password/request-reset     # 비밀번호 재설정 요청
 POST /v1/auth/password/reset             # 비밀번호 재설정
-GET  /v1/auth/oauth/:provider            # OAuth 시작 (google|kakao|naver)
+GET  /v1/auth/providers                  # 켜진 로그인 수단 ({ password, google, kakao, naver, apple })
+GET  /v1/auth/oauth/:provider            # OAuth 시작 (google|kakao|naver|apple)
 POST /v1/auth/2fa/authenticate           # 2FA 최종 인증
 POST /v1/auth/2fa/email/send             # 이메일 OTP 발송
 GET  /v1/auth/sessions                   # 세션 목록

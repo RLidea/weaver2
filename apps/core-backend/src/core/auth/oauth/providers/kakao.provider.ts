@@ -76,7 +76,9 @@ export class KakaoOAuthProvider implements OAuthProvider {
     };
   }
 
-  async getUserProfile(accessToken: string): Promise<OAuthUserProfile> {
+  async getUserProfile({
+    accessToken,
+  }: OAuthTokens): Promise<OAuthUserProfile> {
     const res = await fetch('https://kapi.kakao.com/v2/user/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

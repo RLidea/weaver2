@@ -36,7 +36,7 @@ NestJS + Next.js 기반의, **타입 안전하고 안정적인 "범용 레코드
 
 ### 인증 & 사용자
 - JWT(HttpOnly Cookie) + Refresh Token + 계정 잠금(5회/15분) + 다중 세션 관리
-- OAuth 3종 (Google·Kakao·Naver) — Passport 미사용, native 구현
+- OAuth 4종 (Google·Kakao·Naver·Apple — Apple 은 기본 꺼짐) — Passport 미사용, native 구현
 - 2FA (TOTP + 이메일 OTP)
 - 이메일 변경 인증 / 비밀번호 재설정 / OAuth 연결 관리
 

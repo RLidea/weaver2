@@ -10,6 +10,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
   kakao: '카카오',
   naver: '네이버',
+  apple: 'Apple',
 };
 
 function formatDate(dateString: string): string {

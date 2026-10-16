@@ -10,7 +10,7 @@
 | `access_token` | JWT (payload `{ sub: userId }`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
 | `refresh_token` | JWT 아님 — `randomUUID()` 문자열, DB `RefreshToken` 테이블에 **SHA-256 해시로 저장** | rememberMe 30일 / 기본 7일 | HttpOnly 쿠키(원문) + DB(해시) |
 | preAuthToken | JWT (`type: 'pre-auth'`) — 2FA 진행용 | 5분 | 응답 body (쿠키 아님) |
-| `oauth_state` | OAuth CSRF 방지 state | 10분 | HttpOnly 쿠키, sameSite lax |
+| `oauth_state` | OAuth CSRF 방지 state | 10분 | HttpOnly 쿠키, sameSite lax (form_post provider 인 Apple 만 none + secure) |
 | `csrf-token` (prod: `__Host-csrf-token`) | CSRF double-submit 쿠키 | — | HttpOnly 쿠키 |
 
 쿠키 옵션: `httpOnly: true`, `secure: production`, `path: '/'`, `sameSite: 'lax'` — 세팅·삭제가 공용 헬퍼(`core/auth/utils/auth-cookie.util.ts`) 하나로 통일되어 있습니다. 비밀번호 해시는 전 구간 **bcrypt cost 10**입니다.
@@ -97,7 +97,7 @@ sign-in → preAuthToken 수령
 - **백업 코드(recovery code)는 없습니다.** 복구 수단은 "다른 2FA 방법"뿐이므로, **마지막 남은 2FA 수단은 비활성화할 수 없게** 막혀 있습니다 (`DELETE /2fa/totp`, `/2fa/email`)
 - Rate limit이 촘촘합니다: authenticate 5회/60초, 이메일 발송·설정 3회/60초
 
-## 5. OAuth — Google · Kakao · Naver
+## 5. OAuth — Google · Kakao · Naver · Apple
 
 Passport를 쓰지 않는 native fetch 구현입니다 (CHARTER §5). Provider들은 `OAuthProvider` 인터페이스로 통일되어 `OAuthProviderRegistry`에 등록됩니다 (`oauth/oauth.module.ts`) — 새 provider 추가 = 구현체 하나 + 등록 한 줄.
 
@@ -123,6 +123,29 @@ sequenceDiagram
 1. `(provider, providerId)`의 OAuthAccount 존재 → 기존 사용자 로그인
 2. 없는데 **같은 이메일의 계정이 존재 → `ConflictException`** — 자동 연동하지 않습니다 (이메일만 알면 계정을 탈취할 수 있으므로). 프론트는 `?error=oauth_email_conflict`로 안내하고, 사용자는 로그인 후 설정에서 수동 연동합니다
 3. 둘 다 없음 → 신규 가입 (username은 `{provider}_{providerId 앞 8자}` + 충돌 시 랜덤 suffix)
+
+4. 신규 가입인데 provider 가 검증된 이메일을 주지 않음 → 사용자를 만들지 않고 실패 (provider·providerId 를 경고 로그로 남김)
+
+켜진 로그인 수단은 `GET /v1/auth/providers` (공개)가 알려 줍니다 — `{ password, google, kakao, naver, apple }`. OAuth 는 registry 에 등록돼 있고 `*_CLIENT_ID` 가 채워져 있어야 `true` 입니다. 로그인 화면은 이 값으로 버튼을 그립니다.
+
+### Apple — 다른 provider 와 다른 점
+
+`APPLE_OAUTH_ENABLED=true` 일 때만 registry 에 등록됩니다 (기본 꺼짐 — Apple Developer 멤버십이 있어야 Services ID·키를 만들 수 있음). `providers/apple.provider.ts`.
+
+| 무엇 | 다른 provider | Apple |
+|---|---|---|
+| 콜백 | `GET …/callback?code&state` | `response_mode=form_post` — appleid.apple.com 이 **크로스사이트 POST** 로 보냄 → `POST /v1/auth/oauth/:provider/callback` |
+| state 쿠키 | `SameSite=Lax` | `SameSite=None; Secure` — Lax 는 크로스사이트 POST 에 실리지 않음 |
+| CSRF·CORS | 그대로 | 그 콜백 경로 하나만 `security.middleware.ts` 의 `CROSS_SITE_CALLBACK_PATHS` 로 면제 — 위조는 state 대조가 막음 |
+| 사용자 정보 | userinfo API | 없음 — code 교환 응답의 `id_token` 을 Apple JWKS 로 검증(RS256 서명·iss·aud·exp)해 읽음 |
+| client_secret | 고정 문자열 | `.p8` 키로 서명한 ES256 JWT (요청마다 5분짜리로 만듦, Apple 상한 6개월) |
+| 식별자 | provider 의 id | `id_token.sub` — email 은 나중 로그인에서 빠질 수 있고, 「이메일 숨기기」면 `@privaterelay.appleid.com` |
+
+- **이름은 첫 승인 때 form 의 `user` 로 한 번만 옵니다.** 그 첫 콜백이 실패하면 사용자가 appleid.apple.com 에서 연결을 끊기 전까지 다시 받을 수 없습니다
+- `email_verified`·`is_private_email` 은 boolean 으로도, 문자열 `"true"` 로도 옵니다 — 둘 다 받습니다
+- Apple `refresh_token` 은 `OAuthAccount.refreshToken` 에 저장됩니다 — 앱스토어 심사 5.1.1(v) 의 「계정 삭제 시 토큰 철회(`/auth/revoke`)」에 필요합니다 (철회 호출 자체는 아직 없음)
+- 개인키는 `APPLE_PRIVATE_KEY_PATH`(권장) 또는 `APPLE_PRIVATE_KEY`(`\n` 이스케이프 허용)
+- return URL 에 localhost·IP 는 등록할 수 없습니다 — 실제 왕복 시험에는 HTTPS 도메인(터널)이 필요합니다
 
 연동 관리: `GET /oauth/connections`, `DELETE /oauth/connections/:provider` — **LocalCredential 없는 OAuth 전용 계정은 마지막 연동을 해제할 수 없습니다** (로그인 수단이 사라지므로).
 
@@ -151,6 +174,7 @@ sequenceDiagram
 `csrf-csrf`(double-submit) 미들웨어가 전 요청에 적용됩니다 (`libs/common/src/global/middleware/security.middleware.ts`):
 
 - `GET/HEAD/OPTIONS` 면제, 뮤테이션은 `x-csrf-token` 헤더 필수
+- 그 밖의 면제는 `CSRF_EXEMPTIONS` 조건 목록에 모여 있습니다 (Swagger, Apple form_post 콜백) — 파생 프로젝트는 조건을 한 줄씩 더합니다
 - 토큰 발급: `GET /v1/auth/csrf-token` (`@Public`) — 프론트 ApiClient가 자동 발급·캐시·403 시 재발급합니다
 - 세션 식별: `refresh_token` 쿠키 ?? IP
 - Swagger 요청은 면제 (origin/referer 판별)

@@ -547,7 +547,11 @@ export interface paths {
         /** OAuth 콜백 처리 및 JWT 발급 */
         get: operations["OAuthController_handleCallback"];
         put?: never;
-        post?: never;
+        /**
+         * OAuth 콜백 처리 (form_post — Apple)
+         * @description response_mode=form_post 를 쓰는 provider 의 콜백. CSRF 대신 state 쿠키 대조로 막는다.
+         */
+        post: operations["OAuthController_handleFormPostCallback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -767,6 +771,26 @@ export interface paths {
         };
         /** CSRF 토큰 발급 */
         get: operations["CsrfController_getCsrfToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 켜진 로그인 수단 조회
+         * @description 로그인 화면이 버튼을 서버 설정에 맞춰 그리도록 쓴다. OAuth 는 서버에 등록된 provider 만 true.
+         */
+        get: operations["AuthProvidersController_getProviders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2835,6 +2859,18 @@ export interface components {
             /** @description 6자리 인증 코드 */
             code: string;
         };
+        AuthProvidersResponseDto: {
+            /** @description 이메일·비밀번호 로그인 (항상 켜짐) */
+            password: boolean;
+            /** @description Google OAuth 사용 가능 여부 */
+            google: boolean;
+            /** @description 카카오 OAuth 사용 가능 여부 */
+            kakao: boolean;
+            /** @description 네이버 OAuth 사용 가능 여부 */
+            naver: boolean;
+            /** @description Apple OAuth 사용 가능 여부 (APPLE_OAUTH_ENABLED=true 일 때만) */
+            apple: boolean;
+        };
         CreatePermissionGroupDto: {
             /**
              * @description 그룹 이름
@@ -4600,6 +4636,25 @@ export interface operations {
             };
         };
     };
+    OAuthController_handleFormPostCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TwoFactorController_authenticate: {
         parameters: {
             query?: never;
@@ -4844,6 +4899,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AuthProvidersController_getProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthProvidersResponseDto"];
+                };
             };
         };
     };
