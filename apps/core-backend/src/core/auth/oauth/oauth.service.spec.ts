@@ -98,6 +98,31 @@ describe('OAuthService', () => {
     });
   });
 
+  describe('getEnabledProviders — 파생 프로젝트 확장', () => {
+    it('AUTH_PROVIDER_EXTRAS 의 칸을 더하되 upstream 칸은 덮어쓰지 못한다', () => {
+      const config = { get: (k: string) => env[k] } as unknown as ConfigService;
+      const extended = new OAuthService(
+        prisma as unknown as PrismaService,
+        {} as JwtService,
+        config,
+        registry,
+        [
+          () => ({ emailCode: true }),
+          () => ({ password: false, google: true }),
+        ],
+      );
+
+      expect(extended.getEnabledProviders()).toEqual({
+        emailCode: true,
+        password: true,
+        google: false,
+        kakao: false,
+        naver: false,
+        apple: false,
+      });
+    });
+  });
+
   describe('getAuthorizationUrl', () => {
     it('provider 의 usesFormPost 를 함께 돌려준다', () => {
       registry.register({ ...fakeProvider('apple', ''), usesFormPost: true });

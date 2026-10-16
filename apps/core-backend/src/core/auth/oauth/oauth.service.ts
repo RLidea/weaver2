@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
@@ -26,6 +28,10 @@ import {
 } from './interfaces/oauth-provider.interface';
 import { setAuthCookies } from '../utils/auth-cookie.util';
 import { AuthProvidersResponseDto } from '../dto/auth-providers-response.dto';
+import {
+  AUTH_PROVIDER_EXTRAS,
+  AuthProviderExtra,
+} from './auth-provider-extras';
 
 const OAUTH_DISPLAY_NAME_MAX = 30;
 const OAUTH_DISPLAY_NAME_TRIES = 5;
@@ -39,6 +45,9 @@ export class OAuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly providerRegistry: OAuthProviderRegistry,
+    @Optional()
+    @Inject(AUTH_PROVIDER_EXTRAS)
+    private readonly providerExtras: AuthProviderExtra[] = [],
   ) {}
 
   getAuthorizationUrl(providerName: string): {
@@ -64,8 +73,14 @@ export class OAuthService {
     );
   }
 
-  getEnabledProviders(): AuthProvidersResponseDto {
+  getEnabledProviders(): AuthProvidersResponseDto & Record<string, boolean> {
+    const extras = Object.assign(
+      {},
+      ...this.providerExtras.map((extra) => extra()),
+    ) as Record<string, boolean>;
+    // 파생 프로젝트의 칸은 더하기만 한다 — upstream 칸을 덮어쓰지 못하게 뒤에 펼친다
     return {
+      ...extras,
       password: true,
       google: this.isProviderReady('google', 'GOOGLE_CLIENT_ID'),
       kakao: this.isProviderReady('kakao', 'KAKAO_CLIENT_ID'),
