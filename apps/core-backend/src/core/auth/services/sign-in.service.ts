@@ -9,7 +9,7 @@ import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query'
 import { MarkRefreshTokenRotatedCommand } from '../repositories/mark-refresh-token-rotated.command';
 import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refresh-tokens.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
-import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
+import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 import { normalizeEmail } from '../utils/email.util';
 
@@ -56,10 +56,9 @@ export class SignInService {
 
     const { localCredential } = user;
 
-    if (
-      localCredential.lockedUntil &&
-      localCredential.lockedUntil > new Date()
-    ) {
+    // 비밀번호를 보기 전에 시도를 원자적으로 잡는다 — 동시 요청이 잠금을 앞질러 대입하지 못하게.
+    // 맞으면 아래에서 되돌린다(2FA 가 남았으면 2FA 통과 뒤에).
+    if (!(await ReserveLoginAttemptCommand(this.prisma, user.id))) {
       throw new UnauthorizedException(
         'Account is temporarily locked. Please try again later.',
       );
@@ -67,7 +66,6 @@ export class SignInService {
 
     const match = await bcrypt.compare(password, localCredential.password);
     if (!match) {
-      await IncrementFailedAttemptsCommand(this.prisma, user.id);
       throw new UnauthorizedException('Invalid credentials');
     }
 

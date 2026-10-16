@@ -14,8 +14,8 @@ jest.mock('../utils/auth-crypto.util', () => ({
 jest.mock('../repositories/find-local-credential-by-user-id.query', () => ({
   FindLocalCredentialByUserIdQuery: jest.fn(),
 }));
-jest.mock('../repositories/increment-failed-attempts.command', () => ({
-  IncrementFailedAttemptsCommand: jest.fn(),
+jest.mock('../repositories/reserve-login-attempt.command', () => ({
+  ReserveLoginAttemptCommand: jest.fn(),
 }));
 jest.mock('../repositories/reset-failed-attempts.command', () => ({
   ResetFailedAttemptsCommand: jest.fn(),
@@ -35,7 +35,7 @@ import { verify as otpVerify } from 'otplib';
 import { TwoFactorService } from './two-factor.service';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
-import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
+import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-challenge.query';
 
@@ -45,7 +45,7 @@ import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-cha
  */
 describe('TwoFactorService.authenticate — 실패 잠금', () => {
   const mockFindCredential = FindLocalCredentialByUserIdQuery as jest.Mock;
-  const mockIncrement = IncrementFailedAttemptsCommand as jest.Mock;
+  const mockReserve = ReserveLoginAttemptCommand as jest.Mock;
   const mockReset = ResetFailedAttemptsCommand as jest.Mock;
   const mockFindChallenge = FindTwoFactorChallengeQuery as jest.Mock;
   const mockOtpVerify = otpVerify as jest.Mock;
@@ -62,6 +62,7 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReserve.mockResolvedValue(true);
     const jwt = {
       verify: jest.fn(() => ({ sub: 'user-1', type: 'pre-auth' })),
     } as unknown as JwtService;
@@ -72,18 +73,18 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     );
   });
 
-  it('틀린 TOTP 는 실패 횟수를 올린다', async () => {
+  it('TOTP 는 확인 전에 시도를 잡고, 틀리면 되돌리지 않는다', async () => {
     mockFindCredential.mockResolvedValue(credential());
     mockOtpVerify.mockResolvedValue({ valid: false });
 
     await expect(
       service.authenticate('tok', 'totp', '000000'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(mockIncrement).toHaveBeenCalledWith(expect.anything(), 'user-1');
+    expect(mockReserve).toHaveBeenCalledWith(expect.anything(), 'user-1');
     expect(mockReset).not.toHaveBeenCalled();
   });
 
-  it('틀린 이메일 OTP 도 실패 횟수를 올린다', async () => {
+  it('이메일 OTP 도 시도를 잡고, 틀리면 되돌리지 않는다', async () => {
     mockFindCredential.mockResolvedValue(credential());
     mockFindChallenge.mockResolvedValue({ codeHash: 'h' });
     mockCompare.mockResolvedValue(false);
@@ -91,19 +92,18 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     await expect(
       service.authenticate('tok', 'email', '000000'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(mockIncrement).toHaveBeenCalledWith(expect.anything(), 'user-1');
+    expect(mockReserve).toHaveBeenCalledWith(expect.anything(), 'user-1');
+    expect(mockReset).not.toHaveBeenCalled();
   });
 
-  it('잠긴 계정은 코드를 보지도 않고 거절한다', async () => {
-    mockFindCredential.mockResolvedValue(
-      credential({ lockedUntil: new Date(Date.now() + 60_000) }),
-    );
+  it('시도를 잡지 못하면(잠김) 코드를 보지도 않고 거절한다', async () => {
+    mockFindCredential.mockResolvedValue(credential());
+    mockReserve.mockResolvedValue(false);
 
     await expect(service.authenticate('tok', 'totp', '123456')).rejects.toThrow(
       /locked/,
     );
     expect(mockOtpVerify).not.toHaveBeenCalled();
-    expect(mockIncrement).not.toHaveBeenCalled();
   });
 
   it('맞는 코드면 그제야 실패 횟수를 지운다', async () => {
@@ -114,6 +114,5 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
       service.authenticate('tok', 'totp', '123456'),
     ).resolves.toEqual({ userId: 'user-1', rememberMe: false });
     expect(mockReset).toHaveBeenCalledWith(expect.anything(), 'user-1');
-    expect(mockIncrement).not.toHaveBeenCalled();
   });
 });

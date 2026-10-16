@@ -11,8 +11,8 @@ jest.mock('../repositories/find-user-by-email.query', () => ({
   FindUserByEmailQuery: jest.fn(),
 }));
 
-jest.mock('../repositories/increment-failed-attempts.command', () => ({
-  IncrementFailedAttemptsCommand: jest.fn(),
+jest.mock('../repositories/reserve-login-attempt.command', () => ({
+  ReserveLoginAttemptCommand: jest.fn(),
 }));
 
 jest.mock('../repositories/reset-failed-attempts.command', () => ({
@@ -21,19 +21,20 @@ jest.mock('../repositories/reset-failed-attempts.command', () => ({
 
 import * as bcrypt from 'bcrypt';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
-import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
+import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 
 describe('SignInService.validateUserByEmail', () => {
   let service: SignInService;
   let prisma: any;
   const mockFind = FindUserByEmailQuery as jest.Mock;
-  const mockIncrement = IncrementFailedAttemptsCommand as jest.Mock;
+  const mockReserve = ReserveLoginAttemptCommand as jest.Mock;
   const mockReset = ResetFailedAttemptsCommand as jest.Mock;
   const mockCompare = bcrypt.compare as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReserve.mockResolvedValue(true);
 
     prisma = {
       user: { findFirst: jest.fn() },
@@ -98,8 +99,9 @@ describe('SignInService.validateUserByEmail', () => {
     expect(mockReset).toHaveBeenCalledWith(prisma, 'u1');
   });
 
-  it('계정 잠금 (lockedUntil 미래) → temporarily locked', async () => {
+  it('계정 잠금 (시도를 잡지 못함) → 비밀번호를 보지도 않고 temporarily locked', async () => {
     const future = new Date(Date.now() + 60 * 1000);
+    mockReserve.mockResolvedValue(false);
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: null,
@@ -113,9 +115,10 @@ describe('SignInService.validateUserByEmail', () => {
     await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
       /temporarily locked/i,
     );
+    expect(mockCompare).not.toHaveBeenCalled();
   });
 
-  it('비밀번호 불일치 → IncrementFailedAttempts + Invalid credentials', async () => {
+  it('비밀번호 불일치 → 잡아 둔 시도가 실패로 남고 Invalid credentials', async () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: null,
@@ -131,7 +134,8 @@ describe('SignInService.validateUserByEmail', () => {
       /Invalid credentials/,
     );
 
-    expect(mockIncrement).toHaveBeenCalledWith(prisma, 'u1');
+    expect(mockReserve).toHaveBeenCalledWith(prisma, 'u1');
+    expect(mockReset).not.toHaveBeenCalled();
   });
 
   it('미인증 이메일 → EMAIL_NOT_VERIFIED', async () => {
