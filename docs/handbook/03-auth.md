@@ -196,7 +196,7 @@ sequenceDiagram
 - 그 밖의 면제는 `CSRF_EXEMPTIONS` 조건 목록에 모여 있습니다 (Swagger, Apple form_post 콜백) — 파생 프로젝트는 조건을 한 줄씩 더합니다
 - 토큰 발급: `GET /v1/auth/csrf-token` (`@Public`) — 프론트 ApiClient가 자동 발급·캐시·403 시 재발급합니다
 - 세션 식별: `refresh_token` 쿠키 ?? IP
-- Swagger 요청은 면제 (origin/referer 판별)
+- Swagger 요청은 면제 — `ORIGIN_URL`(백엔드 자신의 `host:port` 또는 origin)과 **정확히 같은** Origin, 또는 그 origin 의 `/docs`·`/docs/…` Referer 만. `ORIGIN_URL` 이 비면 면제 없음 (예전 부분 문자열 비교는 `https://evil.com/docs` 도 통과시켰다)
 - 시크릿: `CSRF_SECRET ?? JWT_SECRET ?? fallback` — **운영에서는 `CSRF_SECRET`을 반드시 설정**하세요
 
 ## 9. Rate Limiting 요약
@@ -210,6 +210,8 @@ sequenceDiagram
 | 2fa/email/send·setup, verify/resend, password/request-reset, users/me/email | 3 |
 | sign-up/email, verify, password/reset, users/me/email/confirm | 5 |
 | refresh | (전역 100만 적용) |
+
+버킷은 클라이언트 IP(`req.ip`)별입니다. 프록시(Next.js rewrite·nginx) 뒤에서 `req.ip` 가 127.0.0.1 로 뭉치지 않도록 백엔드는 `TRUST_PROXY`(기본 `loopback`, `libs/common/src/global/middleware/trust-proxy.ts`)로 X-Forwarded-For 를 읽습니다. 앞단 nginx 는 XFF 를 `$remote_addr` 로 **덮어써야** 합니다 — Next rewrite 는 XFF 가 있으면 그대로 넘기므로 덮지 않으면 클라이언트가 IP 를 골라 한도를 우회합니다 (`scripts/setup.sh` 주석).
 
 ⚠️ **`NODE_ENV=development`에서는 `DevThrottlerGuard`가 모든 rate limit을 통과시킵니다** — 로컬에서 잠금·제한 동작을 테스트하려면 이 사실을 알아야 합니다. 통합 테스트가 `NODE_ENV=development`를 쓰는 이유이기도 합니다 ([09장](09-testing.md)).
 

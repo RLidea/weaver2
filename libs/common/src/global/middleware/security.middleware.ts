@@ -50,20 +50,61 @@ function isCrossSiteCallback(req: Request): boolean {
   return CROSS_SITE_CALLBACK_PATHS.includes(req.path);
 }
 
+function parseUrl(value: string | undefined): URL | null {
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * url 이 Swagger 가 떠 있는 백엔드 자신의 origin 과 **정확히** 같은가.
+ *
+ * ORIGIN_URL 은 관례상 스킴 없는 `host:port`(예: `localhost:4000`)라 그때는 host 를,
+ * 스킴까지 적었으면(`https://api.example.com`) origin 전체를 비교한다.
+ * 예전엔 부분 문자열(includes)이라 `localhost:4000.evil.com` 도 통과했다.
+ */
+function isSwaggerOrigin(url: URL, swaggerOrigin: string): boolean {
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  if (swaggerOrigin.includes('://')) {
+    return url.origin === parseUrl(swaggerOrigin)?.origin;
+  }
+  return url.host === swaggerOrigin.trim().toLowerCase();
+}
+
+/**
+ * Swagger UI(/docs)에서 보낸 요청인가.
+ *
+ * - ORIGIN_URL 미설정 → 아무것도 면제하지 않는다
+ * - Origin 이 Swagger origin 과 같거나,
+ * - Referer 가 같은 origin 의 `/docs` 또는 `/docs/…` 일 때만 면제한다
+ *   (예전엔 Referer 에 `/docs` 가 들어 있기만 하면 — `https://evil.com/docs` 도 — 면제됐다)
+ *
+ * 🔴 NODE_ENV 로 거르지 않는다 — 환경 이름은 배포에서 development 로 새어 나간 전례가 있다.
+ */
+function isSwaggerRequest(req: Request): boolean {
+  const swaggerOrigin = process.env.ORIGIN_URL?.trim();
+  if (!swaggerOrigin) return false;
+
+  const origin = parseUrl(req.headers.origin);
+  if (origin && isSwaggerOrigin(origin, swaggerOrigin)) return true;
+
+  const referer = parseUrl(req.headers.referer);
+  return (
+    !!referer &&
+    isSwaggerOrigin(referer, swaggerOrigin) &&
+    (referer.pathname === '/docs' || referer.pathname.startsWith('/docs/'))
+  );
+}
+
 /**
  * CSRF 검사에서 빼는 요청 조건. 파생 프로젝트는 여기에 한 줄씩 더한다.
  */
 const CSRF_EXEMPTIONS: Array<(req: Request) => boolean> = [
-  // Swagger(/docs) 와 매칭되는 origin
-  (req) => {
-    const origin = req.headers.origin;
-    const referer = req.headers.referer;
-    const swaggerOrigin = process.env.ORIGIN_URL;
-    return (
-      (!!swaggerOrigin && !!origin && origin.includes(swaggerOrigin)) ||
-      (!!referer && referer.includes('/docs'))
-    );
-  },
+  // Swagger(/docs) — 백엔드 자신의 origin 에서 온 요청만
+  isSwaggerRequest,
   // provider 가 form_post 로 보내는 OAuth 콜백 — state 대조로 막는다
   isCrossSiteCallback,
 ];
