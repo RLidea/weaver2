@@ -213,7 +213,9 @@ sequenceDiagram
 
 버킷은 클라이언트 IP(`req.ip`)별입니다. 프록시(Next.js rewrite·nginx) 뒤에서 `req.ip` 가 127.0.0.1 로 뭉치지 않도록 백엔드는 `TRUST_PROXY`(기본 `loopback`, `libs/common/src/global/middleware/trust-proxy.ts`)로 X-Forwarded-For 를 읽습니다. 앞단 nginx 는 XFF 를 `$remote_addr` 로 **덮어써야** 합니다 — Next rewrite 는 XFF 가 있으면 그대로 넘기므로 덮지 않으면 클라이언트가 IP 를 골라 한도를 우회합니다 (`scripts/setup.sh` 주석).
 
-⚠️ **`NODE_ENV=development`에서는 `DevThrottlerGuard`가 모든 rate limit을 통과시킵니다** — 로컬에서 잠금·제한 동작을 테스트하려면 이 사실을 알아야 합니다. 통합 테스트가 `NODE_ENV=development`를 쓰는 이유이기도 합니다 ([09장](09-testing.md)).
+⚠️ **`THROTTLE_DISABLED=true`일 때만 `DevThrottlerGuard`가 모든 rate limit을 통과시킵니다** — `NODE_ENV` 와는 무관합니다(예전엔 `development` 면 꺼져, `.env.example` 을 그대로 배포한 서버에서 스로틀이 조용히 꺼졌습니다). 통합 테스트는 `setup.ts` 에서 이 플래그를 켭니다 ([09장](09-testing.md)).
+
+⚠️ **IP 별 한도는 진짜 클라이언트 IP 를 읽어야 동작합니다** — `TRUST_PROXY`(기본 `loopback`)로 같은 호스트 프록시의 `X-Forwarded-For` 를 믿습니다. Next 의 rewrite 는 클라이언트가 보낸 XFF 를 그대로 넘기므로(비어 있을 때만 채움) **Next 를 인터넷에 바로 노출하지 말고 앞에 nginx 등 리버스 프록시를 두세요** — 프록시가 실제 IP 를 덧붙이거나(`$proxy_add_x_forwarded_for`) 덮어쓰면(`$remote_addr`) 위조가 막힙니다.
 
 ## 10. 알아둘 트레이드오프 (사실 기반)
 

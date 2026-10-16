@@ -47,7 +47,7 @@ const service = new BoardPermissionService(
 
 현재 검증 내용: 계정 잠금(5회 실패), 권한 가드(403/401), 정지 계정 차단 — **보안 회귀 방지가 목적**입니다.
 
-> `setup.ts`가 `NODE_ENV=development`를 설정하는 이유: `DevThrottlerGuard`가 development에서 rate limit을 통과시키므로, 5회 연속 로그인 실패 같은 시나리오가 throttle에 막히지 않게 하기 위함입니다 ([03장 §9](03-auth.md#9-rate-limiting-요약)).
+> `setup.ts`가 `THROTTLE_DISABLED=true`를 설정하는 이유: `DevThrottlerGuard`가 이 플래그일 때만 rate limit을 통과시키므로, 5회 연속 로그인 실패 같은 시나리오가 throttle에 막히지 않게 하기 위함입니다 (`NODE_ENV` 로는 꺼지지 않습니다 — [03장 §9](03-auth.md#9-rate-limiting-요약)).
 
 ## 3. e2e (Playwright)
 
