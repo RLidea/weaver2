@@ -34,16 +34,18 @@ describe('ResetPasswordService', () => {
     service = new ResetPasswordService(prisma);
   });
 
-  it('유효한 토큰 → 비밀번호 해싱 후 update + 전체 세션 무효화', async () => {
+  it('유효한 토큰 → 비밀번호 해싱 후 update(인증까지) + 전체 세션 무효화', async () => {
     mockFind.mockResolvedValue({ userId: 'user-1' });
 
     await service.execute({ token: 'tok', password: 'NewPass123!' });
 
     expect(mockFind).toHaveBeenCalledWith(prisma, 'tok');
+    // 메일함 소유를 증명했으니 미인증 계정도 인증을 끝낸다(선점 가입을 당한 주인의 복구 경로).
     expect(mockUpdate).toHaveBeenCalledWith(
       prisma,
       'user-1',
       'hashed:NewPass123!',
+      { markVerified: true },
     );
     // 재설정 시 기존 세션을 전부 무효화한다(탈취 계정 복구 대비).
     expect(mockRevokeSessions).toHaveBeenCalledWith(prisma, 'user-1');

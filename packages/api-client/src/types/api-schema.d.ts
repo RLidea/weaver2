@@ -425,10 +425,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 이메일 인증 토큰 검증 */
-        get: operations["SignUpController_verifyEmail"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * 이메일 인증 (토큰 + 가입 때 정한 비밀번호)
+         * @description 비밀번호가 틀리면 400 VERIFY_PASSWORD_MISMATCH — 본인이 가입하지 않았다면 비밀번호 재설정으로 계정을 되찾는다(재설정이 인증까지 끝낸다).
+         */
+        post: operations["SignUpController_verifyEmail"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2828,6 +2831,18 @@ export interface components {
              */
             email: string;
         };
+        VerifyEmailDto: {
+            /**
+             * @description 인증 메일 링크에 실린 토큰
+             * @example a1b2c3d4e5f6g7h8
+             */
+            token: string;
+            /**
+             * @description 가입 때 정한 비밀번호 — 링크를 누른 사람이 가입한 사람과 같은지 확인한다
+             * @example securePassword123
+             */
+            password: string;
+        };
         ResetPasswordDto: {
             /**
              * @description The password reset token received via email.
@@ -4477,14 +4492,16 @@ export interface operations {
     };
     SignUpController_verifyEmail: {
         parameters: {
-            query: {
-                token: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

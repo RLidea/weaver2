@@ -4,6 +4,7 @@ export async function UpdateLocalCredentialPasswordCommand(
   prisma: PrismaClient,
   userId: string,
   hashedPassword: string,
+  options: { markVerified?: boolean } = {},
 ) {
   return prisma.localCredential.update({
     where: { userId },
@@ -11,6 +12,11 @@ export async function UpdateLocalCredentialPasswordCommand(
       password: hashedPassword,
       passwordResetToken: null,
       resetTokenExpiry: null,
+      ...(options.markVerified && {
+        isVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      }),
     },
   });
 }

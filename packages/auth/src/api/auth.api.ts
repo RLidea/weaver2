@@ -6,6 +6,7 @@ import type {
   SignUpRequest,
   RequestPasswordResetRequest,
   ResetPasswordRequest,
+  VerifyEmailRequest,
   Session,
   TwoFactorStatus,
   TotpSetup,
@@ -32,8 +33,9 @@ export const authApi = {
   signUp: (body: SignUpRequest) =>
     apiClient.post<void>('/v1/auth/sign-up/email', body),
 
-  verifyEmail: (token: string) =>
-    apiClient.get<void>(`/v1/auth/verify?token=${token}`),
+  /** 토큰과 가입 때 정한 비밀번호가 둘 다 맞아야 인증된다 (선점 가입 탈취 방지) */
+  verifyEmail: (body: VerifyEmailRequest) =>
+    apiClient.post<void>('/v1/auth/verify', body),
 
   resendVerification: (email: string) =>
     apiClient.post<void>('/v1/auth/verify/resend', { email }),

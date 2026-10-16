@@ -126,7 +126,7 @@ sequenceDiagram
 
 4. 신규 가입인데 provider 가 검증된 이메일을 주지 않음 → 사용자를 만들지 않고 실패 (provider·providerId 를 경고 로그로 남김)
 
-켜진 로그인 수단은 `GET /v1/auth/providers` (공개)가 알려 줍니다 — `{ password, google, kakao, naver, apple }`. OAuth 는 registry 에 등록돼 있고 `*_CLIENT_ID` 가 채워져 있어야 `true` 입니다. 로그인 화면은 이 값으로 버튼을 그립니다.
+켜진 로그인 수단은 `GET /v1/auth/providers` (공개)가 알려 줍니다 — `{ password, google, kakao, naver, apple }`. OAuth 는 registry 에 등록돼 있고 `*_CLIENT_ID` 가 채워져 있어야 `true` 입니다. 로그인 화면은 이 값으로 버튼을 그립니다. 파생 프로젝트는 전역 모듈에서 `AUTH_PROVIDER_EXTRAS` 토큰으로 칸을 더할 수 있습니다(`oauth/auth-provider-extras.ts` — upstream 칸은 덮어쓰지 못함).
 
 ### Apple — 다른 provider 와 다른 점
 
@@ -153,10 +153,12 @@ sequenceDiagram
 
 | 플로우 | 토큰/코드 | 만료 | 비고 |
 |---|---|---|---|
-| 회원가입 이메일 인증 | 64자 hex (`randomBytes(32)`), DB엔 SHA-256 해시 저장 → 원문은 링크 | 1시간 | 약관 동의 필수, 재발송은 열거 방지 위해 항상 동일 응답 |
-| 비밀번호 재설정 (비로그인) | 64자 hex, DB엔 해시 저장 → 원문은 링크 | 1시간 | 유저 없어도 성공 응답 (열거 방지). **전체 세션 무효화** |
+| 회원가입 이메일 인증 | 64자 hex (`randomBytes(32)`), DB엔 SHA-256 해시 저장 → 원문은 링크 | 1시간 | 약관 동의 필수, 재발송은 열거 방지 위해 항상 동일 응답. **`POST /v1/auth/verify { token, password }` — 가입 때 정한 비밀번호까지 맞아야 인증** (틀리면 400 `VERIFY_PASSWORD_MISMATCH`, 토큰은 남김) |
+| 비밀번호 재설정 (비로그인) | 64자 hex, DB엔 해시 저장 → 원문은 링크 | 1시간 | 유저 없어도 성공 응답 (열거 방지). **전체 세션 무효화**, **미인증 계정이면 인증까지 완료** |
 | 비밀번호 변경 (로그인) | 현재 비밀번호 확인 | — | **전체 세션 무효화** (`DeleteRefreshTokensByUserIdCommand`) |
 | 이메일 변경 (로그인) | 6자리 코드 (bcrypt 해시 저장) → 새 이메일로 발송 | 10분 | 현재 비밀번호 확인 필수. 세션 무효화 없음 |
+
+**인증 링크가 비밀번호를 함께 받는 이유 — 미인증 선점 가입.** 공격자가 남의 이메일로 자기 비밀번호를 정해 가입해 두면 인증 메일은 진짜 주인에게 갑니다. 토큰만으로 인증되면 주인이 링크를 누르는 순간 공격자 비밀번호가 살아나 계정을 빼앗깁니다. 그래서 인증은 가입 때 비밀번호까지 확인하고, 그 비밀번호를 모르는 주인은 **재설정**(메일함 소유 증명 → 인증 완료 · 세션 전부 무효화)으로 계정을 되찾습니다. 가입 화면은 409 충돌 때 이 길을 안내합니다.
 
 **변경(change)과 재설정(reset) 모두 전체 세션을 무효화**합니다 — 계정이 탈취된 상태에서 비밀번호로 복구할 때 공격자 세션이 살아남지 않게 하기 위함입니다. (이메일 변경은 세션을 건드리지 않습니다 — §10 out-of-scope.)
 
@@ -189,7 +191,7 @@ sequenceDiagram
 | sign-in | 10 |
 | 2fa/authenticate | 5 |
 | 2fa/email/send·setup, verify/resend, password/request-reset, users/me/email | 3 |
-| sign-up/email, password/reset, users/me/email/confirm | 5 |
+| sign-up/email, verify, password/reset, users/me/email/confirm | 5 |
 | refresh | (전역 100만 적용) |
 
 ⚠️ **`NODE_ENV=development`에서는 `DevThrottlerGuard`가 모든 rate limit을 통과시킵니다** — 로컬에서 잠금·제한 동작을 테스트하려면 이 사실을 알아야 합니다. 통합 테스트가 `NODE_ENV=development`를 쓰는 이유이기도 합니다 ([09장](09-testing.md)).

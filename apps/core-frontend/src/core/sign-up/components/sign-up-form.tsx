@@ -131,7 +131,13 @@ export function SignUpForm() {
     );
   }
 
-  const serverError = error instanceof ApiError ? error.message : (error?.message ?? null);
+  // 409 = 사용자명·표시 이름·이메일 중 하나가 이미 있음. 어느 것인지는 서버가 밝히지 않는다(계정 열거 방지).
+  const isConflict = error instanceof ApiError && error.status === 409;
+  const serverError = isConflict
+    ? '이미 사용 중인 사용자명·표시 이름·이메일이 있습니다.'
+    : error instanceof ApiError
+      ? error.message
+      : (error?.message ?? null);
 
   return (
     <>
@@ -226,6 +232,16 @@ export function SignUpForm() {
                 ))}
               </div>
             ) : null}
+
+            {isConflict && (
+              <p className="text-sm text-text-muted">
+                내 이메일인데 가입한 기억이 없다면{' '}
+                <Link href="/forgot-password" className="font-medium text-primary hover:opacity-80">
+                  비밀번호 재설정
+                </Link>
+                으로 계정을 되찾을 수 있어요.
+              </p>
+            )}
 
             <Button
               type="submit"
