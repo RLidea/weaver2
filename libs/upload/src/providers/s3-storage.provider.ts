@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import { StorageProvider } from './storage-provider.interface';
+import { StorageProvider, StoredFileType } from './storage-provider.interface';
 
 @Injectable()
 export class S3StorageProvider implements StorageProvider {
@@ -38,9 +38,10 @@ export class S3StorageProvider implements StorageProvider {
   async save(
     file: Express.Multer.File,
     directory: string,
+    type: StoredFileType,
   ): Promise<{ storedName: string; path: string }> {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const storedName = `${randomUUID()}${ext}`;
+    // 확장자·Content-Type 은 사용자 입력이 아니라 검증된 형식에서
+    const storedName = `${randomUUID()}${type.ext}`;
     const key = `${directory}/${storedName}`.replace(/\\/g, '/');
 
     await this.client.send(
@@ -48,7 +49,8 @@ export class S3StorageProvider implements StorageProvider {
         Bucket: this.bucket,
         Key: key,
         Body: file.buffer,
-        ContentType: file.mimetype,
+        ContentType: type.contentType,
+        ...(!type.inline && { ContentDisposition: 'attachment' }),
       }),
     );
 
