@@ -23,6 +23,9 @@ const APPLE_TOKEN_URL = `${APPLE_ISSUER}/auth/token`;
 const CLIENT_SECRET_TTL_SEC = 5 * 60;
 /** JWKS 캐시 — Apple 이 키를 돌리면 kid 가 없어 한 번 다시 받는다 */
 const JWKS_TTL_MS = 60 * 60 * 1000;
+/** Apple 이 응답하지 않을 때 로그인 요청을 붙잡고 있지 않도록 */
+const APPLE_FETCH_TIMEOUT_MS = 5000;
+const APPLE_NAME_MAX = 50;
 
 interface AppleTokenResponse {
   access_token: string;
@@ -91,6 +94,7 @@ export class AppleOAuthProvider implements OAuthProvider {
   async exchangeCodeForTokens(code: string): Promise<OAuthTokens> {
     const res = await fetch(APPLE_TOKEN_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(APPLE_FETCH_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
@@ -228,28 +232,40 @@ export class AppleOAuthProvider implements OAuthProvider {
     if (!jwk) {
       throw new UnauthorizedException('Unknown Apple signing key');
     }
+    // verify('RSA-SHA256') 는 키 종류를 따라가므로 RSA 키만 받는다
+    if (jwk.kty !== 'RSA' || (jwk.alg && jwk.alg !== 'RS256')) {
+      throw new UnauthorizedException('Unexpected Apple signing key type');
+    }
     return createPublicKey({ key: jwk, format: 'jwk' });
   }
 
   private async fetchJwks(): Promise<void> {
-    const res = await fetch(APPLE_KEYS_URL);
+    const res = await fetch(APPLE_KEYS_URL, {
+      signal: AbortSignal.timeout(APPLE_FETCH_TIMEOUT_MS),
+    });
     if (!res.ok) {
       throw new UnauthorizedException(
         `Failed to fetch Apple public keys: ${res.statusText}`,
       );
     }
-    const data = (await res.json()) as { keys: AppleJwk[] };
-    this.jwksCache = { keys: data.keys, fetchedAt: Date.now() };
+    const data = (await res.json()) as { keys?: unknown };
+    if (!Array.isArray(data.keys)) {
+      throw new UnauthorizedException('Malformed Apple public keys');
+    }
+    this.jwksCache = { keys: data.keys as AppleJwk[], fetchedAt: Date.now() };
   }
 
   private parseName(user: string | undefined): string | undefined {
     if (!user) return undefined;
     try {
       const parsed = JSON.parse(user) as AppleUserPayload;
+      // 이 값은 서명되지 않은 form 필드라 사용자가 마음대로 바꿔 보낼 수 있다
       const full = [parsed.name?.firstName, parsed.name?.lastName]
-        .filter(Boolean)
+        .filter((part): part is string => typeof part === 'string')
         .join(' ')
-        .trim();
+        .replace(/[\p{Cc}\p{Cf}]/gu, '')
+        .trim()
+        .slice(0, APPLE_NAME_MAX);
       return full || undefined;
     } catch {
       // 이름은 첫 승인 때 한 번만 온다 — 못 읽으면 다시 받을 길이 없으니 남겨 둔다

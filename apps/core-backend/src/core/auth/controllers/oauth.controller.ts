@@ -106,7 +106,17 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
+    // POST 콜백은 form_post provider(Apple)만 받는다. 다른 provider 까지 열어 두면
+    // 훗날 CSRF 면제를 넓힐 때 CSRF 없는 콜백이 늘어난다.
+    if (!this.oauthService.acceptsFormPost(provider)) {
+      res.redirect(this.failureUrl);
+      return;
+    }
     await this.processCallback(provider, body ?? {}, req, res);
+  }
+
+  private get failureUrl(): string {
+    return this.configService.get<string>('OAUTH_FAILURE_REDIRECT_URL') ?? '/';
   }
 
   private async processCallback(
@@ -116,15 +126,17 @@ export class OAuthController {
     res: Response,
   ): Promise<void> {
     const { code, state, error, user } = params;
-    const failureUrl =
-      this.configService.get<string>('OAUTH_FAILURE_REDIRECT_URL') ?? '/';
 
     const cookies = req.cookies as Record<string, string> | undefined;
     const cookieState = cookies?.[OAUTH_STATE_COOKIE];
-    res.clearCookie(OAUTH_STATE_COOKIE);
+    // state 가 맞을 때만 지운다 — Apple 의 state 쿠키는 SameSite=None 이라 남의 사이트가
+    // 이 콜백으로 POST 를 보내도 실린다. 아무 요청에나 지우면 진행 중인 로그인을 끊을 수 있다.
+    if (cookieState && cookieState === state) {
+      res.clearCookie(OAUTH_STATE_COOKIE);
+    }
 
     if (error || !code || !state) {
-      res.redirect(failureUrl);
+      res.redirect(this.failureUrl);
       return;
     }
 

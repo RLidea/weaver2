@@ -127,6 +127,7 @@ describe('AppleOAuthProvider', () => {
       });
       expect(fetchMock).toHaveBeenCalledWith(
         'https://appleid.apple.com/auth/keys',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
 
@@ -184,6 +185,34 @@ describe('AppleOAuthProvider', () => {
     });
   });
 
+  describe('JWKS 방어', () => {
+    it('RSA 가 아닌 키는 거절한다', async () => {
+      const ecJwk = { ...ecKey.publicKey.export({ format: 'jwk' }), kid: 'k1' };
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ keys: [ecJwk] }),
+      });
+      const token = makeIdToken(appleKey.privateKey, 'k1', validClaims());
+      await expect(provider.verifyIdToken(token)).rejects.toThrow(/key type/);
+    });
+
+    it('keys 가 배열이 아니면 거절한다', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ keys: 'nope' }),
+      });
+      const token = makeIdToken(appleKey.privateKey, 'k1', validClaims());
+      await expect(provider.verifyIdToken(token)).rejects.toThrow(/Malformed/);
+    });
+
+    it('Apple 요청에 타임아웃을 건다', async () => {
+      const token = makeIdToken(appleKey.privateKey, 'k1', validClaims());
+      await provider.verifyIdToken(token);
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.signal).toBeInstanceOf(AbortSignal);
+    });
+  });
+
   describe('getUserProfile', () => {
     it('sub 로 식별하고, 문자열 "true" 인 email_verified 도 받는다', async () => {
       const idToken = makeIdToken(appleKey.privateKey, 'k1', validClaims());
@@ -201,6 +230,20 @@ describe('AppleOAuthProvider', () => {
         email: 'user@privaterelay.appleid.com',
         displayName: 'Jane Doe',
       });
+    });
+
+    it('서명 없는 user 의 이름은 제어문자를 지우고 50자로 자른다', async () => {
+      const idToken = makeIdToken(appleKey.privateKey, 'k1', validClaims());
+      const profile = await provider.getUserProfile(
+        { accessToken: 'at', idToken },
+        {
+          user: JSON.stringify({
+            name: { firstName: 'Ja\u0000ne', lastName: 'x'.repeat(200) },
+          }),
+        },
+      );
+      expect(profile.displayName.startsWith('Jane ')).toBe(true);
+      expect(profile.displayName).toHaveLength(50);
     });
 
     it('나중 로그인처럼 email 이 빠지면 빈 email 로 돌려준다', async () => {

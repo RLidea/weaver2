@@ -15,6 +15,12 @@ jest.mock('../repositories/find-user-by-email.query', () => ({
 jest.mock('../repositories/create-oauth-user.command', () => ({
   CreateOAuthUserCommand: jest.fn(),
 }));
+jest.mock('../repositories/create-refresh-token.command', () => ({
+  CreateRefreshTokenCommand: jest.fn(),
+}));
+jest.mock('../utils/auth-cookie.util', () => ({
+  setAuthCookies: jest.fn(),
+}));
 
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
@@ -25,6 +31,7 @@ describe('OAuthService', () => {
   let registry: OAuthProviderRegistry;
   let service: OAuthService;
   let res: { redirect: jest.Mock; cookie: jest.Mock };
+  let prisma: { user: { findFirst: jest.Mock; update: jest.Mock } };
 
   type FakeProvider = OAuthProvider & {
     mocks: { exchangeCodeForTokens: jest.Mock; getUserProfile: jest.Mock };
@@ -58,9 +65,15 @@ describe('OAuthService', () => {
     };
     registry = new OAuthProviderRegistry();
     const config = { get: (k: string) => env[k] } as unknown as ConfigService;
+    prisma = {
+      user: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
     service = new OAuthService(
-      {} as PrismaService,
-      {} as JwtService,
+      prisma as unknown as PrismaService,
+      { sign: () => 'jwt' } as unknown as JwtService,
       config,
       registry,
     );
@@ -146,6 +159,65 @@ describe('OAuthService', () => {
 
       expect(provider.mocks.exchangeCodeForTokens).not.toHaveBeenCalled();
       expect(res.redirect).toHaveBeenCalledWith('/fail');
+    });
+  });
+
+  describe('acceptsFormPost', () => {
+    it('form_post provider 만 true, 등록 안 된 provider 는 false', () => {
+      registry.register({ ...fakeProvider('apple', ''), usesFormPost: true });
+      registry.register(fakeProvider('google', ''));
+      expect(service.acceptsFormPost('apple')).toBe(true);
+      expect(service.acceptsFormPost('google')).toBe(false);
+      expect(service.acceptsFormPost('nope')).toBe(false);
+    });
+  });
+
+  describe('신규 가입의 displayName', () => {
+    const signUpWithName = async (displayName: string) => {
+      const provider = fakeProvider('google', 'new@b.c');
+      provider.mocks.getUserProfile.mockResolvedValue({
+        provider: 'google',
+        providerId: 'sub-1',
+        email: 'new@b.c',
+        displayName,
+      });
+      registry.register(provider);
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
+      (FindUserByEmailQuery as jest.Mock).mockResolvedValue(null);
+      (CreateOAuthUserCommand as jest.Mock).mockResolvedValue({ userId: 'u1' });
+
+      await service.handleOAuthCallback(
+        'google',
+        'code',
+        'st',
+        'st',
+        res as unknown as Response,
+      );
+      expect(res.redirect).toHaveBeenCalledWith('/ok');
+      const [, options] = (CreateOAuthUserCommand as jest.Mock).mock
+        .calls[0] as [unknown, { displayName: string }];
+      return options.displayName;
+    };
+
+    it('이미 쓰는 이름이면 숫자를 붙인다', async () => {
+      // username 확인(첫 호출)은 비어 있고, displayName 'Jane' 은 이미 있음
+      prisma.user.findFirst.mockImplementation(
+        ({ where }: { where: { displayName?: string } }) =>
+          Promise.resolve(where.displayName === 'Jane' ? { id: 'x' } : null),
+      );
+      await expect(signUpWithName('Jane')).resolves.toBe('Jane2');
+    });
+
+    it('제어문자를 지우고 길이를 자른다', async () => {
+      const name = await signUpWithName(
+        `  Ja\u0000ne\u200b ${'x'.repeat(100)}`,
+      );
+      expect(name.startsWith('Jane ')).toBe(true);
+      expect(name.length).toBeLessThanOrEqual(30);
+    });
+
+    it('예약된 이름이나 빈 이름은 user 로 바꾼다', async () => {
+      await expect(signUpWithName('   ')).resolves.toBe('user');
     });
   });
 });

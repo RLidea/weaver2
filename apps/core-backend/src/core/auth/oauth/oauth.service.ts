@@ -9,6 +9,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { isReservedDisplayName } from '@weaver2/common/utility/reserved-names.util';
 import { Response } from 'express';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
@@ -25,6 +26,9 @@ import {
 } from './interfaces/oauth-provider.interface';
 import { setAuthCookies } from '../utils/auth-cookie.util';
 import { AuthProvidersResponseDto } from '../dto/auth-providers-response.dto';
+
+const OAUTH_DISPLAY_NAME_MAX = 30;
+const OAUTH_DISPLAY_NAME_TRIES = 5;
 
 @Injectable()
 export class OAuthService {
@@ -52,6 +56,14 @@ export class OAuthService {
   }
 
   /** 로그인 화면이 버튼을 서버 설정에 맞춰 그리도록, 켜진 로그인 수단을 알려 준다 */
+  /** POST(form_post) 콜백을 받는 provider 인가 — 등록 안 된 provider 도 false */
+  acceptsFormPost(providerName: string): boolean {
+    return (
+      this.providerRegistry.has(providerName) &&
+      (this.providerRegistry.get(providerName).usesFormPost ?? false)
+    );
+  }
+
   getEnabledProviders(): AuthProvidersResponseDto {
     return {
       password: true,
@@ -215,9 +227,12 @@ export class OAuthService {
       profile.provider,
       profile.providerId,
     );
+    const displayName = await this.generateUniqueDisplayName(
+      profile.displayName,
+    );
     return CreateOAuthUserCommand(this.prisma, {
       username,
-      displayName: profile.displayName,
+      displayName,
       email: profile.email,
       provider: profile.provider,
       providerId: profile.providerId,
@@ -225,6 +240,30 @@ export class OAuthService {
       refreshToken: tokens.refreshToken,
       tokenExpiry: tokens.tokenExpiry,
     });
+  }
+
+  /**
+   * provider 가 준 이름을 displayName(@unique)으로 쓸 수 있게 다듬는다.
+   * 겹치면 숫자를 붙인다 — 그대로 넣으면 흔한 이름의 첫 로그인이 P2002 로 실패하고,
+   * Apple 은 이름을 첫 승인 때 한 번만 주므로 그 실패는 되돌릴 수 없다.
+   */
+  private async generateUniqueDisplayName(raw: string): Promise<string> {
+    const cleaned = raw
+      .replace(/[\p{Cc}\p{Cf}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, OAUTH_DISPLAY_NAME_MAX);
+    const base = cleaned && !isReservedDisplayName(cleaned) ? cleaned : 'user';
+
+    for (let n = 1; n <= OAUTH_DISPLAY_NAME_TRIES; n++) {
+      const candidate = n === 1 ? base : `${base}${n}`;
+      const taken = await this.prisma.user.findFirst({
+        where: { displayName: candidate },
+        select: { id: true },
+      });
+      if (!taken) return candidate;
+    }
+    return `${base}_${randomUUID().replace(/-/g, '').slice(0, 6)}`;
   }
 
   private async generateUniqueUsername(
