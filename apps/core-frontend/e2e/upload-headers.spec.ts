@@ -17,10 +17,9 @@ const UPLOADS_ROOT = join(__dirname, '..', '..', '..', 'uploads');
 const dir = `e2e-${randomUUID()}`;
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 
-// 공격이 닿는 사람은 로그인한 사용자다. 프록시(src/proxy.ts)는 이미지가 아닌 /uploads 를
-// 비로그인이면 /login 으로 돌려보내므로, 쿠키 없이 재면 백엔드 응답이 아니라 로그인 화면을
-// 잰다. 프록시는 쿠키가 있는지만 보니 값은 아무것이나 된다. 리다이렉트는 따라가지 않는다.
-const AS_LOGGED_IN = { headers: { Cookie: 'refresh_token=e2e' }, maxRedirects: 0 };
+// /uploads 는 공개 경로다(src/proxy.ts) — 로그아웃한 방문자도 첨부를 받는다.
+// 리다이렉트는 따라가지 않아, 로그인 화면으로 튕기면 200 이 아니라서 바로 드러난다.
+const ANONYMOUS = { maxRedirects: 0 };
 
 test.describe('/uploads 응답 헤더 — Next rewrite 를 지나서', () => {
   test.beforeAll(() => {
@@ -35,7 +34,7 @@ test.describe('/uploads 응답 헤더 — Next rewrite 를 지나서', () => {
   });
 
   test('저장된 .html 은 sandbox · nosniff · 내려받기로 나간다', async ({ request }) => {
-    const res = await request.get(`/uploads/${dir}/old.html`, AS_LOGGED_IN);
+    const res = await request.get(`/uploads/${dir}/old.html`, ANONYMOUS);
 
     expect(res.status()).toBe(200);
     const headers = res.headers();
@@ -45,7 +44,7 @@ test.describe('/uploads 응답 헤더 — Next rewrite 를 지나서', () => {
   });
 
   test('이미지는 인라인이지만 sandbox · nosniff 는 그대로', async ({ request }) => {
-    const res = await request.get(`/uploads/${dir}/pic.png`, AS_LOGGED_IN);
+    const res = await request.get(`/uploads/${dir}/pic.png`, ANONYMOUS);
 
     expect(res.status()).toBe(200);
     const headers = res.headers();
