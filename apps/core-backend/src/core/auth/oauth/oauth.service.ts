@@ -74,10 +74,17 @@ export class OAuthService {
   }
 
   getEnabledProviders(): AuthProvidersResponseDto & Record<string, boolean> {
-    const extras = Object.assign(
-      {},
-      ...this.providerExtras.map((extra) => extra()),
-    ) as Record<string, boolean>;
+    const extras: Record<string, boolean> = {};
+    for (const extra of this.providerExtras) {
+      try {
+        Object.assign(extras, extra());
+      } catch (error) {
+        // 파생 프로젝트의 칸 하나가 깨져도 로그인 화면 전체가 버튼을 잃지 않게 한다
+        this.logger.error(
+          `AUTH_PROVIDER_EXTRAS entry failed: ${(error as Error).message}`,
+        );
+      }
+    }
     // 파생 프로젝트의 칸은 더하기만 한다 — upstream 칸을 덮어쓰지 못하게 뒤에 펼친다
     return {
       ...extras,

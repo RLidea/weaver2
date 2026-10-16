@@ -123,6 +123,27 @@ describe('OAuthService', () => {
     });
   });
 
+  it('깨진 확장 함수 하나가 응답 전체를 망치지 않는다', () => {
+    const config = { get: (k: string) => env[k] } as unknown as ConfigService;
+    const extended = new OAuthService(
+      prisma as unknown as PrismaService,
+      {} as JwtService,
+      config,
+      registry,
+      [
+        () => {
+          throw new Error('boom');
+        },
+        () => ({ emailCode: true }),
+      ],
+    );
+
+    expect(extended.getEnabledProviders()).toMatchObject({
+      emailCode: true,
+      password: true,
+    });
+  });
+
   describe('getAuthorizationUrl', () => {
     it('provider 의 usesFormPost 를 함께 돌려준다', () => {
       registry.register({ ...fakeProvider('apple', ''), usesFormPost: true });
