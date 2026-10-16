@@ -1,5 +1,6 @@
 import { PrismaService } from '@weaver2/prisma';
 import { Prisma, User } from '@weaver2/prisma';
+import { normalizeEmail } from '../utils/email.util';
 
 export function SignUpCommand(
   prisma: PrismaService,
@@ -16,7 +17,7 @@ export function SignUpCommand(
       data: {
         username,
         displayName,
-        email,
+        email: normalizeEmail(email),
       },
     });
 

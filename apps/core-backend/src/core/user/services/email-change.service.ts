@@ -13,6 +13,7 @@ import { CreateEmailChangeRequestCommand } from '../repositories/create-email-ch
 import { FindEmailChangeRequestQuery } from '../repositories/find-email-change-request.query';
 import { DeleteEmailChangeRequestsCommand } from '../repositories/delete-email-change-requests.command';
 import { UpdateUserEmailCommand } from '../repositories/update-user-email.command';
+import { normalizeEmail } from '../../auth/utils/email.util';
 
 const EMAIL_CHANGE_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10분
 
@@ -46,7 +47,7 @@ export class EmailChangeService {
     }
 
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: newEmail },
+      where: { email: normalizeEmail(newEmail) },
       select: { id: true },
     });
     if (existingUser) {

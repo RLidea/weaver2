@@ -135,8 +135,9 @@ export class SignUpService {
       userId: user.id,
     });
 
+    // 입력값이 아니라 저장된 주소로 보낸다
     await this.emailBusinessService.sendVerificationEmail(
-      email,
+      user.email,
       `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
       user.id,
     );

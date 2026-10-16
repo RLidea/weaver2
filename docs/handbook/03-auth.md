@@ -165,6 +165,19 @@ sequenceDiagram
 
 **변경(change)과 재설정(reset) 모두 전체 세션을 무효화**합니다 — 계정이 탈취된 상태에서 비밀번호로 복구할 때 공격자 세션이 살아남지 않게 하기 위함입니다. (이메일 변경은 세션을 건드리지 않습니다 — §10 out-of-scope.)
 
+### 이메일은 소문자로 저장하고 정확 일치로 비교한다
+
+`Victim@x.com` 과 `victim@x.com` 이 다른 계정이 되면 가입 충돌을 피해 같은 사람의 이메일을 선점할 수 있습니다.
+
+- 들어오는 입구: 이메일을 받는 DTO 에 `@NormalizeEmail()` (`core/auth/utils/email.util.ts` — trim + 소문자)
+- 저장소: 이메일을 찾거나 쓰는 repository 가 `normalizeEmail()` 을 한 번 더 거칩니다 (DTO 를 거치지 않는 로그인·OAuth 가입도 잡힘)
+- DB: `CHECK (email = lower(email))` (`users`, `email_change_requests`) — 어느 경로가 빠뜨려도 DB 가 막습니다. Prisma 는 이 제약을 관리하지 않지만 지우지도 않습니다
+- ❌ **Prisma `mode: 'insensitive'` 를 쓰지 마세요.** `ILIKE` 로 바뀌어 입력의 `%`·`_` 가 와일드카드가 됩니다 (`%@…` 로그인이 남의 계정을 잡고 실패 횟수를 올림). 인덱스도 못 탑니다
+- ⚠️ **파생 프로젝트 배포 전:** 마이그레이션 `20261017120000_normalize_email_lowercase` 는 대소문자만 다른 계정이 있으면 **멈춥니다**(어느 계정을 남길지는 사람이 정함). 먼저 확인하세요:
+  ```sql
+  SELECT lower(trim(email)), array_agg(id) FROM users GROUP BY 1 HAVING count(*) > 1;
+  ```
+
 ## 7. 세션 관리 — `auth/sessions`
 
 세션 = `RefreshToken` 레코드입니다:

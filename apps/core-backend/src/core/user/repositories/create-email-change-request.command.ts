@@ -1,4 +1,5 @@
 import { PrismaClient } from '@weaver2/prisma';
+import { normalizeEmail } from '../../auth/utils/email.util';
 
 export async function CreateEmailChangeRequestCommand(
   prisma: PrismaClient,
@@ -13,7 +14,7 @@ export async function CreateEmailChangeRequestCommand(
   return prisma.emailChangeRequest.create({
     data: {
       userId,
-      newEmail,
+      newEmail: normalizeEmail(newEmail),
       codeHash,
       expiresAt,
     },

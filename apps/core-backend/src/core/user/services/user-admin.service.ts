@@ -21,6 +21,7 @@ import { SuspendUserCommand } from '../repositories/suspend-user.command';
 import { UnsuspendUserCommand } from '../repositories/unsuspend-user.command';
 import { SoftDeleteUserCommand } from '../repositories/soft-delete-user.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
+import { normalizeEmail } from '../../auth/utils/email.util';
 
 @Injectable()
 export class UserAdminService {
@@ -53,7 +54,7 @@ export class UserAdminService {
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
-        where: { email: dto.email },
+        where: { email: normalizeEmail(dto.email) },
       });
       if (existing) throw new ConflictException('이미 사용 중인 이메일입니다.');
     }
@@ -71,7 +72,7 @@ export class UserAdminService {
       data: {
         ...(dto.displayName !== undefined && { displayName: dto.displayName }),
         ...(dto.username !== undefined && { username: dto.username }),
-        ...(dto.email !== undefined && { email: dto.email }),
+        ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
       },
     });
 

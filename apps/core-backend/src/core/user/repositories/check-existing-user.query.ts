@@ -1,5 +1,6 @@
 import { PrismaService } from '@weaver2/prisma';
 import { ConflictException } from '@nestjs/common';
+import { normalizeEmail } from '../../auth/utils/email.util';
 
 export async function CheckExistingUserQuery(
   prisma: PrismaService,
@@ -8,7 +9,7 @@ export async function CheckExistingUserQuery(
   const { username, displayName, email } = options;
   const existingUser = await prisma.user.findFirst({
     where: {
-      OR: [{ username }, { displayName }, { email }],
+      OR: [{ username }, { displayName }, { email: normalizeEmail(email) }],
     },
   });
   if (existingUser) {

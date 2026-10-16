@@ -11,6 +11,7 @@ import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refr
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
+import { normalizeEmail } from '../utils/email.util';
 
 /**
  * 회전된 토큰이 다시 제시됐을 때, 이 시간 이내면 정상 경합(응답 유실 후 재시도 등)으로 보고
@@ -37,7 +38,7 @@ export class SignInService {
     if (!user) {
       // 탈퇴한 계정인지 별도 확인
       const deletedUser = await this.prisma.user.findFirst({
-        where: { email, deletedAt: { not: null } },
+        where: { email: normalizeEmail(email), deletedAt: { not: null } },
       });
       if (deletedUser) throw new UnauthorizedException('ACCOUNT_DELETED');
       throw new UnauthorizedException('Invalid credentials');

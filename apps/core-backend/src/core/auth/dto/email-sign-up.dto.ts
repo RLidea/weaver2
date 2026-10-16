@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsArray,
 } from 'class-validator';
+import { NormalizeEmail } from '../utils/email.util';
 
 export class EmailSignUpDto {
   @ApiProperty({ description: 'Username' })
@@ -20,6 +21,7 @@ export class EmailSignUpDto {
 
   @ApiProperty({ description: 'Email address' })
   @IsEmail()
+  @NormalizeEmail()
   email: string;
 
   @ApiProperty({ description: 'Password' })
