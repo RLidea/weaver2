@@ -177,6 +177,7 @@ sequenceDiagram
   ```sql
   SELECT lower(trim(email)), array_agg(id) FROM users GROUP BY 1 HAVING count(*) > 1;
   ```
+  ASCII 가 아닌 글자가 든 이메일이 있어도 멈춥니다 — Postgres `lower()` 는 DB 로케일(`SHOW lc_ctype`)을 따라 C 로케일이면 `É` 를 그대로 두므로, 앱이 만든 소문자와 어긋나 그 사용자가 로그인하지 못합니다 (`SELECT id, email FROM users WHERE email ~ '[^\x01-\x7F]';`). 소문자로 바꾸면 기존 계정과 겹치는 대기 중 이메일 변경 요청은 지웁니다. 사용자가 아주 많으면 CHECK 를 `NOT VALID` 로 건 뒤 `VALIDATE CONSTRAINT` 하는 편이 잠금이 짧습니다
 
 ## 7. 세션 관리 — `auth/sessions`
 

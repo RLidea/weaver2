@@ -87,7 +87,15 @@ export class EmailChangeService {
       throw new BadRequestException('Invalid verification code.');
     }
 
-    await UpdateUserEmailCommand(this.prisma, userId, request.newEmail);
+    // 요청 뒤 그 주소로 다른 계정이 생겼으면 unique 충돌이다 — 500 이 아니라 409 로
+    try {
+      await UpdateUserEmailCommand(this.prisma, userId, request.newEmail);
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code === 'P2002') {
+        throw new ConflictException('Email is already in use.');
+      }
+      throw e;
+    }
     await DeleteEmailChangeRequestsCommand(this.prisma, userId);
   }
 }
