@@ -74,6 +74,14 @@ describe('parseTrustProxy', () => {
       'uniquelocal',
     ]);
   });
+
+  it('조용히 틀리는 값은 부팅에서 거절한다 — 0 · 큰 홉 수 · 빈 목록', () => {
+    // 0 과 빈 목록은 아무도 안 믿어 한 통 버킷으로, 큰 홉 수는 사실상 true 로 돌아간다
+    expect(() => parseTrustProxy('0')).toThrow(/1~3/);
+    expect(() => parseTrustProxy('99')).toThrow(/1~3/);
+    expect(() => parseTrustProxy(',')).toThrow(/비었습니다/);
+    expect(parseTrustProxy('3')).toBe(3);
+  });
 });
 
 describe('setTrustProxy', () => {

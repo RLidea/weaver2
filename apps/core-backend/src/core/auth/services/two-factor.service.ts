@@ -20,6 +20,8 @@ const qrcode = require('qrcode') as typeof import('qrcode');
 import { randomInt } from 'crypto';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
+import { IncrementFailedAttemptsCommand } from '../repositories/increment-failed-attempts.command';
+import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-challenge.query';
 import { CreateTwoFactorChallengeCommand } from '../repositories/create-two-factor-challenge.command';
 import { DeleteTwoFactorChallengesCommand } from '../repositories/delete-two-factor-challenges.command';
@@ -230,6 +232,14 @@ export class TwoFactorService {
     );
     if (!credential) throw new UnauthorizedException('Account not found');
 
+    // 2FA 실패도 비밀번호와 같은 잠금 카운터에 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며
+    // 6자리 코드를 대입하는 것을 막지 못한다.
+    if (credential.lockedUntil && credential.lockedUntil > new Date()) {
+      throw new UnauthorizedException(
+        'Account is temporarily locked. Please try again later.',
+      );
+    }
+
     if (method === 'totp') {
       if (!credential.totpEnabled || !credential.totpSecret) {
         throw new BadRequestException('TOTP is not enabled for this account');
@@ -238,7 +248,10 @@ export class TwoFactorService {
         token: code,
         secret: decryptSecret(credential.totpSecret),
       });
-      if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
+      if (!result.valid) {
+        await IncrementFailedAttemptsCommand(this.prisma, userId);
+        throw new UnauthorizedException('Invalid TOTP code');
+      }
 
       // 배포 전 저장된 legacy 평문 secret이면 이 시점에 암호화로 재저장(lazy migration).
       // 이 분기에 도달했다는 것은 totpEnabled === true가 보장된 상태.
@@ -265,7 +278,10 @@ export class TwoFactorService {
         );
 
       const isValid = await bcrypt.compare(code, challenge.codeHash);
-      if (!isValid) throw new UnauthorizedException('Invalid Email OTP code');
+      if (!isValid) {
+        await IncrementFailedAttemptsCommand(this.prisma, userId);
+        throw new UnauthorizedException('Invalid Email OTP code');
+      }
 
       await DeleteTwoFactorChallengesCommand(
         this.prisma,
@@ -274,6 +290,7 @@ export class TwoFactorService {
       );
     }
 
+    await ResetFailedAttemptsCommand(this.prisma, userId);
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
     return { userId, rememberMe };
   }

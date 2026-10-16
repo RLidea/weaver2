@@ -1,10 +1,13 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import type { Express } from 'express';
 
 /**
  * Express `trust proxy` 에 넘길 값. (express 가 받는 꼴 중 env 로 적을 수 있는 것만)
  */
 export type TrustProxyValue = boolean | number | string[];
+
+/** 믿을 홉 수 상한 — 그보다 크면 사실상 `true`(XFF 통째 신뢰)와 같아 위조를 연다 */
+const MAX_TRUSTED_HOPS = 3;
 
 /**
  * `TRUST_PROXY` env 를 Express 의 `trust proxy` 값으로 바꾼다.
@@ -23,11 +26,27 @@ export function parseTrustProxy(raw: string | undefined): TrustProxyValue {
   if (value === '') return ['loopback'];
   if (value === 'true') return true;
   if (value === 'false') return false;
-  if (/^\d+$/.test(value)) return Number(value);
-  return value
+  if (/^\d+$/.test(value)) {
+    // 0 은 아무도 안 믿어 다시 한 통 버킷, 큰 수는 사실상 true — 둘 다 조용히 틀린다
+    const hops = Number(value);
+    if (hops < 1 || hops > MAX_TRUSTED_HOPS) {
+      throw new Error(
+        `TRUST_PROXY=${value}: 홉 수는 1~${MAX_TRUSTED_HOPS} 이어야 합니다 (아무도 안 믿으려면 false)`,
+      );
+    }
+    return hops;
+  }
+  const list = value
     .split(',')
     .map((part) => part.trim())
     .filter((part) => part !== '');
+  // `,` 처럼 비어 버린 목록은 아무도 안 믿는다 — 의도라면 false 를 쓰게 한다
+  if (list.length === 0) {
+    throw new Error(
+      `TRUST_PROXY=${value}: 믿을 프록시 목록이 비었습니다 (아무도 안 믿으려면 false)`,
+    );
+  }
+  return list;
 }
 
 /**
@@ -45,5 +64,8 @@ export function parseTrustProxy(raw: string | undefined): TrustProxyValue {
  */
 export function setTrustProxy(app: INestApplication): void {
   const instance = app.getHttpAdapter().getInstance() as Express;
-  instance.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+  const value = parseTrustProxy(process.env.TRUST_PROXY);
+  instance.set('trust proxy', value);
+  // 배포마다 무엇을 믿는지 부팅 로그에 남긴다 — Docker 등에서 한 통 버킷으로 돌아가도 보이게
+  new Logger('TrustProxy').log(`trust proxy = ${JSON.stringify(value)}`);
 }

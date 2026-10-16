@@ -75,7 +75,12 @@ export class SignInService {
       throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 
-    await ResetFailedAttemptsCommand(this.prisma, user.id);
+    // 2단계 인증이 남아 있으면 실패 횟수를 아직 지우지 않는다 — 지우면 비밀번호를 가진
+    // 공격자가 「다시 로그인 → 코드 4번」을 되풀이해 잠금 없이 2FA 코드를 대입할 수 있다.
+    // 그 경우 리셋은 2FA 까지 통과한 뒤(TwoFactorService.authenticate)에 한다.
+    if (!localCredential.totpEnabled && !localCredential.emailOtpEnabled) {
+      await ResetFailedAttemptsCommand(this.prisma, user.id);
+    }
 
     this.logger.debug(
       `validateUserByEmail: Returning user: ${JSON.stringify(user.id)}`,

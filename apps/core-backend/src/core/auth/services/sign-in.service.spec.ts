@@ -168,6 +168,26 @@ describe('SignInService.validateUserByEmail', () => {
     expect(mockReset).toHaveBeenCalledWith(prisma, 'u1');
     expect(result).toBe(user);
   });
+
+  it('2FA 가 켜진 계정은 비밀번호만 맞아서는 실패 횟수를 지우지 않는다', async () => {
+    // 지우면 「다시 로그인 → 2FA 코드 4번」을 되풀이해 잠금 없이 코드를 대입할 수 있다
+    const user = {
+      id: 'u1',
+      suspendedUntil: null,
+      localCredential: {
+        password: 'hash',
+        isVerified: true,
+        lockedUntil: null,
+        totpEnabled: true,
+        emailOtpEnabled: false,
+      },
+    };
+    mockFind.mockResolvedValue(user);
+    mockCompare.mockResolvedValue(true);
+
+    await service.validateUserByEmail('a@b.c', 'pw');
+    expect(mockReset).not.toHaveBeenCalled();
+  });
 });
 
 describe('SignInService.refresh', () => {
