@@ -10,8 +10,11 @@ jest.mock('../utils/auth-crypto.util', () => ({
   decryptSecret: jest.fn((s: string) => s),
   isEncryptedSecret: jest.fn(() => true),
 }));
-jest.mock('../repositories/find-local-credential-by-user-id.query', () => ({
-  FindLocalCredentialByUserIdQuery: jest.fn(),
+jest.mock('../repositories/find-two-factor-methods.query', () => ({
+  FindTwoFactorMethodsQuery: jest.fn(),
+}));
+jest.mock('../repositories/record-totp-time-step.command', () => ({
+  RecordTotpTimeStepCommand: jest.fn(),
 }));
 jest.mock('../repositories/reserve-login-attempt.command', () => ({
   ReserveLoginAttemptCommand: jest.fn(),
@@ -19,11 +22,11 @@ jest.mock('../repositories/reserve-login-attempt.command', () => ({
 jest.mock('../repositories/reset-failed-attempts.command', () => ({
   ResetFailedAttemptsCommand: jest.fn(),
 }));
-jest.mock('../repositories/update-totp-settings.command', () => ({
-  UpdateTotpSettingsCommand: jest.fn(),
+jest.mock('../repositories/delete-two-factor-method.command', () => ({
+  DeleteTwoFactorMethodCommand: jest.fn(),
 }));
-jest.mock('../repositories/update-email-otp-settings.command', () => ({
-  UpdateEmailOtpSettingsCommand: jest.fn(),
+jest.mock('../repositories/enable-email-two-factor.command', () => ({
+  EnableEmailTwoFactorCommand: jest.fn(),
 }));
 
 import { HttpStatus, UnauthorizedException } from '@nestjs/common';
@@ -33,23 +36,30 @@ import { verify as otpVerify } from 'otplib';
 import { TwoFactorService } from './two-factor.service';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
-import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
+import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-methods.query';
+import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
 import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
-import { UpdateTotpSettingsCommand } from '../repositories/update-totp-settings.command';
-import { UpdateEmailOtpSettingsCommand } from '../repositories/update-email-otp-settings.command';
+import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
+import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
 
-const mockFindCredential = FindLocalCredentialByUserIdQuery as jest.Mock;
+const mockFindCredential = FindTwoFactorMethodsQuery as jest.Mock;
+const mockRecordStep = RecordTotpTimeStepCommand as jest.Mock;
 const mockReserve = ReserveLoginAttemptCommand as jest.Mock;
 const mockReset = ResetFailedAttemptsCommand as jest.Mock;
 const mockOtpVerify = otpVerify as jest.Mock;
 
-const credential = (overrides: Record<string, unknown> = {}) => ({
-  totpEnabled: true,
-  totpSecret: 'secret',
-  emailOtpEnabled: true,
-  lockedUntil: null,
-  ...overrides,
+// 확인된 TOTP 와 이메일 2FA 를 둘 다 가진 사람
+const totpMethod = {
+  kind: 'TOTP',
+  secretEncrypted: 'v1:secret',
+  lastUsedTimeStep: 10,
+  confirmedAt: new Date(),
+};
+const credential = () => ({
+  totp: totpMethod,
+  confirmedTotp: totpMethod,
+  email: { kind: 'EMAIL', confirmedAt: new Date() },
 });
 
 function build() {
@@ -88,6 +98,7 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
     ctx = build();
   });
@@ -139,9 +150,47 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     expect(mockOtpVerify).not.toHaveBeenCalled();
   });
 
+  it('TOTP 는 이미 쓴 시간 단위 다음부터만 받는다 (afterTimeStep)', async () => {
+    mockFindCredential.mockResolvedValue(credential());
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+
+    await ctx.service.authenticate('tok', 'totp', '123456');
+
+    expect(mockOtpVerify).toHaveBeenCalledWith(
+      expect.objectContaining({ afterTimeStep: 10 }),
+    );
+    expect(mockRecordStep).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      11,
+    );
+  });
+
+  it('같은 코드가 동시에 와서 시간 단위를 남기지 못했으면(진 쪽) 거절한다', async () => {
+    mockFindCredential.mockResolvedValue(credential());
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+    mockRecordStep.mockResolvedValue(false);
+
+    await expect(
+      ctx.service.authenticate('tok', 'totp', '123456'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(mockReset).not.toHaveBeenCalled();
+  });
+
+  it('기기 시계가 앞서 otplib 가 범위 초과로 던지면 틀린 코드로 다룬다', async () => {
+    mockFindCredential.mockResolvedValue(credential());
+    const err = new Error('range');
+    err.name = 'AfterTimeStepRangeExceededError';
+    mockOtpVerify.mockRejectedValue(err);
+
+    await expect(
+      ctx.service.authenticate('tok', 'totp', '123456'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
   it('맞는 코드면 그제야 실패 횟수를 지운다', async () => {
     mockFindCredential.mockResolvedValue(credential());
-    mockOtpVerify.mockResolvedValue({ valid: true });
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
 
     await expect(
       ctx.service.authenticate('tok', 'totp', '123456'),
@@ -155,6 +204,7 @@ describe('TwoFactorService — 이메일 코드 발송', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRecordStep.mockResolvedValue(true);
     ctx = build();
   });
 
@@ -209,7 +259,7 @@ describe('TwoFactorService — 이메일 코드 발송', () => {
       'TWO_FACTOR_SETUP',
       '111111',
     );
-    expect(UpdateEmailOtpSettingsCommand).not.toHaveBeenCalled();
+    expect(EnableEmailTwoFactorCommand).not.toHaveBeenCalled();
   });
 });
 
@@ -218,17 +268,22 @@ describe('TwoFactorService — 해제', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRecordStep.mockResolvedValue(true);
     ctx = build();
     mockFindCredential.mockResolvedValue(credential());
   });
 
   it('인증 앱 코드가 맞으면 STEP_UP 코드를 보지 않는다', async () => {
-    mockOtpVerify.mockResolvedValue({ valid: true });
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
 
     await ctx.service.disableTotp('user-1', '123456');
 
     expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
-    expect(UpdateTotpSettingsCommand).toHaveBeenCalled();
+    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      'TOTP',
+    );
   });
 
   it('인증 앱 코드가 아니면 메일로 받은 STEP_UP 코드로도 해제할 수 있다', async () => {
@@ -242,10 +297,10 @@ describe('TwoFactorService — 해제', () => {
       'STEP_UP',
       '654321',
     );
-    expect(UpdateEmailOtpSettingsCommand).toHaveBeenCalledWith(
+    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
-      false,
+      'EMAIL',
     );
     expect(ctx.prisma.oneTimeCode.deleteMany).toHaveBeenCalledWith({
       where: {
@@ -262,6 +317,6 @@ describe('TwoFactorService — 해제', () => {
     await expect(
       ctx.service.disableTotp('user-1', '000000'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(UpdateTotpSettingsCommand).not.toHaveBeenCalled();
+    expect(DeleteTwoFactorMethodCommand).not.toHaveBeenCalled();
   });
 });

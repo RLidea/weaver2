@@ -49,10 +49,12 @@ describe('auth-crypto.util', () => {
       expect(decryptSecret(b)).toBe('same');
     });
 
-    it('legacy 평문(v1: 프리픽스 없음)은 그대로 반환 — 하위호환', () => {
+    it('평문(v1: 프리픽스 없음)은 조용히 통과시키지 않고 던진다', () => {
       const legacyPlain = 'PLAINTEXTSECRET';
       expect(isEncryptedSecret(legacyPlain)).toBe(false);
-      expect(decryptSecret(legacyPlain)).toBe(legacyPlain);
+      expect(() => decryptSecret(legacyPlain)).toThrow(
+        /auth:encrypt-legacy-totp/,
+      );
     });
 
     it('키 미설정 시 암호화는 fail-fast', () => {

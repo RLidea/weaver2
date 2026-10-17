@@ -9,6 +9,16 @@ jest.mock('qrcode', () => ({
   toDataURL: jest.fn(() => Promise.resolve('data:image/png;base64,test')),
 }));
 
+jest.mock('../repositories/find-two-factor-methods.query', () => ({
+  FindTwoFactorMethodsQuery: jest.fn(),
+}));
+jest.mock('../repositories/start-totp-setup.command', () => ({
+  StartTotpSetupCommand: jest.fn(),
+}));
+jest.mock('../repositories/confirm-totp-setup.command', () => ({
+  ConfirmTotpSetupCommand: jest.fn(),
+}));
+
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -19,6 +29,9 @@ import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { jwtModuleOptions } from '../strategy/jwt-module-options';
 import { encryptSecret } from '../utils/auth-crypto.util';
 import * as otplib from 'otplib';
+import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-methods.query';
+import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command';
+import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
 
 // 운영과 같은 JwtModule 옵션(기본 aud = access)으로 만든 실제 JwtService
 const realJwt = () =>
@@ -72,13 +85,12 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
   });
 });
 
-describe('TwoFactorService TOTP 등록 — 켜진 TOTP 는 등록 경로가 덮지 않는다', () => {
+describe('TwoFactorService TOTP 등록 — 확인된 TOTP 는 등록 경로가 덮지 않는다', () => {
   const ENCRYPTION_KEY = 'a'.repeat(64);
+  const mockFindMethods = FindTwoFactorMethodsQuery as jest.Mock;
+  const mockStart = StartTotpSetupCommand as jest.Mock;
+  const mockConfirm = ConfirmTotpSetupCommand as jest.Mock;
   let service: TwoFactorService;
-  let prisma: {
-    localCredential: { findUnique: jest.Mock; updateMany: jest.Mock };
-    user: { findUnique: jest.Mock };
-  };
   let originalKey: string | undefined;
 
   beforeAll(() => {
@@ -90,9 +102,15 @@ describe('TwoFactorService TOTP 등록 — 켜진 TOTP 는 등록 경로가 덮�
     else process.env.TOTP_ENCRYPTION_KEY = originalKey;
   });
 
+  const methods = (totp: Record<string, unknown> | null) => ({
+    totp,
+    confirmedTotp: totp?.confirmedAt ? totp : null,
+    email: null,
+  });
+
   beforeEach(() => {
-    prisma = {
-      localCredential: { findUnique: jest.fn(), updateMany: jest.fn() },
+    jest.clearAllMocks();
+    const prisma = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: 'a@b.c' }) },
     };
     service = new TwoFactorService(
@@ -105,63 +123,84 @@ describe('TwoFactorService TOTP 등록 — 켜진 TOTP 는 등록 경로가 덮�
     (otplib.generateURI as jest.Mock).mockReturnValue('otpauth://test');
   });
 
-  it('켜져 있으면 등록 시작을 거절하고 아무것도 쓰지 않는다', async () => {
-    prisma.localCredential.findUnique.mockResolvedValue({ totpEnabled: true });
+  it('확인된 TOTP 가 있으면 등록 시작을 거절하고 아무것도 쓰지 않는다', async () => {
+    mockFindMethods.mockResolvedValue(methods({ confirmedAt: new Date() }));
     await expect(service.generateTotpSetup('user-1')).rejects.toThrow(
       ConflictException,
     );
-    expect(prisma.localCredential.updateMany).not.toHaveBeenCalled();
+    expect(mockStart).not.toHaveBeenCalled();
   });
 
-  it('꺼져 있으면 「꺼져 있을 때만」 조건으로 새 비밀을 쓴다', async () => {
-    prisma.localCredential.findUnique.mockResolvedValue({ totpEnabled: false });
-    prisma.localCredential.updateMany.mockResolvedValue({ count: 1 });
+  it('없으면 암호화한 새 비밀을 쓴다', async () => {
+    mockFindMethods.mockResolvedValue(methods(null));
+    mockStart.mockResolvedValue(true);
 
     const result = await service.generateTotpSetup('user-1');
 
     expect(result.secret).toBe('secret');
-    expect(prisma.localCredential.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: 'user-1', totpEnabled: false },
-      }),
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      expect.stringMatching(/^v1:/),
     );
   });
 
-  it('확인과 쓰기 사이에 켜졌으면(쓴 행 0) 거절한다', async () => {
-    prisma.localCredential.findUnique.mockResolvedValue({ totpEnabled: false });
-    prisma.localCredential.updateMany.mockResolvedValue({ count: 0 });
+  it('확인과 쓰기 사이에 확인됐으면(쓰지 못함) 거절한다', async () => {
+    mockFindMethods.mockResolvedValue(methods(null));
+    mockStart.mockResolvedValue(false);
     await expect(service.generateTotpSetup('user-1')).rejects.toThrow(
       ConflictException,
     );
   });
 
-  it('등록 확인은 코드를 확인한 바로 그 비밀일 때만 켠다', async () => {
+  it('등록 확인은 코드를 확인한 바로 그 비밀과, 그 코드의 시간 단위로 한다', async () => {
     const stored = encryptSecret('secret');
-    prisma.localCredential.findUnique.mockResolvedValue({
-      totpEnabled: false,
-      totpSecret: stored,
+    mockFindMethods.mockResolvedValue(
+      methods({
+        confirmedAt: null,
+        secretEncrypted: stored,
+        lastUsedTimeStep: null,
+      }),
+    );
+    (otplib.verify as jest.Mock).mockResolvedValue({
+      valid: true,
+      timeStep: 42,
     });
-    (otplib.verify as jest.Mock).mockResolvedValue({ valid: true });
-    prisma.localCredential.updateMany.mockResolvedValue({ count: 1 });
+    mockConfirm.mockResolvedValue(true);
 
     await service.confirmTotpSetup('user-1', '123456');
 
-    expect(prisma.localCredential.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', totpEnabled: false, totpSecret: stored },
-      data: { totpEnabled: true },
-    });
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      stored,
+      42,
+    );
   });
 
-  it('확인하는 사이 등록이 다시 시작됐으면(쓴 행 0) 켜지 않고 거절한다', async () => {
-    prisma.localCredential.findUnique.mockResolvedValue({
-      totpEnabled: false,
-      totpSecret: encryptSecret('secret'),
+  it('확인하는 사이 등록이 다시 시작됐으면(쓰지 못함) 켜지 않고 거절한다', async () => {
+    mockFindMethods.mockResolvedValue(
+      methods({
+        confirmedAt: null,
+        secretEncrypted: encryptSecret('secret'),
+        lastUsedTimeStep: null,
+      }),
+    );
+    (otplib.verify as jest.Mock).mockResolvedValue({
+      valid: true,
+      timeStep: 42,
     });
-    (otplib.verify as jest.Mock).mockResolvedValue({ valid: true });
-    prisma.localCredential.updateMany.mockResolvedValue({ count: 0 });
+    mockConfirm.mockResolvedValue(false);
 
     await expect(service.confirmTotpSetup('user-1', '123456')).rejects.toThrow(
       /restarted/,
+    );
+  });
+
+  it('등록을 시작하지 않았으면 거절한다', async () => {
+    mockFindMethods.mockResolvedValue(methods(null));
+    await expect(service.confirmTotpSetup('user-1', '123456')).rejects.toThrow(
+      /not initiated/,
     );
   });
 });

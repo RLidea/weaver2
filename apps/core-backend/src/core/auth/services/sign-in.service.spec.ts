@@ -74,6 +74,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: future,
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [],
       localCredential: { password: 'hash' },
     });
 
@@ -87,6 +88,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: new Date(0),
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [],
       localCredential: {
         password: 'hash',
         lockedUntil: null,
@@ -107,6 +109,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: null,
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [],
       localCredential: {
         password: 'hash',
         lockedUntil: future,
@@ -124,6 +127,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: null,
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [],
       localCredential: {
         password: 'hash',
         lockedUntil: null,
@@ -144,6 +148,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: null,
       emailVerifiedAt: null,
+      twoFactorMethods: [],
       localCredential: {
         password: 'hash',
         lockedUntil: null,
@@ -161,6 +166,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: null,
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [],
       localCredential: {
         password: 'hash',
         lockedUntil: null,
@@ -180,11 +186,10 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: null,
       emailVerifiedAt: new Date(),
+      twoFactorMethods: [{ kind: 'TOTP' }],
       localCredential: {
         password: 'hash',
         lockedUntil: null,
-        totpEnabled: true,
-        emailOtpEnabled: false,
       },
     };
     mockFind.mockResolvedValue(user);

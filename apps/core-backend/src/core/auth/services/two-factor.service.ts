@@ -8,7 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@weaver2/prisma';
+import { PrismaService, TwoFactorMethod } from '@weaver2/prisma';
 // otplib와 qrcode는 CJS 형태라 ESM 친화 import는 default로만 가능.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const otplibLib = require('otplib') as typeof import('otplib');
@@ -20,21 +20,18 @@ const {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const qrcode = require('qrcode') as typeof import('qrcode');
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
-import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
 import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
-import { UpdateTotpSettingsCommand } from '../repositories/update-totp-settings.command';
+import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-methods.query';
 import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
-import { UpdateEmailOtpSettingsCommand } from '../repositories/update-email-otp-settings.command';
+import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
+import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
+import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
 import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { CodePurpose } from '../one-time-code/one-time-code.constants';
-import {
-  encryptSecret,
-  decryptSecret,
-  isEncryptedSecret,
-} from '../utils/auth-crypto.util';
+import { encryptSecret, decryptSecret } from '../utils/auth-crypto.util';
 
 const APP_NAME = 'Weaver2';
 
@@ -43,6 +40,10 @@ interface PreAuthPayload {
   rememberMe: boolean;
 }
 
+/**
+ * 2FA 수단은 사람(User)에 붙는다 — two_factor_methods. 로그인 수단(비밀번호·OAuth)과
+ * 무관해서, 비밀번호가 없는 OAuth 사용자도 켤 수 있다.
+ */
 @Injectable()
 export class TwoFactorService {
   private readonly logger = new Logger(TwoFactorService.name);
@@ -84,15 +85,13 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   async generateTotpSetup(userId: string) {
-    const credential = await FindLocalCredentialByUserIdQuery(
+    const { confirmedTotp } = await FindTwoFactorMethodsQuery(
       this.prisma,
       userId,
     );
-    if (!credential)
-      throw new BadRequestException('Local credential not found');
-    // 켜진 TOTP 는 등록 경로가 절대 덮지 않는다. 덮으면 「등록 시작」 한 번으로 2FA 가
+    // 확인된 TOTP 는 등록 경로가 절대 덮지 않는다. 덮으면 「등록 시작」 한 번으로 2FA 가
     // 꺼진다 — 끄는 길은 코드를 요구하는 해제(DELETE /2fa/totp) 하나뿐이어야 한다.
-    if (credential.totpEnabled) throw this.totpAlreadyEnabled();
+    if (confirmedTotp) throw this.totpAlreadyEnabled();
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
@@ -106,7 +105,7 @@ export class TwoFactorService {
     const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);
 
     // 원문 secret은 QR/응답으로만 전달하고, DB에는 암호화해 저장한다.
-    // 위 확인과 이 쓰기 사이에 등록이 확인될 수 있으니 쓰기도 「꺼져 있을 때만」이다.
+    // 위 확인과 이 쓰기 사이에 등록이 확인될 수 있으니 쓰기도 「확인된 것이 없을 때만」이다.
     const started = await StartTotpSetupCommand(
       this.prisma,
       userId,
@@ -118,25 +117,20 @@ export class TwoFactorService {
   }
 
   async confirmTotpSetup(userId: string, code: string): Promise<void> {
-    const credential = await FindLocalCredentialByUserIdQuery(
-      this.prisma,
-      userId,
-    );
-    if (credential?.totpEnabled) throw this.totpAlreadyEnabled();
-    if (!credential?.totpSecret) {
+    const { totp } = await FindTwoFactorMethodsQuery(this.prisma, userId);
+    if (totp?.confirmedAt) throw this.totpAlreadyEnabled();
+    if (!totp?.secretEncrypted) {
       throw new BadRequestException('TOTP setup not initiated');
     }
 
-    const result = await otpVerify({
-      token: code,
-      secret: decryptSecret(credential.totpSecret),
-    });
-    if (!result.valid) throw new BadRequestException('Invalid TOTP code');
+    const timeStep = await this.verifyTotp(totp, code);
+    if (timeStep === null) throw new BadRequestException('Invalid TOTP code');
 
     const confirmed = await ConfirmTotpSetupCommand(
       this.prisma,
       userId,
-      credential.totpSecret,
+      totp.secretEncrypted,
+      timeStep,
     );
     if (!confirmed) {
       throw new ConflictException(
@@ -177,7 +171,7 @@ export class TwoFactorService {
       );
     }
 
-    await UpdateEmailOtpSettingsCommand(this.prisma, userId, true);
+    await EnableEmailTwoFactorCommand(this.prisma, userId);
     this.logger.log(`Email OTP enabled for userId=${userId}`);
   }
 
@@ -189,11 +183,8 @@ export class TwoFactorService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
-    const credential = await FindLocalCredentialByUserIdQuery(
-      this.prisma,
-      userId,
-    );
-    if (!credential?.emailOtpEnabled) {
+    const { email } = await FindTwoFactorMethodsQuery(this.prisma, userId);
+    if (!email) {
       throw new BadRequestException(
         'Email OTP is not enabled for this account',
       );
@@ -209,12 +200,7 @@ export class TwoFactorService {
     code: string,
   ): Promise<{ userId: string; rememberMe: boolean }> {
     const { userId, rememberMe } = this.verifyPreAuthToken(preAuthToken);
-
-    const credential = await FindLocalCredentialByUserIdQuery(
-      this.prisma,
-      userId,
-    );
-    if (!credential) throw new UnauthorizedException('Account not found');
+    const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
 
     // 2FA 시도도 비밀번호와 같은 잠금 카운터에 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며
     // 6자리 코드를 대입하는 것을 막지 못한다. 코드를 보기 전에 시도를 원자적으로 잡는다.
@@ -225,25 +211,14 @@ export class TwoFactorService {
     }
 
     if (method === 'totp') {
-      if (!credential.totpEnabled || !credential.totpSecret) {
+      if (!methods.confirmedTotp) {
         throw new BadRequestException('TOTP is not enabled for this account');
       }
-      const result = await otpVerify({
-        token: code,
-        secret: decryptSecret(credential.totpSecret),
-      });
-      if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
-
-      // 배포 전 저장된 legacy 평문 secret이면 이 시점에 암호화로 재저장(lazy migration).
-      // 이 분기에 도달했다는 것은 totpEnabled === true가 보장된 상태.
-      if (!isEncryptedSecret(credential.totpSecret)) {
-        await UpdateTotpSettingsCommand(this.prisma, userId, {
-          totpEnabled: true,
-          totpSecret: encryptSecret(credential.totpSecret),
-        });
+      if (!(await this.consumeTotp(userId, methods.confirmedTotp, code))) {
+        throw new UnauthorizedException('Invalid TOTP code');
       }
     } else {
-      if (!credential.emailOtpEnabled) {
+      if (!methods.email) {
         throw new BadRequestException(
           'Email OTP is not enabled for this account',
         );
@@ -287,43 +262,34 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   async disableTotp(userId: string, code: string): Promise<void> {
-    const credential = await FindLocalCredentialByUserIdQuery(
-      this.prisma,
-      userId,
-    );
-    if (!credential?.totpEnabled)
+    const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
+    if (!methods.confirmedTotp)
       throw new BadRequestException('TOTP is not enabled');
 
-    if (!credential.emailOtpEnabled) {
+    if (!methods.email) {
       throw new BadRequestException(
         'Cannot disable TOTP: it is the only active 2FA method. Enable Email OTP first.',
       );
     }
 
-    await this.verifyAnyMethodCode(userId, code, credential);
-    await UpdateTotpSettingsCommand(this.prisma, userId, {
-      totpEnabled: false,
-      totpSecret: null,
-    });
+    await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
+    await DeleteTwoFactorMethodCommand(this.prisma, userId, 'TOTP');
     this.logger.log(`TOTP disabled for userId=${userId}`);
   }
 
   async disableEmailOtp(userId: string, code: string): Promise<void> {
-    const credential = await FindLocalCredentialByUserIdQuery(
-      this.prisma,
-      userId,
-    );
-    if (!credential?.emailOtpEnabled)
+    const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
+    if (!methods.email)
       throw new BadRequestException('Email OTP is not enabled');
 
-    if (!credential.totpEnabled) {
+    if (!methods.confirmedTotp) {
       throw new BadRequestException(
         'Cannot disable Email OTP: it is the only active 2FA method. Enable TOTP first.',
       );
     }
 
-    await this.verifyAnyMethodCode(userId, code, credential);
-    await UpdateEmailOtpSettingsCommand(this.prisma, userId, false);
+    await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
+    await DeleteTwoFactorMethodCommand(this.prisma, userId, 'EMAIL');
     // 살아 있던 로그인·등록 코드는 이제 쓸 데가 없다
     await this.prisma.oneTimeCode.deleteMany({
       where: {
@@ -339,13 +305,13 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   async getStatus(userId: string) {
-    const credential = await FindLocalCredentialByUserIdQuery(
+    const { confirmedTotp, email } = await FindTwoFactorMethodsQuery(
       this.prisma,
       userId,
     );
     return {
-      totpEnabled: credential?.totpEnabled ?? false,
-      emailOtpEnabled: credential?.emailOtpEnabled ?? false,
+      totpEnabled: !!confirmedTotp,
+      emailOtpEnabled: !!email,
     };
   }
 
@@ -373,20 +339,62 @@ export class TwoFactorService {
     );
   }
 
+  /**
+   * TOTP 코드를 확인해 맞으면 그 시간 단위를, 아니면 null 을 돌려준다.
+   * 이미 쓴 단위(lastUsedTimeStep 이하)는 맞아도 null — 재사용 차단.
+   */
+  private async verifyTotp(
+    method: Pick<TwoFactorMethod, 'secretEncrypted' | 'lastUsedTimeStep'>,
+    code: string,
+  ): Promise<number | null> {
+    if (!method.secretEncrypted) return null;
+    try {
+      const result = await otpVerify({
+        token: code,
+        secret: decryptSecret(method.secretEncrypted),
+        ...(method.lastUsedTimeStep !== null && {
+          afterTimeStep: method.lastUsedTimeStep,
+        }),
+      });
+      // 함수형 verify 의 결과 타입은 HOTP 와 합쳐져 있다 — TOTP 결과만 timeStep 을 갖는다
+      return result.valid && 'timeStep' in result ? result.timeStep : null;
+    } catch (err) {
+      // 기기 시계가 앞서 있어 저장된 단위가 지금 허용 범위보다 크면 otplib 가 던진다.
+      // 그 오류 클래스는 export 되지 않아 이름으로 가린다 — 틀린 코드와 같게 다룬다.
+      if (
+        err instanceof Error &&
+        err.name === 'AfterTimeStepRangeExceededError'
+      ) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * 확인된 TOTP 코드를 확인하고 그 시간 단위를 남긴다. 같은 코드로 동시에 두 번 와도
+   * 단위를 남기는 조건부 UPDATE 가 하나만 통과시킨다.
+   */
+  private async consumeTotp(
+    userId: string,
+    method: TwoFactorMethod,
+    code: string,
+  ): Promise<boolean> {
+    const timeStep = await this.verifyTotp(method, code);
+    if (timeStep === null) return false;
+    return RecordTotpTimeStepCommand(this.prisma, userId, timeStep);
+  }
+
   private async verifyAnyMethodCode(
     userId: string,
     code: string,
-    credential: {
-      totpEnabled: boolean;
-      totpSecret: string | null;
-    },
+    confirmedTotp: TwoFactorMethod | null,
   ): Promise<void> {
-    if (credential.totpEnabled && credential.totpSecret) {
-      const result = await otpVerify({
-        token: code,
-        secret: decryptSecret(credential.totpSecret),
-      });
-      if (result.valid) return;
+    if (
+      confirmedTotp &&
+      (await this.consumeTotp(userId, confirmedTotp, code))
+    ) {
+      return;
     }
 
     // 인증 앱이 없거나 그 코드가 아니면, 로그인한 사용자가 메일로 받은 STEP_UP 코드

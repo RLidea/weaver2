@@ -52,14 +52,15 @@ export function encryptSecret(plain: string): string {
 }
 
 /**
- * 저장된 secret을 원문으로 복원.
- * - `v1:` 포맷이면 복호화.
- * - 프리픽스가 없으면 배포 전 저장된 legacy 평문으로 간주하고 그대로 반환한다.
- *   (호출부에서 이 경우를 감지해 재암호화하는 lazy migration을 수행할 수 있다 → `isEncryptedSecret`)
+ * 저장된 secret(`v1:` 포맷)을 원문으로 복원한다.
+ * 평문은 받지 않는다 — 남아 있던 평문은 `pnpm auth:encrypt-legacy-totp` 로 바꾸고,
+ * 확장 마이그레이션이 남아 있으면 멈춘다. 그래도 들어오면 조용히 통과시키지 않고 던진다.
  */
 export function decryptSecret(stored: string): string {
   if (!isEncryptedSecret(stored)) {
-    return stored; // legacy 평문
+    throw new Error(
+      'Unencrypted TOTP secret — run pnpm auth:encrypt-legacy-totp.',
+    );
   }
   const [, ivHex, tagHex, ctHex] = stored.split(':');
   const key = deriveKey();
