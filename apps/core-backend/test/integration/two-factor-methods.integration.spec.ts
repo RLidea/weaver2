@@ -14,6 +14,8 @@ import { StartTotpSetupCommand } from '../../src/core/auth/repositories/start-to
 import { ConfirmTotpSetupCommand } from '../../src/core/auth/repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../../src/core/auth/repositories/record-totp-time-step.command';
 import { TwoFactorService } from '../../src/core/auth/services/two-factor.service';
+import { UserAdminService } from '../../src/core/user/services/user-admin.service';
+import { OneTimeCodeService } from '../../src/core/auth/one-time-code/one-time-code.service';
 
 describe('Two-Factor Methods (Integration)', () => {
   let prisma: PrismaService;
@@ -119,5 +121,59 @@ describe('Two-Factor Methods (Integration)', () => {
       .get(TwoFactorService)
       .getStatus(user.id);
     expect(status).toEqual({ totpEnabled: false, emailOtpEnabled: true });
+  });
+
+  describe('관리자 2FA 초기화', () => {
+    it('2FA 수단·2FA 코드·2FA 잠금만 지우고, 재설정 링크와 비밀번호 잠금은 남긴다', async () => {
+      const admin = await createUser();
+      const user = await createUser();
+      const codes = getTestingModule().get(OneTimeCodeService);
+      await prisma.twoFactorMethod.createMany({
+        data: [
+          {
+            userId: user.id,
+            kind: 'TOTP',
+            secretEncrypted: 'v1:s',
+            confirmedAt: new Date(),
+          },
+          { userId: user.id, kind: 'EMAIL', confirmedAt: new Date() },
+        ],
+      });
+      await codes.issueCode(user.id, 'STEP_UP');
+      await codes.issueLink(user.id, 'PASSWORD_RESET');
+      await prisma.authLockout.createMany({
+        data: [
+          { userId: user.id, factor: 'SECOND_FACTOR', failedAttempts: 3 },
+          { userId: user.id, factor: 'PASSWORD', failedAttempts: 2 },
+        ],
+      });
+
+      await getTestingModule()
+        .get(UserAdminService)
+        .resetTwoFactor(admin.id, user.id);
+
+      expect(
+        await prisma.twoFactorMethod.count({ where: { userId: user.id } }),
+      ).toBe(0);
+      const remainingCodes = await prisma.oneTimeCode.findMany({
+        where: { userId: user.id },
+        select: { purpose: true },
+      });
+      expect(remainingCodes).toEqual([{ purpose: 'PASSWORD_RESET' }]);
+      const lockouts = await prisma.authLockout.findMany({
+        where: { userId: user.id },
+        select: { factor: true },
+      });
+      expect(lockouts).toEqual([{ factor: 'PASSWORD' }]);
+    });
+
+    it('자기 자신은 이 길로 초기화하지 못한다', async () => {
+      const admin = await createUser();
+      await expect(
+        getTestingModule()
+          .get(UserAdminService)
+          .resetTwoFactor(admin.id, admin.id),
+      ).rejects.toThrow(/설정 화면/);
+    });
   });
 });

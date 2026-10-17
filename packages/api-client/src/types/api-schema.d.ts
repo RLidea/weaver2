@@ -212,6 +212,23 @@ export interface paths {
         patch: operations["UserAdminController_unsuspendUser"];
         trace?: never;
     };
+    "/admin/users/{id}/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 사용자 2단계 인증 초기화 (관리자 전용) — 인증 앱 분실 복구 */
+        delete: operations["UserAdminController_resetTwoFactor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/email/send": {
         parameters: {
             query?: never;
@@ -4167,6 +4184,44 @@ export interface operations {
         };
     };
     UserAdminController_unsuspendUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    UserAdminController_resetTwoFactor: {
         parameters: {
             query?: never;
             header?: never;

@@ -47,3 +47,9 @@ export function useDeleteAdminUser() {
     },
   });
 }
+
+export function useResetUserTwoFactor() {
+  return useMutation({
+    mutationFn: (id: string) => adminUsersApi.resetTwoFactor(id),
+  });
+}

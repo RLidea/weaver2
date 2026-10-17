@@ -78,6 +78,20 @@ export class UserAdminController {
     return this.userAdminService.unsuspendUser(id);
   }
 
+  @Delete(':id/two-factor')
+  @RequirePermission(PERMISSIONS.USER.UPDATE_ALL)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: '사용자 2단계 인증 초기화 (관리자 전용) — 인증 앱 분실 복구',
+  })
+  @ApiStandardResponses()
+  resetTwoFactor(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.userAdminService.resetTwoFactor(authUser.id, id);
+  }
+
   @Delete(':id')
   @RequirePermission(PERMISSIONS.USER.DELETE_ALL)
   @HttpCode(HttpStatus.NO_CONTENT)

@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
@@ -25,6 +26,8 @@ import { normalizeEmail } from '../../auth/utils/email.util';
 
 @Injectable()
 export class UserAdminService {
+  private readonly logger = new Logger(UserAdminService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
@@ -142,6 +145,41 @@ export class UserAdminService {
       throw new NotFoundException(`User with ID ${targetId} not found.`);
 
     await UnsuspendUserCommand(this.prisma, targetId);
+  }
+
+  /**
+   * 사용자의 2FA 를 초기화한다 — 인증 앱을 잃은 사용자의 복구 길. OAuth 사용자까지 2FA 를
+   * 켤 수 있게 되어 미루지 않는다. 수단·살아 있던 2FA 코드·2FA 잠금을 함께 지운다.
+   *
+   * 관리자 행동을 남기는 감사 테이블은 아직 없어, 누가 누구를 초기화했는지 서버 로그에 남긴다.
+   * 자기 자신은 막는다 — 관리자 세션만 가진 사람이 제 2FA 를 이 길로 벗기지 못하게
+   * (본인은 코드를 요구하는 일반 해제를 쓴다).
+   */
+  async resetTwoFactor(requesterId: string, targetId: string): Promise<void> {
+    if (requesterId === targetId) {
+      throw new BadRequestException(
+        '자기 자신의 2단계 인증은 설정 화면에서 해제하세요.',
+      );
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: targetId } });
+    if (!user)
+      throw new NotFoundException(`User with ID ${targetId} not found.`);
+
+    await this.prisma.$transaction([
+      this.prisma.twoFactorMethod.deleteMany({ where: { userId: targetId } }),
+      this.prisma.oneTimeCode.deleteMany({
+        where: {
+          userId: targetId,
+          purpose: { in: ['TWO_FACTOR_LOGIN', 'TWO_FACTOR_SETUP', 'STEP_UP'] },
+        },
+      }),
+      this.prisma.authLockout.deleteMany({
+        where: { userId: targetId, factor: 'SECOND_FACTOR' },
+      }),
+    ]);
+    this.logger.warn(
+      `2FA reset by admin: requesterId=${requesterId} targetId=${targetId}`,
+    );
   }
 
   async deleteUser(requesterId: string, targetId: string): Promise<void> {
