@@ -282,7 +282,8 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 4. `two_factor_methods`: `"totpEnabled"` → TOTP 확인됨, `"emailOtpEnabled"` → EMAIL 확인됨(`"confirmedAt" = "updatedAt"`). 등록 중이던 TOTP 비밀은 버린다
 5. `auth_lockouts`: 0이 아닌 카운터·잠금을 `PASSWORD` 로 옮긴다
 6. 진행 중이던 링크와 코드는 **옮기지 않는다** — 해시 방식이 바뀌어 옮길 수 없다. 사용자는 다시 요청하면 된다(최대 1시간분)
-7. **(축소)** `local_credentials`: `RENAME COLUMN password TO "passwordHash"`, 기본키를 `"userId"` 로, 옛 컬럼·테이블 삭제
+7. **(축소)** `local_credentials`: `RENAME COLUMN password TO "passwordHash"`, 기본키를 `"userId"` 로, 옛 컬럼·테이블 삭제. 지우기 전에 **켜져 있던 2FA 가 `two_factor_methods` 에 다 있는지** 보고 아니면 멈춘다(옮기지 못한 채 지워 2FA 가 조용히 꺼지지 않게). `passwordChangedAt` 의 기존 행은 `updatedAt` 으로 채운다 — DB 기본값은 세션 시간대(KST)를 따라 UTC 가 아니다.
+   - **잰 것 (2026-10-18)**: 공용 개발 DB(확장 전)를 덤프한 복제본에 확장 → 축소를 연달아 적용 → 시드 관리자로 HTTP 로그인 201·내 정보 200·틀린 비밀번호 401. 비밀번호 해시 지문 동일, Prisma 스키마와 DB 차이 0. 확장 뒤 옛 컬럼에만 2FA 를 켜 두면 축소가 사용자를 짚으며 멈추고 아무것도 지우지 않는다.
 
 **트랜잭션 — 확인함 (2026-10-17)**: Prisma 7 은 PostgreSQL `migration.sql` 을 한 트랜잭션으로 감싼다. 확장 마이그레이션 끝에 일부러 `SELECT 1/0` 을 붙여 격리 DB 에서 돌리니, 앞서 만든 enum·테이블·컬럼이 하나도 남지 않았고 `_prisma_migrations` 에는 `finished_at` 이 빈 실패 기록만 남았다. 파일 안에서 따로 감쌀 필요는 없다.
 

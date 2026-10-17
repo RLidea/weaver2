@@ -42,7 +42,7 @@ describe('ReserveAuthAttemptCommand (Integration)', () => {
         username: `attempt_${stamp}`,
         displayName: `attempt ${stamp}`,
         emailVerifiedAt: new Date(),
-        localCredential: { create: { password: 'x' } },
+        localCredential: { create: { passwordHash: 'x' } },
       },
     });
     createdUserIds.push(user.id);

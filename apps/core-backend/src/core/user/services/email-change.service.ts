@@ -37,7 +37,7 @@ export class EmailChangeService {
       userId,
     );
 
-    if (!credential?.password) {
+    if (!credential?.passwordHash) {
       throw new UnauthorizedException('Password not set for this account.');
     }
 
@@ -47,7 +47,7 @@ export class EmailChangeService {
     }
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      credential.password,
+      credential.passwordHash,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid current password.');

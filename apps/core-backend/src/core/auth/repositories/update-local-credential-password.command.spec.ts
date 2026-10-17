@@ -15,12 +15,15 @@ describe('UpdateLocalCredentialPasswordCommand', () => {
     } as unknown as PrismaClient;
   });
 
-  it('비밀번호만 바꾸고 인증 상태는 건드리지 않는다', async () => {
+  it('비밀번호와 바꾼 시각만 바꾸고 인증 상태는 건드리지 않는다', async () => {
     await UpdateLocalCredentialPasswordCommand(prisma, 'user-1', 'hashed');
 
     expect(update).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
-      data: { password: 'hashed' },
+      data: {
+        passwordHash: 'hashed',
+        passwordChangedAt: expect.any(Date) as Date,
+      },
     });
   });
 

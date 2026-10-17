@@ -89,7 +89,7 @@ export async function seedLocalCredentials(prisma: PrismaClient) {
 
       await prisma.localCredential.create({
         data: {
-          password: passwordHash,
+          passwordHash,
           userId: credData.userId,
         },
       });

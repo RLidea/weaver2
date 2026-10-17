@@ -67,7 +67,7 @@ describe('SignInService.validateUserByEmail', () => {
       id: 'u1',
       suspendedUntil: new Date(Date.now() + 1000 * 60 * 60),
       emailVerifiedAt: new Date(),
-      localCredential: { password: 'hash' },
+      localCredential: { passwordHash: 'hash' },
     });
     mockCompare.mockResolvedValue(false);
 
@@ -83,8 +83,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: new Date(),
       twoFactorMethods: [],
       localCredential: {
-        password: 'hash',
-        lockedUntil: null,
+        passwordHash: 'hash',
       },
     });
     mockCompare.mockResolvedValue(true);
@@ -96,7 +95,6 @@ describe('SignInService.validateUserByEmail', () => {
   });
 
   it('계정 잠금 (시도를 잡지 못함) → 비밀번호를 보지도 않고 temporarily locked', async () => {
-    const future = new Date(Date.now() + 60 * 1000);
     mockReserve.mockResolvedValue(false);
     mockFind.mockResolvedValue({
       id: 'u1',
@@ -104,8 +102,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: new Date(),
       twoFactorMethods: [],
       localCredential: {
-        password: 'hash',
-        lockedUntil: future,
+        passwordHash: 'hash',
       },
     });
 
@@ -122,8 +119,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: new Date(),
       twoFactorMethods: [],
       localCredential: {
-        password: 'hash',
-        lockedUntil: null,
+        passwordHash: 'hash',
       },
     });
     mockCompare.mockResolvedValue(false);
@@ -143,8 +139,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: null,
       twoFactorMethods: [],
       localCredential: {
-        password: 'hash',
-        lockedUntil: null,
+        passwordHash: 'hash',
       },
     });
     mockCompare.mockResolvedValue(true);
@@ -161,8 +156,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: new Date(),
       twoFactorMethods: [],
       localCredential: {
-        password: 'hash',
-        lockedUntil: null,
+        passwordHash: 'hash',
       },
     };
     mockFind.mockResolvedValue(user);
@@ -181,8 +175,7 @@ describe('SignInService.validateUserByEmail', () => {
       emailVerifiedAt: new Date(),
       twoFactorMethods: [{ kind: 'TOTP' }],
       localCredential: {
-        password: 'hash',
-        lockedUntil: null,
+        passwordHash: 'hash',
       },
     };
     mockFind.mockResolvedValue(user);

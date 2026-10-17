@@ -23,7 +23,7 @@ export function SignUpCommand(
 
     await tx.localCredential.create({
       data: {
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         userId: user.id,
       },
     });

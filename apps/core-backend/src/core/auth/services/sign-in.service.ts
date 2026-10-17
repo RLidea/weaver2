@@ -47,7 +47,7 @@ export class SignInService {
       `validateUserByEmail: Found user: ${JSON.stringify(user?.id)}`,
     );
 
-    if (!user?.localCredential?.password) {
+    if (!user?.localCredential?.passwordHash) {
       // 있는 계정과 같은 시간을 들인다 — bcrypt 를 건너뛰면 응답 속도로 계정 유무가 샌다
       await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       throw new UnauthorizedException('Invalid credentials');
@@ -60,7 +60,7 @@ export class SignInService {
       throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
-    const match = await bcrypt.compare(password, localCredential.password);
+    const match = await bcrypt.compare(password, localCredential.passwordHash);
     if (!match) {
       throw new UnauthorizedException('Invalid credentials');
     }

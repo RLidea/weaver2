@@ -11,7 +11,7 @@ jest.mock(
   () => ({
     FindLocalCredentialByUserIdQuery: jest
       .fn()
-      .mockResolvedValue({ password: 'hash' }),
+      .mockResolvedValue({ passwordHash: 'hash' }),
   }),
 );
 jest.mock(

@@ -26,7 +26,7 @@ export class ChangePasswordService {
       userId,
     );
 
-    if (!credential || !credential.password) {
+    if (!credential || !credential.passwordHash) {
       throw new UnauthorizedException(
         'Authentication record not found or password not set.',
       );
@@ -38,7 +38,7 @@ export class ChangePasswordService {
     }
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      credential.password,
+      credential.passwordHash,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid current password.');

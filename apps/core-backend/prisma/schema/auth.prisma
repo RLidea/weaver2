@@ -3,35 +3,33 @@
 // =============================================================================
 
 model User {
-  id                  String                @id @default(uuid())
-  email               String                @unique
-  username            String                @unique
-  displayName         String                @unique
-  profileImageUrl     String?
-  profileImagePath    String?
-  warningCount        Int                   @default(0)
-  suspendedUntil      DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  deletedAt           DateTime?
-  lastLoginAt         DateTime?
+  id                String                @id @default(uuid())
+  email             String                @unique
+  username          String                @unique
+  displayName       String                @unique
+  profileImageUrl   String?
+  profileImagePath  String?
+  warningCount      Int                   @default(0)
+  suspendedUntil    DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  deletedAt         DateTime?
+  lastLoginAt       DateTime?
   // 지금의 email 주인임이 증명된 시각. email 이 바뀌면 다시 정해진다
-  emailVerifiedAt     DateTime?
-  localCredential     LocalCredential?
-  oauthAccounts       OAuthAccount[]
-  refreshTokens       RefreshToken[]
-  twoFactorMethods    TwoFactorMethod[]
-  oneTimeCodes        OneTimeCode[]
-  authLockouts        AuthLockout[]
-  twoFactorChallenges TwoFactorChallenge[]
-  emailChangeRequests EmailChangeRequest[]
-  emailLogs           EmailLog[]
-  pageViews           PageView[]
-  userSetting         UserSetting?
-  userAgreements      UserTermsAgreement[]
-  permissionGroups    UserPermissionGroup[]
-  notifications       Notification[]
-  pushSubscriptions   PushSubscription[]
+  emailVerifiedAt   DateTime?
+  localCredential   LocalCredential?
+  oauthAccounts     OAuthAccount[]
+  refreshTokens     RefreshToken[]
+  twoFactorMethods  TwoFactorMethod[]
+  oneTimeCodes      OneTimeCode[]
+  authLockouts      AuthLockout[]
+  emailLogs         EmailLog[]
+  pageViews         PageView[]
+  userSetting       UserSetting?
+  userAgreements    UserTermsAgreement[]
+  permissionGroups  UserPermissionGroup[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 
   // Project-specific relations (board)
   posts     Post[]
@@ -62,56 +60,20 @@ model UserSetting {
   @@map("user_settings")
 }
 
+/// 비밀번호 하나만 안다. 이메일 인증·2FA·잠금·일회용 비밀은 각자의 자리로 갔다.
 model LocalCredential {
-  id                      String    @id @default(uuid())
-  password                String
-  passwordResetToken      String?   @unique
-  resetTokenExpiry        DateTime?
-  verificationToken       String?   @unique
-  verificationTokenExpiry DateTime?
-  isVerified              Boolean   @default(false)
-  totpEnabled             Boolean   @default(false)
-  totpSecret              String?
-  emailOtpEnabled         Boolean   @default(false)
-  failedAttempts          Int       @default(0)
-  lockedUntil             DateTime?
-  userId                  String    @unique
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String   @id
+  passwordHash      String
+  passwordChangedAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("local_credentials")
 }
 
-model TwoFactorChallenge {
-  id        String   @id @default(uuid())
-  userId    String
-  codeHash  String
-  method    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, method])
-  @@map("two_factor_challenges")
-}
-
-model EmailChangeRequest {
-  id        String   @id @default(uuid())
-  userId    String
-  newEmail  String
-  codeHash  String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("email_change_requests")
-}
-
-// 아래 세 테이블이 local_credentials 의 2FA·잠금 컬럼과 two_factor_challenges ·
-// email_change_requests 를 대신한다 (docs/design/specs/2026-10-17-auth-credential-model-design.md).
-// 옛 것은 서비스가 다 옮겨 간 뒤 축소 마이그레이션에서 지운다.
+// 2FA 수단·일회용 비밀·잠금은 사람(User)에 붙는다
+// (docs/design/specs/2026-10-17-auth-credential-model-design.md).
 
 enum TwoFactorKind {
   TOTP

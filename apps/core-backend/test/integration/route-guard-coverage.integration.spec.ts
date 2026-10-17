@@ -205,7 +205,7 @@ describe('Route Guard Coverage (Integration)', () => {
         emailVerifiedAt: new Date(),
         localCredential: {
           create: {
-            password: await bcrypt.hash(TEST_PASSWORD, 10),
+            passwordHash: await bcrypt.hash(TEST_PASSWORD, 10),
           },
         },
       },

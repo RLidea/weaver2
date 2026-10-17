@@ -58,7 +58,7 @@ describe('Auth Security (Integration)', () => {
         emailVerifiedAt: new Date(),
         localCredential: {
           create: {
-            password: hashedPw,
+            passwordHash: hashedPw,
           },
         },
       },

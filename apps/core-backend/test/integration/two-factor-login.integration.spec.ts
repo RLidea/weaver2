@@ -67,7 +67,7 @@ describe('Two-Factor Login (Integration)', () => {
         displayName: name,
         emailVerifiedAt: new Date(),
         localCredential: {
-          create: { password: await bcrypt.hash(TEST_PASSWORD, 10) },
+          create: { passwordHash: await bcrypt.hash(TEST_PASSWORD, 10) },
         },
         twoFactorMethods: {
           create: { kind: 'EMAIL', confirmedAt: new Date() },

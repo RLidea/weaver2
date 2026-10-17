@@ -191,7 +191,7 @@ export class SignUpService {
     }
     const passwordMatches = await bcrypt.compare(
       password,
-      owner.localCredential.password,
+      owner.localCredential.passwordHash,
     );
     if (!passwordMatches) {
       throw new BadRequestException('VERIFY_PASSWORD_MISMATCH');

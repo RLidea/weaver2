@@ -52,7 +52,7 @@ describe('SignUpService', () => {
     displayName: 'A',
     deletedAt: null,
     emailVerifiedAt: null,
-    localCredential: { password: 'hashed:owner-pw' },
+    localCredential: { passwordHash: 'hashed:owner-pw' },
     ...overrides,
   });
 
