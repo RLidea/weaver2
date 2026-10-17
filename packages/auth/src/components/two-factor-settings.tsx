@@ -144,7 +144,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
                 />
               </div>
               <div className="rounded-md bg-surface-2 px-3 py-2">
-                <p className="break-all text-center font-mono text-xs text-text-muted">
+                <p data-testid="totp-secret" className="break-all text-center font-mono text-xs text-text-muted">
                   {setupData.secret}
                 </p>
               </div>

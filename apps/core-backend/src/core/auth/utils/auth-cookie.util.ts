@@ -49,11 +49,12 @@ export function setAccessTokenCookie(
 
 export function clearAuthCookies(res: Response, isProduction: boolean): void {
   // clearCookie는 세팅 때와 동일 옵션(path/sameSite/secure)을 줘야 실제로 삭제된다.
-  // 2FA 대기(pre_auth)도 함께 지운다 — 로그아웃한 브라우저에 2FA 단계가 남지 않게.
+  // 2FA 대기(pre_auth)는 여기서 지우지 않는다 — 이 함수는 리프레시 실패에서도 불리는데,
+  // 로그인 화면은 세션이 없어 401 → 리프레시 실패를 늘 겪는다. 여기서 지우면 2FA 단계가
+  // 화면을 여는 순간 사라진다(e2e 가 잡았다). 로그아웃만 pre_auth 를 따로 지운다.
   const base = baseCookieOptions(isProduction);
   res.clearCookie('access_token', base);
   res.clearCookie('refresh_token', base);
-  res.clearCookie('pre_auth', base);
 }
 
 /**

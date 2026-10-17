@@ -281,6 +281,20 @@ describe('Two-Factor Login (Integration)', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/DELETED/);
   });
 
+  it('리프레시가 실패해도 2FA 대기(pre_auth)는 남는다 — 로그인 화면은 늘 리프레시 실패를 겪는다', async () => {
+    const user = await createUserWithEmail2fa();
+    const b = await browser();
+    await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+    });
+
+    // 세션이 없는 화면에서 apiClient 가 401 → 리프레시를 시도하는 상황
+    expect((await b.send('post', '/v1/auth/refresh')).status).toBe(401);
+    expect(b.jar.has('pre_auth')).toBe(true);
+    expect((await b.send('get', '/v1/auth/2fa/pending')).status).toBe(200);
+  });
+
   it('2FA 단계를 그만두면 pre_auth 가 지워지고 더는 2FA 단계를 밟을 수 없다', async () => {
     const user = await createUserWithEmail2fa();
     const b = await browser();

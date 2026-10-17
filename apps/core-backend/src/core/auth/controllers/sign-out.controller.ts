@@ -3,7 +3,10 @@ import { Request, Response } from 'express';
 import { SignOutService } from '../services/sign-out.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
-import { clearAuthCookies } from '../utils/auth-cookie.util';
+import {
+  clearAuthCookies,
+  clearPreAuthCookie,
+} from '../utils/auth-cookie.util';
 
 @ApiTags('Auth')
 @Controller({
@@ -29,10 +32,10 @@ export class SignOutController {
         await this.signOutService.signOut(refreshToken);
       }
     } finally {
-      clearAuthCookies(
-        res,
-        this.configService.get('NODE_ENV') === 'production',
-      );
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
+      clearAuthCookies(res, isProduction);
+      // 로그아웃한 브라우저에 2FA 대기가 남지 않게
+      clearPreAuthCookie(res, isProduction);
     }
     return { message: 'Successfully signed out' };
   }
