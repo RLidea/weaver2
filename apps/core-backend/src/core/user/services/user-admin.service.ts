@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -66,7 +65,8 @@ export class UserAdminService {
     // 넓은 사람(예: Admin → SuperAdmin)의 이메일은 바꾸지 못한다.
     const emailChanged =
       dto.email !== undefined && normalizeEmail(dto.email) !== user.email;
-    if (emailChanged) await this.assertCovers(requesterId, id);
+    if (emailChanged)
+      await this.permissionService.assertCovers(requesterId, id);
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
@@ -121,6 +121,8 @@ export class UserAdminService {
     if (requesterId === targetId) {
       throw new BadRequestException('자기 자신을 정지할 수 없습니다.');
     }
+    // 자기보다 권한이 넓은 사람(예: Admin → SuperAdmin)은 정지하지 못한다
+    await this.permissionService.assertCovers(requesterId, targetId);
 
     const user = await this.prisma.user.findUnique({ where: { id: targetId } });
     if (!user)
@@ -177,7 +179,7 @@ export class UserAdminService {
       throw new NotFoundException(`User with ID ${targetId} not found.`);
     // 2FA 는 이메일 변경·재설정과 이어지면 계정 탈취를 막는 마지막 관문이다 — 자기보다
     // 권한이 넓은 사람의 것은 벗기지 못한다.
-    await this.assertCovers(requesterId, targetId);
+    await this.permissionService.assertCovers(requesterId, targetId);
 
     await this.prisma.$transaction([
       this.prisma.twoFactorMethod.deleteMany({ where: { userId: targetId } }),
@@ -196,22 +198,12 @@ export class UserAdminService {
     );
   }
 
-  /** 요청자가 대상의 권한을 모두 가졌는지 — 아니면 403 */
-  private async assertCovers(
-    requesterId: string,
-    targetId: string,
-  ): Promise<void> {
-    if (!(await this.permissionService.covers(requesterId, targetId))) {
-      throw new ForbiddenException(
-        '자신보다 권한이 넓은 사용자에게는 할 수 없는 작업입니다.',
-      );
-    }
-  }
-
   async deleteUser(requesterId: string, targetId: string): Promise<void> {
     if (requesterId === targetId) {
       throw new BadRequestException('자기 자신을 삭제할 수 없습니다.');
     }
+    // 자기보다 권한이 넓은 사람은 삭제하지 못한다
+    await this.permissionService.assertCovers(requesterId, targetId);
 
     const user = await this.prisma.user.findUnique({ where: { id: targetId } });
     if (!user)

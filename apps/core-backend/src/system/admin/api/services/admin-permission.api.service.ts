@@ -186,7 +186,11 @@ export class AdminPermissionApiService {
   /**
    * 그룹 권한 전체 교체 (기존 권한 삭제 후 새로 설정)
    */
-  async setGroupPermissions(id: string, dto: SetGroupPermissionsDto) {
+  async setGroupPermissions(
+    requesterId: string,
+    id: string,
+    dto: SetGroupPermissionsDto,
+  ) {
     const group = await this.prisma.permissionGroup.findUnique({
       where: { id },
     });
@@ -194,6 +198,12 @@ export class AdminPermissionApiService {
     if (!group) {
       throw new NotFoundException('권한 그룹을 찾을 수 없습니다.');
     }
+
+    // 자기가 갖지 않은 권한은 그룹에 더하지도(올리기), 그룹에서 빼지도(위 사람 내리기) 못한다
+    await this.permissionService.assertCoversPermissions(requesterId, [
+      ...(await this.groupPermissions(id)),
+      ...dto.permissions,
+    ]);
 
     // SuperAdmin의 *:* 제거 방지
     if (
@@ -237,7 +247,11 @@ export class AdminPermissionApiService {
   /**
    * 그룹에서 특정 권한 제거
    */
-  async removeGroupPermissions(id: string, dto: RemoveGroupPermissionsDto) {
+  async removeGroupPermissions(
+    requesterId: string,
+    id: string,
+    dto: RemoveGroupPermissionsDto,
+  ) {
     const group = await this.prisma.permissionGroup.findUnique({
       where: { id },
     });
@@ -245,6 +259,12 @@ export class AdminPermissionApiService {
     if (!group) {
       throw new NotFoundException('권한 그룹을 찾을 수 없습니다.');
     }
+
+    // 자기보다 넓은 그룹(예: Admin 에게 SuperAdmin 그룹)은 손대지 못한다
+    await this.permissionService.assertCoversPermissions(
+      requesterId,
+      await this.groupPermissions(id),
+    );
 
     // SuperAdmin의 *:* 제거 방지
     if (
@@ -308,7 +328,11 @@ export class AdminPermissionApiService {
   /**
    * 유저를 그룹에 할당
    */
-  async assignUsersToGroup(groupId: string, dto: AssignUsersToGroupDto) {
+  async assignUsersToGroup(
+    requesterId: string,
+    groupId: string,
+    dto: AssignUsersToGroupDto,
+  ) {
     const group = await this.prisma.permissionGroup.findUnique({
       where: { id: groupId },
     });
@@ -316,6 +340,13 @@ export class AdminPermissionApiService {
     if (!group) {
       throw new NotFoundException('권한 그룹을 찾을 수 없습니다.');
     }
+
+    // 자기가 갖지 않은 권한을 주는 그룹에는 아무도(자기 자신 포함) 넣지 못한다 —
+    // 안 그러면 permission-group 관리 권한만으로 자기를 SuperAdmin 그룹에 넣을 수 있다
+    await this.permissionService.assertCoversPermissions(
+      requesterId,
+      await this.groupPermissions(groupId),
+    );
 
     // 유저 존재 여부 확인
     const users = await this.prisma.user.findMany({
@@ -367,7 +398,16 @@ export class AdminPermissionApiService {
   /**
    * 유저를 그룹에서 해제
    */
-  async removeUserFromGroup(groupId: string, userId: string) {
+  async removeUserFromGroup(
+    requesterId: string,
+    groupId: string,
+    userId: string,
+  ) {
+    // 줄 수 없는 그룹에서는 빼지도 못한다 — 위 사람의 권한을 거두는 길이 된다
+    await this.permissionService.assertCoversPermissions(
+      requesterId,
+      await this.groupPermissions(groupId),
+    );
     const assignment = await this.prisma.userPermissionGroup.findUnique({
       where: {
         userId_permissionGroupId: {
@@ -555,5 +595,13 @@ export class AdminPermissionApiService {
     for (const { userId } of users) {
       this.permissionService.invalidateCache(userId);
     }
+  }
+
+  private async groupPermissions(groupId: string): Promise<string[]> {
+    const rows = await this.prisma.permissionGroupPermission.findMany({
+      where: { permissionGroupId: groupId },
+      select: { permission: true },
+    });
+    return rows.map((r) => r.permission);
   }
 }

@@ -19,10 +19,14 @@ import { WarnUserCommand } from '../../../core/user/repositories/warn-user.comma
 import { SuspendUserCommand } from '../../../core/user/repositories/suspend-user.command';
 import { UnsuspendUserCommand } from '../../../core/user/repositories/unsuspend-user.command';
 import { SuspendUserDto } from '../dto/moderation-action.dto';
+import { PermissionService } from '../../../core/permission/services/permission.service';
 
 @Injectable()
 export class ModerationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionService: PermissionService,
+  ) {}
 
   // ── Post ──────────────────────────────────────────────
 
@@ -157,6 +161,8 @@ export class ModerationService {
     userId: string,
     moderatorId: string,
   ): Promise<{ id: string; warningCount: number }> {
+    // 자기보다 권한이 넓은 사람(예: Moderator → Admin)은 경고·정지하지 못한다
+    await this.permissionService.assertCovers(moderatorId, userId);
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId, deletedAt: null },
@@ -180,6 +186,7 @@ export class ModerationService {
     moderatorId: string,
     dto: SuspendUserDto,
   ): Promise<{ id: string; suspendedUntil: Date | null }> {
+    await this.permissionService.assertCovers(moderatorId, userId);
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId, deletedAt: null },

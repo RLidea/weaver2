@@ -1,6 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { ModerationService } from './moderation.service';
+import { ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
+import { PermissionService } from '../../../core/permission/services/permission.service';
 
 jest.mock('../repositories/update-report.command', () => ({
   ResolveRelatedReportsCommand: jest.fn(),
@@ -16,6 +18,7 @@ import { DeletePostCommand } from '../../board/repositories/delete-post.command'
 describe('ModerationService', () => {
   let service: ModerationService;
   let prisma: any;
+  let permissionService: { assertCovers: jest.Mock };
   const mockResolve = ResolveRelatedReportsCommand as jest.Mock;
   const mockDeletePost = DeletePostCommand as jest.Mock;
 
@@ -45,7 +48,13 @@ describe('ModerationService', () => {
       cb(prisma),
     );
 
-    service = new ModerationService(prisma as PrismaService);
+    permissionService = {
+      assertCovers: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new ModerationService(
+      prisma as PrismaService,
+      permissionService as unknown as PermissionService,
+    );
   });
 
   describe('hidePost', () => {
@@ -139,6 +148,34 @@ describe('ModerationService', () => {
       expect(
         prisma.user.update.mock.calls[0][0].data.suspendedUntil,
       ).toBeNull();
+    });
+  });
+
+  describe('상하 검사 — 자기보다 권한이 넓은 사람은 경고·정지하지 못한다', () => {
+    it('정지 전에 요청자가 대상을 덮는지 본다', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.user.update.mockResolvedValue({ id: 'u1', suspendedUntil: null });
+
+      await service.suspendUser('u1', 'mod-1', {});
+
+      expect(permissionService.assertCovers).toHaveBeenCalledWith(
+        'mod-1',
+        'u1',
+      );
+    });
+
+    it('덮지 못하면 정지·경고 모두 아무것도 바꾸지 않는다', async () => {
+      permissionService.assertCovers.mockRejectedValue(
+        new ForbiddenException(),
+      );
+
+      await expect(
+        service.suspendUser('u1', 'mod-1', {}),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.warnUser('u1', 'mod-1')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 
