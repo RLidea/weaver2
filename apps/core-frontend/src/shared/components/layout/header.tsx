@@ -8,16 +8,31 @@ import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';
 
 export function Header() {
-  const { toggle } = useSidebar();
+  const { isOpen, toggle, isMobileOpen, toggleMobile } = useSidebar();
   const { data: unreadCount = 0 } = useUnreadCount();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center border-b border-border bg-surface px-4">
-      {/* 사이드바 토글 */}
+      {/* 모바일: 서랍 열기 */}
       <button
+        type="button"
+        onClick={toggleMobile}
+        aria-label="메뉴 열기"
+        aria-expanded={isMobileOpen}
+        aria-controls="app-sidebar"
+        className="mr-3 rounded-md p-1.5 text-text-muted hover:bg-surface-2 transition-colors md:hidden"
+      >
+        <MenuIcon className="h-5 w-5" />
+      </button>
+
+      {/* 데스크톱: 사이드바 펼침/접힘 */}
+      <button
+        type="button"
         onClick={toggle}
         aria-label="사이드바 토글"
-        className="mr-3 rounded-md p-1.5 text-text-muted hover:bg-surface-2 transition-colors"
+        aria-expanded={isOpen}
+        aria-controls="app-sidebar"
+        className="mr-3 hidden rounded-md p-1.5 text-text-muted hover:bg-surface-2 transition-colors md:block"
       >
         <MenuIcon className="h-5 w-5" />
       </button>
