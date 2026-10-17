@@ -13,7 +13,6 @@ import {
   Query,
   Redirect,
   UploadedFiles,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -24,7 +23,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -41,7 +39,6 @@ import { memoryStorage } from 'multer';
 
 @ApiTags('Upload')
 @Controller({ path: 'upload', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class UploadController {
   constructor(
     private readonly uploadService: UploadService,

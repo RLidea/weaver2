@@ -1,7 +1,6 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { CommentDto } from '../dto/comment.dto';
 import {
   ApiKeysetResponse,
@@ -12,7 +11,6 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 
 @ApiTags('User Comments')
 @Controller({ path: 'users', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class UserCommentsController {
   constructor(private readonly commentService: CommentService) {}
 

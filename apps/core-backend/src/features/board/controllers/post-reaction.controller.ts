@@ -7,11 +7,9 @@ import {
   HttpStatus,
   Param,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ReactionService } from '../services/reaction.service';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { AddReactionDto } from '../dto/add-reaction.dto';
@@ -20,7 +18,6 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 
 @ApiTags('Post Reaction')
 @Controller({ path: 'posts', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class PostReactionController {
   constructor(private readonly reactionService: ReactionService) {}
 

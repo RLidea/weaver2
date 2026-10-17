@@ -8,11 +8,8 @@ import {
   Param,
   Patch,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { PermissionGuard } from '../../permission/guards/permission.guard';
 import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -27,7 +24,6 @@ import { ApiOffsetResponse, OffsetResponseDto } from '@weaver2/pagination';
 
 @ApiTags('User Admin')
 @Controller({ path: 'admin/users', version: '1' })
-@UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiBearerAuth('ACCESS-TOKEN')
 export class UserAdminController {
   constructor(private readonly userAdminService: UserAdminService) {}

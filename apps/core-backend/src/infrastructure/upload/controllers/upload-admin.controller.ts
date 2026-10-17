@@ -6,10 +6,8 @@ import {
   HttpStatus,
   Param,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -18,7 +16,6 @@ import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 
 @ApiTags('Admin - Upload')
 @Controller({ path: 'admin/upload', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class UploadAdminController {
   constructor(private readonly uploadService: UploadService) {}
 

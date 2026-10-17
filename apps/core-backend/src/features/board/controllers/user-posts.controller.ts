@@ -1,7 +1,6 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PostService } from '../services/post.service';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { PostDto } from '../dto/post.dto';
 import {
@@ -13,7 +12,6 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 
 @ApiTags('User Posts')
 @Controller({ path: 'users', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class UserPostsController {
   constructor(private readonly postService: PostService) {}
 

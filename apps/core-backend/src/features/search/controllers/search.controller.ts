@@ -1,15 +1,13 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { SearchService } from '../services/search.service';
 import { SearchRequestDto } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 
 @ApiTags('Search')
 @Controller({ path: 'search', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 

@@ -8,10 +8,8 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
@@ -23,7 +21,6 @@ import { UpdateTermsDto } from '../dto/update-terms.dto';
 
 @ApiTags('Terms')
 @Controller({ path: 'terms', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class TermsController {
   constructor(private readonly termsService: TermsService) {}
 

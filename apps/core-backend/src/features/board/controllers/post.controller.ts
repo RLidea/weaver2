@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiExtraModels,
@@ -22,7 +21,6 @@ import { PostService } from '../services/post.service';
 import { CommentService } from '../services/comment.service';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import {
   NotFoundResponseDto,
@@ -45,7 +43,6 @@ import {
 
 @ApiTags('Post')
 @Controller({ path: 'posts', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class PostController {
   constructor(
     private readonly postService: PostService,
