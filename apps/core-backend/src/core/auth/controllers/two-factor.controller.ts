@@ -2,60 +2,68 @@ import { Body, Controller, Delete, Get, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
-import { ConfigService } from '@nestjs/config';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { TwoFactorService } from '../services/two-factor.service';
-import { SignInService } from '../services/sign-in.service';
 import { TwoFactorAuthenticateDto } from '../dto/two-factor-authenticate.dto';
 import { TwoFactorConfirmDto } from '../dto/two-factor-confirm.dto';
-import { TwoFactorSendEmailDto } from '../dto/two-factor-send-email.dto';
-import { setAuthCookies } from '../utils/auth-cookie.util';
+import { readPreAuthCookie } from '../utils/auth-cookie.util';
+import { SignInCompletionService } from '../services/sign-in-completion.service';
 
 @ApiTags('Auth - Two Factor')
 @Controller({ path: 'auth/2fa', version: '1' })
 export class TwoFactorController {
   constructor(
     private readonly twoFactorService: TwoFactorService,
-    private readonly signInService: SignInService,
-    private readonly configService: ConfigService,
+    private readonly signInCompletionService: SignInCompletionService,
   ) {}
 
-  private get isProduction(): boolean {
-    return this.configService.get('NODE_ENV') === 'production';
-  }
+  // ─────────────────────────────────────────
+  // Public endpoints (pre_auth 쿠키 기반 — 비밀번호·OAuth 로그인이 남긴다)
+  // ─────────────────────────────────────────
 
-  // ─────────────────────────────────────────
-  // Public endpoints (pre-auth token 기반)
-  // ─────────────────────────────────────────
+  @Public()
+  @Get('pending')
+  @ApiOperation({
+    summary: '2FA 대기 중 고를 수 있는 수단 (pre_auth 쿠키 필요)',
+  })
+  async pending(@Req() req: Request) {
+    const { userId } = this.twoFactorService.verifyPreAuthToken(
+      readPreAuthCookie(req) ?? '',
+    );
+    return {
+      availableMethods:
+        await this.signInCompletionService.availableMethods(userId),
+    };
+  }
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('authenticate')
-  @ApiOperation({ summary: 'pre-auth 토큰 + 2FA 코드로 최종 로그인' })
+  @ApiOperation({ summary: 'pre_auth 쿠키 + 2FA 코드로 최종 로그인' })
   async authenticate(
     @Body() dto: TwoFactorAuthenticateDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { userId, rememberMe } = await this.twoFactorService.authenticate(
-      dto.preAuthToken,
+      readPreAuthCookie(req) ?? '',
       dto.method,
       dto.code,
     );
 
-    const ipAddress = req.ip;
-    const userAgent = req.headers['user-agent'];
-
-    const tokens = await this.signInService.login(
+    // 탈퇴·정지를 다시 보고 세션을 준다 — pre-auth 5분 사이에 끼어들 수 있다
+    await this.signInCompletionService.completeAfterTwoFactor(
       userId,
-      'email',
-      rememberMe,
-      ipAddress,
-      userAgent,
+      {
+        provider: 'two-factor',
+        rememberMe,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      },
+      res,
     );
-    setAuthCookies(res, tokens, this.isProduction);
 
     // 토큰은 HttpOnly 쿠키로만 전달한다(응답 body에 평문 노출 금지).
     return { message: 'Login successful' };
@@ -65,11 +73,11 @@ export class TwoFactorController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('email/send')
   @ApiOperation({
-    summary: '로그인용 Email OTP 코드 발송 (pre-auth 토큰 필요)',
+    summary: '로그인용 Email OTP 코드 발송 (pre_auth 쿠키 필요)',
   })
-  async sendEmailOtp(@Body() dto: TwoFactorSendEmailDto) {
+  async sendEmailOtp(@Req() req: Request) {
     const { userId } = this.twoFactorService.verifyPreAuthToken(
-      dto.preAuthToken,
+      readPreAuthCookie(req) ?? '',
     );
     await this.twoFactorService.sendEmailOtp(userId);
     return { message: 'Verification code sent' };

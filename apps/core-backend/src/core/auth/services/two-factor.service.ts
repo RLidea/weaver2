@@ -193,7 +193,10 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   async sendEmailOtp(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    // pre-auth 5분 사이에 탈퇴했으면 코드를 보내지 않는다
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
+    });
     if (!user) throw new BadRequestException('User not found');
 
     const { email } = await FindTwoFactorMethodsQuery(this.prisma, userId);

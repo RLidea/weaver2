@@ -104,17 +104,23 @@ export interface TotpSetup {
 
 // SuccessInterceptor가 { message, ...rest } → { message, data: rest } 로 변환하므로
 // 컨트롤러가 flat하게 반환한 필드들이 data에 담긴다.
+// pre-auth 토큰은 응답 본문이 아니라 HttpOnly 쿠키(pre_auth)로 오간다 — 화면은 수단만 안다
+export interface TwoFactorMethodsAvailable {
+  totp: boolean;
+  email: boolean;
+}
+
 export interface SignInResponse {
   twoFactorRequired: true;
-  preAuthToken: string;
-  availableMethods: {
-    totp: boolean;
-    email: boolean;
-  };
+  availableMethods: TwoFactorMethodsAvailable;
+}
+
+/** GET /2fa/pending — OAuth 처럼 리다이렉트로 들어온 2FA 화면이 수단을 묻는다 */
+export interface TwoFactorPending {
+  availableMethods: TwoFactorMethodsAvailable;
 }
 
 export interface TwoFactorAuthenticateRequest {
-  preAuthToken: string;
   method: 'totp' | 'email';
   code: string;
 }

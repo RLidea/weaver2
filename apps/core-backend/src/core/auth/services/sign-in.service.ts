@@ -14,7 +14,6 @@ import {
   ReserveAuthAttemptCommand,
 } from '../repositories/reserve-auth-attempt.command';
 import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
-import { normalizeEmail } from '../utils/email.util';
 
 /**
  * 회전된 토큰이 다시 제시됐을 때, 이 시간 이내면 정상 경합(응답 유실 후 재시도 등)으로 보고
@@ -31,6 +30,12 @@ export class SignInService {
     private readonly jwtService: JwtService,
   ) {}
 
+  /**
+   * 비밀번호라는 요소만 확인한다. 계정 상태(탈퇴·정지)와 2FA 는 SignInCompletionService 가
+   * 비밀번호가 맞은 **뒤에** 본다 — 전에는 비밀번호를 보기 전에 탈퇴 여부와 정지 날짜를 알려,
+   * 이메일만으로 계정 상태가 샜다. 탈퇴한 계정은 찾지 않으므로(그리고 탈퇴 때 자격 행이
+   * 지워지므로) 「잘못된 자격 증명」과 같게 답한다.
+   */
   async validateUserByEmail(email: string, password: string) {
     const user = await FindUserByEmailQuery(this.prisma, email);
 
@@ -38,23 +43,8 @@ export class SignInService {
       `validateUserByEmail: Found user: ${JSON.stringify(user?.id)}`,
     );
 
-    if (!user) {
-      // 탈퇴한 계정인지 별도 확인
-      const deletedUser = await this.prisma.user.findFirst({
-        where: { email: normalizeEmail(email), deletedAt: { not: null } },
-      });
-      if (deletedUser) throw new UnauthorizedException('ACCOUNT_DELETED');
+    if (!user?.localCredential?.password) {
       throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!user.localCredential || !user.localCredential.password)
-      throw new UnauthorizedException('Invalid credentials');
-
-    // 정지 계정 체크 (suspendedUntil이 미래 시각이면 정지 상태)
-    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
-      throw new UnauthorizedException(
-        `Account is suspended until ${user.suspendedUntil.toISOString()}.`,
-      );
     }
 
     const { localCredential } = user;

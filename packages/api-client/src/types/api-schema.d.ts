@@ -578,6 +578,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/2fa/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 2FA 대기 중 고를 수 있는 수단 (pre_auth 쿠키 필요) */
+        get: operations["TwoFactorController_pending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/2fa/authenticate": {
         parameters: {
             query?: never;
@@ -587,7 +604,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** pre-auth 토큰 + 2FA 코드로 최종 로그인 */
+        /** pre_auth 쿠키 + 2FA 코드로 최종 로그인 */
         post: operations["TwoFactorController_authenticate"];
         delete?: never;
         options?: never;
@@ -604,7 +621,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 로그인용 Email OTP 코드 발송 (pre-auth 토큰 필요) */
+        /** 로그인용 Email OTP 코드 발송 (pre_auth 쿠키 필요) */
         post: operations["TwoFactorController_sendEmailOtp"];
         delete?: never;
         options?: never;
@@ -2890,8 +2907,6 @@ export interface components {
             password: string;
         };
         TwoFactorAuthenticateDto: {
-            /** @description 로그인 1단계에서 발급받은 pre-auth 토큰 */
-            preAuthToken: string;
             /**
              * @description 사용할 2FA 방식
              * @enum {string}
@@ -2902,10 +2917,6 @@ export interface components {
              * @example 012345
              */
             code: string;
-        };
-        TwoFactorSendEmailDto: {
-            /** @description 로그인 1단계에서 발급받은 pre-auth 토큰 */
-            preAuthToken: string;
         };
         TwoFactorConfirmDto: {
             /**
@@ -4751,6 +4762,23 @@ export interface operations {
             };
         };
     };
+    TwoFactorController_pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TwoFactorController_authenticate: {
         parameters: {
             query?: never;
@@ -4779,11 +4807,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TwoFactorSendEmailDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
             201: {
                 headers: {

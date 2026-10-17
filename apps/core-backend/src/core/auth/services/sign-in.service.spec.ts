@@ -39,28 +39,18 @@ describe('SignInService.validateUserByEmail', () => {
     jest.clearAllMocks();
     mockReserve.mockResolvedValue(true);
 
-    prisma = {
-      user: { findFirst: jest.fn() },
-    };
+    prisma = {};
     service = new SignInService(prisma as PrismaService, {} as JwtService);
   });
 
-  it('이메일 매칭 X + 탈퇴 계정 → ACCOUNT_DELETED', async () => {
+  it('없는 이메일(탈퇴 포함)은 계정 상태를 말하지 않고 Invalid credentials', async () => {
+    // 탈퇴 계정은 찾지 않는다(FindUserByEmailQuery) — 비밀번호를 보기 전에 상태가 새지 않게
     mockFind.mockResolvedValue(null);
-    prisma.user.findFirst.mockResolvedValue({ id: 'deleted-1' });
-
-    await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
-      /ACCOUNT_DELETED/,
-    );
-  });
-
-  it('이메일 매칭 X + 탈퇴도 아님 → Invalid credentials', async () => {
-    mockFind.mockResolvedValue(null);
-    prisma.user.findFirst.mockResolvedValue(null);
 
     await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
       /Invalid credentials/,
     );
+    expect(mockReserve).not.toHaveBeenCalled();
   });
 
   it('localCredential 없으면 Invalid credentials (OAuth-only 계정)', async () => {
@@ -71,18 +61,18 @@ describe('SignInService.validateUserByEmail', () => {
     );
   });
 
-  it('정지 계정 (suspendedUntil 미래) → suspended 메시지', async () => {
-    const future = new Date(Date.now() + 1000 * 60 * 60);
+  it('정지 계정이라도 비밀번호가 틀리면 정지 사실을 말하지 않는다', async () => {
+    // 정지는 SignInCompletionService 가 비밀번호가 맞은 뒤에 본다
     mockFind.mockResolvedValue({
       id: 'u1',
-      suspendedUntil: future,
+      suspendedUntil: new Date(Date.now() + 1000 * 60 * 60),
       emailVerifiedAt: new Date(),
-      twoFactorMethods: [],
       localCredential: { password: 'hash' },
     });
+    mockCompare.mockResolvedValue(false);
 
     await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
-      /suspended/i,
+      /Invalid credentials/,
     );
   });
 

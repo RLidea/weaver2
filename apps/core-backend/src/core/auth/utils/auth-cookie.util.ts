@@ -1,4 +1,4 @@
-import { CookieOptions, Response } from 'express';
+import { CookieOptions, Request, Response } from 'express';
 
 /**
  * 인증 쿠키(access_token / refresh_token) 세팅·삭제를 한 곳에 통합한다.
@@ -52,4 +52,37 @@ export function clearAuthCookies(res: Response, isProduction: boolean): void {
   const base = baseCookieOptions(isProduction);
   res.clearCookie('access_token', base);
   res.clearCookie('refresh_token', base);
+}
+
+/**
+ * 2FA 대기 표시(pre-auth 토큰). 응답 본문이 아니라 쿠키로 나른다 — OAuth 콜백은 리다이렉트라
+ * 본문에 토큰을 실을 수 없고, 쿠키여야 비밀번호·OAuth 가 같은 2FA 화면을 쓴다.
+ *
+ * Path 를 `/v1/auth/2fa` 로 좁히지 않는다. 브라우저는 Next 의 `/api` 리라이트 **앞의**
+ * 주소(`/api/v1/auth/2fa/…`)로 쿠키 경로를 맞추므로, 백엔드가 보는 경로로 좁히면 쿠키가
+ * 영영 안 간다. 토큰이 aud 로 묶여 있어(pre-auth) 넓은 경로가 위험을 늘리지 않는다.
+ */
+export const PRE_AUTH_COOKIE = 'pre_auth';
+const PRE_AUTH_MAX_AGE_MS = 5 * 60 * 1000; // 토큰 수명과 같다
+
+export function setPreAuthCookie(
+  res: Response,
+  preAuthToken: string,
+  isProduction: boolean,
+): void {
+  res.cookie(PRE_AUTH_COOKIE, preAuthToken, {
+    ...baseCookieOptions(isProduction),
+    maxAge: PRE_AUTH_MAX_AGE_MS,
+  });
+}
+
+export function clearPreAuthCookie(res: Response, isProduction: boolean): void {
+  res.clearCookie(PRE_AUTH_COOKIE, baseCookieOptions(isProduction));
+}
+
+export function readPreAuthCookie(req: Request): string | undefined {
+  const value = (req.cookies as Record<string, unknown> | undefined)?.[
+    PRE_AUTH_COOKIE
+  ];
+  return typeof value === 'string' ? value : undefined;
 }

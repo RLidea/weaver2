@@ -12,6 +12,7 @@ import type {
   TotpSetup,
   TwoFactorAuthenticateRequest,
   OAuthConnection,
+  TwoFactorPending,
 } from '../types';
 
 export const authApi = {
@@ -21,8 +22,12 @@ export const authApi = {
   signIn: (body: SignInRequest) =>
     apiClient.post<SignInResponse | null>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
 
-  sendLoginEmailOtp: (preAuthToken: string) =>
-    apiClient.post<void>('/v1/auth/2fa/email/send', { preAuthToken }, { skipOnAuthError: true }),
+  // pre-auth 토큰은 pre_auth 쿠키로 간다
+  sendLoginEmailOtp: () =>
+    apiClient.post<void>('/v1/auth/2fa/email/send', {}, { skipOnAuthError: true }),
+
+  getTwoFactorPending: () =>
+    apiClient.get<TwoFactorPending>('/v1/auth/2fa/pending', { skipOnAuthError: true }),
 
   twoFactorAuthenticate: (body: TwoFactorAuthenticateRequest) =>
     apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),

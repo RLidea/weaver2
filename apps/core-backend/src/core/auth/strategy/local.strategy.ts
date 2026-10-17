@@ -16,8 +16,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       username: user.username,
       isLogin: true,
-      totpEnabled: user.twoFactorMethods.some((m) => m.kind === 'TOTP'),
-      emailOtpEnabled: user.twoFactorMethods.some((m) => m.kind === 'EMAIL'),
     };
   }
 }

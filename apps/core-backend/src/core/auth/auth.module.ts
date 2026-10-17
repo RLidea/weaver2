@@ -22,6 +22,7 @@ import { OAuthController } from './controllers/oauth.controller';
 import { AuthProvidersController } from './controllers/auth-providers.controller';
 import { TwoFactorController } from './controllers/two-factor.controller';
 import { TwoFactorService } from './services/two-factor.service';
+import { SignInCompletionService } from './services/sign-in-completion.service';
 import { SessionController } from './controllers/session.controller';
 import { SessionService } from './services/session.service';
 import { CsrfController } from './controllers/csrf.controller';
@@ -56,6 +57,7 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
     SignOutService,
     TermsService,
     TwoFactorService,
+    SignInCompletionService,
     SessionService,
     {
       provide: APP_GUARD,

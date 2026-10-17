@@ -32,6 +32,6 @@ export function useTwoFactorLogin() {
 
 export function useSendLoginEmailOtp() {
   return useMutation({
-    mutationFn: (preAuthToken: string) => authApi.sendLoginEmailOtp(preAuthToken),
+    mutationFn: () => authApi.sendLoginEmailOtp(),
   });
 }
