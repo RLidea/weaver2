@@ -49,9 +49,11 @@ export function setAccessTokenCookie(
 
 export function clearAuthCookies(res: Response, isProduction: boolean): void {
   // clearCookie는 세팅 때와 동일 옵션(path/sameSite/secure)을 줘야 실제로 삭제된다.
+  // 2FA 대기(pre_auth)도 함께 지운다 — 로그아웃한 브라우저에 2FA 단계가 남지 않게.
   const base = baseCookieOptions(isProduction);
   res.clearCookie('access_token', base);
   res.clearCookie('refresh_token', base);
+  res.clearCookie('pre_auth', base);
 }
 
 /**

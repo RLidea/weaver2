@@ -29,6 +29,10 @@ export const authApi = {
   getTwoFactorPending: () =>
     apiClient.get<TwoFactorPending>('/v1/auth/2fa/pending', { skipOnAuthError: true }),
 
+  // 2FA 단계를 그만둔다 — pre_auth 쿠키는 HttpOnly 라 화면이 직접 못 지운다
+  abandonTwoFactor: () =>
+    apiClient.delete<void>('/v1/auth/2fa/pending', { skipOnAuthError: true }),
+
   twoFactorAuthenticate: (body: TwoFactorAuthenticateRequest) =>
     apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),
 

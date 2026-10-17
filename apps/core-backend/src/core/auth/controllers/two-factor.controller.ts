@@ -8,7 +8,11 @@ import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.d
 import { TwoFactorService } from '../services/two-factor.service';
 import { TwoFactorAuthenticateDto } from '../dto/two-factor-authenticate.dto';
 import { TwoFactorConfirmDto } from '../dto/two-factor-confirm.dto';
-import { readPreAuthCookie } from '../utils/auth-cookie.util';
+import {
+  clearPreAuthCookie,
+  readPreAuthCookie,
+} from '../utils/auth-cookie.util';
+import { ConfigService } from '@nestjs/config';
 import { SignInCompletionService } from '../services/sign-in-completion.service';
 
 @ApiTags('Auth - Two Factor')
@@ -17,6 +21,7 @@ export class TwoFactorController {
   constructor(
     private readonly twoFactorService: TwoFactorService,
     private readonly signInCompletionService: SignInCompletionService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ─────────────────────────────────────────
@@ -36,6 +41,21 @@ export class TwoFactorController {
       availableMethods:
         await this.signInCompletionService.availableMethods(userId),
     };
+  }
+
+  @Public()
+  @Delete('pending')
+  @ApiOperation({
+    summary: '2FA 단계를 그만둔다 — pre_auth 쿠키를 지운다',
+    description:
+      '2FA 대기 중인 브라우저에는 세션이 없어 로그아웃을 부를 수 없다. 「로그인 화면으로 돌아가기」가 이것을 부른다.',
+  })
+  abandon(@Res({ passthrough: true }) res: Response) {
+    clearPreAuthCookie(
+      res,
+      this.configService.get('NODE_ENV') === 'production',
+    );
+    return { message: 'Two-factor step abandoned' };
   }
 
   @Public()

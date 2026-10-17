@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -41,9 +41,13 @@ export function LoginForm() {
   const redirectPath = searchParams.get('redirect') ?? '/dashboard';
   const isTwoFactorStep = searchParams.get('step') === '2fa';
 
-  // OAuth 처럼 리다이렉트로 2FA 단계에 들어오면, 쿠키로 대기 중인 2FA 수단을 묻는다
+  // OAuth 처럼 리다이렉트로 2FA 단계에 들어오면, 쿠키로 대기 중인 2FA 수단을 묻는다.
+  // 한 번만 — 개발 모드(StrictMode)는 effect 를 두 번 돌려, 이메일 코드를 두 번 보내면
+  // 두 번째가 재발급 유예(60초)에 걸려 오류로 보인다.
+  const pendingRequested = useRef(false);
   useEffect(() => {
-    if (!isTwoFactorStep) return;
+    if (!isTwoFactorStep || pendingRequested.current) return;
+    pendingRequested.current = true;
     authApi
       .getTwoFactorPending()
       .then((res) => {
@@ -203,6 +207,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => {
+              void authApi.abandonTwoFactor().catch(() => undefined);
               setTwoFactorMethods(null);
               setSelectedMethod(null);
               setOtpCode('');

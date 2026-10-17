@@ -23,6 +23,15 @@ export interface AvailableTwoFactorMethods {
   email: boolean;
 }
 
+/**
+ * 정지된 계정. 경로마다 문구를 정규식으로 가리지 않게 타입으로 구분한다(OAuth 실패 안내).
+ */
+export class AccountSuspendedException extends UnauthorizedException {
+  constructor(until: Date) {
+    super(`Account is suspended until ${until.toISOString()}.`);
+  }
+}
+
 export type SignInCompletion =
   | { twoFactorRequired: false }
   | { twoFactorRequired: true; availableMethods: AvailableTwoFactorMethods };
@@ -31,9 +40,11 @@ export type SignInCompletion =
  * 모든 로그인 경로(비밀번호·OAuth·2FA 통과)의 끝. 요소(비밀번호·OAuth 콜백·2FA 코드)가
  * 이미 확인된 뒤에 부른다 — 계정 상태는 그 뒤에야 말한다(이메일만으로 상태가 새지 않게).
  *
- * 1. 탈퇴면 거절, 정지면 거절
- * 2. 확인된 2FA 수단이 있으면 → pre-auth 쿠키만 주고 세션은 아직 없다
- * 3. 없으면 → 세션(IP·UA·rememberMe 반영)
+ * 1. 탈퇴면 거절
+ * 2. 확인된 2FA 수단이 있고 아직 통과 전이면 → pre-auth 쿠키만 주고 세션은 아직 없다
+ * 3. 정지면 거절 — 2FA 가 있는 계정은 2FA 를 통과한 **뒤에야** 말한다. 앞에서 말하면
+ *    비밀번호만 가진 사람이 정지 사실과 기간을 알게 된다.
+ * 4. 세션(IP·UA·rememberMe 반영)
  *
  * 경로마다 검사를 복사하면 경로가 늘 때마다 하나씩 빠진다 — 전에는 OAuth 가 정지·2FA 를,
  * 2FA 통과가 탈퇴·정지를 보지 않았다.
@@ -96,11 +107,6 @@ export class SignInCompletionService {
     if (!user || user.deletedAt) {
       throw new UnauthorizedException('ACCOUNT_DELETED');
     }
-    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
-      throw new UnauthorizedException(
-        `Account is suspended until ${user.suspendedUntil.toISOString()}.`,
-      );
-    }
 
     if (!twoFactorPassed) {
       const availableMethods = await this.availableMethods(userId);
@@ -112,6 +118,10 @@ export class SignInCompletionService {
         );
         return { twoFactorRequired: true, availableMethods };
       }
+    }
+
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new AccountSuspendedException(user.suspendedUntil);
     }
 
     const tokens = await this.signInService.login(

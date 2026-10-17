@@ -58,6 +58,9 @@ export class ResetPasswordService {
         await tx.oneTimeCode.deleteMany({
           where: { userId, purpose: 'EMAIL_VERIFICATION' },
         });
+        // 검증되지 않은 이메일로 붙은 소셜 연동도 끊는다 — 선점한 사람이 공급자 로그인으로
+        // 되찾은 계정에 다시 들어오지 못하게. 주인은 로그인한 뒤 설정에서 다시 연동한다.
+        await tx.oAuthAccount.deleteMany({ where: { userId } });
       }
 
       // 비밀번호가 바뀌면 기존 세션을 전부 무효화한다(변경 경로와 동일 정책).

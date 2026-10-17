@@ -2,7 +2,10 @@ import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { PrismaService } from '@weaver2/prisma';
-import { SignInCompletionService } from './sign-in-completion.service';
+import {
+  AccountSuspendedException,
+  SignInCompletionService,
+} from './sign-in-completion.service';
 import { SignInService } from './sign-in.service';
 import { TwoFactorService } from './two-factor.service';
 
@@ -115,6 +118,30 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       expect(signIn.login).not.toHaveBeenCalled();
     },
   );
+
+  it('2FA 가 있는 정지 계정은 비밀번호만으로는 정지 사실을 듣지 못하고 2FA 단계로 간다', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      deletedAt: null,
+      suspendedUntil: new Date(Date.now() + 60_000),
+    });
+    prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+
+    await expect(
+      service.complete('u1', context, res as unknown as Response),
+    ).resolves.toMatchObject({ twoFactorRequired: true });
+    expect(signIn.login).not.toHaveBeenCalled();
+  });
+
+  it('2FA 가 없는 정지 계정은 비밀번호 뒤에 바로 거절한다 — 정지 타입으로', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      deletedAt: null,
+      suspendedUntil: new Date(Date.now() + 60_000),
+    });
+
+    await expect(
+      service.complete('u1', context, res as unknown as Response),
+    ).rejects.toBeInstanceOf(AccountSuspendedException);
+  });
 
   it('정지가 풀린 계정은 통과한다', async () => {
     prisma.user.findUnique.mockResolvedValue({

@@ -18,7 +18,10 @@ import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { OAuthService } from '../oauth/oauth.service';
-import { SignInCompletionService } from '../services/sign-in-completion.service';
+import {
+  AccountSuspendedException,
+  SignInCompletionService,
+} from '../services/sign-in-completion.service';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
@@ -170,8 +173,13 @@ export class OAuthController {
         completion.twoFactorRequired ? this.twoFactorUrl : this.successUrl,
       );
     } catch (err) {
+      // 이메일 충돌 메시지에는 이메일 주소가 들어 있다 — 로그에 개인정보를 남기지 않는다
+      const reason =
+        err instanceof ConflictException
+          ? 'email already registered'
+          : (err as Error).message;
       this.logger.error(
-        `OAuth callback failed for provider=${provider}: ${(err as Error).message}`,
+        `OAuth callback failed for provider=${provider}: ${reason}`,
       );
       res.redirect(this.failureRedirect(provider, err));
     }
@@ -206,7 +214,7 @@ export class OAuthController {
     if (err instanceof ConflictException) {
       return withError('oauth_email_conflict', { provider });
     }
-    if (err instanceof Error && /suspended/i.test(err.message)) {
+    if (err instanceof AccountSuspendedException) {
       return withError('account_suspended');
     }
     return base;

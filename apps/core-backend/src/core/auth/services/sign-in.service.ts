@@ -21,6 +21,10 @@ import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.co
  */
 const REFRESH_REUSE_GRACE_MS = 30 * 1000;
 
+/** 없는 계정에도 bcrypt 한 번을 들이기 위한 해시(비용 10, 아무 비밀번호와도 맞지 않는다) */
+const DUMMY_PASSWORD_HASH =
+  '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.9BqvZGzBv6X3B7vlEPH5bWv1w7mS';
+
 @Injectable()
 export class SignInService {
   private readonly logger = new Logger(SignInService.name);
@@ -44,6 +48,8 @@ export class SignInService {
     );
 
     if (!user?.localCredential?.password) {
+      // 있는 계정과 같은 시간을 들인다 — bcrypt 를 건너뛰면 응답 속도로 계정 유무가 샌다
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       throw new UnauthorizedException('Invalid credentials');
     }
 

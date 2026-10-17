@@ -589,7 +589,11 @@ export interface paths {
         get: operations["TwoFactorController_pending"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * 2FA 단계를 그만둔다 — pre_auth 쿠키를 지운다
+         * @description 2FA 대기 중인 브라우저에는 세션이 없어 로그아웃을 부를 수 없다. 「로그인 화면으로 돌아가기」가 이것을 부른다.
+         */
+        delete: operations["TwoFactorController_abandon"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4763,6 +4767,23 @@ export interface operations {
         };
     };
     TwoFactorController_pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TwoFactorController_abandon: {
         parameters: {
             query?: never;
             header?: never;

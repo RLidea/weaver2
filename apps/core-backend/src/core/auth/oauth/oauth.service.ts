@@ -192,6 +192,15 @@ export class OAuthService {
       );
     }
 
+    // 공급자가 검증하지 않은 이메일로는 가입시키지 않는다(Apple 은 공급자에서 이미 비운다).
+    // 받아 주면 남의 이메일을 주장하는 공급자 계정으로 그 주소의 계정을 선점할 수 있다 —
+    // 진짜 주인은 가입이 막히고, 재설정으로 되찾아도 공격자의 연동이 남는다.
+    if (!profile.emailVerified) {
+      throw new UnauthorizedException(
+        `${profile.provider} did not provide a verified email.`,
+      );
+    }
+
     // 2. 같은 이메일 사용자 존재 → 자동 연동을 차단한다.
     // 이메일을 검증하지 않는 OAuth provider 또는 임의 이메일을 청구할 수 있는
     // provider에 대해 자동 연동은 계정 탈취 위험. 사용자가 로그인 후 설정에서

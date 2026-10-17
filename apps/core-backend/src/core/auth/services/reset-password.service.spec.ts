@@ -35,6 +35,7 @@ describe('ResetPasswordService', () => {
     user: { findUnique: jest.fn(), update: jest.fn() },
     userSetting: { updateMany: jest.fn() },
     oneTimeCode: { deleteMany: jest.fn() },
+    oAuthAccount: { deleteMany: jest.fn() },
   };
   const prisma = {
     $transaction: (fn: (t: typeof tx) => Promise<unknown>) => fn(tx),
@@ -79,6 +80,7 @@ describe('ResetPasswordService', () => {
 
     expect(tx.user.update).not.toHaveBeenCalled();
     expect(tx.userSetting.updateMany).not.toHaveBeenCalled();
+    expect(tx.oAuthAccount.deleteMany).not.toHaveBeenCalled();
   });
 
   it('미인증 계정은 인증을 끝내고, 마케팅 동의와 남은 인증 링크를 버린다 (선점 가입 복구)', async () => {
@@ -96,6 +98,10 @@ describe('ResetPasswordService', () => {
     });
     expect(tx.oneTimeCode.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', purpose: 'EMAIL_VERIFICATION' },
+    });
+    // 검증 안 된 이메일로 붙은 소셜 연동도 끊는다 — 선점한 사람이 다시 못 들어오게
+    expect(tx.oAuthAccount.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
     });
   });
 

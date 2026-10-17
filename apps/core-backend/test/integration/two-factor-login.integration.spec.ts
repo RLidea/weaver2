@@ -83,7 +83,7 @@ describe('Two-Factor Login (Integration)', () => {
     const { token, cookies } = await getCsrfToken(app);
     const jar = cookieMap(cookies.split('; '));
     const send = async (
-      method: 'get' | 'post',
+      method: 'get' | 'post' | 'delete',
       path: string,
       body?: object,
     ) => {
@@ -91,7 +91,7 @@ describe('Two-Factor Login (Integration)', () => {
       const req = request(app.getHttpServer())
         [method](path)
         .set('Cookie', cookie);
-      const res = await (method === 'post'
+      const res = await (method !== 'get'
         ? req.set('x-csrf-token', token).send(body ?? {})
         : req);
       for (const [k, v] of cookieMap(
@@ -188,7 +188,7 @@ describe('Two-Factor Login (Integration)', () => {
     expect(b.jar.has('access_token')).toBe(false);
   });
 
-  it('정지된 계정도 비밀번호가 틀리면 정지 사실을 말하지 않는다', async () => {
+  it('2FA 가 켜진 정지 계정은 비밀번호만으로는 정지 사실을 듣지 못한다 — 2FA 뒤에야 거절', async () => {
     const user = await createUserWithEmail2fa();
     await prisma.user.update({
       where: { id: user.id },
@@ -207,7 +207,93 @@ describe('Two-Factor Login (Integration)', () => {
       email: user.email,
       password: TEST_PASSWORD,
     });
-    expect(right.status).toBe(401);
-    expect(JSON.stringify(right.body)).toMatch(/suspended/i);
+    expect(right.status).toBe(201);
+    expect(JSON.stringify(right.body)).not.toMatch(/suspended/i);
+
+    await b.send('post', '/v1/auth/2fa/email/send');
+    const done = await b.send('post', '/v1/auth/2fa/authenticate', {
+      method: 'email',
+      code: sentCodes[0],
+    });
+    expect(done.status).toBe(401);
+    expect(JSON.stringify(done.body)).toMatch(/suspended/i);
+  });
+
+  it('로그인 유지(rememberMe)는 2FA 를 거쳐도 이어진다 — 리프레시 쿠키 30일', async () => {
+    const user = await createUserWithEmail2fa();
+    const b = await browser();
+    await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+      rememberMe: true,
+    });
+    await b.send('post', '/v1/auth/2fa/email/send');
+
+    const done = await b.send('post', '/v1/auth/2fa/authenticate', {
+      method: 'email',
+      code: sentCodes[0],
+    });
+    const refresh = (done.headers['set-cookie'] as unknown as string[]).find(
+      (c) => c.startsWith('refresh_token='),
+    );
+    const maxAge = Number(/Max-Age=(\d+)/.exec(refresh ?? '')?.[1]);
+    expect(maxAge).toBeGreaterThanOrEqual(29 * 24 * 60 * 60);
+  });
+
+  it('쿠키로 들어와도 2FA 오답은 SECOND_FACTOR 로 세어 5번 뒤 잠긴다', async () => {
+    const user = await createUserWithEmail2fa();
+    const b = await browser();
+    await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+    });
+    await b.send('post', '/v1/auth/2fa/email/send');
+    const wrong = sentCodes[0] === '000000' ? '000001' : '000000';
+
+    for (let i = 0; i < 5; i++) {
+      await b.send('post', '/v1/auth/2fa/authenticate', {
+        method: 'email',
+        code: wrong,
+      });
+    }
+    const locked = await b.send('post', '/v1/auth/2fa/authenticate', {
+      method: 'email',
+      code: sentCodes[0],
+    });
+    expect(locked.status).toBe(401);
+    expect(JSON.stringify(locked.body)).toMatch(/locked/i);
+  });
+
+  it('탈퇴한 계정은 비밀번호가 맞아도 계정 상태를 말하지 않는다', async () => {
+    const user = await createUserWithEmail2fa();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { deletedAt: new Date() },
+    });
+    const b = await browser();
+
+    const res = await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+    });
+    expect(res.status).toBe(401);
+    expect(JSON.stringify(res.body)).toMatch(/Invalid credentials/);
+    expect(JSON.stringify(res.body)).not.toMatch(/DELETED/);
+  });
+
+  it('2FA 단계를 그만두면 pre_auth 가 지워지고 더는 2FA 단계를 밟을 수 없다', async () => {
+    const user = await createUserWithEmail2fa();
+    const b = await browser();
+    await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+    });
+    expect(b.jar.has('pre_auth')).toBe(true);
+
+    // 대기 중인 브라우저에는 세션이 없어 로그아웃을 못 부른다 — 전용 엔드포인트로 그만둔다
+    const res = await b.send('delete', '/v1/auth/2fa/pending');
+    expect(res.status).toBe(200);
+    expect(b.jar.has('pre_auth')).toBe(false);
+    expect((await b.send('get', '/v1/auth/2fa/pending')).status).toBe(401);
   });
 });

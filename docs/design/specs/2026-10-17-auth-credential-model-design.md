@@ -197,15 +197,17 @@ CHECK ("failedAttempts" >= 0)
 `SignInCompletionService` 가 모든 경로의 끝에 선다.
 
 1. **요소 확인이 먼저**: 비밀번호·OAuth 콜백이 맞은 뒤에야 계정 상태를 말한다. 지금은 비밀번호를 보기 전에 `ACCOUNT_DELETED`·정지 날짜를 알려 준다(`sign-in.service.ts:43,51`) — 이메일만으로 계정 상태가 샌다.
-2. `deletedAt` → 거절, `suspendedUntil > now` → 거절
+2. `deletedAt` → 거절
 3. 확인된 `TwoFactorMethod` 가 있으면 → pre-auth 발급, 세션은 아직 없다
-4. 없으면 → 액세스·리프레시 발급(IP·UA·rememberMe 반영), `lastLoginAt` 갱신
+4. `suspendedUntil > now` → 거절 — **2FA 가 있는 계정은 2FA 를 통과한 뒤에야 말한다** (메인테이너, 2026-10-18 리뷰 반영). 3보다 앞에 두면 비밀번호만 가진 사람이 정지 사실과 기간을 안다.
+5. 액세스·리프레시 발급(IP·UA·rememberMe 반영), `lastLoginAt` 갱신
 
-2FA 통과(`/2fa/authenticate`) 뒤에는 **2부터 다시** — pre-auth 5분 사이에 탈퇴·정지가 끼어들 수 있다.
+2FA 통과(`/2fa/authenticate`) 뒤에는 **2부터 다시**(3은 건너뛴다) — pre-auth 5분 사이에 탈퇴·정지가 끼어들 수 있다.
 
 **pre-auth 운반 = HttpOnly 쿠키** (`pre_auth`, 5분, `SameSite=Lax`, `Secure`, **`Path=/`**). OAuth 콜백은 리다이렉트라 본문에 토큰을 실을 수 없기 때문이다.
 - `Path` 를 `/v1/auth/2fa` 로 좁히지 않는 이유: 브라우저는 Next 의 `/api` 리라이트 **앞의** 주소(`/api/v1/auth/2fa/…`)로 쿠키 경로를 맞춘다. 백엔드가 보는 경로로 좁히면 쿠키가 영영 안 간다. 파생 프로젝트가 API 를 직접 부르면 접두사가 또 다르다. 토큰이 `aud` 로 묶여 있으니(4.0) 넓은 경로가 위험을 늘리지 않는다.
 - 응답 본문은 `{ twoFactorRequired: true, availableMethods }` 만.
+- **그만두기는 `DELETE /v1/auth/2fa/pending`** — 대기 중인 브라우저에는 세션이 없어 로그아웃을 부를 수 없고, 쿠키가 HttpOnly 라 화면이 직접 못 지운다. 로그아웃도 `pre_auth` 를 함께 지운다.
 - OAuth 는 2FA 가 필요하면 `OAUTH_TWO_FACTOR_REDIRECT_URL`(기존 `OAUTH_SUCCESS_REDIRECT_URL`·`OAUTH_FAILURE_REDIRECT_URL` 과 같은 줄, 예시 `http://localhost:3000/login?step=2fa`)로 보낸다. 화면은 **`GET /v1/auth/2fa/pending`**(pre-auth 쿠키 → `{ availableMethods }`)으로 수단을 알아낸다. 비밀번호 로그인도 같은 화면을 쓴다.
 
 ### 4.2 2FA 는 사람에 붙는다 (R2, R8)
@@ -263,7 +265,8 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 - 가입 인증·재설정·이메일 변경 확인 성공 → 같은 UPDATE 에서 `"emailVerifiedAt" = now()`. 로그인은 `LocalCredential` 이 아니라 이 컬럼을 본다.
 - **관리자가 이메일을 바꾸면 `emailVerifiedAt = null`.** 관리자는 그 주소의 주인임을 증명하지 못한다. 사용자는 인증 메일 재발송으로 다시 증명한다.
 - **이메일이 바뀌면(본인·관리자 모두) 옛 주소로 나간 재설정·인증 링크를 버린다** (2026-10-17 리뷰에서 추가). 옛 메일함이 털려 주소를 옮긴 사람이 그 링크로 1시간 안에 다시 털리지 않게.
-- OAuth: `OAuthUserProfile` 에 `emailVerified: boolean` 을 더하고 공급자마다 옮긴다(Google `email_verified`, Kakao `is_email_verified`, Apple `email_verified`). **Naver 는 이 값을 주지 않는다** — 믿는 것으로 정했다(§7).
+- OAuth: `OAuthUserProfile` 에 `emailVerified: boolean` 을 더하고 공급자마다 옮긴다(Google v2 userinfo 의 `verified_email`, Kakao `is_email_verified`, Apple `email_verified`). **Naver 는 이 값을 주지 않는다** — 믿는 것으로 정했다(§7).
+- **검증되지 않은 이메일로는 OAuth 가입을 받지 않는다** (메인테이너, 2026-10-18 리뷰 반영). 받으면 남의 주소를 주장하는 공급자 계정으로 그 주소의 계정을 선점할 수 있다. 이미 선점된 계정은 주인이 재설정으로 되찾을 때(미인증 → 인증) **소셜 연동을 끊는다**.
 - 가입 인증·재설정은 `deletedAt` 이면 거절. 정지는 막지 않는다 — 메일함 주인 증명은 정지와 별개이고, 로그인은 4.1 이 막는다.
 - 탈퇴 트랜잭션은 `TwoFactorMethod`·`OneTimeCode`·`AuthLockout` 도 지운다(지금은 챌린지·변경 요청이 남는다).
 

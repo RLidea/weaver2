@@ -3,7 +3,10 @@ import { Request, Response } from 'express';
 import { OAuthController } from './oauth.controller';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { OAuthService } from '../oauth/oauth.service';
-import { SignInCompletionService } from '../services/sign-in-completion.service';
+import {
+  AccountSuspendedException,
+  SignInCompletionService,
+} from '../services/sign-in-completion.service';
 
 describe('OAuthController', () => {
   let service: {
@@ -154,7 +157,7 @@ describe('OAuthController', () => {
 
     it('정지된 계정은 안내를 붙여 실패로 보낸다', async () => {
       completion.complete.mockRejectedValue(
-        new UnauthorizedException('Account is suspended until 2099-01-01.'),
+        new AccountSuspendedException(new Date('2099-01-01')),
       );
       await callback();
       expect(res.redirect).toHaveBeenCalledWith(
@@ -182,7 +185,7 @@ describe('OAuthController', () => {
         completion as unknown as SignInCompletionService,
       );
       completion.complete.mockRejectedValue(
-        new UnauthorizedException('Account is suspended until 2099-01-01.'),
+        new AccountSuspendedException(new Date('2099-01-01')),
       );
       await callback();
       expect(res.redirect).toHaveBeenCalledWith(

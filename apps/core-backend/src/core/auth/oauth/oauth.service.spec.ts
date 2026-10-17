@@ -196,6 +196,24 @@ describe('OAuthService', () => {
       expect(UpsertOAuthAccountCommand).not.toHaveBeenCalled();
     });
 
+    it('공급자가 검증하지 않은 이메일로는 가입시키지 않는다 — 남의 주소 선점 차단', async () => {
+      const provider = fakeProvider('kakao', 'victim@b.c');
+      provider.mocks.getUserProfile.mockResolvedValue({
+        provider: 'kakao',
+        providerId: 'sub-7',
+        email: 'victim@b.c',
+        emailVerified: false,
+        displayName: 'X',
+      });
+      registry.register(provider);
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.resolveCallbackUser('kakao', 'code', 'st', 'st'),
+      ).rejects.toThrow(/verified email/);
+      expect(CreateOAuthUserCommand).not.toHaveBeenCalled();
+    });
+
     it('신규 사용자는 공급자의 이메일 검증 여부를 그대로 받는다', async () => {
       const provider = fakeProvider('google', 'new@b.c');
       provider.mocks.getUserProfile.mockResolvedValue({
@@ -237,6 +255,7 @@ describe('OAuthService', () => {
         provider: 'google',
         providerId: 'sub-1',
         email: 'new@b.c',
+        emailVerified: true,
         displayName,
       });
       registry.register(provider);
