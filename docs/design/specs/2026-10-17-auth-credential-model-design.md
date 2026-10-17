@@ -311,7 +311,14 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 
 - **탈퇴한 이메일 재사용**: `users.email` 이 남아 같은 주소로 다시 가입할 수 없다(OAuth 는 P2002 로 일반 실패). 제품 결정.
 - **OAuth 연동·비밀번호 설정 엔드포인트**: 이 설계가 그 길을 안전하게 연다. 엔드포인트 자체는 별도.
-- **`auto-deploy.sh` 가 마이그레이션을 돌리지 않는다** (검토에서 발견): pull → build → `pm2 restart` 뿐이라 새 코드가 옛 스키마로 뜬다. 이 설계와 무관하게 고쳐야 할 배포 틀의 구멍 — 별도 작업으로 올린다.
+- ~~**`auto-deploy.sh` 가 마이그레이션을 돌리지 않는다**~~ — 해소(df180b9: 빌드 뒤·재시작 전에 `db:deploy`).
+- **남은 후속 — 조사하지 않고 적어 둔다** (2026-10-18, 구현·리뷰 중 나온 것. 보안 구멍은 아니거나 영향이 작다):
+  - 메일 발송 기록(`email_logs.htmlContent`)에 2FA 코드·재설정 링크가 평문으로 남는지 확인. 남는다면 DB 유출 시 살아 있는 비밀이 보인다(최대 10분·1시간).
+  - pre-auth 토큰은 5분 동안 재사용될 수 있다(일회용 표식 없음). 쿠키는 지우고, 쓰려면 새 코드가 필요하다.
+  - OAuth + 2FA 통과 뒤 `OAUTH_SUCCESS_REDIRECT_URL` 이 아니라 `/dashboard` 로 간다.
+  - 관리자 뷰 로그인(`admin-login.js`)이 2FA 를 모른다 — 2FA 가 켜진 관리자는 그 화면으로 못 들어온다(우회는 아니다).
+  - 마지막 SuperAdmin 이 스스로 빠지는 것을 막는 장치가 없다.
+  - 이메일 2FA 의 e2e 는 없다(레인 `.env` 에 실제 SMTP 가 있어 메일이 나간다). TOTP e2e 만 있다.
 
 ## 9. 작업 순서
 

@@ -17,7 +17,7 @@
 | 파일 | 모델 | enum |
 |---|---|---|
 | `_config.prisma` | (generator/datasource만) | — |
-| `auth.prisma` | User, UserSetting, LocalCredential, TwoFactorChallenge, EmailChangeRequest, OAuthAccount, RefreshToken | — |
+| `auth.prisma` | User, UserSetting, LocalCredential, TwoFactorMethod, OneTimeCode, AuthLockout, OAuthAccount, RefreshToken | TwoFactorKind, OneTimeCodePurpose, AuthFactor |
 | `board.prisma` | Board, Post, Comment, PostCategory, Emoji, PostReaction, PostFile | PostStatus |
 | `permissions.prisma` | PermissionGroup, PermissionGroupPermission, UserPermissionGroup, ResourcePermission, ResourcePermissionAllowedGroup, ResourcePermissionDeniedGroup | — |
 | `notification.prisma` | Notification, PushSubscription | NotificationType |
@@ -34,11 +34,13 @@
 
 **User**가 전체 데이터 모델의 뿌리입니다. 인증 수단은 User 본체가 아니라 자식 테이블로 분리되어 있습니다:
 
-- **User** — 사용자 코어. `email` / `username` / `displayName` 3중 unique. 제재 상태(`warningCount`, `suspendedUntil`)와 soft-delete(`deletedAt`)를 직접 가짐. DB 테이블명은 `@@map("users")`.
-- **LocalCredential** (1:1) — 이메일/비밀번호 자격증명. 비밀번호 해시, 이메일 인증(`isVerified`, `verificationToken`), 비밀번호 재설정 토큰, TOTP 2FA(`totpEnabled`, `totpSecret`), 이메일 OTP 스위치, 로그인 잠금(`failedAttempts`, `lockedUntil`)까지 **"로컬 로그인에 관련된 모든 상태"**가 이 한 테이블에 모입니다.
+- **User** — 사용자 코어. `email` / `username` / `displayName` 3중 unique. 제재 상태(`warningCount`, `suspendedUntil`)와 soft-delete(`deletedAt`)를 직접 가짐. 이메일 주인임이 증명된 시각 `emailVerifiedAt`(바뀌면 다시 정해짐). DB 테이블명은 `@@map("users")`.
+- **LocalCredential** (1:1, 기본키 `userId`) — **비밀번호 하나만** 안다(`passwordHash`, `passwordChangedAt`). 이메일 인증·2FA·잠금·일회용 비밀은 아래 각자의 테이블에 있다 (2026-10 재설계 — [설계서](../design/specs/2026-10-17-auth-credential-model-design.md)).
+- **TwoFactorMethod** (사람·종류별 1행) — 2FA 수단(TOTP·EMAIL). 로그인 수단과 무관하게 사람에 붙어 OAuth 사용자도 켤 수 있다. TOTP 는 암호화한 비밀과 마지막으로 쓴 시간 단위(재사용 차단). CHECK 로 종류별 불변식을 DB 가 지킨다.
+- **OneTimeCode** (사람·목적별 1행) — 메일로 보내는 일회용 비밀 전부(가입 인증·재설정 링크, 2FA·이메일 변경·STEP_UP 6자리 코드). 쓰면 지운다. 코드별 시도 한도 5.
+- **AuthLockout** (사람·요소별 1행) — 비밀번호(`PASSWORD`)와 2FA(`SECOND_FACTOR`) 실패를 따로 센다.
 - **OAuthAccount** (1:N) — 소셜 로그인 연결. `@@unique([provider, providerId])`로 같은 소셜 계정의 중복 연결 방지.
 - **RefreshToken** (1:N) — 기기별 세션. `ipAddress`/`userAgent`를 기록해 "세션 관리" 화면의 데이터가 됨. soft-delete 없이 만료(`expires`) 기반.
-- **TwoFactorChallenge** — 2FA 진행 중 상태(코드 해시 + 만료). **EmailChangeRequest** — 이메일 변경 인증 코드.
 
 이 구조 덕분에 "OAuth로만 가입한 사용자"는 LocalCredential이 없는 User로 자연스럽게 표현됩니다.
 
@@ -91,8 +93,9 @@ erDiagram
     User ||--o| UserSetting : "1:1"
     User ||--o{ OAuthAccount : "Cascade"
     User ||--o{ RefreshToken : "Cascade"
-    User ||--o{ TwoFactorChallenge : "Cascade"
-    User ||--o{ EmailChangeRequest : "Cascade"
+    User ||--o{ TwoFactorMethod : "Cascade"
+    User ||--o{ OneTimeCode : "Cascade"
+    User ||--o{ AuthLockout : "Cascade"
     User ||--o{ UserPermissionGroup : ""
     PermissionGroup ||--o{ UserPermissionGroup : ""
     PermissionGroup ||--o{ PermissionGroupPermission : "권한 문자열"
@@ -156,7 +159,7 @@ erDiagram
 | ReportStatus | PENDING, REVIEWING, RESOLVED, DISMISSED | report.prisma |
 | ReportAction | CONTENT_HIDDEN, CONTENT_DELETED, USER_WARNED, USER_SUSPENDED, NO_ACTION | report.prisma |
 
-한편 `OAuthAccount.provider`, `TwoFactorChallenge.method`, `ResourcePermission.action/resourceType`, 권한 문자열은 enum이 아니라 **String**입니다 — 값 집합이 코드(상수)로 관리되는 영역입니다.
+한편 `OAuthAccount.provider`, `ResourcePermission.action/resourceType`, 권한 문자열은 enum이 아니라 **String**입니다 — 값 집합이 코드(상수)로 관리되는 영역입니다.
 
 ## 6. 마이그레이션 & 시드
 
