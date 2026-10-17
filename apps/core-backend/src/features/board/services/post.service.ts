@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
@@ -12,6 +16,7 @@ import { IncrementPostViewCountCommand } from '../repositories/increment-post-vi
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
+import { PostReadPolicy, VISIBLE_POST_WHERE } from './post-read-policy.service';
 import {
   KeysetPaginationService,
   KeysetRequestDto,
@@ -30,6 +35,7 @@ export class PostService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly boardService: BoardService,
+    private readonly readPolicy: PostReadPolicy,
   ) {}
 
   async createPost(
@@ -87,13 +93,9 @@ export class PostService {
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<PostDto>> {
-    const isSelf = authUser?.isLogin === true && authUser.id === userId;
-    const where: Record<string, unknown> = {
+    const where = {
+      ...(await this.readPolicy.listWhere(authUser)),
       authorId: userId,
-      status: 'PUBLISHED',
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isSelf && { isSecret: false }),
     };
 
     return KeysetPaginationService.paginate<PostDto>({
@@ -111,13 +113,7 @@ export class PostService {
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<PostDto>> {
-    const isLoggedIn = authUser?.isLogin === true;
-    const where = {
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
-    };
+    const where = await this.readPolicy.listWhere(authUser);
 
     return KeysetPaginationService.paginate<PostDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -138,13 +134,8 @@ export class PostService {
   ): Promise<BoardPostsResponseDto> {
     await this.boardService.findBoardById(boardId);
 
-    const isLoggedIn = authUser?.isLogin === true;
     const baseWhere = {
-      boardId,
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
+      ...(await this.readPolicy.listWhere(authUser, boardId)),
       ...(categoryId && { categoryId }),
     };
 
@@ -166,23 +157,38 @@ export class PostService {
     };
   }
 
-  async findPostById(
-    id: string,
-    incrementView = false,
-    authUser?: CommonAuthUserDto,
-  ): Promise<PostDto> {
-    const isLoggedIn = authUser?.isLogin === true;
-    const whereCondition = {
+  /**
+   * 보이는 상태(게시됨·안 가림·안 지움)인 글. 읽기 판정은 하지 않는다 —
+   * 사용자 요청은 findReadablePost 를, 이미 판정을 거친 내부 경로(댓글 작성 등)가 이것을 쓴다.
+   */
+  async findPostById(id: string): Promise<PostDto> {
+    const post = await FindPostByIdQuery(this.prisma, {
       id,
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
-    };
-
-    const post = await FindPostByIdQuery(this.prisma, whereCondition);
-
+      ...VISIBLE_POST_WHERE,
+    });
     if (!post) {
+      throw new NotFoundException(`Post with ID '${id}' not found.`);
+    }
+    return post;
+  }
+
+  /**
+   * 이 사람이 읽을 수 있는 글 (PostReadPolicy). 게시판 READ 가 없으면 403,
+   * 글이 없거나 남의 비밀글이면 404.
+   */
+  async findReadablePost(
+    id: string,
+    viewer: CommonAuthUserDto | undefined,
+    incrementView = false,
+  ): Promise<PostDto> {
+    const post = await FindPostByIdQuery(this.prisma, { id });
+    const verdict = post
+      ? await this.readPolicy.check(viewer, post)
+      : 'not_found';
+    if (verdict === 'forbidden') {
+      throw new ForbiddenException('게시글 읽기 권한이 없습니다.');
+    }
+    if (!post || verdict !== 'ok') {
       throw new NotFoundException(`Post with ID '${id}' not found.`);
     }
 
@@ -190,7 +196,6 @@ export class PostService {
       await this.incrementViewCount(id);
       post.viewCount = post.viewCount + 1;
     }
-
     return post;
   }
 

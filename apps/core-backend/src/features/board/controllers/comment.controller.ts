@@ -44,9 +44,8 @@ export class CommentController {
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<CommentDto> {
     // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findPostById(
+    const post = await this.postService.findReadablePost(
       createCommentDto.postId,
-      false,
       authUser,
     );
 
@@ -74,16 +73,8 @@ export class CommentController {
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<CommentDto[]> {
     if (postId) {
-      // 게시글 조회해서 boardId 확인
-      const post = await this.postService.findPostById(postId, false, authUser);
-
-      // 읽기 권한 체크 (댓글 조회는 게시글 읽기 권한과 동일)
-      await this.permissionService.requirePermission(
-        post.boardId,
-        BoardActionType.READ,
-        authUser,
-        '댓글 조회 권한이 없습니다.',
-      );
+      // 댓글 조회는 게시글 읽기와 같다
+      await this.postService.findReadablePost(postId, authUser);
 
       return this.commentService.findAllCommentsByPostId(postId);
     }
@@ -100,20 +91,8 @@ export class CommentController {
   ): Promise<CommentDto> {
     const comment = await this.commentService.findCommentById(commentId);
 
-    // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findPostById(
-      comment.postId,
-      false,
-      authUser,
-    );
-
-    // 읽기 권한 체크
-    await this.permissionService.requirePermission(
-      post.boardId,
-      BoardActionType.READ,
-      authUser,
-      '댓글 조회 권한이 없습니다.',
-    );
+    // 그 댓글이 달린 글을 읽을 수 있어야 한다
+    await this.postService.findReadablePost(comment.postId, authUser);
 
     return comment;
   }
@@ -129,9 +108,8 @@ export class CommentController {
     const comment = await this.commentService.findCommentById(commentId);
 
     // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findPostById(
+    const post = await this.postService.findReadablePost(
       comment.postId,
-      false,
       authUser,
     );
 
@@ -158,9 +136,8 @@ export class CommentController {
     const comment = await this.commentService.findCommentById(commentId);
 
     // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findPostById(
+    const post = await this.postService.findReadablePost(
       comment.postId,
-      false,
       authUser,
     );
 

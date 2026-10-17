@@ -8,6 +8,7 @@ import {
   KeysetResponseDto,
 } from '@weaver2/pagination';
 import { Public } from '@weaver2/common/decorator/public.decorator';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 
 @ApiTags('User Comments')
 @Controller({ path: 'users', version: '1' })
@@ -26,7 +27,12 @@ export class UserCommentsController {
   async findCommentsByUserId(
     @Param('userId') userId: string,
     @Query() keysetDto: KeysetRequestDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<CommentDto>> {
-    return this.commentService.findCommentsByUserId(userId, keysetDto);
+    return this.commentService.findCommentsByUserId(
+      userId,
+      keysetDto,
+      authUser,
+    );
   }
 }

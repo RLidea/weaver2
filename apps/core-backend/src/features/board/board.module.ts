@@ -18,6 +18,7 @@ import { BoardService } from './services/board.service';
 import { PostService } from './services/post.service';
 import { CommentService } from './services/comment.service';
 import { BoardPermissionService } from './services/board-permission.service';
+import { PostReadPolicy } from './services/post-read-policy.service';
 import { CategoryService } from './services/category.service';
 import { ContentPurgeService } from './services/content-purge.service';
 import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
@@ -42,6 +43,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
     PostService,
     CommentService,
     BoardPermissionService,
+    PostReadPolicy,
     CategoryService,
     ContentPurgeService,
     ContentPurgeScheduler,
@@ -53,6 +55,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
     PostService,
     CommentService,
     BoardPermissionService,
+    PostReadPolicy,
     CategoryService,
     ContentPurgeService,
   ],

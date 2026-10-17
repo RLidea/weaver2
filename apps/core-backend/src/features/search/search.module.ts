@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { SearchController } from './controllers/search.controller';
 import { SearchService } from './services/search.service';
 import { PrismaModule } from '@weaver2/prisma';
+import { BoardModule } from '../board/board.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, BoardModule],
   controllers: [SearchController],
   providers: [SearchService],
   exports: [SearchService],
