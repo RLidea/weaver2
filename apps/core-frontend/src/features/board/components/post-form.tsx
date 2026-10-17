@@ -56,24 +56,30 @@ export function PostForm({ boardId }: PostFormProps) {
     e.preventDefault();
     if (!isValid) return;
 
+    // 파일을 먼저 올리고, 그 id 로 글을 저장할 때 붙인다 — 붙이기는 글 작성자만 할 수 있다
+    let attachmentFileIds: string[] = [];
+    if (files.length > 0) {
+      setIsUploading(true);
+      try {
+        attachmentFileIds = (await uploadApi.uploadFiles(files)).map((f) => f.id);
+      } catch {
+        toast.error('파일 업로드 중 오류가 발생했습니다.');
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     createPost(
-      { boardId, title: title.trim(), content: content.trim() },
       {
-        onSuccess: async (res) => {
-          const postId = res.data.id;
-
-          if (files.length > 0) {
-            setIsUploading(true);
-            try {
-              await uploadApi.uploadFiles(files, postId);
-            } catch {
-              toast.error('파일 업로드 중 오류가 발생했습니다. 게시글은 저장되었습니다.');
-            } finally {
-              setIsUploading(false);
-            }
-          }
-
-          router.push(`/boards/${boardId}/posts/${postId}`);
+        boardId,
+        title: title.trim(),
+        content: content.trim(),
+        attachmentFileIds,
+      },
+      {
+        onSuccess: (res) => {
+          router.push(`/boards/${boardId}/posts/${res.data.id}`);
         },
       },
     );

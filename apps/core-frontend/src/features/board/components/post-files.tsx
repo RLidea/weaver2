@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { usePostFiles } from '../hooks/use-post-files';
-import type { PostFileItem } from '../api/upload.api';
+import type { FileItem } from '../api/upload.api';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -14,7 +13,7 @@ function isImage(mimeType: string): boolean {
   return mimeType.startsWith('image/');
 }
 
-function FileChip({ file }: { file: PostFileItem }) {
+function FileChip({ file }: { file: FileItem }) {
   return (
     <a
       href={file.url}
@@ -44,13 +43,11 @@ function FileChip({ file }: { file: PostFileItem }) {
 }
 
 interface PostFilesProps {
-  postId: string;
+  files: FileItem[];
 }
 
-export function PostFiles({ postId }: PostFilesProps) {
-  const { data: files = [], isLoading } = usePostFiles(postId);
-
-  if (isLoading || files.length === 0) return null;
+export function PostFiles({ files }: PostFilesProps) {
+  if (files.length === 0) return null;
 
   const images = files.filter((f) => isImage(f.mimeType));
   const others = files.filter((f) => !isImage(f.mimeType));
@@ -72,6 +69,9 @@ export function PostFiles({ postId }: PostFilesProps) {
                 src={file.thumbnailUrl ?? file.url}
                 alt={file.originalName}
                 fill
+                // 첨부는 받을 때마다 권한을 본다(회원 전용 글이면 쿠키가 필요하다). 이미지 최적화는
+                // 서버가 쿠키 없이 대신 받아 와 404 가 되므로, 브라우저가 직접 받게 둔다
+                unoptimized
                 className="object-cover transition-opacity group-hover:opacity-80"
               />
             </a>

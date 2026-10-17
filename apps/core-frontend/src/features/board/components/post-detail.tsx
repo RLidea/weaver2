@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 import { usePost } from '../hooks/use-post';
 import { useUpdatePost, useDeletePost } from '../hooks/use-post-mutations';
-import { usePostFiles } from '../hooks/use-post-files';
 import { useMe } from '@weaver2/auth';
 import { uploadApi } from '../api/upload.api';
 import { Button, Card, CardContent, ChevronLeftIcon, ConfirmDialog, Spinner, useToast } from '@weaver2/ui';
@@ -53,7 +52,6 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
   const router = useRouter();
   const toast = useToast();
   const { data: post, isLoading } = usePost(postId);
-  const { data: existingFiles = [] } = usePostFiles(postId);
   const { user } = useMe();
   const { mutate: updatePost, isPending: isUpdating } = useUpdatePost();
   const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
@@ -83,6 +81,7 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
     );
   }
 
+  const existingFiles = post.attachments ?? [];
   const perms = user?.permissions ?? [];
   const isAuthor = user?.id === post.authorId;
 
@@ -128,21 +127,28 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
     const content = editContent.trim();
     if (!title || !content) return;
 
-    setIsUploadingFiles(true);
-    try {
-      await Promise.all(pendingDeleteIds.map((id) => uploadApi.deleteFile(id)));
-      if (newFiles.length > 0) {
-        await uploadApi.uploadFiles(newFiles, postId);
+    // 새 파일을 먼저 올리고, 남길 첨부 + 새 파일 id 를 글 수정으로 보낸다 — 뺀 파일은 떼어진다
+    let uploadedIds: string[] = [];
+    if (newFiles.length > 0) {
+      setIsUploadingFiles(true);
+      try {
+        uploadedIds = (await uploadApi.uploadFiles(newFiles)).map((f) => f.id);
+      } catch {
+        toast.error('파일 처리 중 오류가 발생했습니다.');
+        return;
+      } finally {
+        setIsUploadingFiles(false);
       }
-    } catch {
-      toast.error('파일 처리 중 오류가 발생했습니다.');
-      setIsUploadingFiles(false);
-      return;
     }
-    setIsUploadingFiles(false);
+    const attachmentFileIds = [
+      ...existingFiles
+        .filter((f) => !pendingDeleteIds.includes(f.id))
+        .map((f) => f.id),
+      ...uploadedIds,
+    ];
 
     updatePost(
-      { postId, body: { title, content } },
+      { postId, body: { title, content, attachmentFileIds } },
       {
         onSuccess: () => {
           setIsEditing(false);
@@ -328,7 +334,7 @@ export function PostDetail({ boardId, postId }: PostDetailProps) {
               <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-text">
                 {post.content}
               </div>
-              <PostFiles postId={postId} />
+              <PostFiles files={existingFiles} />
             </>
           )}
 

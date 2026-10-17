@@ -1,3 +1,4 @@
+import type { FileItem } from './api/upload.api';
 
 
 export type PostStatus = 'PUBLISHED' | 'DRAFT' | 'HIDDEN';
@@ -40,6 +41,8 @@ export interface Post {
   authorId: string;
   board: Board;
   author?: PostAuthor;
+  /** 첨부(순서대로) — 글 상세·생성·수정 응답에만 있다 */
+  attachments?: FileItem[];
 }
 
 /** GET /v1/boards/:boardId/posts 응답 — keyset + 고정글 포함 */
@@ -101,6 +104,8 @@ export interface CreatePostRequest {
   isSecret?: boolean;
   priority?: number;
   categoryId?: string;
+  /** 첨부 파일 id (순서대로) — 먼저 POST /v1/files 로 올린다 */
+  attachmentFileIds?: string[];
 }
 
 export interface UpdatePostRequest {
@@ -111,6 +116,8 @@ export interface UpdatePostRequest {
   isSecret?: boolean;
   priority?: number;
   categoryId?: string;
+  /** 보내면 첨부 목록 전체를 이것으로 바꾼다(빠진 파일은 떼어진다), 안 보내면 그대로 */
+  attachmentFileIds?: string[];
 }
 
 export interface CreateCommentRequest {
