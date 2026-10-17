@@ -15,6 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TwoFactorService } from './two-factor.service';
 import { PrismaService } from '@weaver2/prisma';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
+import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { jwtModuleOptions } from '../strategy/jwt-module-options';
 import { encryptSecret } from '../utils/auth-crypto.util';
 import * as otplib from 'otplib';
@@ -35,6 +36,7 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
       {} as PrismaService,
       jwt,
       {} as EmailBusinessService,
+      {} as OneTimeCodeService,
     );
   });
 
@@ -97,6 +99,7 @@ describe('TwoFactorService TOTP 등록 — 켜진 TOTP 는 등록 경로가 덮�
       prisma as unknown as PrismaService,
       realJwt(),
       {} as EmailBusinessService,
+      {} as OneTimeCodeService,
     );
     (otplib.generateSecret as jest.Mock).mockReturnValue('secret');
     (otplib.generateURI as jest.Mock).mockReturnValue('otpauth://test');

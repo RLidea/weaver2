@@ -69,3 +69,12 @@ export function useDisableEmailOtp() {
     },
   });
 }
+
+/** 해제 전에 확인 코드를 메일로 받는다 — 인증 앱 코드 대신 쓸 수 있다 */
+export function useSendStepUpCode() {
+  return useMutation({
+    mutationFn: authApi.sendStepUpCode,
+    // 안내는 화면이 한다 — 전역 토스트와 겹치지 않게
+    meta: { skipGlobalErrorToast: true },
+  });
+}

@@ -78,6 +78,10 @@ export const authApi = {
   disableEmailOtp: (code: string) =>
     apiClient.deleteWithBody<void>('/v1/auth/2fa/email', { code }),
 
+  // 2FA 해제 같은 민감한 동작 전에 확인 코드를 메일로 받는다
+  sendStepUpCode: () =>
+    apiClient.post<void>('/v1/auth/2fa/step-up/send', {}),
+
   // OAuth 연동
   getOAuthConnections: () =>
     apiClient.get<OAuthConnection[]>('/v1/auth/oauth/connections'),

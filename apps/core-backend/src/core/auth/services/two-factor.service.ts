@@ -1,13 +1,14 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
-import * as bcrypt from 'bcrypt';
 // otplib와 qrcode는 CJS 형태라 ESM 친화 import는 default로만 가능.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const otplibLib = require('otplib') as typeof import('otplib');
@@ -18,28 +19,23 @@ const {
 } = otplibLib;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const qrcode = require('qrcode') as typeof import('qrcode');
-import { randomInt } from 'crypto';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
 import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
 import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
-import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-challenge.query';
-import { CreateTwoFactorChallengeCommand } from '../repositories/create-two-factor-challenge.command';
-import { DeleteTwoFactorChallengesCommand } from '../repositories/delete-two-factor-challenges.command';
 import { UpdateTotpSettingsCommand } from '../repositories/update-totp-settings.command';
 import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
 import { UpdateEmailOtpSettingsCommand } from '../repositories/update-email-otp-settings.command';
 import { TOKEN_AUDIENCE } from '../strategy/token-audience';
+import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
+import { CodePurpose } from '../one-time-code/one-time-code.constants';
 import {
   encryptSecret,
   decryptSecret,
   isEncryptedSecret,
 } from '../utils/auth-crypto.util';
 
-const TWO_FACTOR_CHALLENGE_METHOD_EMAIL = 'email';
-const TWO_FACTOR_CHALLENGE_METHOD_EMAIL_SETUP = 'email-setup';
-const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10분
 const APP_NAME = 'Weaver2';
 
 interface PreAuthPayload {
@@ -55,6 +51,7 @@ export class TwoFactorService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailBusinessService: EmailBusinessService,
+    private readonly oneTimeCodeService: OneTimeCodeService,
   ) {}
 
   // ─────────────────────────────────────────
@@ -163,46 +160,24 @@ export class TwoFactorService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
-    const code = this.generateOtpCode();
-    const codeHash = await bcrypt.hash(code, 10);
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-
-    await CreateTwoFactorChallengeCommand(
-      this.prisma,
-      userId,
-      codeHash,
-      TWO_FACTOR_CHALLENGE_METHOD_EMAIL_SETUP,
-      expiresAt,
-    );
-
-    await this.emailBusinessService.sendTwoFactorCodeEmail(
-      user.email,
-      code,
-      userId,
-    );
+    await this.sendCode(user, 'TWO_FACTOR_SETUP');
     this.logger.log(`Email OTP setup code sent to userId=${userId}`);
   }
 
   async confirmEmailOtpSetup(userId: string, code: string): Promise<void> {
-    const challenge = await FindTwoFactorChallengeQuery(
-      this.prisma,
+    // 틀림·만료·없음·시도 소진을 가르지 않는다 — 어느 쪽이든 새 코드를 받으면 된다
+    const verified = await this.oneTimeCodeService.verifyCode(
       userId,
-      TWO_FACTOR_CHALLENGE_METHOD_EMAIL_SETUP,
+      'TWO_FACTOR_SETUP',
+      code,
     );
-    if (!challenge)
+    if (!verified) {
       throw new BadRequestException(
-        'No valid Email OTP setup found. Please request a new code.',
+        'Invalid or expired Email OTP code. Please request a new code.',
       );
-
-    const isValid = await bcrypt.compare(code, challenge.codeHash);
-    if (!isValid) throw new BadRequestException('Invalid Email OTP code');
+    }
 
     await UpdateEmailOtpSettingsCommand(this.prisma, userId, true);
-    await DeleteTwoFactorChallengesCommand(
-      this.prisma,
-      userId,
-      TWO_FACTOR_CHALLENGE_METHOD_EMAIL_SETUP,
-    );
     this.logger.log(`Email OTP enabled for userId=${userId}`);
   }
 
@@ -224,23 +199,7 @@ export class TwoFactorService {
       );
     }
 
-    const code = this.generateOtpCode();
-    const codeHash = await bcrypt.hash(code, 10);
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-
-    await CreateTwoFactorChallengeCommand(
-      this.prisma,
-      userId,
-      codeHash,
-      TWO_FACTOR_CHALLENGE_METHOD_EMAIL,
-      expiresAt,
-    );
-
-    await this.emailBusinessService.sendTwoFactorCodeEmail(
-      user.email,
-      code,
-      userId,
-    );
+    await this.sendCode(user, 'TWO_FACTOR_LOGIN');
     this.logger.log(`Email OTP login code sent to userId=${userId}`);
   }
 
@@ -289,29 +248,38 @@ export class TwoFactorService {
           'Email OTP is not enabled for this account',
         );
       }
-      const challenge = await FindTwoFactorChallengeQuery(
-        this.prisma,
+      // 코드별 한도(5번)와 위의 계정 잠금이 겹으로 막는다
+      const verified = await this.oneTimeCodeService.verifyCode(
         userId,
-        TWO_FACTOR_CHALLENGE_METHOD_EMAIL,
+        'TWO_FACTOR_LOGIN',
+        code,
       );
-      if (!challenge)
+      if (!verified) {
         throw new UnauthorizedException(
-          'No valid Email OTP found. Please request a new code.',
+          'Invalid or expired Email OTP code. Please request a new code.',
         );
-
-      const isValid = await bcrypt.compare(code, challenge.codeHash);
-      if (!isValid) throw new UnauthorizedException('Invalid Email OTP code');
-
-      await DeleteTwoFactorChallengesCommand(
-        this.prisma,
-        userId,
-        TWO_FACTOR_CHALLENGE_METHOD_EMAIL,
-      );
+      }
     }
 
     await ResetFailedAttemptsCommand(this.prisma, userId);
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
     return { userId, rememberMe };
+  }
+
+  // ─────────────────────────────────────────
+  // Step-up — 로그인한 사용자가 민감한 동작 전에 다시 증명
+  // ─────────────────────────────────────────
+
+  /**
+   * 2FA 해제 같은 민감한 동작 전에 메일로 코드를 보낸다. 인증 앱 코드를 쓸 수 없는
+   * 사용자도 해제할 수 있게 한다(전에는 로그인 코드를 받을 길이 없어 사실상 TOTP 뿐이었다).
+   */
+  async sendStepUpCode(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    await this.sendCode(user, 'STEP_UP');
+    this.logger.log(`Step-up code sent to userId=${userId}`);
   }
 
   // ─────────────────────────────────────────
@@ -356,7 +324,13 @@ export class TwoFactorService {
 
     await this.verifyAnyMethodCode(userId, code, credential);
     await UpdateEmailOtpSettingsCommand(this.prisma, userId, false);
-    await DeleteTwoFactorChallengesCommand(this.prisma, userId);
+    // 살아 있던 로그인·등록 코드는 이제 쓸 데가 없다
+    await this.prisma.oneTimeCode.deleteMany({
+      where: {
+        userId,
+        purpose: { in: ['TWO_FACTOR_LOGIN', 'TWO_FACTOR_SETUP'] },
+      },
+    });
     this.logger.log(`Email OTP disabled for userId=${userId}`);
   }
 
@@ -379,8 +353,22 @@ export class TwoFactorService {
   // Private Helpers
   // ─────────────────────────────────────────
 
-  private generateOtpCode(): string {
-    return randomInt(100000, 1000000).toString();
+  private async sendCode(
+    user: { id: string; email: string },
+    purpose: CodePurpose,
+  ): Promise<void> {
+    const code = await this.oneTimeCodeService.issueCode(user.id, purpose);
+    if (!code) {
+      throw new HttpException(
+        'A code was sent recently. Use it or try again in a minute.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.emailBusinessService.sendTwoFactorCodeEmail(
+      user.email,
+      code,
+      user.id,
+    );
   }
 
   private async verifyAnyMethodCode(
@@ -389,7 +377,6 @@ export class TwoFactorService {
     credential: {
       totpEnabled: boolean;
       totpSecret: string | null;
-      emailOtpEnabled: boolean;
     },
   ): Promise<void> {
     if (credential.totpEnabled && credential.totpSecret) {
@@ -400,16 +387,9 @@ export class TwoFactorService {
       if (result.valid) return;
     }
 
-    if (credential.emailOtpEnabled) {
-      const challenge = await FindTwoFactorChallengeQuery(
-        this.prisma,
-        userId,
-        TWO_FACTOR_CHALLENGE_METHOD_EMAIL,
-      );
-      if (challenge) {
-        const isValid = await bcrypt.compare(code, challenge.codeHash);
-        if (isValid) return;
-      }
+    // 인증 앱이 없거나 그 코드가 아니면, 로그인한 사용자가 메일로 받은 STEP_UP 코드
+    if (await this.oneTimeCodeService.verifyCode(userId, 'STEP_UP', code)) {
+      return;
     }
 
     throw new UnauthorizedException('Invalid verification code');

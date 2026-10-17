@@ -124,6 +124,16 @@ export class TwoFactorController {
     return { message: 'Email OTP enabled successfully' };
   }
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('step-up/send')
+  @ApiOperation({
+    summary: '민감한 동작(2FA 해제 등) 전 확인 코드를 이메일로 발송',
+  })
+  async sendStepUpCode(@AuthUser() user: CommonAuthUserDto) {
+    await this.twoFactorService.sendStepUpCode(user.id);
+    return { message: 'Verification code sent to your email' };
+  }
+
   @Delete('totp')
   @ApiOperation({ summary: 'TOTP 비활성화 (다른 2FA 수단 존재 시에만 가능)' })
   async disableTotp(

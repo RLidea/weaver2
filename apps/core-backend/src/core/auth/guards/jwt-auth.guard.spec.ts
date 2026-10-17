@@ -32,6 +32,7 @@ import { JwtStrategy } from '../strategy/jwt.strategy';
 import { jwtModuleOptions } from '../strategy/jwt-module-options';
 import { TwoFactorService } from '../services/two-factor.service';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
+import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 
 const SECRET = 'guard-spec-secret';
 const USER_ID = 'user-1';
@@ -77,6 +78,7 @@ describe('JwtAuthGuard', () => {
       {} as PrismaService,
       jwt,
       {} as EmailBusinessService,
+      {} as OneTimeCodeService,
     );
   });
 
