@@ -64,11 +64,7 @@ export class UpdateUserProfileService {
       });
       await tx.user.update({
         where: { id: userId },
-        data: {
-          profileImageFileId: fileId,
-          profileImageUrl: null,
-          profileImagePath: null,
-        },
+        data: { profileImageFileId: fileId },
       });
       if (previous?.profileImageFileId) {
         await tx.file.update({

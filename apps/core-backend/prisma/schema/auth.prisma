@@ -7,9 +7,7 @@ model User {
   email              String                @unique
   username           String                @unique
   displayName        String                @unique
-  profileImageUrl    String?
-  profileImagePath   String?
-  // 프로필 이미지는 files 의 한 행. 위 두 컬럼은 축소 단계에서 지운다
+  // 프로필 이미지는 files 의 한 행 — 주소는 저장하지 않고 /v1/files/:id 로 만든다
   profileImageFileId String?               @unique
   profileImage       File?                 @relation("ProfileImage", fields: [profileImageFileId], references: [id], onDelete: Restrict)
   warningCount       Int                   @default(0)
@@ -38,7 +36,6 @@ model User {
   posts         Post[]
   comments      Comment[]
   reactions     PostReaction[]
-  files         PostFile[]
   uploadedFiles File[]         @relation("FileUploader")
 
   // Project-specific relations (report)

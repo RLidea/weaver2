@@ -20,8 +20,14 @@ export class FindUserService {
     private readonly permissionService: PermissionService,
   ) {}
 
-  findUsers(query: PaginationRequestDto): Promise<OffsetResponseDto<User>> {
-    return findUserQuery(this.prisma, query);
+  async findUsers(
+    query: PaginationRequestDto,
+  ): Promise<OffsetResponseDto<User & { profileImageUrl: string | null }>> {
+    const page = await findUserQuery(this.prisma, query);
+    return {
+      ...page,
+      data: page.data.map((u) => this.withFreshProfileImageUrl(u)),
+    };
   }
 
   async findUserById(id: string): Promise<UserDto> {
@@ -56,7 +62,9 @@ export class FindUserService {
   }
 
   /** 프로필 이미지 주소는 저장하지 않고 파일 id 로 만든다 — 받을 때마다 /v1/files 가 권한을 본다 */
-  private withFreshProfileImageUrl<T extends User>(user: T): T {
+  private withFreshProfileImageUrl<T extends User>(
+    user: T,
+  ): T & { profileImageUrl: string | null } {
     return {
       ...user,
       profileImageUrl: user.profileImageFileId
@@ -65,12 +73,14 @@ export class FindUserService {
     };
   }
 
-  async findUserByUsername(username: string): Promise<User> {
+  async findUserByUsername(
+    username: string,
+  ): Promise<User & { profileImageUrl: string | null }> {
     const user = await FindUserByUsernameQuery(this.prisma, username);
     if (!user) {
       throw new NotFoundException(`User with username ${username} not found.`);
     }
-    return user;
+    return this.withFreshProfileImageUrl(user);
   }
 
   checkExistingUser(query: {
