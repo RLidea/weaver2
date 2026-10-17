@@ -68,6 +68,6 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
       useClass: PermissionGuard,
     },
   ],
-  exports: [SignInService, SignInCompletionService],
+  exports: [SignInService, SignInCompletionService, TwoFactorService],
 })
 export class AuthModule {}

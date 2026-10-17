@@ -116,6 +116,8 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
         ),
       ).rejects.toThrow(message);
       expect(signIn.login).not.toHaveBeenCalled();
+      expect(res.cookie).not.toHaveBeenCalled();
+      expect(res.clearCookie).not.toHaveBeenCalled();
     },
   );
 

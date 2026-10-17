@@ -32,12 +32,13 @@ export class AccountSuspendedException extends UnauthorizedException {
   }
 }
 
-export type SignInCompletion =
+/** 로그인 끝에서 내리는 결정 — `decide` 의 결과이자 `complete` 의 결과 (정본 이름) */
+export type SignInDecision =
   | { twoFactorRequired: false }
   | { twoFactorRequired: true; availableMethods: AvailableTwoFactorMethods };
 
-/** `decide` 의 결과 — 쿠키 경로의 `SignInCompletion` 과 같은 모양이다 */
-export type SignInDecision = SignInCompletion;
+/** 기존 이름 — `SignInDecision` 의 별칭 */
+export type SignInCompletion = SignInDecision;
 
 /**
  * 모든 로그인 경로(비밀번호·OAuth·2FA 통과)의 끝. 요소(비밀번호·OAuth 콜백·2FA 코드)가
@@ -75,7 +76,7 @@ export class SignInCompletionService {
     userId: string,
     context: SignInContext,
     res: Response,
-  ): Promise<SignInCompletion> {
+  ): Promise<SignInDecision> {
     return this.run(userId, context, res, { twoFactorPassed: false });
   }
 
@@ -105,6 +106,16 @@ export class SignInCompletionService {
   /**
    * 1~3 만 — 계정 상태를 가려 결정만 돌려준다. 쿠키·Response·토큰은 만지지 않는다.
    * 토큰을 응답 본문으로 주는 파생 프로젝트(모바일 등)가 같은 검사를 그대로 쓰는 자리다.
+   *
+   * 부르는 쪽이 지킬 것
+   * - `twoFactorPassed: true` 는 그 사용자에 대해 `twoFactorService.authenticate(...)` 가
+   *   성공한 **뒤에만** 넘긴다.
+   * - 2FA 를 통과한 뒤에도 `signInService.login` 앞에서 `decide(userId, { twoFactorPassed: true })`
+   *   를 **다시** 부른다 — pre-auth 5분 사이에 탈퇴·정지가 끼어들 수 있다.
+   * - `twoFactorRequired` 면 `login` 을 부르지 않는다. `twoFactorService.createPreAuthToken` 으로
+   *   pre-auth 토큰을 내준다.
+   * - 이 서비스를 쓰는 파생 모듈은 AuthModule 을 import 하되, AuthModule 이 그 모듈을
+   *   import 해서는 안 된다(순환).
    */
   async decide(
     userId: string,
@@ -137,7 +148,7 @@ export class SignInCompletionService {
     context: SignInContext,
     res: Response,
     { twoFactorPassed }: { twoFactorPassed: boolean },
-  ): Promise<SignInCompletion> {
+  ): Promise<SignInDecision> {
     const decision = await this.decide(userId, { twoFactorPassed });
     if (decision.twoFactorRequired) {
       setPreAuthCookie(
