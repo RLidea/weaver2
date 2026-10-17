@@ -244,6 +244,46 @@ describe('Post Read Policy (Integration)', () => {
     });
   });
 
+  describe('댓글 하나', () => {
+    it('가린 댓글은 id 로 직접 받아도 404', async () => {
+      const hidden = await prisma.comment.create({
+        data: {
+          postId: publicPost,
+          authorId: author.id,
+          content: `${tag} 가린 댓글`,
+          hiddenAt: new Date(),
+        },
+      });
+      expect(
+        (await get(`/v1/comments/${hidden.id}`, memberCookies)).status,
+      ).toBe(404);
+    });
+
+    it('남의 비밀글에 예전에 단 자기 댓글은 글을 못 읽어도 지울 수 있다', async () => {
+      const mine = await prisma.comment.create({
+        data: {
+          postId: secretPost,
+          authorId: member.id,
+          content: `${tag} 비밀글에 단 댓글`,
+        },
+      });
+      // CSRF 토큰은 세션에 묶인다 — 로그인 쿠키를 들고 받는다
+      const csrf = await request(app.getHttpServer())
+        .get('/v1/auth/csrf-token')
+        .set('Cookie', memberCookies);
+      const csrfCookie = (
+        csrf.headers['set-cookie'] as unknown as string[] | undefined
+      )?.join('; ');
+      const token = (csrf.body as { data: { csrfToken: string } }).data
+        .csrfToken;
+      const res = await request(app.getHttpServer())
+        .delete(`/v1/comments/${mine.id}`)
+        .set('Cookie', `${csrfCookie ?? ''}; ${memberCookies}`)
+        .set('x-csrf-token', token);
+      expect(res.status).toBe(204);
+    });
+  });
+
   describe('작성자별 목록', () => {
     it('비회원이 보는 작성자 글 목록에 회원 전용·비밀글이 없다', async () => {
       const got = ids(

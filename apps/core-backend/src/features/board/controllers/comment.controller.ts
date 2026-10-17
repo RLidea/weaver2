@@ -89,7 +89,7 @@ export class CommentController {
     @Param('commentId') commentId: string,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<CommentDto> {
-    const comment = await this.commentService.findCommentById(commentId);
+    const comment = await this.commentService.findVisibleCommentById(commentId);
 
     // 그 댓글이 달린 글을 읽을 수 있어야 한다
     await this.postService.findReadablePost(comment.postId, authUser);
@@ -107,11 +107,7 @@ export class CommentController {
   ): Promise<CommentDto> {
     const comment = await this.commentService.findCommentById(commentId);
 
-    // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findReadablePost(
-      comment.postId,
-      authUser,
-    );
+    const post = await this.postForCommentChange(comment, authUser);
 
     // 수정 권한 체크 (댓글도 게시글과 동일한 수정 권한 체계 적용)
     await this.permissionService.requireEditPermission(
@@ -135,11 +131,7 @@ export class CommentController {
   ): Promise<void> {
     const comment = await this.commentService.findCommentById(commentId);
 
-    // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findReadablePost(
-      comment.postId,
-      authUser,
-    );
+    const post = await this.postForCommentChange(comment, authUser);
 
     // 삭제 권한 체크
     await this.permissionService.requireDeletePermission(
@@ -148,5 +140,19 @@ export class CommentController {
     );
 
     await this.commentService.deleteComment(commentId);
+  }
+
+  /**
+   * 댓글을 고치거나 지울 때 그 글. 자기 댓글이면 글이 보이는 상태이기만 하면 된다 — 비밀글이
+   * 작성자·관리자 전용이 되기 전에 남의 비밀글에 단 댓글을 본인이 지울 수 있어야 한다.
+   * 남의 댓글은 글을 읽을 수 있어야 한다(관리자는 비밀글도 읽는다). 권한 자체는 그다음 edit/delete 검사.
+   */
+  private async postForCommentChange(
+    comment: { postId: string; authorId: string },
+    authUser?: CommonAuthUserDto,
+  ): Promise<{ boardId: string }> {
+    return authUser?.isLogin && authUser.id === comment.authorId
+      ? this.postService.findPostById(comment.postId)
+      : this.postService.findReadablePost(comment.postId, authUser);
   }
 }

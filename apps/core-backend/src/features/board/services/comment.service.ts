@@ -219,6 +219,15 @@ export class CommentService {
     return comment;
   }
 
+  /** 사용자가 읽는 댓글 하나 — 가린·지운 댓글은 목록처럼 404(가린 댓글은 내용이 그대로 남아 있다) */
+  async findVisibleCommentById(id: string): Promise<CommentDto> {
+    const comment = await FindCommentByIdQuery(this.prisma, id);
+    if (!comment || comment.hiddenAt || comment.deletedAt) {
+      throw new NotFoundException(`Comment with ID '${id}' not found.`);
+    }
+    return comment;
+  }
+
   async updateComment(id: string, dto: UpdateCommentDto): Promise<CommentDto> {
     const updatedComment = await UpdateCommentCommand(this.prisma, id, dto);
     return updatedComment;
