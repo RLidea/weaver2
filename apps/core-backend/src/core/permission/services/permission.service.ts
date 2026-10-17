@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 
@@ -136,6 +136,51 @@ export class PermissionService {
 
     // 3. 정확한 권한 매칭
     return userPermissions.has(permission);
+  }
+
+  /**
+   * 요청자가 주어진 권한을 **모두** 가졌는지 — 「자기가 가진 것보다 넓은 권한은 남에게 주지도,
+   * 넓은 사람에게 손대지도 못한다」의 바탕. 권한 문자열(와일드카드 포함)을 그대로
+   * hasPermission 에 넣으므로, `*:*` 를 다루려면 요청자도 `*:*` 여야 하고, `user:*` 면
+   * `user:*` 이상이어야 한다.
+   */
+  async coversPermissions(
+    requesterId: string,
+    permissions: Iterable<string>,
+  ): Promise<boolean> {
+    for (const permission of permissions) {
+      if (!(await this.hasPermission(requesterId, permission))) return false;
+    }
+    return true;
+  }
+
+  /** 요청자가 대상 사용자의 권한을 모두 가졌는지 — 관리자가 남의 계정을 건드릴 때의 상하 검사 */
+  async covers(requesterId: string, targetId: string): Promise<boolean> {
+    return this.coversPermissions(
+      requesterId,
+      await this.getUserPermissions(targetId),
+    );
+  }
+
+  /** covers 가 아니면 403 */
+  async assertCovers(requesterId: string, targetId: string): Promise<void> {
+    if (!(await this.covers(requesterId, targetId))) {
+      throw new ForbiddenException(
+        '자신보다 권한이 넓은 사용자에게는 할 수 없는 작업입니다.',
+      );
+    }
+  }
+
+  /** coversPermissions 가 아니면 403 */
+  async assertCoversPermissions(
+    requesterId: string,
+    permissions: Iterable<string>,
+  ): Promise<void> {
+    if (!(await this.coversPermissions(requesterId, permissions))) {
+      throw new ForbiddenException(
+        '자신이 갖지 않은 권한은 주거나 거둘 수 없습니다.',
+      );
+    }
   }
 
   /**

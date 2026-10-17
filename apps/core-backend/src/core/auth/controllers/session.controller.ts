@@ -6,19 +6,16 @@ import {
   HttpStatus,
   Param,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { SessionService } from '../services/session.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @ApiTags('Auth - Sessions')
 @ApiBearerAuth('ACCESS-TOKEN')
 @Controller({ path: 'auth/sessions', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 

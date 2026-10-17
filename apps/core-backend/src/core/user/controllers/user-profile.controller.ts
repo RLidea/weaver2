@@ -5,7 +5,6 @@ import {
   Patch,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Post,
   UseInterceptors,
   UploadedFile,
@@ -28,7 +27,6 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { UserDto } from '../dto/user.dto';
 import { FindUserService } from '../services/find-user.service';
 import { DeleteAccountService } from '../services/delete-account.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { UpdateUserProfileService } from '../services/update-user-profile.service';
@@ -44,7 +42,6 @@ import { clearAuthCookies } from '../../auth/utils/auth-cookie.util';
 
 @ApiTags('User Profile')
 @Controller({ path: 'users/me', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class UserProfileController {
   constructor(
     private readonly findUserService: FindUserService,

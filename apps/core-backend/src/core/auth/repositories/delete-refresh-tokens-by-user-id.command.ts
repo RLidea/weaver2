@@ -1,7 +1,7 @@
-import { PrismaClient } from '@weaver2/prisma';
+import { Prisma, PrismaClient } from '@weaver2/prisma';
 
 export async function DeleteRefreshTokensByUserIdCommand(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   userId: string,
 ) {
   return prisma.refreshToken.deleteMany({

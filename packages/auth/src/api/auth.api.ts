@@ -12,6 +12,7 @@ import type {
   TotpSetup,
   TwoFactorAuthenticateRequest,
   OAuthConnection,
+  TwoFactorPending,
 } from '../types';
 
 export const authApi = {
@@ -21,8 +22,16 @@ export const authApi = {
   signIn: (body: SignInRequest) =>
     apiClient.post<SignInResponse | null>('/v1/auth/sign-in', body, { skipOnAuthError: true }),
 
-  sendLoginEmailOtp: (preAuthToken: string) =>
-    apiClient.post<void>('/v1/auth/2fa/email/send', { preAuthToken }, { skipOnAuthError: true }),
+  // pre-auth 토큰은 pre_auth 쿠키로 간다
+  sendLoginEmailOtp: () =>
+    apiClient.post<void>('/v1/auth/2fa/email/send', {}, { skipOnAuthError: true }),
+
+  getTwoFactorPending: () =>
+    apiClient.get<TwoFactorPending>('/v1/auth/2fa/pending', { skipOnAuthError: true }),
+
+  // 2FA 단계를 그만둔다 — pre_auth 쿠키는 HttpOnly 라 화면이 직접 못 지운다
+  abandonTwoFactor: () =>
+    apiClient.delete<void>('/v1/auth/2fa/pending', { skipOnAuthError: true }),
 
   twoFactorAuthenticate: (body: TwoFactorAuthenticateRequest) =>
     apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),
@@ -59,8 +68,9 @@ export const authApi = {
   get2faStatus: () =>
     apiClient.get<TwoFactorStatus>('/v1/auth/2fa/status'),
 
-  getTotpSetup: () =>
-    apiClient.get<TotpSetup>('/v1/auth/2fa/totp/setup'),
+  // 새 비밀을 쓰므로 POST 다 (GET 이면 다른 사이트의 링크로도 실행된다)
+  startTotpSetup: () =>
+    apiClient.post<TotpSetup>('/v1/auth/2fa/totp/setup', {}),
 
   confirmTotpSetup: (code: string) =>
     apiClient.post<void>('/v1/auth/2fa/totp/confirm', { code }),
@@ -76,6 +86,10 @@ export const authApi = {
 
   disableEmailOtp: (code: string) =>
     apiClient.deleteWithBody<void>('/v1/auth/2fa/email', { code }),
+
+  // 2FA 해제 같은 민감한 동작 전에 확인 코드를 메일로 받는다
+  sendStepUpCode: () =>
+    apiClient.post<void>('/v1/auth/2fa/step-up/send', {}),
 
   // OAuth 연동
   getOAuthConnections: () =>

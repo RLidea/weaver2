@@ -7,9 +7,9 @@
 
 | 이름 | 정체 | 만료 | 저장/전달 |
 |---|---|---|---|
-| `access_token` | JWT (payload `{ sub: userId }`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
+| `access_token` | JWT (payload `{ sub: userId }`, `aud: "access"`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
 | `refresh_token` | JWT 아님 — `randomUUID()` 문자열, DB `RefreshToken` 테이블에 **SHA-256 해시로 저장** | rememberMe 30일 / 기본 7일 | HttpOnly 쿠키(원문) + DB(해시) |
-| preAuthToken | JWT (`type: 'pre-auth'`) — 2FA 진행용 | 5분 | 응답 body (쿠키 아님) |
+| `pre_auth` | JWT (`aud: "pre-auth"`) — 2FA 진행용 | 5분 | HttpOnly 쿠키(`Path=/`). 응답 body 에는 없음 |
 | `oauth_state` | OAuth CSRF 방지 state | 10분 | HttpOnly 쿠키, sameSite lax (form_post provider 인 Apple 만 none + secure) |
 | `csrf-token` (prod: `__Host-csrf-token`) | CSRF double-submit 쿠키 | — | HttpOnly 쿠키 |
 
@@ -17,35 +17,26 @@
 
 ## 1. 로그인 — `POST /v1/auth/sign-in`
 
+비밀번호·OAuth·2FA 통과, 세 경로가 모두 **`SignInCompletionService` 한 곳에서 끝납니다** (`core/auth/services/sign-in-completion.service.ts`).
+
 ```mermaid
 sequenceDiagram
     participant C as 클라이언트
-    participant G as LocalAuthGuard→LocalStrategy
-    participant S as SignInService
-    participant DB as PostgreSQL
+    participant S as SignInService (요소 확인)
+    participant F as SignInCompletionService (끝)
 
-    C->>G: email + password (+ x-csrf-token)
-    G->>S: validateUserByEmail
-    S->>DB: FindUserByEmailQuery
-    Note over S: ① 삭제 계정? → ACCOUNT_DELETED<br/>② LocalCredential 없음(OAuth 전용)? → Invalid credentials<br/>③ 정지 중? (suspendedUntil)<br/>④ 잠금 중? (lockedUntil)
-    S->>S: ⑤ bcrypt.compare
-    alt 불일치
-        S->>DB: failedAttempts+1 (5회째면 lockedUntil = now+15분)
-    end
-    Note over S: ⑥ 이메일 미인증? → EMAIL_NOT_VERIFIED
-    S->>DB: 성공 시 failedAttempts 리셋
-    alt 2FA 활성 사용자
-        S-->>C: { twoFactorRequired: true, preAuthToken(5분), availableMethods }
-    else 일반
-        S-->>C: Set-Cookie access_token(15m) + refresh_token(7d/30d)
-    end
+    C->>S: email + password (+ x-csrf-token)
+    Note over S: ① 계정·로컬 자격 없음(탈퇴 포함) → Invalid credentials<br/>② PASSWORD 시도 잡기 — 잠겼으면 거절<br/>③ bcrypt.compare<br/>④ 맞으면 PASSWORD 카운터 비움<br/>⑤ 이메일 미인증(emailVerifiedAt) → EMAIL_NOT_VERIFIED
+    S->>F: 요소 확인 끝
+    Note over F: ⑥ 탈퇴 → 거절<br/>⑦ 확인된 2FA 있음 → pre_auth 쿠키만 (세션 없음)<br/>⑧ 정지 → 거절 (2FA 가 있으면 2FA 통과 뒤에야 말한다)<br/>⑨ 세션 발급 (IP·UA·rememberMe)
+    F-->>C: { twoFactorRequired, availableMethods } 또는 Set-Cookie access/refresh
 ```
 
 짚어둘 동작:
 
-- **검증 순서가 곧 에러 메시지 순서**입니다 — 정지/잠금은 비밀번호 확인 *전에*, 이메일 미인증은 *후에* 검사합니다
-- **계정 잠금**: 5회 실패 → 15분 잠금 (`LocalCredential.failedAttempts/lockedUntil`, `repositories/increment-failed-attempts.command.ts`). 카운터는 **성공 로그인 시에만 리셋**되므로, 잠금이 풀린 뒤 첫 실패로 즉시 재잠금될 수 있습니다
-- **2FA 사용자**는 이 시점에 쿠키를 받지 않습니다 — 5분짜리 preAuthToken만 받고 §4로 이어집니다
+- **요소(비밀번호)가 맞은 뒤에야 계정 상태를 말합니다.** 탈퇴 계정은 「잘못된 자격 증명」과 같게 답하고, 정지는 2FA 가 있는 계정이면 2FA 를 통과한 뒤에 알립니다 — 이메일이나 비밀번호만으로 상태가 새지 않게
+- **잠금은 요소별** (`AuthLockout`): 비밀번호와 2FA 각 5회 → 15분. 확인 **전에** 조건부 UPDATE 로 시도를 잡아 동시 요청이 잠금을 앞지르지 못합니다. 재설정 성공은 `PASSWORD` 만 풉니다
+- 없는 계정에도 bcrypt 한 번을 들여 응답 시간으로 계정 유무가 새지 않습니다
 - Rate limit: 60초 10회 (`@Throttle`)
 
 ## 2. JWT 검증 — 요청마다 일어나는 일
@@ -53,8 +44,9 @@ sequenceDiagram
 `JwtAuthGuard`가 전역 등록되어 있으므로([00장 §2](00-overview.md#②-가드--전역-3종)) 모든 요청이 이 경로를 지납니다:
 
 - **토큰 추출 우선순위** (`strategy/jwt.strategy.ts`): ① 쿠키 `access_token` → ② `Authorization: Bearer`(Swagger용) → ③ 쿼리 `?token=`
-- `validate()`는 `type: 'pre-auth'` 토큰을 거부하고(2FA 미완료 토큰으로 API 접근 불가), 사용자를 DB에서 재조회해 `req.user = { id, username, isLogin: true, userSetting }`을 만듭니다
-- `@Public()` 라우트도 토큰이 있으면 소프트 검증해 `req.user`를 채웁니다 (실패해도 차단하지 않음)
+- **토큰의 종류는 `aud` 로 가릅니다** (`strategy/token-audience.ts`). 액세스 토큰과 pre-auth 토큰은 같은 `JWT_SECRET` 으로 서명되므로, 종류를 보지 않으면 2FA 전 토큰이 액세스 토큰으로 통합니다. JwtModule 의 기본 sign·verify 옵션과 `JwtStrategy` 가 `aud: "access"` 를 요구해 jsonwebtoken 이 검증 단계에서 거절합니다 — 읽는 쪽이 확인을 잊을 수 없습니다
+- `validate()`는 사용자를 DB에서 재조회해(탈퇴면 거절, 정지면 거절) `req.user = { id, username, isLogin: true, userSetting }`을 만듭니다
+- `@Public()` 라우트도 **같은 `JwtStrategy`** 로 검증해 `req.user`를 채웁니다. 실패(없음·만료·종류 다름·탈퇴·정지)하면 막지 않고 `{ isLogin: false }` 로 둡니다. 🔴 공개 라우트에서 토큰을 따로 검증하지 마세요 — 예전에 서명만 보는 별도 검증이 있어 pre-auth·탈퇴·정지 토큰이 공개 라우트에서 로그인으로 통했습니다 (`guards/jwt-auth.guard.spec.ts`). `aud` 를 넣기 전에 발급된 액세스 토큰은 배포 직후 거절되어, 로그인한 사람은 한 번 refresh 를 거치거나(자동) 공개 화면을 잠깐 비로그인으로 봅니다
 
 ## 3. Refresh 회전 — `POST /v1/auth/refresh`
 
@@ -76,26 +68,30 @@ sequenceDiagram
 
 ## 4. 2FA — TOTP + 이메일 OTP
 
-상태는 모두 `LocalCredential`에 있습니다: `totpEnabled`/`totpSecret`, `emailOtpEnabled`. 진행 중 코드는 `TwoFactorChallenge`(codeHash — bcrypt, 만료 10분). **`totpSecret`은 AES-256-GCM으로 암호화해 저장**됩니다(`TOTP_ENCRYPTION_KEY`, `v1:iv:tag:ct` 포맷). 배포 전 저장된 legacy 평문 secret은 다음 인증 성공 시점에 자동으로 암호문으로 재저장됩니다(lazy migration).
+2FA 수단은 **사람에 붙습니다** (`TwoFactorMethod`) — 로그인 수단(비밀번호·OAuth)과 무관해 OAuth 사용자도 켤 수 있고, OAuth 로그인도 2FA 를 요구합니다. TOTP 비밀은 **AES-256-GCM** 으로 암호화합니다(`TOTP_ENCRYPTION_KEY`, `v1:iv:tag:ct`). 평문은 받지 않습니다(던짐).
 
-> ⚠️ **`TOTP_ENCRYPTION_KEY`는 불변으로 취급하세요.** 키를 바꾸면 기존 암호문(GCM 태그)의 복호화가 실패해 해당 사용자의 TOTP가 잠깁니다. 키 로테이션이 필요해지면 `v2:` 포맷 + 이중 복호화 폴백을 도입하는 것이 안전합니다(현재 미구현).
+> ⚠️ **`TOTP_ENCRYPTION_KEY`는 불변으로 취급하세요.** 키를 바꾸면 기존 암호문의 복호화가 실패해 해당 사용자의 TOTP가 잠깁니다. 비어 있으면 TOTP 등록이 500 입니다(로컬 `.env` 포함).
 
 **설정** (로그인 상태에서):
 
-- TOTP: `GET /2fa/totp/setup` → secret 생성 + QR data URL(otplib+qrcode, issuer "Weaver2") → `POST /2fa/totp/confirm`으로 코드 검증 후 활성화
+- TOTP: `POST /2fa/totp/setup`(확인된 TOTP 가 있으면 409) → `POST /2fa/totp/confirm`. 확인에 쓴 코드의 시간 단위를 남겨, 그 코드로 곧바로 로그인하지 못합니다
 - 이메일 OTP: `POST /2fa/email/setup` → 6자리 코드 발송 → `POST /2fa/email/confirm`
 
-**로그인 시 인증** (`@Public`):
+**로그인 시 인증** (`@Public`, `pre_auth` 쿠키 기반):
 
 ```
-sign-in → preAuthToken 수령
-  → (이메일 방식이면) POST /2fa/email/send  — preAuthToken 검증 후 코드 발송
-  → POST /2fa/authenticate { preAuthToken, method, code }
-  → 검증 성공 시 SignInService.login으로 정식 쿠키 발급
+sign-in(또는 OAuth 콜백) → pre_auth 쿠키
+  → GET  /2fa/pending          — 고를 수 있는 수단 (OAuth 는 /login?step=2fa 로 와서 이걸 묻는다)
+  → (이메일 방식이면) POST /2fa/email/send
+  → POST /2fa/authenticate { method, code }   — SECOND_FACTOR 시도를 먼저 잡는다
+  → 탈퇴·정지를 다시 보고 세션 발급, pre_auth 삭제
+  → (그만두기) DELETE /2fa/pending
 ```
 
-- **백업 코드(recovery code)는 없습니다.** 복구 수단은 "다른 2FA 방법"뿐이므로, **마지막 남은 2FA 수단은 비활성화할 수 없게** 막혀 있습니다 (`DELETE /2fa/totp`, `/2fa/email`)
-- Rate limit이 촘촘합니다: authenticate 5회/60초, 이메일 발송·설정 3회/60초
+- **TOTP 재사용 차단**: 통과한 코드의 시간 단위를 남기고 그 이하는 거절합니다 — 같은 코드는 30초 안에도 두 번 못 씁니다
+- **해제**는 인증 앱 코드 또는 `POST /2fa/step-up/send` 로 받은 메일 코드(STEP_UP)로. 마지막 남은 수단은 해제할 수 없고(동시 해제도 행 잠금으로 막음), 분실 복구는 관리자 초기화(`DELETE /v1/admin/users/:id/two-factor`, `user:2fa:reset` — 기본 SuperAdmin 만, 자기보다 넓은 권한의 사람은 불가)
+- **백업 코드(recovery code)는 없습니다**
+- Rate limit: authenticate 5회/60초, 이메일 발송·설정 3회/60초 + 코드별 시도 5회·재발급 60초
 
 ## 5. OAuth — Google · Kakao · Naver · Apple
 
@@ -153,10 +149,12 @@ sequenceDiagram
 
 | 플로우 | 토큰/코드 | 만료 | 비고 |
 |---|---|---|---|
-| 회원가입 이메일 인증 | 64자 hex (`randomBytes(32)`), DB엔 SHA-256 해시 저장 → 원문은 링크 | 1시간 | 약관 동의 필수, 재발송은 열거 방지 위해 항상 동일 응답. **`POST /v1/auth/verify { token, password }` — 가입 때 정한 비밀번호까지 맞아야 인증** (틀리면 400 `VERIFY_PASSWORD_MISMATCH`, 토큰은 남김) |
-| 비밀번호 재설정 (비로그인) | 64자 hex, DB엔 해시 저장 → 원문은 링크 | 1시간 | 유저 없어도 성공 응답 (열거 방지). **전체 세션 무효화**, **미인증 계정이면 인증까지 완료**(마케팅 수신 동의는 되돌림). 보낸 지 10분 안의 링크는 새 요청이 덮어쓰지 않음 |
-| 비밀번호 변경 (로그인) | 현재 비밀번호 확인 | — | **전체 세션 무효화** (`DeleteRefreshTokensByUserIdCommand`) |
-| 이메일 변경 (로그인) | 6자리 코드 (bcrypt 해시 저장) → 새 이메일로 발송 | 10분 | 현재 비밀번호 확인 필수. 세션 무효화 없음 |
+| 회원가입 이메일 인증 | 링크(256비트, SHA-256 저장, `OneTimeCode`) | 1시간 | 재발송 유예 10분·항상 동일 응답. **`POST /v1/auth/verify { token, password }` — 가입 때 비밀번호까지 맞아야 인증**(틀려도 링크는 남김, 그 시도는 `PASSWORD` 잠금에 셈) |
+| 비밀번호 재설정 (비로그인) | 링크(위와 같음) | 1시간 | 열거 방지 동일 응답, 재발송 유예 10분. 소비~세션 무효화가 한 트랜잭션. **미인증 계정이면 인증까지 완료**(마케팅 동의 되돌림, **소셜 연동 해제**). `PASSWORD` 잠금만 풂 |
+| 비밀번호 변경 (로그인) | 현재 비밀번호 확인(`PASSWORD` 잠금) | — | **전체 세션 무효화**, 살아 있던 재설정 링크 폐기 |
+| 이메일 변경 (로그인) | 6자리 코드(HMAC, `OneTimeCode`) → 새 이메일로 | 10분 | 현재 비밀번호 확인 필수. 코드별 시도 5·재발급 60초. 바뀌면 인증 시각 갱신·옛 주소로 나간 링크 폐기. 관리자가 바꾸면 인증이 풀림 |
+
+메일로 보내는 일회용 비밀은 전부 `OneTimeCodeService` 가 다룹니다 — 확인과 소비가 SQL 한 문장이라 동시에 와도 한 번만 통과하고, 6자리 코드는 확인 **전에** 시도를 잡습니다. 6자리 코드 해시는 `JWT_SECRET` 에서 HKDF 로 파생한 키의 HMAC 입니다(DB 만으로 못 풂).
 
 **인증 링크가 비밀번호를 함께 받는 이유 — 미인증 선점 가입.** 공격자가 남의 이메일로 자기 비밀번호를 정해 가입해 두면 인증 메일은 진짜 주인에게 갑니다. 토큰만으로 인증되면 주인이 링크를 누르는 순간 공격자 비밀번호가 살아나 계정을 빼앗깁니다. 그래서 인증은 가입 때 비밀번호까지 확인하고, 그 비밀번호를 모르는 주인은 **재설정**(메일함 소유 증명 → 인증 완료 · 세션 전부 무효화)으로 계정을 되찾습니다. 가입 화면은 409 충돌 때 이 길을 안내합니다.
 
@@ -231,6 +229,34 @@ sequenceDiagram
 - 비밀번호 **재설정 시에도 전체 세션 무효화**
 - 인증 쿠키 **`sameSite: 'lax'` 명시**, 세팅·삭제 로직을 공용 헬퍼로 통일
 - sign-in·2FA 응답 body에서 **토큰 평문 제거** (HttpOnly 쿠키 단일 경로)
+
+## 11. 2026-10 인증 재설계 — 배포 런북과 API 변경
+
+설계: [`docs/design/specs/2026-10-17-auth-credential-model-design.md`](../design/specs/2026-10-17-auth-credential-model-design.md). 마이그레이션 둘(`…_auth_credential_expand` → `…_auth_credential_contract`)이 함께 나갑니다.
+
+**배포 순서** (🔴 축소 단계가 컬럼을 지우므로 되돌리기는 **백업 복원뿐**):
+
+1. DB 백업
+2. 옛 버전에서 올라오면 **`pnpm auth:encrypt-legacy-totp`** — 평문 TOTP 비밀이 남아 있으면 확장 마이그레이션이 멈춥니다(옛 스키마에서 돌림, 몇 번 돌려도 같음)
+3. `TOTP_ENCRYPTION_KEY` 가 있는지 확인, `OAUTH_TWO_FACTOR_REDIRECT_URL` 설정(기본 `/login?step=2fa`)
+4. `pnpm db:deploy` — 확장 → 축소. 켜져 있던 2FA 가 옮겨지지 않았으면 축소가 멈추고 아무것도 지우지 않습니다
+5. 코드 재시작. `db:deploy` 와 재시작 사이 몇 초는 옛 코드가 새 스키마를 만나 실패할 수 있습니다
+6. 멈췄으면 `prisma migrate resolve --rolled-back <이름>` → 원인 해결 → 다시
+
+**사용자에게 생기는 일**: 배포 순간 진행 중이던 재설정 링크·2FA·이메일 변경 코드는 무효(다시 요청), aud 없는 옛 액세스 토큰은 한 번 로그아웃.
+
+**API 변경** (파생 프로젝트가 자체 화면을 만들었다면):
+
+| 바뀐 것 | 대응 |
+|---|---|
+| 로그인 응답·2FA 요청 본문에서 `preAuthToken` 제거 → `pre_auth` 쿠키 | 화면은 수단(`availableMethods`)만 다룬다 |
+| `GET`·`DELETE /v1/auth/2fa/pending`, `POST /v1/auth/2fa/step-up/send` 추가 | 2FA 화면·해제 화면 |
+| `DELETE /v1/admin/users/:id/two-factor` 추가 (`user:2fa:reset`) | 관리자 화면 |
+| `OAuthUserProfile.emailVerified` 필수 | 자체 공급자는 값을 채운다 — **검증 안 된 이메일은 가입 거절** |
+| `CommonAuthUser.totpEnabled/emailOtpEnabled` 제거 | — |
+| 관리자: 자기보다 넓은 권한의 사용자는 이메일 변경·2FA 초기화·정지·삭제 불가, 갖지 않은 권한은 그룹으로 주거나 거둘 수 없음 | SuperAdmin 지정·해제는 SuperAdmin 만 |
+
+**받아들인 위험**: 이메일만 아는 누군가가 비밀번호를 5번 틀려 남을 15분 잠글 수 있습니다(계정 잠금의 본질적 대가).
 
 ## 더 보기
 

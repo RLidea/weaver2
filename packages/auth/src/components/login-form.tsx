@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLogin, useTwoFactorLogin, useSendLoginEmailOtp } from '../hooks/use-login';
-import { SignInSchema, type SignInRequest, type SignInResponse } from '../types';
+import { SignInSchema, type SignInRequest, type TwoFactorMethodsAvailable } from '../types';
 import { ApiError } from '@weaver2/api-client';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input } from '@weaver2/ui';
 import { authApi } from '../api/auth.api';
@@ -23,8 +23,9 @@ export function LoginForm() {
   const [resendEmail, setResendEmail] = useState('');
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
-  // 2FA 상태
-  const [twoFactorState, setTwoFactorState] = useState<SignInResponse | null>(null);
+  // 2FA 상태 — pre-auth 토큰은 HttpOnly 쿠키(pre_auth)라 화면은 고를 수 있는 수단만 든다
+  const [twoFactorMethods, setTwoFactorMethods] = useState<TwoFactorMethodsAvailable | null>(null);
+  const [twoFactorExpired, setTwoFactorExpired] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<'totp' | 'email' | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
@@ -38,6 +39,35 @@ export function LoginForm() {
   });
 
   const redirectPath = searchParams.get('redirect') ?? '/dashboard';
+  const isTwoFactorStep = searchParams.get('step') === '2fa';
+
+  // OAuth 처럼 리다이렉트로 2FA 단계에 들어오면, 쿠키로 대기 중인 2FA 수단을 묻는다.
+  // 한 번만 — 개발 모드(StrictMode)는 effect 를 두 번 돌려, 이메일 코드를 두 번 보내면
+  // 두 번째가 재발급 유예(60초)에 걸려 오류로 보인다.
+  const pendingRequested = useRef(false);
+  useEffect(() => {
+    if (!isTwoFactorStep || pendingRequested.current) return;
+    pendingRequested.current = true;
+    authApi
+      .getTwoFactorPending()
+      .then((res) => {
+        if (res?.data) startTwoFactor(res.data.availableMethods);
+      })
+      .catch(() => setTwoFactorExpired(true));
+    // 첫 진입에 한 번만 — startTwoFactor 는 상태 설정자만 쓴다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTwoFactorStep]);
+
+  function startTwoFactor(methods: TwoFactorMethodsAvailable) {
+    setTwoFactorMethods(methods);
+    // 방법이 하나뿐이면 자동 선택
+    if (methods.email && !methods.totp) {
+      setSelectedMethod('email');
+      sendEmailOtp(undefined, { onSuccess: () => setEmailOtpSent(true) });
+    } else if (methods.totp && !methods.email) {
+      setSelectedMethod('totp');
+    }
+  }
 
   function onSubmit(data: SignInRequest) {
     setEmailNotVerified(false);
@@ -46,16 +76,7 @@ export function LoginForm() {
       onSuccess: (res) => {
         const twoFactor = res?.data;
         if (twoFactor?.twoFactorRequired) {
-          setTwoFactorState(twoFactor);
-          // 방법이 하나뿐이면 자동 선택
-          if (twoFactor.availableMethods.email && !twoFactor.availableMethods.totp) {
-            setSelectedMethod('email');
-            sendEmailOtp(twoFactor.preAuthToken, {
-              onSuccess: () => setEmailOtpSent(true),
-            });
-          } else if (twoFactor.availableMethods.totp && !twoFactor.availableMethods.email) {
-            setSelectedMethod('totp');
-          }
+          startTwoFactor(twoFactor.availableMethods);
           return;
         }
         router.replace(redirectPath);
@@ -74,18 +95,16 @@ export function LoginForm() {
   function handleSelectMethod(method: 'totp' | 'email') {
     setSelectedMethod(method);
     setOtpCode('');
-    if (method === 'email' && twoFactorState && !emailOtpSent) {
-      sendEmailOtp(twoFactorState.preAuthToken, {
-        onSuccess: () => setEmailOtpSent(true),
-      });
+    if (method === 'email' && twoFactorMethods && !emailOtpSent) {
+      sendEmailOtp(undefined, { onSuccess: () => setEmailOtpSent(true) });
     }
   }
 
   function handleTwoFactorSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!twoFactorState || !selectedMethod || !otpCode.trim()) return;
+    if (!twoFactorMethods || !selectedMethod || !otpCode.trim()) return;
     twoFactorLogin(
-      { preAuthToken: twoFactorState.preAuthToken, method: selectedMethod, code: otpCode.trim() },
+      { method: selectedMethod, code: otpCode.trim() },
       { onSuccess: () => router.replace(redirectPath) },
     );
   }
@@ -108,13 +127,23 @@ export function LoginForm() {
         ? error.message
         : null;
 
+  // OAuth 콜백이 실패하면 OAUTH_FAILURE_REDIRECT_URL 에 error 를 붙여 돌려보낸다
+  const oauthError = searchParams.get('error');
+  const oauthErrorMessage =
+    oauthError === 'oauth_email_conflict'
+      ? '이미 같은 이메일로 가입된 계정이 있습니다. 그 계정으로 로그인한 뒤 설정에서 소셜 계정을 연동해주세요.'
+      : oauthError === 'account_suspended'
+        ? '이용이 정지된 계정입니다.'
+        : oauthError === 'oauth_failed'
+          ? '소셜 로그인에 실패했습니다. 다시 시도해주세요.'
+          : null;
+
   const isRegistered = searchParams.get('registered') === '1';
   const isReset = searchParams.get('reset') === '1';
 
   // ── 2FA 화면 ──
-  if (twoFactorState) {
-    const { availableMethods } = twoFactorState;
-    const hasBothMethods = availableMethods.totp && availableMethods.email;
+  if (twoFactorMethods) {
+    const hasBothMethods = twoFactorMethods.totp && twoFactorMethods.email;
 
     return (
       <Card className="w-full max-w-sm">
@@ -177,7 +206,14 @@ export function LoginForm() {
         <CardFooter className="justify-center">
           <button
             type="button"
-            onClick={() => { setTwoFactorState(null); setSelectedMethod(null); setOtpCode(''); setEmailOtpSent(false); }}
+            onClick={() => {
+              void authApi.abandonTwoFactor().catch(() => undefined);
+              setTwoFactorMethods(null);
+              setSelectedMethod(null);
+              setOtpCode('');
+              setEmailOtpSent(false);
+              if (isTwoFactorStep) router.replace('/login');
+            }}
             className="text-sm text-text-muted underline underline-offset-2"
           >
             로그인 화면으로 돌아가기
@@ -195,6 +231,16 @@ export function LoginForm() {
         {isRegistered && (
           <p className="mt-2 rounded-md bg-success/10 px-3 py-2 text-center text-sm text-success">
             가입이 완료되었습니다. 이메일을 확인하여 인증을 완료해주세요.
+          </p>
+        )}
+        {oauthErrorMessage && (
+          <p className="mt-2 rounded-md bg-error/10 px-3 py-2 text-center text-sm text-error">
+            {oauthErrorMessage}
+          </p>
+        )}
+        {twoFactorExpired && (
+          <p className="mt-2 rounded-md bg-warning/10 px-3 py-2 text-center text-sm text-warning">
+            2단계 인증 시간이 지났습니다. 다시 로그인해주세요.
           </p>
         )}
         {isReset && (

@@ -42,6 +42,7 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: 'user:delete:own', label: '본인 계정 삭제' },
   { value: 'user:delete:all', label: '모든 사용자 계정 삭제' },
   { value: 'user:suspend', label: '사용자 정지' },
+  { value: 'user:2fa:reset', label: '사용자 2단계 인증 초기화' },
   { value: 'user:*', label: '사용자 전체 권한' },
 
   // Admin

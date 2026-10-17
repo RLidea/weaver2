@@ -8,10 +8,8 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
@@ -23,7 +21,6 @@ import { UpdateCategoryDto } from '../dto/update-category.dto';
 
 @ApiTags('Category')
 @Controller({ path: 'boards/:boardId/categories', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 

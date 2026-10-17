@@ -41,9 +41,9 @@ describe('Email case (Integration)', () => {
       displayName: `ec ${Date.now()} ${createdUserIds.length}`,
       hashedPassword: await bcrypt.hash(TEST_PASSWORD, 10),
     });
-    await prisma.localCredential.update({
-      where: { userId: user.id },
-      data: { isVerified: true },
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date() },
     });
     createdUserIds.push(user.id);
     return user;
@@ -99,10 +99,10 @@ describe('Email case (Integration)', () => {
 
     expect(wildcard.status).toBe(401);
     expect(underscore.status).toBe(401);
-    const credential = await prisma.localCredential.findUnique({
-      where: { userId: victim.id },
+    const lockout = await prisma.authLockout.findUnique({
+      where: { userId_factor: { userId: victim.id, factor: 'PASSWORD' } },
     });
-    expect(credential?.failedAttempts ?? 0).toBe(0);
+    expect(lockout?.failedAttempts ?? 0).toBe(0);
   });
 
   it('DB 가 대문자 이메일을 거절한다 (CHECK 제약)', async () => {

@@ -8,25 +8,21 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { isReservedDisplayName } from '@weaver2/common/utility/reserved-names.util';
-import { Response } from 'express';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
 import { FindOAuthAccountsByUserIdQuery } from '../repositories/find-oauth-accounts-by-user-id.query';
 import { UpsertOAuthAccountCommand } from '../repositories/upsert-oauth-account.command';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
-import { CreateRefreshTokenCommand } from '../repositories/create-refresh-token.command';
 import { DeleteOAuthAccountCommand } from '../repositories/delete-oauth-account.command';
 import {
   OAuthCallbackExtras,
   OAuthTokens,
   OAuthUserProfile,
 } from './interfaces/oauth-provider.interface';
-import { setAuthCookies } from '../utils/auth-cookie.util';
 import { AuthProvidersResponseDto } from '../dto/auth-providers-response.dto';
 import {
   AUTH_PROVIDER_EXTRAS,
@@ -42,7 +38,6 @@ export class OAuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly providerRegistry: OAuthProviderRegistry,
     @Optional()
@@ -104,65 +99,35 @@ export class OAuthService {
     );
   }
 
-  async handleOAuthCallback(
+  /**
+   * 콜백을 확인하고(state·code 교환·프로필) 그 사람의 userId 를 돌려준다. 세션은 주지 않는다 —
+   * 탈퇴·정지·2FA·세션 발급은 비밀번호 로그인과 같은 SignInCompletionService 가 맡는다
+   * (전에는 여기서 바로 세션을 줘, OAuth 로그인만 정지·2FA 를 건너뛰었다).
+   * 실패하면 던진다. ConflictException 은 같은 이메일의 기존 계정이 있다는 뜻이다.
+   */
+  async resolveCallbackUser(
     providerName: string,
     code: string,
     callbackState: string,
     cookieState: string,
-    res: Response,
     extras?: OAuthCallbackExtras,
-  ): Promise<void> {
-    const failureUrl =
-      this.configService.get<string>('OAUTH_FAILURE_REDIRECT_URL') ?? '/';
-    const successUrl =
-      this.configService.get<string>('OAUTH_SUCCESS_REDIRECT_URL') ?? '/';
-
-    try {
-      if (!cookieState || cookieState !== callbackState) {
-        throw new UnauthorizedException(
-          'OAuth state mismatch. Possible CSRF attack.',
-        );
-      }
-
-      const provider = this.providerRegistry.get(providerName);
-      const tokens = await provider.exchangeCodeForTokens(code);
-      const profile = await provider.getUserProfile(tokens, extras);
-
-      this.logger.debug(
-        `OAuth profile: provider=${profile.provider}, email=${profile.email}`,
+  ): Promise<string> {
+    if (!cookieState || cookieState !== callbackState) {
+      throw new UnauthorizedException(
+        'OAuth state mismatch. Possible CSRF attack.',
       );
-
-      const { userId } = await this.findOrCreateUser(profile, tokens);
-
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { lastLoginAt: new Date() },
-      });
-
-      const accessToken = this.jwtService.sign({ sub: userId });
-      const refreshToken = await this.generateRefreshToken(userId, 7);
-      const tokenExpiry = 7 * 24 * 60 * 60 * 1000;
-
-      const isProduction = this.configService.get('NODE_ENV') === 'production';
-      setAuthCookies(
-        res,
-        { accessToken, refreshToken, tokenExpiry },
-        isProduction,
-      );
-
-      res.redirect(successUrl);
-    } catch (error) {
-      this.logger.error(
-        `OAuth callback failed for provider=${providerName}: ${(error as Error).message}`,
-      );
-
-      // 이미 가입된 이메일과 충돌한 경우 프론트에서 메시지 표시할 수 있도록 query 전달
-      const target =
-        error instanceof ConflictException
-          ? `${failureUrl}${failureUrl.includes('?') ? '&' : '?'}error=oauth_email_conflict&provider=${encodeURIComponent(providerName)}`
-          : failureUrl;
-      res.redirect(target);
     }
+
+    const provider = this.providerRegistry.get(providerName);
+    const tokens = await provider.exchangeCodeForTokens(code);
+    const profile = await provider.getUserProfile(tokens, extras);
+
+    this.logger.debug(
+      `OAuth profile: provider=${profile.provider}, email=${profile.email}`,
+    );
+
+    const { userId } = await this.findOrCreateUser(profile, tokens);
+    return userId;
   }
 
   async getMyConnections(userId: string) {
@@ -190,16 +155,6 @@ export class OAuthService {
     await DeleteOAuthAccountCommand(this.prisma, userId, provider);
   }
 
-  private async generateRefreshToken(
-    userId: string,
-    expiryDays: number,
-  ): Promise<string> {
-    const token = randomUUID();
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
-    await CreateRefreshTokenCommand(this.prisma, userId, token, expires);
-    return token;
-  }
-
   private async findOrCreateUser(
     profile: OAuthUserProfile,
     tokens: OAuthTokens,
@@ -211,6 +166,10 @@ export class OAuthService {
       profile.providerId,
     );
     if (existing) {
+      // 탈퇴한 사람의 연동은 남아 있어도 로그인 길이 아니다 — 공급자 토큰도 새로 쓰지 않는다
+      if (existing.user.deletedAt) {
+        throw new UnauthorizedException('ACCOUNT_DELETED');
+      }
       await UpsertOAuthAccountCommand(this.prisma, {
         userId: existing.userId,
         provider: profile.provider,
@@ -228,6 +187,15 @@ export class OAuthService {
       this.logger.warn(
         `OAuth sign-up without email: provider=${profile.provider}, providerId=${profile.providerId}`,
       );
+      throw new UnauthorizedException(
+        `${profile.provider} did not provide a verified email.`,
+      );
+    }
+
+    // 공급자가 검증하지 않은 이메일로는 가입시키지 않는다(Apple 은 공급자에서 이미 비운다).
+    // 받아 주면 남의 이메일을 주장하는 공급자 계정으로 그 주소의 계정을 선점할 수 있다 —
+    // 진짜 주인은 가입이 막히고, 재설정으로 되찾아도 공격자의 연동이 남는다.
+    if (!profile.emailVerified) {
       throw new UnauthorizedException(
         `${profile.provider} did not provide a verified email.`,
       );
@@ -256,6 +224,7 @@ export class OAuthService {
       username,
       displayName,
       email: profile.email,
+      emailVerified: profile.emailVerified,
       provider: profile.provider,
       providerId: profile.providerId,
       accessToken: tokens.accessToken,

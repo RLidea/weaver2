@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,7 +17,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { EmojiService } from '../services/emoji.service';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { EmojiDto } from '../dto/emoji.dto';
 import { CreateEmojiDto } from '../dto/create-emoji.dto';
@@ -28,7 +26,6 @@ import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @ApiTags('Admin - Emoji')
 @Controller({ path: 'admin/emojis', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class EmojiAdminController {
   constructor(private readonly emojiService: EmojiService) {}
 

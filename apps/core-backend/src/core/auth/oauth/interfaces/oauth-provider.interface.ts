@@ -2,6 +2,11 @@ export interface OAuthUserProfile {
   provider: string;
   providerId: string;
   email: string;
+  /**
+   * 공급자가 이 이메일의 주인임을 확인했는지. 새 사용자의 users."emailVerifiedAt" 을 정한다.
+   * 파생 프로젝트가 공급자를 더하면 그 공급자의 값을 옮긴다 — 모르면 false.
+   */
+  emailVerified: boolean;
   displayName: string;
   profileImageUrl?: string;
 }

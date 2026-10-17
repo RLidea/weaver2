@@ -25,4 +25,7 @@ export const adminUsersApi = {
 
   delete: (id: string) =>
     apiClient.delete<void>(`/v1/admin/users/${id}`),
+
+  resetTwoFactor: (id: string) =>
+    apiClient.delete<void>(`/v1/admin/users/${id}/two-factor`),
 };

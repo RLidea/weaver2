@@ -15,6 +15,8 @@ interface GoogleTokenResponse {
 interface GoogleUserResponse {
   id: string;
   email: string;
+  verified_email?: boolean;
+  email_verified?: boolean;
   name: string;
   picture?: string;
 }
@@ -86,6 +88,9 @@ export class GoogleOAuthProvider implements OAuthProvider {
       provider: this.name,
       providerId: data.id,
       email: data.email,
+      // v2 userinfo 는 verified_email, OIDC userinfo 는 email_verified 로 준다
+      emailVerified:
+        data.verified_email === true || data.email_verified === true,
       displayName: data.name,
       profileImageUrl: data.picture,
     };

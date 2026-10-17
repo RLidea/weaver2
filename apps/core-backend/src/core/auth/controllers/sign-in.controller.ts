@@ -13,7 +13,7 @@ import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { SignInService } from '../services/sign-in.service';
-import { TwoFactorService } from '../services/two-factor.service';
+import { SignInCompletionService } from '../services/sign-in-completion.service';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
@@ -29,7 +29,7 @@ import { setAuthCookies, clearAuthCookies } from '../utils/auth-cookie.util';
 export class SignInController {
   constructor(
     private readonly signInService: SignInService,
-    private readonly twoFactorService: TwoFactorService,
+    private readonly signInCompletionService: SignInCompletionService,
     private readonly configService: ConfigService,
   ) {}
   private logger = new Logger(SignInController.name);
@@ -74,33 +74,25 @@ export class SignInController {
   ) {
     this.logger.debug(JSON.stringify(authUser));
 
-    if (authUser.totpEnabled || authUser.emailOtpEnabled) {
-      const preAuthToken = this.twoFactorService.createPreAuthToken(
-        authUser.id,
-        loginDto.rememberMe,
-      );
+    // 계정 상태·2FA·세션 발급은 모든 로그인 경로가 같은 곳에서 끝낸다
+    const completion = await this.signInCompletionService.complete(
+      authUser.id,
+      {
+        provider: 'email',
+        rememberMe: loginDto.rememberMe ?? false,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      },
+      res,
+    );
+    if (completion.twoFactorRequired) {
+      // pre-auth 토큰은 쿠키로만 나간다 — 본문에는 고를 수 있는 수단만
       return {
         message: 'Two-factor authentication required',
         twoFactorRequired: true,
-        preAuthToken,
-        availableMethods: {
-          totp: authUser.totpEnabled ?? false,
-          email: authUser.emailOtpEnabled ?? false,
-        },
+        availableMethods: completion.availableMethods,
       };
     }
-
-    const ipAddress = req.ip;
-    const userAgent = req.headers['user-agent'];
-
-    const tokens = await this.signInService.login(
-      authUser.id,
-      'email',
-      loginDto.rememberMe,
-      ipAddress,
-      userAgent,
-    );
-    setAuthCookies(res, tokens, this.isProduction);
 
     // 토큰은 HttpOnly 쿠키로만 전달한다(응답 body에 평문 노출 금지).
     return { message: 'Login successful' };

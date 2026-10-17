@@ -24,6 +24,9 @@ export function useTwoFactorLogin() {
 
   return useMutation({
     mutationFn: (req: TwoFactorAuthenticateRequest) => authApi.twoFactorAuthenticate(req),
+    // 틀린 코드는 401 이라 전역 처리기가 「인증이 필요합니다」 토스트를 띄운다 — 다시 로그인하라는
+    // 뜻으로 읽힌다. 로그인 폼이 코드 칸 아래에 안내하므로 전역 토스트는 건너뛴다(e2e 화면에서 잡았다).
+    meta: { skipGlobalErrorToast: true },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authKeys.me });
     },
@@ -32,6 +35,6 @@ export function useTwoFactorLogin() {
 
 export function useSendLoginEmailOtp() {
   return useMutation({
-    mutationFn: (preAuthToken: string) => authApi.sendLoginEmailOtp(preAuthToken),
+    mutationFn: () => authApi.sendLoginEmailOtp(),
   });
 }

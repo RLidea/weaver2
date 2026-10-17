@@ -9,15 +9,21 @@ import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query'
 import { MarkRefreshTokenRotatedCommand } from '../repositories/mark-refresh-token-rotated.command';
 import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refresh-tokens.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
-import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
-import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
-import { normalizeEmail } from '../utils/email.util';
+import {
+  ACCOUNT_LOCKED_MESSAGE,
+  ReserveAuthAttemptCommand,
+} from '../repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 
 /**
  * 회전된 토큰이 다시 제시됐을 때, 이 시간 이내면 정상 경합(응답 유실 후 재시도 등)으로 보고
  * 조용히 거절만 한다. 초과 시 탈취로 간주해 전 세션을 무효화한다.
  */
 const REFRESH_REUSE_GRACE_MS = 30 * 1000;
+
+/** 없는 계정에도 bcrypt 한 번을 들이기 위한 해시(비용 10, 아무 비밀번호와도 맞지 않는다) */
+const DUMMY_PASSWORD_HASH =
+  '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.9BqvZGzBv6X3B7vlEPH5bWv1w7mS';
 
 @Injectable()
 export class SignInService {
@@ -28,6 +34,12 @@ export class SignInService {
     private readonly jwtService: JwtService,
   ) {}
 
+  /**
+   * 비밀번호라는 요소만 확인한다. 계정 상태(탈퇴·정지)와 2FA 는 SignInCompletionService 가
+   * 비밀번호가 맞은 **뒤에** 본다 — 전에는 비밀번호를 보기 전에 탈퇴 여부와 정지 날짜를 알려,
+   * 이메일만으로 계정 상태가 샜다. 탈퇴한 계정은 찾지 않으므로(그리고 탈퇴 때 자격 행이
+   * 지워지므로) 「잘못된 자격 증명」과 같게 답한다.
+   */
   async validateUserByEmail(email: string, password: string) {
     const user = await FindUserByEmailQuery(this.prisma, email);
 
@@ -35,49 +47,31 @@ export class SignInService {
       `validateUserByEmail: Found user: ${JSON.stringify(user?.id)}`,
     );
 
-    if (!user) {
-      // 탈퇴한 계정인지 별도 확인
-      const deletedUser = await this.prisma.user.findFirst({
-        where: { email: normalizeEmail(email), deletedAt: { not: null } },
-      });
-      if (deletedUser) throw new UnauthorizedException('ACCOUNT_DELETED');
+    if (!user?.localCredential?.passwordHash) {
+      // 있는 계정과 같은 시간을 들인다 — bcrypt 를 건너뛰면 응답 속도로 계정 유무가 샌다
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!user.localCredential || !user.localCredential.password)
-      throw new UnauthorizedException('Invalid credentials');
-
-    // 정지 계정 체크 (suspendedUntil이 미래 시각이면 정지 상태)
-    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
-      throw new UnauthorizedException(
-        `Account is suspended until ${user.suspendedUntil.toISOString()}.`,
-      );
     }
 
     const { localCredential } = user;
 
     // 비밀번호를 보기 전에 시도를 원자적으로 잡는다 — 동시 요청이 잠금을 앞질러 대입하지 못하게.
-    // 맞으면 아래에서 되돌린다(2FA 가 남았으면 2FA 통과 뒤에).
-    if (!(await ReserveLoginAttemptCommand(this.prisma, user.id))) {
-      throw new UnauthorizedException(
-        'Account is temporarily locked. Please try again later.',
-      );
+    if (!(await ReserveAuthAttemptCommand(this.prisma, user.id, 'PASSWORD'))) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
-    const match = await bcrypt.compare(password, localCredential.password);
+    const match = await bcrypt.compare(password, localCredential.passwordHash);
     if (!match) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!localCredential.isVerified) {
-      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
-    }
+    // 비밀번호가 맞았으니 비밀번호 요소를 비운다 — 아래 미인증 거절보다 먼저(안 그러면 맞는
+    // 비밀번호로 다섯 번 들어와 본 미인증 사용자가 잠긴다). 2FA 코드는 SECOND_FACTOR 로 따로
+    // 세므로, 「다시 로그인 → 코드 4번」을 되풀이해도 2FA 쪽 카운터는 비지 않는다.
+    await ResetAuthAttemptsCommand(this.prisma, user.id, 'PASSWORD');
 
-    // 2단계 인증이 남아 있으면 실패 횟수를 아직 지우지 않는다 — 지우면 비밀번호를 가진
-    // 공격자가 「다시 로그인 → 코드 4번」을 되풀이해 잠금 없이 2FA 코드를 대입할 수 있다.
-    // 그 경우 리셋은 2FA 까지 통과한 뒤(TwoFactorService.authenticate)에 한다.
-    if (!localCredential.totpEnabled && !localCredential.emailOtpEnabled) {
-      await ResetFailedAttemptsCommand(this.prisma, user.id);
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 
     this.logger.debug(

@@ -13,11 +13,10 @@ export function useTwoFactorStatus() {
 }
 
 export function useSetupTotp() {
-  return useQuery({
-    queryKey: ['auth', '2fa', 'totp-setup'],
-    queryFn: authApi.getTotpSetup,
-    select: (res) => res.data,
-    enabled: false,
+  return useMutation({
+    mutationFn: authApi.startTotpSetup,
+    // 실패 안내는 화면이 한다(설정 패널을 닫으며) — 전역 토스트와 겹치지 않게
+    meta: { skipGlobalErrorToast: true },
   });
 }
 
@@ -68,5 +67,14 @@ export function useDisableEmailOtp() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authKeys.twoFactorStatus });
     },
+  });
+}
+
+/** 해제 전에 확인 코드를 메일로 받는다 — 인증 앱 코드 대신 쓸 수 있다 */
+export function useSendStepUpCode() {
+  return useMutation({
+    mutationFn: authApi.sendStepUpCode,
+    // 안내는 화면이 한다 — 전역 토스트와 겹치지 않게
+    meta: { skipGlobalErrorToast: true },
   });
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BellIcon, cn, HomeIcon, SettingsIcon, XIcon } from '@weaver2/ui';
@@ -12,51 +13,63 @@ const NAV_ITEMS = [
 ] as const;
 
 export function Sidebar() {
-  const { isOpen, close } = useSidebar();
+  const { isOpen, isMobileOpen, closeMobile } = useSidebar();
   const pathname = usePathname();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // 서랍이 열리면 초점을 닫기 단추로 옮긴다
+  useEffect(() => {
+    if (isMobileOpen) closeButtonRef.current?.focus();
+  }, [isMobileOpen]);
 
   return (
     <>
       {/* 모바일 오버레이 배경 */}
-      {isOpen && (
+      {isMobileOpen && (
         <div
           className="fixed inset-0 z-30 bg-text/20 md:hidden"
-          onClick={close}
+          onClick={closeMobile}
           aria-hidden="true"
         />
       )}
 
       {/* 사이드바 본체 */}
       <aside
+        id="app-sidebar"
+        role={isMobileOpen ? 'dialog' : undefined}
+        aria-modal={isMobileOpen || undefined}
+        aria-label={isMobileOpen ? '메뉴' : undefined}
         className={cn(
-          'fixed top-14 left-0 z-30 flex h-[calc(100vh-3.5rem)] flex-col border-r border-border bg-surface transition-all duration-200',
-          // 데스크톱: 인라인, 모바일: 오버레이
-          'md:sticky md:translate-x-0',
-          isOpen ? 'w-60 translate-x-0' : '-translate-x-full md:w-16 md:translate-x-0',
+          'fixed top-14 left-0 z-30 flex h-[calc(100dvh-3.5rem)] w-60 flex-col border-r border-border bg-surface duration-200',
+          // 데스크톱: 인라인(펼침/접힘), 모바일: 서랍 — 닫힌 서랍은 invisible 로 탭 순서에서도 뺀다.
+          // visibility 는 닫을 때만 전환에 태운다 — 열 때 곧장 보여야 초점을 옮길 수 있다
+          'md:visible md:sticky md:translate-x-0',
+          isMobileOpen
+            ? 'translate-x-0 transition-[transform,width]'
+            : 'invisible -translate-x-full transition-[transform,width,visibility]',
+          isOpen ? 'md:w-60' : 'md:w-16',
         )}
       >
         {/* 모바일 닫기 버튼 */}
         <div className="flex items-center justify-end border-b border-border px-3 py-2 md:hidden">
           <button
-            onClick={close}
+            ref={closeButtonRef}
+            type="button"
+            onClick={closeMobile}
             className="rounded-md p-1.5 text-text-muted hover:bg-surface-2"
-            aria-label="사이드바 닫기"
+            aria-label="닫기"
           >
             <XIcon className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex flex-col gap-1 p-2" aria-label="주요 메뉴">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2" aria-label="주요 메뉴">
           {NAV_ITEMS.map(({ label, href, Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
                 key={href}
                 href={href}
-                onClick={() => {
-                  // 모바일에서 링크 클릭 시 닫기
-                  if (window.innerWidth < 768) close();
-                }}
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive

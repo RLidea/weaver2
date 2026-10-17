@@ -8,7 +8,8 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth - Password')
-@Controller('auth/password')
+// 다른 auth 컨트롤러처럼 v1 에 둔다 — 빠져 있어 /auth/password/* 로만 열려 화면(/v1/…)이 404 였다
+@Controller({ path: 'auth/password', version: '1' })
 export class PasswordResetController {
   constructor(
     private readonly requestPasswordResetService: RequestPasswordResetService,

@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
@@ -22,12 +23,16 @@ import { UnsuspendUserCommand } from '../repositories/unsuspend-user.command';
 import { SoftDeleteUserCommand } from '../repositories/soft-delete-user.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
 import { normalizeEmail } from '../../auth/utils/email.util';
+import { PermissionService } from '../../permission/services/permission.service';
 
 @Injectable()
 export class UserAdminService {
+  private readonly logger = new Logger(UserAdminService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly permissionService: PermissionService,
   ) {}
 
   async findUsers(
@@ -48,9 +53,20 @@ export class UserAdminService {
     return this.toAdminUserDto(user);
   }
 
-  async updateUser(id: string, dto: AdminUpdateUserDto): Promise<AdminUserDto> {
+  async updateUser(
+    requesterId: string,
+    id: string,
+    dto: AdminUpdateUserDto,
+  ): Promise<AdminUserDto> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException(`User with ID ${id} not found.`);
+
+    // 이메일을 바꾸면 그 주소로 재설정 링크를 받아 계정을 가질 수 있다 — 자기보다 권한이
+    // 넓은 사람(예: Admin → SuperAdmin)의 이메일은 바꾸지 못한다.
+    const emailChanged =
+      dto.email !== undefined && normalizeEmail(dto.email) !== user.email;
+    if (emailChanged)
+      await this.permissionService.assertCovers(requesterId, id);
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
@@ -67,14 +83,32 @@ export class UserAdminService {
         throw new ConflictException('이미 사용 중인 사용자명입니다.');
     }
 
-    await this.prisma.user.update({
-      where: { id },
-      data: {
-        ...(dto.displayName !== undefined && { displayName: dto.displayName }),
-        ...(dto.username !== undefined && { username: dto.username }),
-        ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
-      },
-    });
+    // 관리자는 새 주소의 주인임을 증명하지 못한다 — 인증을 풀고, 옛 주소로 나간 링크를
+    // 버린다. 사용자는 인증 메일 재발송으로 다시 증명한다.
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: {
+          ...(dto.displayName !== undefined && {
+            displayName: dto.displayName,
+          }),
+          ...(dto.username !== undefined && { username: dto.username }),
+          ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
+          ...(emailChanged && { emailVerifiedAt: null }),
+        },
+      }),
+      ...(emailChanged
+        ? [
+            this.prisma.oneTimeCode.deleteMany({
+              where: {
+                userId: id,
+                purpose: { in: ['PASSWORD_RESET', 'EMAIL_VERIFICATION'] },
+              },
+            }),
+          ]
+        : []),
+    ]);
 
     return this.findUserById(id);
   }
@@ -87,6 +121,8 @@ export class UserAdminService {
     if (requesterId === targetId) {
       throw new BadRequestException('자기 자신을 정지할 수 없습니다.');
     }
+    // 자기보다 권한이 넓은 사람(예: Admin → SuperAdmin)은 정지하지 못한다
+    await this.permissionService.assertCovers(requesterId, targetId);
 
     const user = await this.prisma.user.findUnique({ where: { id: targetId } });
     if (!user)
@@ -124,10 +160,50 @@ export class UserAdminService {
     await UnsuspendUserCommand(this.prisma, targetId);
   }
 
+  /**
+   * 사용자의 2FA 를 초기화한다 — 인증 앱을 잃은 사용자의 복구 길. OAuth 사용자까지 2FA 를
+   * 켤 수 있게 되어 미루지 않는다. 수단·살아 있던 2FA 코드·2FA 잠금을 함께 지운다.
+   *
+   * 관리자 행동을 남기는 감사 테이블은 아직 없어, 누가 누구를 초기화했는지 서버 로그에 남긴다.
+   * 자기 자신은 막는다 — 관리자 세션만 가진 사람이 제 2FA 를 이 길로 벗기지 못하게
+   * (본인은 코드를 요구하는 일반 해제를 쓴다).
+   */
+  async resetTwoFactor(requesterId: string, targetId: string): Promise<void> {
+    if (requesterId === targetId) {
+      throw new BadRequestException(
+        '자기 자신의 2단계 인증은 설정 화면에서 해제하세요.',
+      );
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: targetId } });
+    if (!user || user.deletedAt)
+      throw new NotFoundException(`User with ID ${targetId} not found.`);
+    // 2FA 는 이메일 변경·재설정과 이어지면 계정 탈취를 막는 마지막 관문이다 — 자기보다
+    // 권한이 넓은 사람의 것은 벗기지 못한다.
+    await this.permissionService.assertCovers(requesterId, targetId);
+
+    await this.prisma.$transaction([
+      this.prisma.twoFactorMethod.deleteMany({ where: { userId: targetId } }),
+      this.prisma.oneTimeCode.deleteMany({
+        where: {
+          userId: targetId,
+          purpose: { in: ['TWO_FACTOR_LOGIN', 'TWO_FACTOR_SETUP', 'STEP_UP'] },
+        },
+      }),
+      this.prisma.authLockout.deleteMany({
+        where: { userId: targetId, factor: 'SECOND_FACTOR' },
+      }),
+    ]);
+    this.logger.warn(
+      `2FA reset by admin: requesterId=${requesterId} targetId=${targetId}`,
+    );
+  }
+
   async deleteUser(requesterId: string, targetId: string): Promise<void> {
     if (requesterId === targetId) {
       throw new BadRequestException('자기 자신을 삭제할 수 없습니다.');
     }
+    // 자기보다 권한이 넓은 사람은 삭제하지 못한다
+    await this.permissionService.assertCovers(requesterId, targetId);
 
     const user = await this.prisma.user.findUnique({ where: { id: targetId } });
     if (!user)

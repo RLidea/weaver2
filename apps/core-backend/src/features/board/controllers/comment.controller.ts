@@ -10,13 +10,11 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { CommentDto } from '../dto/comment.dto';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
@@ -29,7 +27,6 @@ import { PostService } from '../services/post.service';
 
 @ApiTags('Comment')
 @Controller({ path: 'comments', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class CommentController {
   constructor(
     private readonly commentService: CommentService,

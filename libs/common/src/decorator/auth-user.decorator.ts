@@ -9,8 +9,6 @@ export const AuthUser = createParamDecorator((data, ctx: ExecutionContext) => {
       id: request.user.sub || request.user.id,
       username: request.user.username,
       isLogin: request.user.isLogin,
-      totpEnabled: request.user.totpEnabled,
-      emailOtpEnabled: request.user.emailOtpEnabled,
       userSetting: request.user.userSetting,
     };
   } else {

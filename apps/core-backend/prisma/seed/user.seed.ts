@@ -65,8 +65,9 @@ export async function seedUsers(prisma: PrismaClient) {
     });
 
     if (!existingUser) {
+      // 시드 계정은 모두 이메일 인증을 마친 것으로 둔다
       await prisma.user.create({
-        data: userData,
+        data: { ...userData, emailVerifiedAt: new Date() },
       });
       logSeedResult('User', userData.username, 'created');
     } else {
@@ -88,8 +89,7 @@ export async function seedLocalCredentials(prisma: PrismaClient) {
 
       await prisma.localCredential.create({
         data: {
-          password: passwordHash,
-          isVerified: true,
+          passwordHash,
           userId: credData.userId,
         },
       });

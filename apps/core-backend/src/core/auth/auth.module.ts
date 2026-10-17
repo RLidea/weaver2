@@ -22,12 +22,20 @@ import { OAuthController } from './controllers/oauth.controller';
 import { AuthProvidersController } from './controllers/auth-providers.controller';
 import { TwoFactorController } from './controllers/two-factor.controller';
 import { TwoFactorService } from './services/two-factor.service';
+import { SignInCompletionService } from './services/sign-in-completion.service';
 import { SessionController } from './controllers/session.controller';
 import { SessionService } from './services/session.service';
 import { CsrfController } from './controllers/csrf.controller';
+import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, EmailModule, OAuthModule],
+  imports: [
+    PrismaModule,
+    UserModule,
+    EmailModule,
+    OAuthModule,
+    OneTimeCodeModule,
+  ],
   controllers: [
     SignInController,
     SignUpController,
@@ -49,6 +57,7 @@ import { CsrfController } from './controllers/csrf.controller';
     SignOutService,
     TermsService,
     TwoFactorService,
+    SignInCompletionService,
     SessionService,
     {
       provide: APP_GUARD,
@@ -59,6 +68,6 @@ import { CsrfController } from './controllers/csrf.controller';
       useClass: PermissionGuard,
     },
   ],
-  exports: [SignInService],
+  exports: [SignInService, SignInCompletionService, TwoFactorService],
 })
 export class AuthModule {}

@@ -1,7 +1,6 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommentService } from '../services/comment.service';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { CommentDto } from '../dto/comment.dto';
 import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
@@ -10,7 +9,6 @@ import { AdminCommentsQueryDto } from '../dto/admin-comments-query.dto';
 
 @ApiTags('Admin - Comment')
 @Controller({ path: 'admin/comments', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class CommentAdminController {
   constructor(private readonly commentService: CommentService) {}
 

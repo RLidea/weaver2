@@ -15,6 +15,8 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AdminPermissionApiService } from '../services/admin-permission.api.service';
+import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
+import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import {
   CreatePermissionGroupDto,
   UpdatePermissionGroupDto,
@@ -78,20 +80,30 @@ export class AdminPermissionApiController {
   @ApiOperation({ summary: '그룹 권한 전체 교체' })
   @RequirePermission(PERMISSIONS.PERMISSION_GROUP.UPDATE)
   async setGroupPermissions(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Body() dto: SetGroupPermissionsDto,
   ) {
-    return this.adminPermissionApiService.setGroupPermissions(id, dto);
+    return this.adminPermissionApiService.setGroupPermissions(
+      authUser.id,
+      id,
+      dto,
+    );
   }
 
   @Delete('groups/:id/permissions')
   @ApiOperation({ summary: '그룹에서 특정 권한 제거' })
   @RequirePermission(PERMISSIONS.PERMISSION_GROUP.UPDATE)
   async removeGroupPermissions(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Body() dto: RemoveGroupPermissionsDto,
   ) {
-    return this.adminPermissionApiService.removeGroupPermissions(id, dto);
+    return this.adminPermissionApiService.removeGroupPermissions(
+      authUser.id,
+      id,
+      dto,
+    );
   }
 
   // ============ User-Group Assignment ============
@@ -108,20 +120,30 @@ export class AdminPermissionApiController {
   @ApiOperation({ summary: '사용자를 그룹에 할당' })
   @RequirePermission(PERMISSIONS.PERMISSION_GROUP.ASSIGN_USER)
   async assignUsersToGroup(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Body() dto: AssignUsersToGroupDto,
   ) {
-    return this.adminPermissionApiService.assignUsersToGroup(id, dto);
+    return this.adminPermissionApiService.assignUsersToGroup(
+      authUser.id,
+      id,
+      dto,
+    );
   }
 
   @Delete('groups/:id/users/:userId')
   @ApiOperation({ summary: '사용자를 그룹에서 해제' })
   @RequirePermission(PERMISSIONS.PERMISSION_GROUP.ASSIGN_USER)
   async removeUserFromGroup(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Param('userId') userId: string,
   ) {
-    return this.adminPermissionApiService.removeUserFromGroup(id, userId);
+    return this.adminPermissionApiService.removeUserFromGroup(
+      authUser.id,
+      id,
+      userId,
+    );
   }
 
   // ============ Resource Permission Management ============

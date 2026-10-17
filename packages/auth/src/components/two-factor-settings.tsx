@@ -13,6 +13,7 @@ import {
   useSetupEmailOtp,
   useConfirmEmailOtp,
   useDisableEmailOtp,
+  useSendStepUpCode,
 } from '../hooks/use-two-factor';
 import { Button, Card, CardContent, CardFooter, CardHeader, Input, Spinner, useToast } from '@weaver2/ui';
 import { ApiError } from '@weaver2/api-client';
@@ -20,11 +21,35 @@ import { ApiError } from '@weaver2/api-client';
 const CodeSchema = z.object({ code: z.string().min(1, '코드를 입력해주세요') });
 type CodeValues = z.infer<typeof CodeSchema>;
 
+/* ── 해제용 확인 코드 ─────────────────────────────────────── */
+
+function StepUpCodeButton() {
+  const { mutate: send, isPending } = useSendStepUpCode();
+  const toast = useToast();
+
+  function handleSend() {
+    send(undefined, {
+      onSuccess: () => toast.success('확인 코드를 이메일로 보냈습니다. 10분 안에 입력하세요.'),
+      onError: (err) => {
+        const message = err instanceof ApiError ? err.message : '코드를 보내지 못했습니다.';
+        toast.error(message);
+      },
+    });
+  }
+
+  return (
+    <Button type="button" variant="ghost" size="sm" className="mt-2" isLoading={isPending} onClick={handleSend}>
+      이메일로 확인 코드 받기
+    </Button>
+  );
+}
+
 /* ── TOTP 섹션 ────────────────────────────────────────────── */
 
 function TotpSection({ enabled }: { enabled: boolean }) {
   const [mode, setMode] = useState<'idle' | 'setup' | 'disable'>('idle');
-  const { refetch: fetchSetup, data: setupData, isFetching } = useSetupTotp();
+  const { mutate: startSetup, data: setupResponse, isPending: isStarting } = useSetupTotp();
+  const setupData = setupResponse?.data;
   const { mutate: confirmSetup, isPending: isConfirming } = useConfirmTotpSetup();
   const { mutate: disableTotp, isPending: isDisabling } = useDisableTotp();
   const toast = useToast();
@@ -33,8 +58,14 @@ function TotpSection({ enabled }: { enabled: boolean }) {
   const disableForm = useForm<CodeValues>({ resolver: zodResolver(CodeSchema) });
 
   function handleStartSetup() {
-    fetchSetup();
     setMode('setup');
+    startSetup(undefined, {
+      onError: (err) => {
+        const message = err instanceof ApiError ? err.message : '설정을 시작하지 못했습니다.';
+        toast.error(message);
+        setMode('idle');
+      },
+    });
   }
 
   function handleConfirmSetup(data: CodeValues) {
@@ -94,7 +125,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
 
       {mode === 'setup' && (
         <div className="mt-4 space-y-4 rounded-md border border-border p-4">
-          {isFetching ? (
+          {isStarting ? (
             <div className="flex justify-center py-4">
               <Spinner size="sm" />
             </div>
@@ -113,7 +144,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
                 />
               </div>
               <div className="rounded-md bg-surface-2 px-3 py-2">
-                <p className="break-all text-center font-mono text-xs text-text-muted">
+                <p data-testid="totp-secret" className="break-all text-center font-mono text-xs text-text-muted">
                   {setupData.secret}
                 </p>
               </div>
@@ -142,7 +173,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
       {mode === 'disable' && (
         <div className="mt-4 rounded-md border border-border p-4">
           <p className="mb-3 text-sm text-text-muted">
-            TOTP를 비활성화하려면 인증 앱의 현재 코드를 입력하세요.
+            TOTP를 비활성화하려면 인증 앱의 현재 코드나 이메일로 받은 확인 코드를 입력하세요.
             이메일 OTP가 활성화된 경우에만 비활성화할 수 있습니다.
           </p>
           <form onSubmit={disableForm.handleSubmit(handleDisable)} className="flex gap-2">
@@ -162,6 +193,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
               비활성화
             </Button>
           </form>
+          <StepUpCodeButton />
         </div>
       )}
     </div>
@@ -276,7 +308,7 @@ function EmailOtpSection({ enabled }: { enabled: boolean }) {
       {mode === 'disable' && (
         <div className="mt-4 rounded-md border border-border p-4">
           <p className="mb-3 text-sm text-text-muted">
-            이메일 OTP를 비활성화하려면 인증 앱(TOTP)의 현재 코드를 입력하세요.
+            이메일 OTP를 비활성화하려면 인증 앱(TOTP)의 현재 코드나 이메일로 받은 확인 코드를 입력하세요.
             TOTP가 활성화된 경우에만 비활성화할 수 있습니다.
           </p>
           <form onSubmit={disableForm.handleSubmit(handleDisable)} className="flex gap-2">
@@ -296,6 +328,7 @@ function EmailOtpSection({ enabled }: { enabled: boolean }) {
               비활성화
             </Button>
           </form>
+          <StepUpCodeButton />
         </div>
       )}
     </div>

@@ -9,6 +9,7 @@ import { UserDetailModal } from './user-detail-modal';
 import { UserEditModal } from './user-edit-modal';
 import { UserSuspendModal } from './user-suspend-modal';
 import { UserDeleteDialog } from './user-delete-dialog';
+import { UserTwoFactorResetDialog } from './user-two-factor-reset-dialog';
 import { UserTableFilters } from './user-table-filters';
 import { getUserStatus, type AdminUser, type AdminUsersParams } from '../types';
 
@@ -36,6 +37,7 @@ export function UserTable() {
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<AdminUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
+  const [twoFactorUser, setTwoFactorUser] = useState<AdminUser | null>(null);
 
   return (
     <div className="space-y-4">
@@ -151,6 +153,14 @@ export function UserTable() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                onClick={() => setTwoFactorUser(user)}
+                                title="2단계 인증 초기화"
+                              >
+                                2FA
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => setDeleteUser(user)}
                                 title="삭제"
                                 className="text-error hover:text-error"
@@ -185,6 +195,7 @@ export function UserTable() {
       <UserEditModal user={editUser} onClose={() => setEditUser(null)} />
       <UserSuspendModal user={suspendUser} onClose={() => setSuspendUser(null)} />
       <UserDeleteDialog user={deleteUser} onClose={() => setDeleteUser(null)} />
+      <UserTwoFactorResetDialog user={twoFactorUser} onClose={() => setTwoFactorUser(null)} />
     </div>
   );
 }

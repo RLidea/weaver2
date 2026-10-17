@@ -8,11 +8,8 @@ import {
   Param,
   Patch,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { PermissionGuard } from '../../permission/guards/permission.guard';
 import { RequirePermission } from '../../permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -27,7 +24,6 @@ import { ApiOffsetResponse, OffsetResponseDto } from '@weaver2/pagination';
 
 @ApiTags('User Admin')
 @Controller({ path: 'admin/users', version: '1' })
-@UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiBearerAuth('ACCESS-TOKEN')
 export class UserAdminController {
   constructor(private readonly userAdminService: UserAdminService) {}
@@ -55,10 +51,11 @@ export class UserAdminController {
   @ApiOperation({ summary: '사용자 정보 수정 (관리자 전용)' })
   @ApiStandardResponses({ type: AdminUserDto })
   updateUser(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Body() dto: AdminUpdateUserDto,
   ): Promise<AdminUserDto> {
-    return this.userAdminService.updateUser(id, dto);
+    return this.userAdminService.updateUser(authUser.id, id, dto);
   }
 
   @Patch(':id/suspend')
@@ -80,6 +77,20 @@ export class UserAdminController {
   @ApiStandardResponses()
   unsuspendUser(@Param('id') id: string): Promise<void> {
     return this.userAdminService.unsuspendUser(id);
+  }
+
+  @Delete(':id/two-factor')
+  @RequirePermission(PERMISSIONS.USER.RESET_2FA)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: '사용자 2단계 인증 초기화 (관리자 전용) — 인증 앱 분실 복구',
+  })
+  @ApiStandardResponses()
+  resetTwoFactor(
+    @AuthUser() authUser: CommonAuthUserDto,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.userAdminService.resetTwoFactor(authUser.id, id);
   }
 
   @Delete(':id')

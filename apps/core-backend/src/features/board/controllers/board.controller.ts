@@ -9,14 +9,12 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BoardService } from '../services/board.service';
 import { PostService } from '../services/post.service';
 import { CreateBoardDto } from '../dto/create-board.dto';
 import { UpdateBoardDto } from '../dto/update-board.dto';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { BoardDto } from '../dto/board.dto';
 import { BoardPostsResponseDto } from '../dto/board-posts-response.dto';
@@ -32,7 +30,6 @@ import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 
 @ApiTags('Board')
 @Controller({ path: 'boards', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class BoardController {
   constructor(
     private readonly boardService: BoardService,

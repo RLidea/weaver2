@@ -58,6 +58,8 @@ export const PERMISSIONS = {
     DELETE_OWN: 'user:delete:own',
     DELETE_ALL: 'user:delete:all',
     SUSPEND: 'user:suspend',
+    /** 남의 2단계 인증 초기화 — 계정 탈취의 마지막 관문이라 user:update:all 과 떼어 둔다 */
+    RESET_2FA: 'user:2fa:reset',
     ALL: 'user:*',
   },
 

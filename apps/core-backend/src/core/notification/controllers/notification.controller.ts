@@ -8,7 +8,6 @@ import {
   Query,
   Body,
   Sse,
-  UseGuards,
   HttpCode,
   HttpStatus,
   Inject,
@@ -17,7 +16,6 @@ import {
 import { ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Observable, finalize } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AuthUser } from '@weaver2/common';
 import { CommonAuthUserDto } from '@weaver2/common';
 import { NotificationService } from '../services/notification.service';
@@ -36,7 +34,6 @@ import { Request } from 'express';
 
 @ApiTags('Notification')
 @Controller({ path: 'notifications', version: '1' })
-@UseGuards(JwtAuthGuard)
 export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,

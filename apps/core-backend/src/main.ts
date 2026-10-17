@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { WinstonModule } from 'nest-winston';
 import { winstonLoggerConfig } from '@weaver2/common/global/logger/winston.config';
 import { setUploadResponseHeaders } from '@weaver2/upload';
+import { warnIfEnvFileExposed } from '@weaver2/common/global/env-file-permission';
+import { CORE_ENV_FILE_PATH } from './env-file';
 
 async function bootstrap() {
   const startTime = Date.now();
@@ -16,6 +18,8 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(winstonLoggerConfig),
   });
   const configService = app.get(ConfigService);
+  // 비밀값(JWT_SECRET·TOTP_ENCRYPTION_KEY)이 든 파일이 다른 계정에 열려 있으면 알린다
+  warnIfEnvFileExposed(CORE_ENV_FILE_PATH);
 
   // Enable API versioning
   app.enableVersioning({

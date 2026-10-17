@@ -59,6 +59,7 @@ export const PERMISSION_SECTIONS: PermissionSection[] = [
       { value: 'user:delete:own', label: '본인 계정 삭제' },
       { value: 'user:delete:all', label: '전체 계정 삭제' },
       { value: 'user:suspend', label: '정지' },
+      { value: 'user:2fa:reset', label: '2단계 인증 초기화' },
       { value: 'user:*', label: '전체 권한' },
     ],
   },

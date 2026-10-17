@@ -219,6 +219,8 @@ jobs:
       DATABASE_URL: postgresql://weaver:weaver@localhost:5432/weaver_e2e
       JWT_SECRET: ci-jwt-secret-not-for-prod
       CSRF_SECRET: ci-csrf-secret-not-for-prod
+      # 2FA e2e(auth-two-factor-login)가 TOTP 를 등록한다 — 키가 없으면 등록이 500
+      TOTP_ENCRYPTION_KEY: ci-totp-key-not-for-prod
       # NODE_ENV=test 으로 두면 secure-cookie 강제가 비활성화되어
       # http://localhost로 cookie가 정상 전달됨.
       NODE_ENV: test

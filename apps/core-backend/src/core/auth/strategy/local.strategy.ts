@@ -16,8 +16,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       username: user.username,
       isLogin: true,
-      totpEnabled: user.localCredential?.totpEnabled ?? false,
-      emailOtpEnabled: user.localCredential?.emailOtpEnabled ?? false,
     };
   }
 }

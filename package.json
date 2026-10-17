@@ -61,6 +61,7 @@
     "db:core:reset": "prisma migrate reset && prisma generate && prisma db seed",
     "db:core:seed": "prisma db seed",
     "---------------------------OPENAPI---------------------------": "",
+    "auth:encrypt-legacy-totp": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/encrypt-legacy-totp.ts",
     "openapi:metadata": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/generate-metadata.ts",
     "openapi:generate": "pnpm openapi:metadata && ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/generate-openapi.ts",
     "openapi:types": "pnpm openapi:generate && pnpm --filter @weaver2/api-client gen:api-types",

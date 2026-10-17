@@ -7,12 +7,9 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../../../core/permission/decorators/require-permission.decorator';
-import { PermissionGuard } from '../../../core/permission/guards/permission.guard';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
@@ -25,7 +22,6 @@ import {
 
 @ApiTags('Moderation')
 @Controller({ path: 'admin/moderation', version: '1' })
-@UseGuards(JwtAuthGuard, PermissionGuard)
 export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 

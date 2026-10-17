@@ -212,6 +212,23 @@ export interface paths {
         patch: operations["UserAdminController_unsuspendUser"];
         trace?: never;
     };
+    "/admin/users/{id}/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 사용자 2단계 인증 초기화 (관리자 전용) — 인증 앱 분실 복구 */
+        delete: operations["UserAdminController_resetTwoFactor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/email/send": {
         parameters: {
             query?: never;
@@ -561,6 +578,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/2fa/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 2FA 대기 중 고를 수 있는 수단 (pre_auth 쿠키 필요) */
+        get: operations["TwoFactorController_pending"];
+        put?: never;
+        post?: never;
+        /**
+         * 2FA 단계를 그만둔다 — pre_auth 쿠키를 지운다
+         * @description 2FA 대기 중인 브라우저에는 세션이 없어 로그아웃을 부를 수 없다. 「로그인 화면으로 돌아가기」가 이것을 부른다.
+         */
+        delete: operations["TwoFactorController_abandon"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/2fa/authenticate": {
         parameters: {
             query?: never;
@@ -570,7 +608,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** pre-auth 토큰 + 2FA 코드로 최종 로그인 */
+        /** pre_auth 쿠키 + 2FA 코드로 최종 로그인 */
         post: operations["TwoFactorController_authenticate"];
         delete?: never;
         options?: never;
@@ -587,7 +625,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 로그인용 Email OTP 코드 발송 (pre-auth 토큰 필요) */
+        /** 로그인용 Email OTP 코드 발송 (pre_auth 쿠키 필요) */
         post: operations["TwoFactorController_sendEmailOtp"];
         delete?: never;
         options?: never;
@@ -619,10 +657,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** TOTP 설정 시작 - 시크릿 및 QR 코드 반환 */
-        get: operations["TwoFactorController_totpSetup"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** TOTP 설정 시작 - 시크릿 및 QR 코드 반환 (이미 켜져 있으면 409) */
+        post: operations["TwoFactorController_totpSetup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -674,6 +712,23 @@ export interface paths {
         put?: never;
         /** Email OTP 코드 확인 후 활성화 */
         post: operations["TwoFactorController_emailConfirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/2fa/step-up/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 민감한 동작(2FA 해제 등) 전 확인 코드를 이메일로 발송 */
+        post: operations["TwoFactorController_sendStepUpCode"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2856,22 +2911,22 @@ export interface components {
             password: string;
         };
         TwoFactorAuthenticateDto: {
-            /** @description 로그인 1단계에서 발급받은 pre-auth 토큰 */
-            preAuthToken: string;
             /**
              * @description 사용할 2FA 방식
              * @enum {string}
              */
             method: "totp" | "email";
-            /** @description 6자리 인증 코드 */
+            /**
+             * @description 6자리 인증 코드
+             * @example 012345
+             */
             code: string;
         };
-        TwoFactorSendEmailDto: {
-            /** @description 로그인 1단계에서 발급받은 pre-auth 토큰 */
-            preAuthToken: string;
-        };
         TwoFactorConfirmDto: {
-            /** @description 6자리 인증 코드 */
+            /**
+             * @description 6자리 인증 코드
+             * @example 012345
+             */
             code: string;
         };
         AuthProvidersResponseDto: {
@@ -4187,6 +4242,44 @@ export interface operations {
             };
         };
     };
+    UserAdminController_resetTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
     EmailController_sendEmail: {
         parameters: {
             query?: never;
@@ -4307,8 +4400,9 @@ export interface operations {
     };
     EmailController_getEmailTemplates: {
         parameters: {
-            query: {
-                activeOnly: boolean;
+            query?: {
+                /** @description 정확히 'false' 일 때만 꺼진 템플릿까지 준다. 생략하거나 다른 값이면 켜진 것만 준다. */
+                activeOnly?: boolean;
             };
             header?: never;
             path?: never;
@@ -4672,6 +4766,40 @@ export interface operations {
             };
         };
     };
+    TwoFactorController_pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TwoFactorController_abandon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TwoFactorController_authenticate: {
         parameters: {
             query?: never;
@@ -4700,11 +4828,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TwoFactorSendEmailDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
             201: {
                 headers: {
@@ -4740,7 +4864,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4798,6 +4922,23 @@ export interface operations {
                 "application/json": components["schemas"]["TwoFactorConfirmDto"];
             };
         };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TwoFactorController_sendStepUpCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             201: {
                 headers: {
