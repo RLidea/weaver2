@@ -38,6 +38,77 @@ export const csrfHandler = doubleCsrf({
     (req.headers['x-csrf-token'] as string | undefined) ?? '',
 });
 
+/**
+ * 다른 사이트가 브라우저를 통해 POST 로 넘겨주는 콜백 경로.
+ * Apple 로그인은 `response_mode=form_post` 라 appleid.apple.com 이 이 경로로 form 을 POST 한다.
+ * 그 요청에는 우리 CSRF 토큰이 있을 수 없고 Origin 도 우리 것이 아니므로 CSRF·CORS 거절에서 뺀다.
+ * 대신 OAuth state 쿠키 대조가 위조 요청을 막는다(oauth.controller.ts).
+ */
+const CROSS_SITE_CALLBACK_PATHS = ['/v1/auth/oauth/apple/callback'];
+
+function isCrossSiteCallback(req: Request): boolean {
+  return CROSS_SITE_CALLBACK_PATHS.includes(req.path);
+}
+
+function parseUrl(value: string | undefined): URL | null {
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * url 이 Swagger 가 떠 있는 백엔드 자신의 origin 과 **정확히** 같은가.
+ *
+ * ORIGIN_URL 은 관례상 스킴 없는 `host:port`(예: `localhost:4000`)라 그때는 host 를,
+ * 스킴까지 적었으면(`https://api.example.com`) origin 전체를 비교한다.
+ * 예전엔 부분 문자열(includes)이라 `localhost:4000.evil.com` 도 통과했다.
+ */
+function isSwaggerOrigin(url: URL, swaggerOrigin: string): boolean {
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  if (swaggerOrigin.includes('://')) {
+    return url.origin === parseUrl(swaggerOrigin)?.origin;
+  }
+  return url.host === swaggerOrigin.trim().toLowerCase();
+}
+
+/**
+ * Swagger UI(/docs)에서 보낸 요청인가.
+ *
+ * - ORIGIN_URL 미설정 → 아무것도 면제하지 않는다
+ * - Origin 이 Swagger origin 과 같거나,
+ * - Referer 가 같은 origin 의 `/docs` 또는 `/docs/…` 일 때만 면제한다
+ *   (예전엔 Referer 에 `/docs` 가 들어 있기만 하면 — `https://evil.com/docs` 도 — 면제됐다)
+ *
+ * 🔴 NODE_ENV 로 거르지 않는다 — 환경 이름은 배포에서 development 로 새어 나간 전례가 있다.
+ */
+function isSwaggerRequest(req: Request): boolean {
+  const swaggerOrigin = process.env.ORIGIN_URL?.trim();
+  if (!swaggerOrigin) return false;
+
+  const origin = parseUrl(req.headers.origin);
+  if (origin && isSwaggerOrigin(origin, swaggerOrigin)) return true;
+
+  const referer = parseUrl(req.headers.referer);
+  return (
+    !!referer &&
+    isSwaggerOrigin(referer, swaggerOrigin) &&
+    (referer.pathname === '/docs' || referer.pathname.startsWith('/docs/'))
+  );
+}
+
+/**
+ * CSRF 검사에서 빼는 요청 조건. 파생 프로젝트는 여기에 한 줄씩 더한다.
+ */
+const CSRF_EXEMPTIONS: Array<(req: Request) => boolean> = [
+  // Swagger(/docs) — 백엔드 자신의 origin 에서 온 요청만
+  isSwaggerRequest,
+  // provider 가 form_post 로 보내는 OAuth 콜백 — state 대조로 막는다
+  isCrossSiteCallback,
+];
+
 export function setSecurityMiddleware(app: INestApplication): void {
   const logger = new Logger('Security');
 
@@ -60,37 +131,35 @@ export function setSecurityMiddleware(app: INestApplication): void {
     ...(process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
     undefined, // Postman/Insomnia 등 origin 없는 경우
   ];
-  app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
+  const corsOptions = {
+    allowedHeaders:
+      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Cookie, Accept, Observe, Authorization, X-CSRF-Token',
+    methods: 'GET,PUT,POST,DELETE,OPTIONS,PATCH',
+    credentials: true,
+  };
+  app.enableCors(
+    (req: Request, callback: (err: Error | null, options?: object) => void) => {
+      // 크로스사이트 콜백은 브라우저 내비게이션이라 CORS 헤더가 필요 없다 —
+      // 허용 목록에 없는 Origin 이라고 거절(500)하지 않고 CORS 헤더 없이 통과시킨다.
+      if (isCrossSiteCallback(req)) {
+        callback(null, { origin: false });
+        return;
+      }
+      const origin = req.headers.origin;
       if (!origin || whitelist.includes(origin)) {
-        callback(null, true);
+        callback(null, { ...corsOptions, origin: true });
       } else {
         logger.warn(`CORS blocked for: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
-    allowedHeaders:
-      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Cookie, Accept, Observe, Authorization, X-CSRF-Token',
-    methods: 'GET,PUT,POST,DELETE,OPTIONS,PATCH',
-    credentials: true,
-  });
+  );
 
   /*
-    CSRF — Swagger(/docs) 와 매칭되는 origin은 면제
+    CSRF — CSRF_EXEMPTIONS 에 걸리는 요청은 면제
    */
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin;
-    const referer = req.headers.referer;
-    const swaggerOrigin = process.env.ORIGIN_URL;
-
-    const isSwagger =
-      (!!swaggerOrigin && !!origin && origin.includes(swaggerOrigin)) ||
-      (!!referer && referer.includes('/docs'));
-
-    if (isSwagger) return next(); // ✅ Swagger는 CSRF 제외
+    if (CSRF_EXEMPTIONS.some((isExempt) => isExempt(req))) return next();
 
     return csrfHandler.doubleCsrfProtection(req, res, next);
   });

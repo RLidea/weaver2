@@ -24,11 +24,23 @@ export class ResetPasswordService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 재설정 링크를 받았다는 것은 메일함을 가졌다는 증명이다 — 인증도 함께 끝낸다.
+    // 미인증 선점 가입을 당한 주인은 이 길로 계정을 되찾는다(남아 있던 인증 토큰도 버린다).
     await UpdateLocalCredentialPasswordCommand(
       this.prisma,
       credential.userId,
       hashedPassword,
+      { markVerified: true },
     );
+
+    // 미인증 계정을 재설정이 인증했다면, 가입은 다른 사람이 했을 수 있다(선점 가입).
+    // 주인이 준 적 없는 마케팅 수신 동의를 되돌린다.
+    if (!credential.isVerified) {
+      await this.prisma.userSetting.updateMany({
+        where: { userId: credential.userId },
+        data: { isMarketingConsentGiven: false },
+      });
+    }
 
     // 비밀번호가 바뀌면 기존 세션을 전부 무효화한다(변경 경로와 동일 정책).
     // 계정이 이미 탈취된 상태에서 재설정으로 복구할 때 공격자 세션이 살아남지 않게 함.

@@ -75,7 +75,9 @@ export class NaverOAuthProvider implements OAuthProvider {
     };
   }
 
-  async getUserProfile(accessToken: string): Promise<OAuthUserProfile> {
+  async getUserProfile({
+    accessToken,
+  }: OAuthTokens): Promise<OAuthUserProfile> {
     const res = await fetch('https://openapi.naver.com/v1/nid/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

@@ -135,8 +135,9 @@ export class SignUpService {
       userId: user.id,
     });
 
+    // 입력값이 아니라 저장된 주소로 보낸다
     await this.emailBusinessService.sendVerificationEmail(
-      email,
+      user.email,
       `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
       user.id,
     );
@@ -147,7 +148,15 @@ export class SignUpService {
     };
   }
 
-  async verifyEmail(token: string) {
+  /**
+   * 인증 링크의 토큰과 가입 때 정한 비밀번호가 둘 다 맞아야 인증한다.
+   *
+   * 토큰만으로 인증하면 선점 가입으로 계정을 빼앗긴다 — 남의 이메일로 자기 비밀번호를
+   * 정해 가입해 두면 인증 메일이 진짜 주인에게 가고, 주인이 링크를 누르는 순간 공격자의
+   * 비밀번호가 살아난다. 주인은 그 비밀번호를 모르므로 여기서 막히고, 비밀번호 재설정
+   * (메일함 소유 증명 → 인증 완료 · 세션 전부 무효화)으로 계정을 되찾는다.
+   */
+  async verifyEmail(token: string, password: string) {
     const credential = await FindLocalCredentialByTokenQuery(this.prisma, {
       verificationToken: token,
     });
@@ -161,6 +170,13 @@ export class SignUpService {
       credential?.verificationTokenExpiry < new Date()
     ) {
       throw new BadRequestException('Verification token has expired.');
+    }
+    // 틀려도 토큰은 남긴다 — 오타면 다시 입력하면 되고, 주인이 아니면 재설정으로 간다
+    const passwordMatches =
+      !!credential.password &&
+      (await bcrypt.compare(password, credential.password));
+    if (!passwordMatches) {
+      throw new BadRequestException('VERIFY_PASSWORD_MISMATCH');
     }
     // remove token and update isVerified
     await this.prisma.localCredential.update({

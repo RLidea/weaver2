@@ -9,6 +9,10 @@ export class OAuthProviderRegistry {
     this.providers.set(provider.name, provider);
   }
 
+  has(name: string): boolean {
+    return this.providers.has(name);
+  }
+
   get(name: string): OAuthProvider {
     const provider = this.providers.get(name);
     if (!provider) {

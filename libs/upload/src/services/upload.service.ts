@@ -23,6 +23,7 @@ import { UpdateFileCommand } from '../repositories/update-file.command';
 import { FileDto } from '../dto/file.dto';
 import { AdminFilesQueryDto } from '../dto/admin-files-query.dto';
 import { UserFilesQueryDto } from '../dto/user-files-query.dto';
+import { uploadFileType } from '../file-types';
 
 @Injectable()
 export class UploadService {
@@ -63,12 +64,29 @@ export class UploadService {
         );
       }
 
+      // 선언한 형식(클라이언트가 보낸 Content-Type)은 믿지 않는다 — 시그니처가 맞아야 받는다
+      const fileType = uploadFileType(file.mimetype);
+      if (!fileType) {
+        throw new BadRequestException(
+          `내용을 확인할 수 없는 형식이라 받지 않습니다: ${file.mimetype}`,
+        );
+      }
+      if (!fileType.matches(file.buffer)) {
+        throw new BadRequestException(
+          `파일 내용이 선언한 형식(${file.mimetype})과 다릅니다: ${file.originalname}`,
+        );
+      }
+
       const now = new Date();
       const year = now.getFullYear().toString();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const directory = path.join('uploads', year, month);
 
-      const { path: filePath } = await this.storage.save(file, directory);
+      const { path: filePath } = await this.storage.save(file, directory, {
+        ext: fileType.ext,
+        contentType: file.mimetype,
+        inline: fileType.inline,
+      });
 
       let thumbnailPath: string | undefined;
       if (options.generateThumbnail && this.thumbnail.isImage(file.mimetype)) {
@@ -77,10 +95,10 @@ export class UploadService {
           options.thumbnailWidth,
           options.thumbnailHeight,
         );
-        const ext = path.extname(file.originalname).toLowerCase();
+        // sharp 는 입력 형식을 그대로 내보낸다 — 확장자도 검증된 형식에서
         const { path: thumbPath } = await this.storage.saveBuffer(
           thumbBuffer,
-          `thumb${ext}`,
+          `thumb${fileType.ext}`,
           directory,
         );
         thumbnailPath = thumbPath;

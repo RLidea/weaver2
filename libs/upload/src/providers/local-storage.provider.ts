@@ -2,18 +2,19 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import { StorageProvider } from './storage-provider.interface';
+import { StorageProvider, StoredFileType } from './storage-provider.interface';
 
 @Injectable()
 export class LocalStorageProvider implements StorageProvider {
   async save(
     file: Express.Multer.File,
     directory: string,
+    type: StoredFileType,
   ): Promise<{ storedName: string; path: string }> {
     await fs.mkdir(directory, { recursive: true });
 
-    const ext = path.extname(file.originalname).toLowerCase();
-    const storedName = `${randomUUID()}${ext}`;
+    // 확장자는 사용자 파일명이 아니라 검증된 형식에서 — 정적 서빙이 확장자로 Content-Type 을 정한다
+    const storedName = `${randomUUID()}${type.ext}`;
     const filePath = path.join(directory, storedName);
 
     await fs.writeFile(filePath, file.buffer);

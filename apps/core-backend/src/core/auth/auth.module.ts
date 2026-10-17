@@ -19,6 +19,7 @@ import { SignOutService } from './services/sign-out.service';
 import { TermsService } from '../terms/services/terms.service';
 import { OAuthModule } from './oauth/oauth.module';
 import { OAuthController } from './controllers/oauth.controller';
+import { AuthProvidersController } from './controllers/auth-providers.controller';
 import { TwoFactorController } from './controllers/two-factor.controller';
 import { TwoFactorService } from './services/two-factor.service';
 import { SessionController } from './controllers/session.controller';
@@ -36,6 +37,7 @@ import { CsrfController } from './controllers/csrf.controller';
     TwoFactorController,
     SessionController,
     CsrfController,
+    AuthProvidersController,
   ],
   providers: [
     SignInService,

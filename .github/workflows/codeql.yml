@@ -39,10 +39,26 @@ jobs:
         language: [javascript-typescript]
 
     steps:
+      # code scanning 업로드는 공개 레포만 무료다. 비공개 레포는 Advanced Security 가
+      # 없으면 analyze 가 실패하므로, 이 템플릿을 받아 간 비공개 파생 레포에서는 건너뛴다.
+      # github.event.repository 는 schedule 이벤트에 없어서 API 로 직접 묻는다.
+      - name: Check repository visibility
+        id: visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          private=$(gh api "repos/${{ github.repository }}" --jq .private)
+          echo "private=$private" >> "$GITHUB_OUTPUT"
+          if [ "$private" = "true" ]; then
+            echo "::notice::비공개 레포라 CodeQL 을 건너뜁니다 (code scanning 은 Advanced Security 필요)."
+          fi
+
       - name: Checkout
+        if: steps.visibility.outputs.private == 'false'
         uses: actions/checkout@v7
 
       - name: Initialize CodeQL
+        if: steps.visibility.outputs.private == 'false'
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
@@ -62,6 +78,7 @@ jobs:
               - '**/*.stories.tsx'
 
       - name: Perform CodeQL Analysis
+        if: steps.visibility.outputs.private == 'false'
         uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'

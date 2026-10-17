@@ -1,5 +1,6 @@
 import { PrismaService } from '@weaver2/prisma';
 import { Prisma } from '@weaver2/prisma';
+import { normalizeEmail } from '../utils/email.util';
 
 export async function CreateOAuthUserCommand(
   prisma: PrismaService,
@@ -27,7 +28,7 @@ export async function CreateOAuthUserCommand(
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
-      data: { username, displayName, email },
+      data: { username, displayName, email: normalizeEmail(email) },
     });
 
     await tx.oAuthAccount.create({

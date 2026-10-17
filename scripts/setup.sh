@@ -14,6 +14,14 @@
 #   - git, node, pnpm, pm2 설치 필요
 #   - pm2 설치: npm install -g pm2
 #
+# [사전 준비 - 리버스 프록시] (이 저장소에 nginx 설정은 없다 — 서버에서 직접 둔다)
+#   백엔드는 TRUST_PROXY(기본 loopback)로 같은 호스트 프록시의 X-Forwarded-For 를 믿어
+#   req.ip(스로틀 버킷·로그인 IP)를 정한다. Next.js rewrite(/api → 백엔드)는 XFF 가
+#   있으면 손대지 않고 넘기므로, 앞단 nginx 가 클라이언트 값을 **덮어써야** 위조가 막힌다:
+#     proxy_set_header X-Forwarded-For $remote_addr;   # $proxy_add_x_forwarded_for 아님
+#     proxy_set_header X-Real-IP       $remote_addr;
+#   nginx 없이 Next 를 바로 노출하면 클라이언트가 XFF 로 IP 를 고를 수 있다.
+#
 # [실행 방법]
 #   chmod +x scripts/setup.sh
 #   bash scripts/setup.sh

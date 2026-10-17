@@ -19,6 +19,10 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/auth/verify',
+  // 업로드 파일 — 이미지는 matcher 에서 이미 빠져 있고, PDF·ZIP 같은 첨부도 로그아웃한
+  // 방문자가 공개 게시글에서 받을 수 있어야 한다. 여기서 막아도 쿠키가 「있는지」만 보므로
+  // 접근 통제가 되지 못한다 — 안전은 백엔드의 응답 헤더(sandbox · nosniff · attachment)가 진다.
+  '/uploads',
 ];
 
 /** 로그인한 사용자가 들어오면 대시보드로 되돌릴 경로. */

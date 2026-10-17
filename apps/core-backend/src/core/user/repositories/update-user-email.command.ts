@@ -1,4 +1,5 @@
 import { PrismaClient } from '@weaver2/prisma';
+import { normalizeEmail } from '../../auth/utils/email.util';
 
 export async function UpdateUserEmailCommand(
   prisma: PrismaClient,
@@ -7,6 +8,6 @@ export async function UpdateUserEmailCommand(
 ) {
   return prisma.user.update({
     where: { id: userId },
-    data: { email: newEmail },
+    data: { email: normalizeEmail(newEmail) },
   });
 }

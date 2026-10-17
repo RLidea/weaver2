@@ -1,18 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import { SignUpService } from '../services/sign-up.service';
 import { Throttle } from '@nestjs/throttler';
 import { RequestPasswordResetDto } from '../dto/request-password-reset.dto';
+import { VerifyEmailDto } from '../dto/verify-email.dto';
 
 @ApiTags('Auth')
 @Controller({
@@ -64,9 +57,15 @@ export class SignUpController {
   }
 
   @Public()
-  @Get('verify')
-  @ApiOperation({ summary: '이메일 인증 토큰 검증' })
-  verifyEmail(@Query('token') token: string) {
-    return this.signUpService.verifyEmail(token);
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '이메일 인증 (토큰 + 가입 때 정한 비밀번호)',
+    description:
+      '비밀번호가 틀리면 400 VERIFY_PASSWORD_MISMATCH — 본인이 가입하지 않았다면 비밀번호 재설정으로 계정을 되찾는다(재설정이 인증까지 끝낸다).',
+  })
+  verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.signUpService.verifyEmail(dto.token, dto.password);
   }
 }

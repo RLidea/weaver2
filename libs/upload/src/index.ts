@@ -13,3 +13,4 @@ export * from './dto/upload-file.dto';
 export * from './dto/link-post.dto';
 export * from './dto/user-files-query.dto';
 export * from './dto/admin-files-query.dto';
+export * from './file-types';

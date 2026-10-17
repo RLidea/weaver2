@@ -20,6 +20,8 @@ const qrcode = require('qrcode') as typeof import('qrcode');
 import { randomInt } from 'crypto';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
+import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
+import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
 import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-challenge.query';
 import { CreateTwoFactorChallengeCommand } from '../repositories/create-two-factor-challenge.command';
 import { DeleteTwoFactorChallengesCommand } from '../repositories/delete-two-factor-challenges.command';
@@ -230,6 +232,14 @@ export class TwoFactorService {
     );
     if (!credential) throw new UnauthorizedException('Account not found');
 
+    // 2FA 시도도 비밀번호와 같은 잠금 카운터에 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며
+    // 6자리 코드를 대입하는 것을 막지 못한다. 코드를 보기 전에 시도를 원자적으로 잡는다.
+    if (!(await ReserveLoginAttemptCommand(this.prisma, userId))) {
+      throw new UnauthorizedException(
+        'Account is temporarily locked. Please try again later.',
+      );
+    }
+
     if (method === 'totp') {
       if (!credential.totpEnabled || !credential.totpSecret) {
         throw new BadRequestException('TOTP is not enabled for this account');
@@ -274,6 +284,7 @@ export class TwoFactorService {
       );
     }
 
+    await ResetFailedAttemptsCommand(this.prisma, userId);
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
     return { userId, rememberMe };
   }

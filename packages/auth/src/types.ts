@@ -61,6 +61,20 @@ export const ResetPasswordSchema = z
 
 export type ResetPasswordFormValues = z.infer<typeof ResetPasswordSchema>;
 
+export const VerifyEmailSchema = z.object({
+  password: z.string().min(1, '가입할 때 정한 비밀번호를 입력해주세요'),
+});
+
+export type VerifyEmailFormValues = z.infer<typeof VerifyEmailSchema>;
+
+export interface VerifyEmailRequest {
+  token: string;
+  password: string;
+}
+
+/** 인증 시 비밀번호가 가입 때 것과 다를 때 서버가 내는 메시지 */
+export const VERIFY_PASSWORD_MISMATCH = 'VERIFY_PASSWORD_MISMATCH';
+
 export interface RequestPasswordResetRequest {
   email: string;
 }
