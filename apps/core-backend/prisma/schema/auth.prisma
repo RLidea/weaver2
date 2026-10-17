@@ -15,9 +15,14 @@ model User {
   updatedAt           DateTime              @updatedAt
   deletedAt           DateTime?
   lastLoginAt         DateTime?
+  // 지금의 email 주인임이 증명된 시각. email 이 바뀌면 다시 정해진다
+  emailVerifiedAt     DateTime?
   localCredential     LocalCredential?
   oauthAccounts       OAuthAccount[]
   refreshTokens       RefreshToken[]
+  twoFactorMethods    TwoFactorMethod[]
+  oneTimeCodes        OneTimeCode[]
+  authLockouts        AuthLockout[]
   twoFactorChallenges TwoFactorChallenge[]
   emailChangeRequests EmailChangeRequest[]
   emailLogs           EmailLog[]
@@ -102,6 +107,73 @@ model EmailChangeRequest {
 
   @@index([userId])
   @@map("email_change_requests")
+}
+
+// 아래 세 테이블이 local_credentials 의 2FA·잠금 컬럼과 two_factor_challenges ·
+// email_change_requests 를 대신한다 (docs/design/specs/2026-10-17-auth-credential-model-design.md).
+// 옛 것은 서비스가 다 옮겨 간 뒤 축소 마이그레이션에서 지운다.
+
+enum TwoFactorKind {
+  TOTP
+  EMAIL
+}
+
+/// 사람에 붙는 2차 인증 수단. 로그인 수단(비밀번호·OAuth)과 무관하다.
+model TwoFactorMethod {
+  id               String        @id @default(uuid())
+  userId           String
+  kind             TwoFactorKind
+  secretEncrypted  String? // TOTP 만 (AES-256-GCM, v1 형식)
+  lastUsedTimeStep Int? // TOTP 만 — 이 값 이하의 시간 단위는 거절(재사용 차단)
+  confirmedAt      DateTime? // TOTP 만 null 가능 = QR 을 받았지만 코드로 확인 전
+  createdAt        DateTime      @default(now())
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@map("two_factor_methods")
+}
+
+enum OneTimeCodePurpose {
+  EMAIL_VERIFICATION // 링크 — 가입 인증
+  PASSWORD_RESET // 링크
+  EMAIL_CHANGE // 6자리 — 새 주소로
+  TWO_FACTOR_LOGIN // 6자리 — pre-auth 상태에서
+  TWO_FACTOR_SETUP // 6자리 — 이메일 2FA 켜기
+  STEP_UP // 6자리 — 로그인한 사용자가 민감한 동작(2FA 해제 등) 전에 다시 증명
+}
+
+/// 메일로 보내는 일회용 비밀 전부. 쓰면 행을 지운다(소비 = 삭제).
+model OneTimeCode {
+  id         String             @id @default(uuid())
+  userId     String
+  purpose    OneTimeCodePurpose
+  secretHash String             @unique
+  newEmail   String? // EMAIL_CHANGE 만
+  attempts   Int                @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime           @default(now())
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purpose]) // 목적마다 살아 있는 것은 하나
+  @@index([expiresAt]) // 정리 작업용
+  @@map("one_time_codes")
+}
+
+enum AuthFactor {
+  PASSWORD
+  SECOND_FACTOR // TOTP·이메일 2FA 코드
+}
+
+/// 사람·요소별 추측 실패.
+model AuthLockout {
+  userId         String
+  factor         AuthFactor
+  failedAttempts Int        @default(0)
+  lockedUntil    DateTime?
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, factor])
+  @@map("auth_lockouts")
 }
 
 model OAuthAccount {

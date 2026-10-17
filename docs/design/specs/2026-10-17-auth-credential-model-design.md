@@ -269,17 +269,17 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 
 **이름 바꾸기는 손으로 쓴다.** Prisma 가 만든 SQL 은 이름 변경을 DROP + ADD 로 내서 데이터가 사라진다(NOT NULL 이면 데이터 있는 DB 에서만 실패하고, 빈 DB 의 CI 는 통과한다). `migrate dev --create-only` 로 뼈대만 받고 `ALTER TABLE … RENAME COLUMN` 으로 고친다.
 
-한 마이그레이션 안에서 순서대로. **확신이 없으면 멈춘다** (이메일 소문자 마이그레이션과 같은 방식).
+**마이그레이션은 둘이다 — 확장(1~6)과 축소(7).** 하나로 옛 컬럼까지 지우면, 그 컬럼을 쓰는 코드(약 45개 파일)를 step 2~4 가 다 옮길 때까지 빌드가 깨진다(§9 「커밋마다 녹색」과 부딪힌다). 확장은 새 테이블을 더하고 데이터를 복사만 해서 옛 코드가 그대로 돌고, 축소는 서비스가 다 옮겨 간 뒤 옛 것을 지운다. **둘은 같은 착륙으로 함께 나간다**(메인테이너, 2026-10-17) — 배포 때 확장 직후 축소가 돌아 그 사이에 옛 컬럼에 쓰이는 값이 없으므로 다시 옮길 일이 없다. 각 마이그레이션 안에서는 순서대로, **확신이 없으면 멈춘다** (이메일 소문자 마이그레이션과 같은 방식).
 
-1. **평문 TOTP 비밀이 남아 있으면 멈춘다** (`"totpSecret" NOT LIKE 'v1:%'`). SQL 로는 암호화할 수 없다. 메시지는 「`pnpm auth:encrypt-legacy-totp` 를 먼저 돌리라」 — 이 스크립트는 **옛 스키마에서** 돌아 평문을 암호문으로 바꾼다. 그래서 `decryptSecret` 의 평문 통과·지연 재암호화 코드도 지운다.
-2. 새 enum·테이블·`users."emailVerifiedAt"` 생성
+1. **켜져 있는 TOTP 의 비밀이 평문이면 멈춘다** (`"totpEnabled" AND "totpSecret" NOT LIKE 'v1:%'` — 등록 중이던 비밀은 옮기지 않으므로 막지 않는다). SQL 로는 암호화할 수 없다. 메시지는 「`pnpm auth:encrypt-legacy-totp` 를 먼저 돌리라」 — 이 스크립트는 **옛 스키마에서** 돌아 평문을 암호문으로 바꾼다. 그래서 `decryptSecret` 의 평문 통과·지연 재암호화 코드도 지운다(step 3). 켜져 있는데 비밀이 없는 행도 옛 코드가 만들 수 없는 상태라 멈춘다.
+2. 새 enum·테이블·`users."emailVerifiedAt"`·CHECK 생성
 3. `"emailVerifiedAt"`: 인증된 로컬 계정 → `local_credentials."updatedAt"`(정확한 시각은 기록된 적이 없다 — 가장 가까운 추정), `LocalCredential` 이 없는 OAuth 계정 → `users."createdAt"`
 4. `two_factor_methods`: `"totpEnabled"` → TOTP 확인됨, `"emailOtpEnabled"` → EMAIL 확인됨(`"confirmedAt" = "updatedAt"`). 등록 중이던 TOTP 비밀은 버린다
 5. `auth_lockouts`: 0이 아닌 카운터·잠금을 `PASSWORD` 로 옮긴다
 6. 진행 중이던 링크와 코드는 **옮기지 않는다** — 해시 방식이 바뀌어 옮길 수 없다. 사용자는 다시 요청하면 된다(최대 1시간분)
-7. `local_credentials`: `RENAME COLUMN password TO "passwordHash"`, 기본키를 `"userId"` 로, 옛 컬럼·테이블 삭제
+7. **(축소)** `local_credentials`: `RENAME COLUMN password TO "passwordHash"`, 기본키를 `"userId"` 로, 옛 컬럼·테이블 삭제
 
-**확인할 것**: Prisma 7 이 PostgreSQL `migration.sql` 을 한 트랜잭션으로 감싸는지. 감싸지 않으면 중간에 멈췄을 때 반쯤 적용된 상태가 남는다(이메일 마이그레이션도 같은 노출). 격리 DB 에서 일부러 멈춰 보고, 필요하면 파일 안에서 명시적으로 감싼다.
+**트랜잭션 — 확인함 (2026-10-17)**: Prisma 7 은 PostgreSQL `migration.sql` 을 한 트랜잭션으로 감싼다. 확장 마이그레이션 끝에 일부러 `SELECT 1/0` 을 붙여 격리 DB 에서 돌리니, 앞서 만든 enum·테이블·컬럼이 하나도 남지 않았고 `_prisma_migrations` 에는 `finished_at` 이 빈 실패 기록만 남았다. 파일 안에서 따로 감쌀 필요는 없다.
 
 **배포 순서** (handbook 에 런북으로): 백업 → 1단계 스크립트 → `db:deploy` → 코드 재시작. 멈췄으면 `prisma migrate resolve --rolled-back <이름>` → 원인 해결 → 다시. 열을 지우므로 되돌리기는 백업 복원뿐이다.
 
@@ -312,11 +312,11 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 격리 레인 하나(`--isolated`), 커밋마다 빌드·테스트 녹색. 파일 설계와 둘 다 `users` 를 건드리므로 **이 레인이 먼저 착륙**하고, 파일 레인은 rebase 뒤 `db:generate`.
 
 0. **4.0 토큰 검증 일원화 + R8 TOTP 등록 POST** — 지금 열린 구멍이라 스키마 변경 전에 먼저(작고 독립적)
-1. 스키마·마이그레이션·CHECK, 옛 TOTP 암호화 스크립트, 저장소 계층
+1. 스키마·**확장** 마이그레이션·CHECK, 옛 TOTP 암호화 스크립트 (저장소 계층은 쓰는 단계에서 함께 만든다 — 부르는 곳 없이 미리 짓지 않는다)
 2. `OneTimeCodeService` 로 재설정·인증·2FA 이메일·이메일 변경 교체, STEP_UP, 정리 스케줄러
 3. `TwoFactorMethod`·`AuthLockout`·TOTP 재사용 차단·관리자 2FA 초기화
 4. `SignInCompletionService` — 비밀번호·OAuth·2FA 통과를 한 곳으로, pre-auth 쿠키, `/2fa/pending`, 프런트
-5. 시드(`prisma/seed/user.seed.ts`)와 기존 통합 테스트(`login-attempt`·`auth-security`·`email-case`) 이전
+5. 시드(`prisma/seed/user.seed.ts`)와 기존 통합 테스트(`login-attempt`·`auth-security`·`email-case`) 이전, 그다음 **축소** 마이그레이션(§5-7) — 옛 컬럼을 읽는 코드가 0이 된 뒤
 6. 새 통합 테스트(실제 DB): 코드 동시 20회 → 5회만 확인, 재발급해도 시도 수 유지, TOTP 같은 단계 동시 2회 → 1회, 재설정이 `SECOND_FACTOR` 를 못 비움, pre-auth 토큰으로 공개 라우트 → 비로그인 취급, OAuth+2FA, 정지 계정 OAuth 거절. **데이터를 채운 DB 로 마이그레이션** 돌려 이전 결과 확인
 7. e2e: Next 를 거친 실제 2FA 로그인(쿠키 경로 확인)
 8. handbook 03-auth(배포 런북·받아들인 위험), `.env.example`, CHARTER
