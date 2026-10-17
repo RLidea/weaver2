@@ -4308,6 +4308,7 @@ export interface operations {
     EmailController_getEmailTemplates: {
         parameters: {
             query?: {
+                /** @description 정확히 'false' 일 때만 꺼진 템플릿까지 준다. 생략하거나 다른 값이면 켜진 것만 준다. */
                 activeOnly?: boolean;
             };
             header?: never;

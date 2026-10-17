@@ -104,7 +104,13 @@ export class EmailController {
    */
   @Get('templates')
   @ApiOperation({ summary: '이메일 템플릿 목록 조회' })
-  @ApiQuery({ name: 'activeOnly', required: false, type: Boolean })
+  @ApiQuery({
+    name: 'activeOnly',
+    required: false,
+    type: Boolean,
+    description:
+      "정확히 'false' 일 때만 꺼진 템플릿까지 준다. 생략하거나 다른 값이면 켜진 것만 준다.",
+  })
   @RequirePermission(PERMISSIONS.EMAIL.TEMPLATE_MANAGE)
   async getEmailTemplates(@Query('activeOnly') activeOnly?: string) {
     // 쿼리 값은 문자열이다 — 'false' 일 때만 꺼진 템플릿까지 준다 (관리 화면은 꺼진 것도 보여야 다시 켠다)
