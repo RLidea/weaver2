@@ -13,9 +13,16 @@ import { UserAdminService } from './services/user-admin.service';
 import { EmailModule } from '../../infrastructure/email/email.module';
 import { UploadModule } from '@weaver2/upload';
 import { PermissionModule } from '../permission/permission.module';
+import { OneTimeCodeModule } from '../auth/one-time-code/one-time-code.module';
 
 @Module({
-  imports: [PrismaModule, EmailModule, UploadModule, PermissionModule],
+  imports: [
+    PrismaModule,
+    EmailModule,
+    UploadModule,
+    PermissionModule,
+    OneTimeCodeModule,
+  ],
   controllers: [
     UserProfileController,
     UserQueryController,
