@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
+import { createReadStream } from 'fs';
+import type { Readable } from 'stream';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { StorageProvider, StoredFileType } from './storage-provider.interface';
@@ -36,6 +38,16 @@ export class LocalStorageProvider implements StorageProvider {
     await fs.writeFile(filePath, buffer);
 
     return { storedName, path: filePath };
+  }
+
+  async read(filePath: string): Promise<Readable | null> {
+    // 열 수 있는지 먼저 본다 — 스트림의 ENOENT 는 응답을 시작한 뒤에야 터진다
+    try {
+      await fs.access(filePath);
+    } catch {
+      return null;
+    }
+    return createReadStream(filePath);
   }
 
   async delete(filePath: string): Promise<void> {

@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as path from 'path';
+import { Readable } from 'stream';
 import { randomUUID } from 'crypto';
 import { StorageProvider, StoredFileType } from './storage-provider.interface';
 import { uploadTypeByExtension } from '../file-types';
@@ -81,6 +82,17 @@ export class S3StorageProvider implements StorageProvider {
     );
 
     return { storedName, path: key };
+  }
+
+  async read(key: string): Promise<Readable | null> {
+    try {
+      const { Body } = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return Body instanceof Readable ? Body : null;
+    } catch {
+      return null;
+    }
   }
 
   async delete(key: string): Promise<void> {
