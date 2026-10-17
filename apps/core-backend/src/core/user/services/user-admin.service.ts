@@ -1,14 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { OffsetResponseDto } from '@weaver2/pagination';
-import { STORAGE_PROVIDER, StorageProvider } from '@weaver2/upload';
+import { UploadService } from '@weaver2/upload';
 import { AdminUserDto } from '../dto/admin-user.dto';
 import { AdminUsersQueryDto } from '../dto/admin-users-query.dto';
 import { AdminUpdateUserDto } from '../dto/admin-update-user.dto';
@@ -31,7 +30,7 @@ export class UserAdminService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly uploads: UploadService,
     private readonly permissionService: PermissionService,
   ) {}
 
@@ -41,7 +40,7 @@ export class UserAdminService {
     const result = await findAdminUsersQuery(this.prisma, query);
     return {
       ...result,
-      data: await Promise.all(result.data.map((u) => this.toAdminUserDto(u))),
+      data: result.data.map((u) => this.toAdminUserDto(u)),
     };
   }
 
@@ -219,13 +218,10 @@ export class UserAdminService {
     });
   }
 
-  private async toAdminUserDto(
-    user: AdminUserWithGroups,
-  ): Promise<AdminUserDto> {
-    let profileImageUrl: string | null = null;
-    if (user.profileImagePath) {
-      profileImageUrl = await this.storage.getFileUrl(user.profileImagePath);
-    }
+  private toAdminUserDto(user: AdminUserWithGroups): AdminUserDto {
+    const profileImageUrl = user.profileImageFileId
+      ? this.uploads.urlFor(user.profileImageFileId)
+      : null;
 
     return {
       id: user.id,

@@ -7,9 +7,6 @@ export class FileDto {
   @ApiProperty({ description: '원본 파일명' })
   originalName: string;
 
-  @ApiProperty({ description: '저장된 파일명 (UUID 기반)' })
-  storedName: string;
-
   @ApiProperty({ description: 'MIME 타입' })
   mimeType: string;
 
@@ -17,15 +14,13 @@ export class FileDto {
   size: number;
 
   @ApiProperty({
-    description: '파일 접근 URL (local: 정적 경로, s3: presigned URL)',
+    description:
+      '파일 주소 `${FILE_URL_BASE}/v1/files/:id` — 받을 때마다 권한을 본다(로컬은 스트림, S3 는 60초 서명 URL 로 302)',
   })
   url: string;
 
-  @ApiPropertyOptional({ description: '썸네일 접근 URL (이미지만)' })
+  @ApiPropertyOptional({ description: '썸네일 주소 (이미지만)' })
   thumbnailUrl: string | null;
-
-  @ApiPropertyOptional({ description: '연결된 게시글 ID' })
-  postId: string | null;
 
   @ApiPropertyOptional({ description: '업로드한 사용자 ID' })
   uploadedById: string | null;

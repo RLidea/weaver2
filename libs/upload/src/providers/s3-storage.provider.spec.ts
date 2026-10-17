@@ -38,7 +38,7 @@ describe('S3StorageProvider', () => {
 
   describe('getFileUrl — 저장된 메타데이터 대신 확장자로 응답 헤더를 정한다', () => {
     it('이미지는 그 형식으로 인라인', async () => {
-      await provider.getFileUrl('uploads/2026/10/a.png');
+      await provider.getFileUrl('uploads/2026/10/a.png', 60);
 
       expect(signedInput()).toMatchObject({
         Key: 'uploads/2026/10/a.png',
@@ -48,7 +48,7 @@ describe('S3StorageProvider', () => {
     });
 
     it('이미지가 아닌 형식은 내려받기', async () => {
-      await provider.getFileUrl('uploads/2026/10/a.pdf');
+      await provider.getFileUrl('uploads/2026/10/a.pdf', 60);
 
       expect(signedInput()).toMatchObject({
         ResponseContentType: 'application/pdf',
@@ -57,7 +57,7 @@ describe('S3StorageProvider', () => {
     });
 
     it('형식 확인 전에 저장된 .html 은 octet-stream 내려받기 (저장된 text/html 무시)', async () => {
-      await provider.getFileUrl('uploads/2025/01/old.html');
+      await provider.getFileUrl('uploads/2025/01/old.html', 60);
 
       expect(signedInput()).toMatchObject({
         ResponseContentType: 'application/octet-stream',

@@ -1,12 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
-import { PrismaService } from '@weaver2/prisma';
+import type { Readable } from 'stream';
+import { File, Prisma, PrismaService } from '@weaver2/prisma';
 import {
   KeysetPaginationService,
   KeysetResponseDto,
@@ -19,14 +22,29 @@ import { ThumbnailService } from './thumbnail.service';
 import { CreateFileCommand } from '../repositories/create-file.command';
 import { FindFileByIdQuery } from '../repositories/find-file-by-id.query';
 import { DeleteFileCommand } from '../repositories/delete-file.command';
-import { UpdateFileCommand } from '../repositories/update-file.command';
 import { FileDto } from '../dto/file.dto';
 import { AdminFilesQueryDto } from '../dto/admin-files-query.dto';
 import { UserFilesQueryDto } from '../dto/user-files-query.dto';
 import { uploadFileType } from '../file-types';
 
+/** S3 서명 URL 의 수명 — 302 를 받은 브라우저가 곧바로 쓰는 만큼만 */
+const SIGNED_URL_SECONDS = 60;
+
+/** 파일을 내주는 방법 — 로컬은 스트림, 서명 URL 을 낼 수 있는 저장소는 302 */
+export type FileDelivery =
+  | { kind: 'stream'; stream: Readable; key: string }
+  | { kind: 'redirect'; url: string };
+
+/** 이 행을 「어디에도 안 붙은 파일」로 본다 — 본체가 아는 붙음(첨부·프로필)이 없다 */
+const UNATTACHED: Prisma.FileWhereInput = {
+  postAttachment: { is: null },
+  profileOf: { is: null },
+};
+
 @Injectable()
 export class UploadService {
+  private readonly urlBase: string;
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
@@ -34,14 +52,16 @@ export class UploadService {
     private readonly createFileCmd: CreateFileCommand,
     private readonly findFileByIdQuery: FindFileByIdQuery,
     private readonly deleteFileCmd: DeleteFileCommand,
-    private readonly updateFileCmd: UpdateFileCommand,
-  ) {}
+    config: ConfigService,
+  ) {
+    // Next 리라이트(/api)를 거치는 같은 출처 주소 — 쿠키가 따라가 <img src> 가 그대로 동작한다
+    this.urlBase = config.get<string>('FILE_URL_BASE', '/api');
+  }
 
   async uploadFiles(
     files: Express.Multer.File[],
     uploadedById: string | undefined,
     options: {
-      postId?: string;
       maxFileSize: number;
       allowedMimeTypes: string[];
       generateThumbnail: boolean;
@@ -77,18 +97,15 @@ export class UploadService {
         );
       }
 
-      const now = new Date();
-      const year = now.getFullYear().toString();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const directory = path.join('uploads', year, month);
+      const directory = this.directoryFor(new Date());
 
-      const { path: filePath } = await this.storage.save(file, directory, {
+      const { path: storageKey } = await this.storage.save(file, directory, {
         ext: fileType.ext,
         contentType: file.mimetype,
         inline: fileType.inline,
       });
 
-      let thumbnailPath: string | undefined;
+      let thumbnailKey: string | undefined;
       if (options.generateThumbnail && this.thumbnail.isImage(file.mimetype)) {
         const thumbBuffer = await this.thumbnail.generate(
           file.buffer,
@@ -101,195 +118,154 @@ export class UploadService {
           `thumb${fileType.ext}`,
           directory,
         );
-        thumbnailPath = thumbPath;
+        thumbnailKey = thumbPath;
       }
 
       const record = await this.createFileCmd.execute({
         originalName: file.originalname,
-        storedName: path.basename(filePath),
         mimeType: file.mimetype,
         size: file.size,
-        path: filePath,
-        thumbnailPath,
-        postId: options.postId,
+        storageKey,
+        thumbnailKey,
         uploadedById,
       });
 
-      results.push(await this.toDto(record));
+      results.push(this.toDto(record));
     }
 
     return results;
   }
 
-  async findFileById(id: string): Promise<FileDto> {
-    const file = await this.findFileByIdQuery.execute(id);
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-    return this.toDto(file);
+  /** 로컬 저장소 키의 디렉터리 — uploads/YYYY/MM */
+  directoryFor(now: Date): string {
+    const year = now.getFullYear().toString();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return path.join('uploads', year, month);
   }
 
   async findFilesByUserId(
     userId: string,
     query: UserFilesQueryDto,
   ): Promise<KeysetResponseDto<FileDto>> {
-    const where: Record<string, unknown> = {
-      uploadedById: userId,
-      deletedAt: null,
-    };
-    if (query.postId) where.postId = query.postId;
-
-    return KeysetPaginationService.paginate<FileDto>({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.postFile as any,
+    const page = await KeysetPaginationService.paginate<File>({
+      prisma: this.prisma.file,
       preset: query.preset,
       cursor: query.cursor,
       limit: query.limit,
-      where,
+      where: { uploadedById: userId, deletedAt: null },
     });
+    return { ...page, data: page.data.map((f) => this.toDto(f)) };
   }
 
   async findAllFilesForAdmin(
     query: AdminFilesQueryDto,
   ): Promise<KeysetResponseDto<FileDto>> {
-    const where: Record<string, unknown> = {};
+    const where: Prisma.FileWhereInput = {};
     if (query.uploadedById) where.uploadedById = query.uploadedById;
-    if (query.postId) where.postId = query.postId;
+    if (query.postId) where.postAttachment = { postId: query.postId };
     if (!query.includeDeleted) where.deletedAt = null;
 
-    return KeysetPaginationService.paginate<FileDto>({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      prisma: this.prisma.postFile as any,
+    const page = await KeysetPaginationService.paginate<File>({
+      prisma: this.prisma.file,
       preset: query.preset,
       cursor: query.cursor,
       limit: query.limit,
       where,
     });
+    return { ...page, data: page.data.map((f) => this.toDto(f)) };
   }
 
-  async findFilesByPostId(postId: string): Promise<FileDto[]> {
-    const files = await this.prisma.postFile.findMany({
-      where: { postId, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-    });
-    return Promise.all(files.map((f) => this.toDto(f)));
-  }
-
-  async getFileUrl(id: string): Promise<string> {
-    const file = await this.findFileByIdQuery.execute(id);
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-    return this.storage.getFileUrl(file.path);
-  }
-
-  async getThumbnailUrl(id: string): Promise<string | null> {
-    const file = await this.findFileByIdQuery.execute(id);
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-    if (!file.thumbnailPath) return null;
-    return this.storage.getFileUrl(file.thumbnailPath);
+  /**
+   * 저장소에서 꺼낸다. 권한 판정은 호출자(FileAccessService)가 먼저 한다.
+   * 서명 URL 을 낼 수 있는 저장소면 302, 아니면 스트림. 객체가 없으면 null.
+   */
+  async deliver(file: File, thumbnail: boolean): Promise<FileDelivery | null> {
+    const key = thumbnail ? file.thumbnailKey : file.storageKey;
+    if (!key) return null;
+    if (this.storage.getFileUrl) {
+      return {
+        kind: 'redirect',
+        url: await this.storage.getFileUrl(key, SIGNED_URL_SECONDS),
+      };
+    }
+    const stream = await this.storage.read(key);
+    return stream ? { kind: 'stream', stream, key } : null;
   }
 
   async softDeleteFile(id: string, userId: string): Promise<void> {
     const file = await this.findFileByIdQuery.execute(id);
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    if (!file || file.deletedAt) {
+      throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
+    }
     if (file.uploadedById !== userId) {
       throw new ForbiddenException(
         '본인이 업로드한 파일만 삭제할 수 있습니다.',
       );
     }
-    await this.deleteFileCmd.softDelete(id);
+    await this.deleteFileCmd.softDelete(id, new Date());
   }
 
-  async unlinkFromPost(id: string, userId: string): Promise<FileDto> {
+  /** 관리자 물리 삭제. 본체가 아는 붙음은 끊고, 그 밖(파생 프로젝트의 첨부)에 붙어 있으면 409 */
+  async hardDeleteFile(id: string): Promise<void> {
     const file = await this.findFileByIdQuery.execute(id);
     if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-    if (file.uploadedById !== userId) {
-      throw new ForbiddenException(
-        '본인이 업로드한 파일만 연결 해제할 수 있습니다.',
+
+    await this.deleteFileCmd.softDelete(id, file.deletedAt ?? new Date());
+    if (!(await this.deleteFileCmd.hardDelete(id))) {
+      throw new ConflictException(
+        '다른 곳에 붙어 있는 파일이라 지울 수 없습니다. 붙은 쪽에서 먼저 떼어 내세요.',
       );
     }
-    const updated = await this.updateFileCmd.unlinkFromPost(id);
-    return this.toDto(updated);
+    await this.deleteStoredObjects(file);
   }
 
-  async linkToPost(
-    id: string,
-    postId: string,
-    userId: string,
-  ): Promise<FileDto> {
-    const file = await this.findFileByIdQuery.execute(id);
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-    if (file.uploadedById !== userId) {
-      throw new ForbiddenException(
-        '본인이 업로드한 파일만 연결할 수 있습니다.',
-      );
-    }
-    const updated = await this.updateFileCmd.linkToPost(id, postId);
-    return this.toDto(updated);
-  }
-
+  /**
+   * 「어디에도 안 붙은 채 보존 기간이 지난 파일」과 「지운 지 보존 기간이 지난 파일」을 물리 삭제한다.
+   * 행 먼저 — 파생 프로젝트의 첨부에 붙어 있으면 FK(Restrict)가 막고, 그 파일은 건너뛴다.
+   */
   async purgeOrphanedFiles(retentionHours: number): Promise<number> {
     const cutoff = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
 
-    const orphans = await this.prisma.postFile.findMany({
-      where: { postId: null, deletedAt: null, createdAt: { lte: cutoff } },
-      select: { id: true, path: true, thumbnailPath: true },
+    const candidates = await this.prisma.file.findMany({
+      where: {
+        OR: [
+          { ...UNATTACHED, deletedAt: null, createdAt: { lte: cutoff } },
+          { ...UNATTACHED, deletedAt: { lte: cutoff } },
+        ],
+      },
     });
 
-    for (const file of orphans) {
-      await this.storage.delete(file.path);
-      if (file.thumbnailPath) {
-        await this.storage.delete(file.thumbnailPath);
-      }
+    let purged = 0;
+    for (const file of candidates) {
+      if (!(await this.deleteFileCmd.hardDelete(file.id))) continue;
+      await this.deleteStoredObjects(file);
+      purged += 1;
     }
-
-    if (orphans.length > 0) {
-      await this.prisma.postFile.deleteMany({
-        where: { id: { in: orphans.map((f) => f.id) } },
-      });
-    }
-
-    return orphans.length;
+    return purged;
   }
 
-  async hardDeleteFile(id: string): Promise<void> {
-    const file = await this.prisma.postFile.findUnique({ where: { id } });
-    if (!file) throw new NotFoundException(`파일을 찾을 수 없습니다: ${id}`);
-
-    await this.storage.delete(file.path);
-    if (file.thumbnailPath) {
-      await this.storage.delete(file.thumbnailPath);
-    }
-    await this.deleteFileCmd.hardDelete(id);
-  }
-
-  private async toDto(file: {
-    id: string;
-    originalName: string;
-    storedName: string;
-    mimeType: string;
-    size: number;
-    path: string;
-    thumbnailPath: string | null;
-    postId: string | null;
-    uploadedById: string | null;
-    createdAt: Date;
-    deletedAt: Date | null;
-  }): Promise<FileDto> {
-    const url = await this.storage.getFileUrl(file.path);
-    const thumbnailUrl = file.thumbnailPath
-      ? await this.storage.getFileUrl(file.thumbnailPath)
-      : null;
-
+  toDto(file: File): FileDto {
+    const url = `${this.urlBase}/v1/files/${file.id}`;
     return {
       id: file.id,
       originalName: file.originalName,
-      storedName: file.storedName,
       mimeType: file.mimeType,
       size: file.size,
       url,
-      thumbnailUrl,
-      postId: file.postId,
+      thumbnailUrl: file.thumbnailKey ? `${url}/thumbnail` : null,
       uploadedById: file.uploadedById,
       createdAt: file.createdAt,
       deletedAt: file.deletedAt,
     };
+  }
+
+  /** 파일 id 로 내줄 주소 — 사용자 DTO 의 profileImageUrl 처럼 행 없이 주소만 필요한 곳이 쓴다 */
+  urlFor(fileId: string): string {
+    return `${this.urlBase}/v1/files/${fileId}`;
+  }
+
+  private async deleteStoredObjects(file: File): Promise<void> {
+    await this.storage.delete(file.storageKey);
+    if (file.thumbnailKey) await this.storage.delete(file.thumbnailKey);
   }
 }

@@ -9,7 +9,6 @@ import { UploadService } from './services/upload.service';
 import { CreateFileCommand } from './repositories/create-file.command';
 import { FindFileByIdQuery } from './repositories/find-file-by-id.query';
 import { DeleteFileCommand } from './repositories/delete-file.command';
-import { UpdateFileCommand } from './repositories/update-file.command';
 
 @Module({
   imports: [PrismaModule, ConfigModule],
@@ -27,9 +26,13 @@ import { UpdateFileCommand } from './repositories/update-file.command';
     CreateFileCommand,
     FindFileByIdQuery,
     DeleteFileCommand,
-    UpdateFileCommand,
     UploadService,
   ],
-  exports: [UploadService, STORAGE_PROVIDER, ThumbnailService],
+  exports: [
+    UploadService,
+    STORAGE_PROVIDER,
+    ThumbnailService,
+    FindFileByIdQuery,
+  ],
 })
 export class UploadModule {}

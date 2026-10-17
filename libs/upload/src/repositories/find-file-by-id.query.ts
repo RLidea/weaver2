@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@weaver2/prisma';
-import { PostFile } from '@weaver2/prisma';
+import { File, PrismaService } from '@weaver2/prisma';
 
 @Injectable()
 export class FindFileByIdQuery {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(id: string): Promise<PostFile | null> {
-    return this.prisma.postFile.findFirst({
-      where: { id, deletedAt: null },
-    });
+  /** 지운 파일도 돌려준다 — 내줄지는 FileAccessService 가 정한다 */
+  async execute(id: string): Promise<File | null> {
+    return this.prisma.file.findUnique({ where: { id } });
   }
 }

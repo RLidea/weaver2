@@ -116,7 +116,7 @@ export class S3StorageProvider implements StorageProvider {
     }
   }
 
-  async getFileUrl(key: string): Promise<string> {
+  async getFileUrl(key: string, expiresInSeconds: number): Promise<string> {
     // 응답 헤더를 서명 URL 에서 덮어쓴다. 형식 확인 전에 저장된 객체는 공격자가 선언한
     // Content-Type(text/html 등)을 메타데이터로 들고 있어, 그대로 내보내면 버킷 출처에서
     // HTML 로 열린다. 저장된 메타데이터를 믿지 않고 저장 확장자(서버가 형식에서 정한 것)로
@@ -128,6 +128,6 @@ export class S3StorageProvider implements StorageProvider {
       ResponseContentType: type?.contentType ?? 'application/octet-stream',
       ResponseContentDisposition: type?.inline ? 'inline' : 'attachment',
     });
-    return getSignedUrl(this.client, command, { expiresIn: 3600 });
+    return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }
 }

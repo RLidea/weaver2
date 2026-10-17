@@ -19,12 +19,14 @@ import { PostService } from './services/post.service';
 import { CommentService } from './services/comment.service';
 import { BoardPermissionService } from './services/board-permission.service';
 import { PostReadPolicy } from './services/post-read-policy.service';
+import { PostAttachmentAccessRule } from './services/post-attachment.access-rule';
+import { UploadModule } from '../../infrastructure/upload/upload.module';
 import { CategoryService } from './services/category.service';
 import { ContentPurgeService } from './services/content-purge.service';
 import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
 
 @Module({
-  imports: [PrismaModule, UploadLibModule],
+  imports: [PrismaModule, UploadLibModule, UploadModule],
   controllers: [
     BoardController,
     PostController,
@@ -44,6 +46,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
     CommentService,
     BoardPermissionService,
     PostReadPolicy,
+    PostAttachmentAccessRule,
     CategoryService,
     ContentPurgeService,
     ContentPurgeScheduler,

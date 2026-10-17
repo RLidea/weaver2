@@ -26,5 +26,9 @@ export interface StorageProvider {
   read(path: string): Promise<Readable | null>;
   delete(path: string): Promise<void>;
   exists(path: string): Promise<boolean>;
-  getFileUrl(path: string): Promise<string>;
+  /**
+   * 서명 URL 을 낼 수 있는 저장소(S3)만 구현한다. 있으면 /v1/files 가 권한 판정 뒤 이 주소로 302,
+   * 없으면 read 로 스트림한다. 저장소 주소를 그대로 공개하지 않는다 — 내주는 길은 /v1/files 하나다.
+   */
+  getFileUrl?(path: string, expiresInSeconds: number): Promise<string>;
 }

@@ -66,10 +66,4 @@ export class LocalStorageProvider implements StorageProvider {
       return false;
     }
   }
-
-  getFileUrl(filePath: string): Promise<string> {
-    // main.ts useStaticAssets: cwd/uploads → /uploads prefix
-    // DB path: uploads/2026/02/uuid.ext → URL: /uploads/2026/02/uuid.ext
-    return Promise.resolve(`/${filePath}`);
-  }
 }

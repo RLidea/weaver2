@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
-import { StorageProvider } from '@weaver2/upload';
+import { StorageProvider, UploadService } from '@weaver2/upload';
 import { UpdateUserProfileService } from './update-user-profile.service';
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
@@ -18,18 +18,17 @@ describe('UpdateUserProfileService.uploadProfileImage', () => {
       storedName: 'a.png',
       path: 'uploads/a.png',
     });
-    const storage = {
-      save,
-      getFileUrl: (p: string) => Promise.resolve(`/${p}`),
-      delete: jest.fn(),
-    } as unknown as StorageProvider;
+    const storage = { save } as unknown as StorageProvider;
     const prisma = {
-      user: {
-        findUnique: jest.fn().mockResolvedValue(null),
-        update: jest.fn(),
-      },
+      file: { create: jest.fn().mockResolvedValue({ id: 'f1' }) },
     } as unknown as PrismaService;
-    service = new UpdateUserProfileService(prisma, storage);
+    const uploads = {
+      directoryFor: () => 'uploads/2026/10',
+      urlFor: (id: string) => `/api/v1/files/${id}`,
+    } as unknown as UploadService;
+    service = new UpdateUserProfileService(prisma, storage, uploads);
+    // 지정(잠금·트랜잭션)은 통합 시험이 잰다 — 여기서는 형식 확인만
+    jest.spyOn(service, 'assignProfileImage').mockResolvedValue();
   });
 
   it('이미지라고 선언한 HTML 은 거절한다', async () => {

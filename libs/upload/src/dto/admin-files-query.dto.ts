@@ -9,7 +9,7 @@ export class AdminFilesQueryDto extends KeysetRequestDto {
   @IsString()
   uploadedById?: string;
 
-  @ApiPropertyOptional({ description: '게시글 ID 필터' })
+  @ApiPropertyOptional({ description: '그 게시글에 붙은 파일만' })
   @IsOptional()
   @IsString()
   postId?: string;

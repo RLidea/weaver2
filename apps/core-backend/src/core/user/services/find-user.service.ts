@@ -1,7 +1,7 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { User } from '@weaver2/prisma';
-import { STORAGE_PROVIDER, StorageProvider } from '@weaver2/upload';
+import { UploadService } from '@weaver2/upload';
 
 import { findUserQuery } from '../repositories/find-user.query';
 import { OffsetResponseDto } from '@weaver2/pagination';
@@ -16,7 +16,7 @@ import { UserDto } from '../dto/user.dto';
 export class FindUserService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly uploads: UploadService,
     private readonly permissionService: PermissionService,
   ) {}
 
@@ -30,10 +30,8 @@ export class FindUserService {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
 
-    const [userWithImage, permissionsSet] = await Promise.all([
-      this.withFreshProfileImageUrl(user),
-      this.permissionService.getUserPermissions(id),
-    ]);
+    const userWithImage = this.withFreshProfileImageUrl(user);
+    const permissionsSet = await this.permissionService.getUserPermissions(id);
 
     const setting = user.userSetting;
 
@@ -57,12 +55,14 @@ export class FindUserService {
     };
   }
 
-  private async withFreshProfileImageUrl<T extends User>(user: T): Promise<T> {
-    if (!user.profileImagePath) return user;
-    const profileImageUrl = await this.storage.getFileUrl(
-      user.profileImagePath,
-    );
-    return { ...user, profileImageUrl };
+  /** 프로필 이미지 주소는 저장하지 않고 파일 id 로 만든다 — 받을 때마다 /v1/files 가 권한을 본다 */
+  private withFreshProfileImageUrl<T extends User>(user: T): T {
+    return {
+      ...user,
+      profileImageUrl: user.profileImageFileId
+        ? this.uploads.urlFor(user.profileImageFileId)
+        : null,
+    };
   }
 
   async findUserByUsername(username: string): Promise<User> {
