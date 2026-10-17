@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -26,7 +27,10 @@ import { FindTwoFactorChallengeQuery } from '../repositories/find-two-factor-cha
 import { CreateTwoFactorChallengeCommand } from '../repositories/create-two-factor-challenge.command';
 import { DeleteTwoFactorChallengesCommand } from '../repositories/delete-two-factor-challenges.command';
 import { UpdateTotpSettingsCommand } from '../repositories/update-totp-settings.command';
+import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command';
+import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
 import { UpdateEmailOtpSettingsCommand } from '../repositories/update-email-otp-settings.command';
+import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import {
   encryptSecret,
   decryptSecret,
@@ -40,7 +44,6 @@ const APP_NAME = 'Weaver2';
 
 interface PreAuthPayload {
   sub: string;
-  type: 'pre-auth';
   rememberMe: boolean;
 }
 
@@ -59,20 +62,20 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   createPreAuthToken(userId: string, rememberMe = false): string {
-    const payload: PreAuthPayload = {
-      sub: userId,
-      type: 'pre-auth',
-      rememberMe,
-    };
-    return this.jwtService.sign(payload, { expiresIn: '5m' });
+    const payload: PreAuthPayload = { sub: userId, rememberMe };
+    // 종류는 aud 로 적는다 — 액세스 토큰 자리에 쓰이면 검증에서 거절된다
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+      audience: TOKEN_AUDIENCE.PRE_AUTH,
+    });
   }
 
   verifyPreAuthToken(token: string): { userId: string; rememberMe: boolean } {
     try {
-      const payload = this.jwtService.verify<PreAuthPayload>(token);
-      if (payload.type !== 'pre-auth') {
-        throw new UnauthorizedException('Invalid pre-auth token');
-      }
+      // 액세스 토큰을 pre-auth 자리에 넣어도 aud 가 달라 거절된다
+      const payload = this.jwtService.verify<PreAuthPayload>(token, {
+        audience: TOKEN_AUDIENCE.PRE_AUTH,
+      });
       return { userId: payload.sub, rememberMe: payload.rememberMe ?? false };
     } catch {
       throw new UnauthorizedException('Invalid or expired pre-auth token');
@@ -90,6 +93,9 @@ export class TwoFactorService {
     );
     if (!credential)
       throw new BadRequestException('Local credential not found');
+    // 켜진 TOTP 는 등록 경로가 절대 덮지 않는다. 덮으면 「등록 시작」 한 번으로 2FA 가
+    // 꺼진다 — 끄는 길은 코드를 요구하는 해제(DELETE /2fa/totp) 하나뿐이어야 한다.
+    if (credential.totpEnabled) throw this.totpAlreadyEnabled();
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
@@ -103,10 +109,13 @@ export class TwoFactorService {
     const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);
 
     // 원문 secret은 QR/응답으로만 전달하고, DB에는 암호화해 저장한다.
-    await UpdateTotpSettingsCommand(this.prisma, userId, {
-      totpEnabled: false,
-      totpSecret: encryptSecret(secret),
-    });
+    // 위 확인과 이 쓰기 사이에 등록이 확인될 수 있으니 쓰기도 「꺼져 있을 때만」이다.
+    const started = await StartTotpSetupCommand(
+      this.prisma,
+      userId,
+      encryptSecret(secret),
+    );
+    if (!started) throw this.totpAlreadyEnabled();
 
     return { secret, qrCodeUrl: qrCodeDataUrl, otpAuthUrl };
   }
@@ -116,6 +125,7 @@ export class TwoFactorService {
       this.prisma,
       userId,
     );
+    if (credential?.totpEnabled) throw this.totpAlreadyEnabled();
     if (!credential?.totpSecret) {
       throw new BadRequestException('TOTP setup not initiated');
     }
@@ -126,8 +136,23 @@ export class TwoFactorService {
     });
     if (!result.valid) throw new BadRequestException('Invalid TOTP code');
 
-    await UpdateTotpSettingsCommand(this.prisma, userId, { totpEnabled: true });
+    const confirmed = await ConfirmTotpSetupCommand(
+      this.prisma,
+      userId,
+      credential.totpSecret,
+    );
+    if (!confirmed) {
+      throw new ConflictException(
+        'TOTP setup was restarted. Scan the new QR code and try again.',
+      );
+    }
     this.logger.log(`TOTP enabled for userId=${userId}`);
+  }
+
+  private totpAlreadyEnabled(): ConflictException {
+    return new ConflictException(
+      'TOTP is already enabled. Disable it before setting up again.',
+    );
   }
 
   // ─────────────────────────────────────────

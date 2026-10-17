@@ -619,10 +619,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** TOTP 설정 시작 - 시크릿 및 QR 코드 반환 */
-        get: operations["TwoFactorController_totpSetup"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** TOTP 설정 시작 - 시크릿 및 QR 코드 반환 (이미 켜져 있으면 409) */
+        post: operations["TwoFactorController_totpSetup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4740,7 +4740,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

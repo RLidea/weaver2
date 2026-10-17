@@ -7,9 +7,9 @@
 
 | 이름 | 정체 | 만료 | 저장/전달 |
 |---|---|---|---|
-| `access_token` | JWT (payload `{ sub: userId }`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
+| `access_token` | JWT (payload `{ sub: userId }`, `aud: "access"`) | JWT 자체: `JWT_EXPIRES_IN`(기본 1h) / **쿠키: 15분** | HttpOnly 쿠키 |
 | `refresh_token` | JWT 아님 — `randomUUID()` 문자열, DB `RefreshToken` 테이블에 **SHA-256 해시로 저장** | rememberMe 30일 / 기본 7일 | HttpOnly 쿠키(원문) + DB(해시) |
-| preAuthToken | JWT (`type: 'pre-auth'`) — 2FA 진행용 | 5분 | 응답 body (쿠키 아님) |
+| preAuthToken | JWT (`aud: "pre-auth"`) — 2FA 진행용 | 5분 | 응답 body (쿠키 아님) |
 | `oauth_state` | OAuth CSRF 방지 state | 10분 | HttpOnly 쿠키, sameSite lax (form_post provider 인 Apple 만 none + secure) |
 | `csrf-token` (prod: `__Host-csrf-token`) | CSRF double-submit 쿠키 | — | HttpOnly 쿠키 |
 
@@ -53,8 +53,9 @@ sequenceDiagram
 `JwtAuthGuard`가 전역 등록되어 있으므로([00장 §2](00-overview.md#②-가드--전역-3종)) 모든 요청이 이 경로를 지납니다:
 
 - **토큰 추출 우선순위** (`strategy/jwt.strategy.ts`): ① 쿠키 `access_token` → ② `Authorization: Bearer`(Swagger용) → ③ 쿼리 `?token=`
-- `validate()`는 `type: 'pre-auth'` 토큰을 거부하고(2FA 미완료 토큰으로 API 접근 불가), 사용자를 DB에서 재조회해 `req.user = { id, username, isLogin: true, userSetting }`을 만듭니다
-- `@Public()` 라우트도 토큰이 있으면 소프트 검증해 `req.user`를 채웁니다 (실패해도 차단하지 않음)
+- **토큰의 종류는 `aud` 로 가릅니다** (`strategy/token-audience.ts`). 액세스 토큰과 pre-auth 토큰은 같은 `JWT_SECRET` 으로 서명되므로, 종류를 보지 않으면 2FA 전 토큰이 액세스 토큰으로 통합니다. JwtModule 의 기본 sign·verify 옵션과 `JwtStrategy` 가 `aud: "access"` 를 요구해 jsonwebtoken 이 검증 단계에서 거절합니다 — 읽는 쪽이 확인을 잊을 수 없습니다
+- `validate()`는 사용자를 DB에서 재조회해(탈퇴면 거절, 정지면 거절) `req.user = { id, username, isLogin: true, userSetting }`을 만듭니다
+- `@Public()` 라우트도 **같은 `JwtStrategy`** 로 검증해 `req.user`를 채웁니다. 실패(없음·만료·종류 다름·탈퇴·정지)하면 막지 않고 `{ isLogin: false }` 로 둡니다. 🔴 공개 라우트에서 토큰을 따로 검증하지 마세요 — 예전에 서명만 보는 별도 검증이 있어 pre-auth·탈퇴·정지 토큰이 공개 라우트에서 로그인으로 통했습니다 (`guards/jwt-auth.guard.spec.ts`). `aud` 를 넣기 전에 발급된 액세스 토큰은 배포 직후 거절되어, 로그인한 사람은 한 번 refresh 를 거치거나(자동) 공개 화면을 잠깐 비로그인으로 봅니다
 
 ## 3. Refresh 회전 — `POST /v1/auth/refresh`
 
@@ -82,7 +83,7 @@ sequenceDiagram
 
 **설정** (로그인 상태에서):
 
-- TOTP: `GET /2fa/totp/setup` → secret 생성 + QR data URL(otplib+qrcode, issuer "Weaver2") → `POST /2fa/totp/confirm`으로 코드 검증 후 활성화
+- TOTP: `POST /2fa/totp/setup` → secret 생성 + QR data URL(otplib+qrcode, issuer "Weaver2") → `POST /2fa/totp/confirm`으로 코드 검증 후 활성화. **이미 켜져 있으면 409** — 켜진 TOTP 는 등록 경로가 덮지 않고, 끄는 길은 코드를 요구하는 `DELETE /2fa/totp` 뿐입니다 (상태를 바꾸므로 GET 이 아니라 POST: GET 은 CSRF 검사가 없어 다른 사이트의 링크로 실행됩니다)
 - 이메일 OTP: `POST /2fa/email/setup` → 6자리 코드 발송 → `POST /2fa/email/confirm`
 
 **로그인 시 인증** (`@Public`):

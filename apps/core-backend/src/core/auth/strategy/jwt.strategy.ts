@@ -5,6 +5,7 @@ import { JwtPayload } from './jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 import { FindUserByIdQuery } from '../../user/repositories/find-user-by-id.query';
+import { TOKEN_AUDIENCE } from './token-audience';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -34,15 +35,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
+      // 액세스 토큰만 받는다. 같은 비밀로 서명된 pre-auth 토큰은 여기서 거절된다
+      audience: TOKEN_AUDIENCE.ACCESS,
     });
   }
 
   async validate(payload: JwtPayload) {
     this.logger.debug(`Validating payload: ${JSON.stringify(payload)}`);
-    // pre-auth 토큰은 일반 인증 토큰으로 사용 불가
-    if ((payload as unknown as Record<string, unknown>).type === 'pre-auth') {
-      return null;
-    }
     const user = await FindUserByIdQuery(this.prisma, payload.sub);
     this.logger.debug(`User from findUserById: ${JSON.stringify(user?.id)}`);
     if (!user) {

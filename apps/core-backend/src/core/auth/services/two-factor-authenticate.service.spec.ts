@@ -64,7 +64,7 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     jest.clearAllMocks();
     mockReserve.mockResolvedValue(true);
     const jwt = {
-      verify: jest.fn(() => ({ sub: 'user-1', type: 'pre-auth' })),
+      verify: jest.fn(() => ({ sub: 'user-1' })),
     } as unknown as JwtService;
     service = new TwoFactorService(
       {} as PrismaService,

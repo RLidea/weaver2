@@ -85,8 +85,13 @@ export class TwoFactorController {
     return this.twoFactorService.getStatus(user.id);
   }
 
-  @Get('totp/setup')
-  @ApiOperation({ summary: 'TOTP 설정 시작 - 시크릿 및 QR 코드 반환' })
+  // 🔴 POST 다. 등록 시작은 상태를 바꾸므로(새 비밀을 쓴다) GET 이면 CSRF 검사를 받지
+  //    않고, SameSite=Lax 쿠키는 다른 사이트의 링크 이동에도 실린다.
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('totp/setup')
+  @ApiOperation({
+    summary: 'TOTP 설정 시작 - 시크릿 및 QR 코드 반환 (이미 켜져 있으면 409)',
+  })
   async totpSetup(@AuthUser() user: CommonAuthUserDto) {
     return this.twoFactorService.generateTotpSetup(user.id);
   }

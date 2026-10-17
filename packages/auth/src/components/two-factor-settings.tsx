@@ -24,7 +24,8 @@ type CodeValues = z.infer<typeof CodeSchema>;
 
 function TotpSection({ enabled }: { enabled: boolean }) {
   const [mode, setMode] = useState<'idle' | 'setup' | 'disable'>('idle');
-  const { refetch: fetchSetup, data: setupData, isFetching } = useSetupTotp();
+  const { mutate: startSetup, data: setupResponse, isPending: isStarting } = useSetupTotp();
+  const setupData = setupResponse?.data;
   const { mutate: confirmSetup, isPending: isConfirming } = useConfirmTotpSetup();
   const { mutate: disableTotp, isPending: isDisabling } = useDisableTotp();
   const toast = useToast();
@@ -33,8 +34,14 @@ function TotpSection({ enabled }: { enabled: boolean }) {
   const disableForm = useForm<CodeValues>({ resolver: zodResolver(CodeSchema) });
 
   function handleStartSetup() {
-    fetchSetup();
     setMode('setup');
+    startSetup(undefined, {
+      onError: (err) => {
+        const message = err instanceof ApiError ? err.message : '설정을 시작하지 못했습니다.';
+        toast.error(message);
+        setMode('idle');
+      },
+    });
   }
 
   function handleConfirmSetup(data: CodeValues) {
@@ -94,7 +101,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
 
       {mode === 'setup' && (
         <div className="mt-4 space-y-4 rounded-md border border-border p-4">
-          {isFetching ? (
+          {isStarting ? (
             <div className="flex justify-center py-4">
               <Spinner size="sm" />
             </div>

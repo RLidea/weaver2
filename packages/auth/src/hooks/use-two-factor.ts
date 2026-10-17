@@ -13,11 +13,10 @@ export function useTwoFactorStatus() {
 }
 
 export function useSetupTotp() {
-  return useQuery({
-    queryKey: ['auth', '2fa', 'totp-setup'],
-    queryFn: authApi.getTotpSetup,
-    select: (res) => res.data,
-    enabled: false,
+  return useMutation({
+    mutationFn: authApi.startTotpSetup,
+    // 실패 안내는 화면이 한다(설정 패널을 닫으며) — 전역 토스트와 겹치지 않게
+    meta: { skipGlobalErrorToast: true },
   });
 }
 

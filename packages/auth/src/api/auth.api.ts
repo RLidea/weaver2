@@ -59,8 +59,9 @@ export const authApi = {
   get2faStatus: () =>
     apiClient.get<TwoFactorStatus>('/v1/auth/2fa/status'),
 
-  getTotpSetup: () =>
-    apiClient.get<TotpSetup>('/v1/auth/2fa/totp/setup'),
+  // 새 비밀을 쓰므로 POST 다 (GET 이면 다른 사이트의 링크로도 실행된다)
+  startTotpSetup: () =>
+    apiClient.post<TotpSetup>('/v1/auth/2fa/totp/setup', {}),
 
   confirmTotpSetup: (code: string) =>
     apiClient.post<void>('/v1/auth/2fa/totp/confirm', { code }),
