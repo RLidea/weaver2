@@ -1,8 +1,14 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  FileDto,
+  LockAttachableFilesCommand,
+  UploadService,
+} from '@weaver2/upload';
 import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
@@ -36,6 +42,7 @@ export class PostService {
     private readonly prisma: PrismaService,
     private readonly boardService: BoardService,
     private readonly readPolicy: PostReadPolicy,
+    private readonly uploads: UploadService,
   ) {}
 
   async createPost(
@@ -60,11 +67,22 @@ export class PostService {
       ? { ...baseData, author: { connect: { id: authorId } } }
       : baseData;
 
-    const post = await CreatePostCommand(
-      this.prisma,
-      createData as Prisma.PostCreateInput,
-    );
-    return post;
+    const fileIds = dto.attachmentFileIds ?? [];
+    if (fileIds.length > 0 && !authorId) {
+      throw new BadRequestException('로그인해야 파일을 붙일 수 있습니다.');
+    }
+
+    const post = await this.prisma.$transaction(async (tx) => {
+      const created = await CreatePostCommand(
+        tx,
+        createData as Prisma.PostCreateInput,
+      );
+      if (authorId) {
+        await this.replaceAttachments(tx, created.id, fileIds, authorId);
+      }
+      return created;
+    });
+    return this.withAttachments(post);
   }
 
   async findAllPostsForAdmin(
@@ -196,16 +214,91 @@ export class PostService {
       await this.incrementViewCount(id);
       post.viewCount = post.viewCount + 1;
     }
-    return post;
+    return this.withAttachments(post);
   }
 
   async incrementViewCount(postId: string): Promise<void> {
     await IncrementPostViewCountCommand(this.prisma, postId);
   }
 
-  async updatePost(id: string, dto: UpdatePostDto): Promise<PostDto> {
-    const updatedPost = await UpdatePostCommand(this.prisma, id, dto);
-    return updatedPost;
+  /**
+   * 글을 고친다. attachmentFileIds 를 보내면 첨부 목록을 통째로 그것으로 바꾼다 — 새로 붙는 파일은
+   * 글 작성자가 올렸고 아무 데도 안 붙은 것만(잠금 뒤 확인). 순서만 바꾸거나 떼는 것은 편집 권한이면 된다.
+   */
+  async updatePost(
+    id: string,
+    dto: UpdatePostDto,
+    editor: CommonAuthUserDto,
+    post: { authorId: string },
+  ): Promise<PostDto> {
+    const { attachmentFileIds, ...fields } = dto;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await UpdatePostCommand(tx, id, fields);
+      if (attachmentFileIds) {
+        const isAuthor = editor.isLogin && editor.id === post.authorId;
+        await this.replaceAttachments(
+          tx,
+          id,
+          attachmentFileIds,
+          isAuthor ? editor.id : null,
+        );
+      }
+      return row;
+    });
+    return this.withAttachments(updated);
+  }
+
+  /**
+   * 첨부 목록을 fileIds 로 맞춘다. 빠진 파일은 관계만 지워 고아로 만든다 — 즉시 지우지 않아
+   * 「실수로 뺐다 다시 넣기」가 되고, 보존 기간 뒤 정리된다. 새로 붙는 파일은 attacherId 가 올린 것이어야 하고,
+   * attacherId 가 null(작성자가 아닌 편집자)이면 새 파일을 붙일 수 없다.
+   */
+  private async replaceAttachments(
+    tx: Prisma.TransactionClient,
+    postId: string,
+    fileIds: string[],
+    attacherId: string | null,
+  ): Promise<void> {
+    const current = await tx.postAttachment.findMany({
+      where: { postId },
+      select: { fileId: true },
+    });
+    const currentIds = new Set(current.map((a) => a.fileId));
+    const added = fileIds.filter((id) => !currentIds.has(id));
+
+    if (added.length > 0) {
+      if (!attacherId) {
+        throw new ForbiddenException('글 작성자만 파일을 붙일 수 있습니다.');
+      }
+      await LockAttachableFilesCommand(tx, added, attacherId);
+    }
+
+    const keep = new Set(fileIds);
+    await tx.postAttachment.deleteMany({
+      where: { postId, fileId: { notIn: [...keep] } },
+    });
+    for (const [position, fileId] of fileIds.entries()) {
+      await tx.postAttachment.upsert({
+        where: { fileId },
+        update: { position },
+        create: { fileId, postId, position },
+      });
+    }
+  }
+
+  /** 글 응답에 첨부(순서대로)를 싣는다. 지우거나 가린 파일은 뺀다 */
+  private async withAttachments<T extends { id: string }>(
+    post: T,
+  ): Promise<T & { attachments: FileDto[] }> {
+    const rows = await this.prisma.postAttachment.findMany({
+      where: { postId: post.id, file: { deletedAt: null, hiddenAt: null } },
+      include: { file: true },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+    });
+    return {
+      ...post,
+      attachments: rows.map((r) => this.uploads.toDto(r.file)),
+    };
   }
 
   async deletePost(id: string): Promise<void> {

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PostStatus } from '@weaver2/prisma';
+import { FileDto } from '@weaver2/upload';
 import { BoardDto } from './board.dto';
 
 export class PostDto {
@@ -56,4 +57,10 @@ export class PostDto {
     username: string;
     displayName: string;
   };
+
+  @ApiPropertyOptional({
+    description: '첨부 파일 (순서대로) — 글 상세·생성·수정 응답에만 있다',
+    type: [FileDto],
+  })
+  attachments?: FileDto[];
 }

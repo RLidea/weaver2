@@ -34,7 +34,7 @@ describe('ModerationService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      postFile: {
+      file: {
         findUnique: jest.fn(),
         update: jest.fn(),
       },

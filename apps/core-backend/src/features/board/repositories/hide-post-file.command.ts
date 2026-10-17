@@ -7,9 +7,9 @@ export async function HidePostFileCommand(
   id: string,
   hiddenAt: Date,
 ) {
-  return prisma.postFile.update({ where: { id }, data: { hiddenAt } });
+  return prisma.file.update({ where: { id }, data: { hiddenAt } });
 }
 
 export async function UnhidePostFileCommand(prisma: Db, id: string) {
-  return prisma.postFile.update({ where: { id }, data: { hiddenAt: null } });
+  return prisma.file.update({ where: { id }, data: { hiddenAt: null } });
 }

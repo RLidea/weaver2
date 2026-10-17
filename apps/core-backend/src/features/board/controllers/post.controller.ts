@@ -185,7 +185,7 @@ export class PostController {
     // 수정 권한 체크
     await this.permissionService.requireEditPermission(post, authUser);
 
-    return this.postService.updatePost(postId, updatePostDto);
+    return this.postService.updatePost(postId, updatePostDto, authUser, post);
   }
 
   @Delete(':postId')

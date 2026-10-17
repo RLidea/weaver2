@@ -1,7 +1,9 @@
-import { PrismaClient, PostStatus } from '@weaver2/prisma';
+import { Prisma, PrismaClient, PostStatus } from '@weaver2/prisma';
+
+type Db = PrismaClient | Prisma.TransactionClient;
 
 export async function UpdatePostCommand(
-  prisma: PrismaClient,
+  prisma: Db,
   id: string,
   data: {
     title?: string;
