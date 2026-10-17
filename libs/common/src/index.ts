@@ -8,6 +8,7 @@ export * from './decorator/swagger/api-standard-responses.decorator';
 export * from './global/dto/base-response.dto';
 export * from './global/dto/common-auth-user.dto';
 export * from './global/dto/swagger/error-response.dto';
+export * from './global/env-file-permission';
 export * from './global/exception-filter';
 export * from './global/interceptor';
 export * from './global/logger/winston.config';

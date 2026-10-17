@@ -27,12 +27,13 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationModule } from './core/notification/notification.module';
 import { ReportModule } from './features/report/report.module';
 import { SystemSettingModule } from './infrastructure/config/system-setting.module';
+import { CORE_ENV_FILE_PATH } from './env-file';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: 'apps/core-backend/.env',
+      envFilePath: CORE_ENV_FILE_PATH,
     }),
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({

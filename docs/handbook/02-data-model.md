@@ -171,7 +171,7 @@ pnpm db:generate         # prisma generate만 (client 타입 갱신)
 pnpm db:reset            # DB 초기화 + 전체 마이그레이션 + 시드
 ```
 
-배포 환경에서는 `prisma migrate deploy --schema apps/core-backend/prisma/schema`를 사용합니다 (README "시작하기" 참조).
+배포 환경에서는 `pnpm db:deploy`(`prisma migrate deploy`)를 씁니다 — 저장소의 마이그레이션을 순서대로 적용만 하고, `migrate dev` 처럼 새로 만들거나 리셋을 묻지 않습니다. `scripts/setup.sh`·`scripts/auto-deploy.sh` 가 빌드 성공 뒤·재시작 전에 이걸 돌립니다.
 
 > 검색 성능 관련 인덱스는 마이그레이션에 직접 들어 있습니다 — `20260509060314_add_search_gin_indexes`(전문검색 GIN), `20260509061547_add_p1_indexes`(빈번한 필터 컬럼). 스키마 파일의 `@@index`와 함께 보세요.
 
