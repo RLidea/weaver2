@@ -8,16 +8,17 @@ import { SkinToggle } from './skin-toggle';
 import { UserMenu } from './user-menu';
 
 export function Header() {
-  const { isOpen, toggle, isMobileOpen, toggleMobile } = useSidebar();
+  const { isOpen, toggle, isMobileOpen, toggleMobile, mobileTriggerRef } = useSidebar();
   const { data: unreadCount = 0 } = useUnreadCount();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center border-b border-border bg-surface px-4">
       {/* 모바일: 서랍 열기 */}
       <button
+        ref={mobileTriggerRef}
         type="button"
         onClick={toggleMobile}
-        aria-label="메뉴 열기"
+        aria-label={isMobileOpen ? '메뉴 닫기' : '메뉴 열기'}
         aria-expanded={isMobileOpen}
         aria-controls="app-sidebar"
         className="mr-3 rounded-md p-1.5 text-text-muted hover:bg-surface-2 transition-colors md:hidden"
@@ -37,8 +38,9 @@ export function Header() {
         <MenuIcon className="h-5 w-5" />
       </button>
 
-      {/* 로고 */}
+      {/* 로고 — 서랍이 열린 동안 헤더는 메뉴 단추만 살려 둔다 */}
       <Link
+        inert={isMobileOpen}
         href="/dashboard"
         className="text-base font-bold tracking-tight text-text hover:text-primary transition-colors"
       >
@@ -46,7 +48,7 @@ export function Header() {
       </Link>
 
       {/* 우측 영역 */}
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-1" inert={isMobileOpen}>
         {/* 검색 */}
         <Link
           href="/search"
