@@ -13,6 +13,11 @@ import { FindLocalCredentialByUserIdQuery } from '../../auth/repositories/find-l
 import { UpdateUserEmailCommand } from '../repositories/update-user-email.command';
 import { normalizeEmail } from '../../auth/utils/email.util';
 import { OneTimeCodeService } from '../../auth/one-time-code/one-time-code.service';
+import {
+  ACCOUNT_LOCKED_MESSAGE,
+  ReserveAuthAttemptCommand,
+} from '../../auth/repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../../auth/repositories/reset-auth-attempts.command';
 
 @Injectable()
 export class EmailChangeService {
@@ -36,6 +41,10 @@ export class EmailChangeService {
       throw new UnauthorizedException('Password not set for this account.');
     }
 
+    // 세션을 가진 사람(탈취된 세션 포함)의 현재 비밀번호 대입도 PASSWORD 잠금에 센다
+    if (!(await ReserveAuthAttemptCommand(this.prisma, userId, 'PASSWORD'))) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
+    }
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
       credential.password,
@@ -43,6 +52,7 @@ export class EmailChangeService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid current password.');
     }
+    await ResetAuthAttemptsCommand(this.prisma, userId, 'PASSWORD');
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email: normalizeEmail(newEmail) },

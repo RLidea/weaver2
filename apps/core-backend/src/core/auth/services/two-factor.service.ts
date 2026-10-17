@@ -20,8 +20,11 @@ const {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const qrcode = require('qrcode') as typeof import('qrcode');
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
-import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
-import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
+import {
+  ACCOUNT_LOCKED_MESSAGE,
+  ReserveAuthAttemptCommand,
+} from '../repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-methods.query';
 import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
@@ -123,6 +126,9 @@ export class TwoFactorService {
       throw new BadRequestException('TOTP setup not initiated');
     }
 
+    if (!(await this.reserveSecondFactor(userId))) {
+      throw new BadRequestException(ACCOUNT_LOCKED_MESSAGE);
+    }
     const timeStep = await this.verifyTotp(totp, code);
     if (timeStep === null) throw new BadRequestException('Invalid TOTP code');
 
@@ -137,6 +143,7 @@ export class TwoFactorService {
         'TOTP setup was restarted. Scan the new QR code and try again.',
       );
     }
+    await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
     this.logger.log(`TOTP enabled for userId=${userId}`);
   }
 
@@ -202,12 +209,10 @@ export class TwoFactorService {
     const { userId, rememberMe } = this.verifyPreAuthToken(preAuthToken);
     const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
 
-    // 2FA 시도도 비밀번호와 같은 잠금 카운터에 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며
-    // 6자리 코드를 대입하는 것을 막지 못한다. 코드를 보기 전에 시도를 원자적으로 잡는다.
-    if (!(await ReserveLoginAttemptCommand(this.prisma, userId))) {
-      throw new UnauthorizedException(
-        'Account is temporarily locked. Please try again later.',
-      );
+    // 2FA 시도는 SECOND_FACTOR 로 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며 6자리
+    // 코드를 대입하는 것을 막지 못한다. 코드를 보기 전에 시도를 원자적으로 잡는다.
+    if (!(await this.reserveSecondFactor(userId))) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
     if (method === 'totp') {
@@ -236,7 +241,7 @@ export class TwoFactorService {
       }
     }
 
-    await ResetFailedAttemptsCommand(this.prisma, userId);
+    await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
     return { userId, rememberMe };
   }
@@ -385,23 +390,32 @@ export class TwoFactorService {
     return RecordTotpTimeStepCommand(this.prisma, userId, timeStep);
   }
 
+  /**
+   * 해제 같은 민감한 동작 전의 재증명 — 인증 앱 코드 또는 메일로 받은 STEP_UP 코드.
+   * 해제 경로의 TOTP 오답도 로그인 2FA 와 같은 SECOND_FACTOR 로 센다(안 세면 여기가
+   * 잠금 없는 대입 창구가 된다).
+   */
   private async verifyAnyMethodCode(
     userId: string,
     code: string,
     confirmedTotp: TwoFactorMethod | null,
   ): Promise<void> {
-    if (
-      confirmedTotp &&
-      (await this.consumeTotp(userId, confirmedTotp, code))
-    ) {
-      return;
+    if (!(await this.reserveSecondFactor(userId))) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
     // 인증 앱이 없거나 그 코드가 아니면, 로그인한 사용자가 메일로 받은 STEP_UP 코드
-    if (await this.oneTimeCodeService.verifyCode(userId, 'STEP_UP', code)) {
-      return;
-    }
+    const passed =
+      (confirmedTotp !== null &&
+        (await this.consumeTotp(userId, confirmedTotp, code))) ||
+      (await this.oneTimeCodeService.verifyCode(userId, 'STEP_UP', code)) !==
+        null;
+    if (!passed) throw new UnauthorizedException('Invalid verification code');
 
-    throw new UnauthorizedException('Invalid verification code');
+    await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
+  }
+
+  private reserveSecondFactor(userId: string): Promise<boolean> {
+    return ReserveAuthAttemptCommand(this.prisma, userId, 'SECOND_FACTOR');
   }
 }

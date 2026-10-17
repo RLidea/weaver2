@@ -17,6 +17,11 @@ import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { TermsService } from '../../terms/services/terms.service';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
+import {
+  ACCOUNT_LOCKED_MESSAGE,
+  ReserveAuthAttemptCommand,
+} from '../repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 
 @Injectable()
 export class SignUpService {
@@ -180,7 +185,10 @@ export class SignUpService {
       throw new BadRequestException('Invalid verification token.');
     }
     // 비밀번호가 먼저다. 틀려도 링크는 남긴다 — 오타면 다시 입력하면 되고, 주인이 아니면
-    // 재설정으로 간다
+    // 재설정으로 간다. 링크를 가진 사람의 비밀번호 대입도 PASSWORD 잠금에 센다.
+    if (!(await ReserveAuthAttemptCommand(this.prisma, owner.id, 'PASSWORD'))) {
+      throw new BadRequestException(ACCOUNT_LOCKED_MESSAGE);
+    }
     const passwordMatches = await bcrypt.compare(
       password,
       owner.localCredential.password,
@@ -205,6 +213,7 @@ export class SignUpService {
     if (!verified) {
       throw new BadRequestException('Invalid verification token.');
     }
+    await ResetAuthAttemptsCommand(this.prisma, owner.id, 'PASSWORD');
 
     await this.emailBusinessService.sendWelcomeEmail(
       owner.email,

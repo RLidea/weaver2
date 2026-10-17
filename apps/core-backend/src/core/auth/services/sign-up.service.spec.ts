@@ -8,6 +8,15 @@ import { EmailBusinessService } from '../../../infrastructure/email/services/ema
 import { TermsService } from '../../terms/services/terms.service';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 
+jest.mock('../repositories/reserve-auth-attempt.command', () => ({
+  ...jest.requireActual<
+    typeof import('../repositories/reserve-auth-attempt.command')
+  >('../repositories/reserve-auth-attempt.command'),
+  ReserveAuthAttemptCommand: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../repositories/reset-auth-attempts.command', () => ({
+  ResetAuthAttemptsCommand: jest.fn(),
+}));
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
   hash: jest.fn(),

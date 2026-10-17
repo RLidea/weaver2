@@ -99,10 +99,10 @@ describe('Email case (Integration)', () => {
 
     expect(wildcard.status).toBe(401);
     expect(underscore.status).toBe(401);
-    const credential = await prisma.localCredential.findUnique({
-      where: { userId: victim.id },
+    const lockout = await prisma.authLockout.findUnique({
+      where: { userId_factor: { userId: victim.id, factor: 'PASSWORD' } },
     });
-    expect(credential?.failedAttempts ?? 0).toBe(0);
+    expect(lockout?.failedAttempts ?? 0).toBe(0);
   });
 
   it('DB 가 대문자 이메일을 거절한다 (CHECK 제약)', async () => {

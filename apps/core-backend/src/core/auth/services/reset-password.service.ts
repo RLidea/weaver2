@@ -5,6 +5,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { UpdateLocalCredentialPasswordCommand } from '../repositories/update-local-credential-password.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 
 const INVALID_TOKEN = 'Invalid or expired password reset token.';
 
@@ -36,6 +37,10 @@ export class ResetPasswordService {
       if (!user || user.deletedAt) throw new BadRequestException(INVALID_TOKEN);
 
       await UpdateLocalCredentialPasswordCommand(tx, userId, hashedPassword);
+      // 비밀번호 잠금만 푼다 — 남이 비밀번호를 틀려 잠근 계정을 주인이 되찾는 길이다.
+      // SECOND_FACTOR 까지 비우면 메일함을 가진 공격자가 「TOTP 5번 → 재설정 → 5번 더」를
+      // 되풀이할 수 있다.
+      await ResetAuthAttemptsCommand(tx, userId, 'PASSWORD');
 
       // 재설정 링크를 받았다는 것은 메일함을 가졌다는 증명이다 — 인증도 함께 끝낸다.
       // 미인증 선점 가입을 당한 주인은 이 길로 계정을 되찾는다. 그 경우 가입은 다른

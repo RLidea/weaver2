@@ -3,6 +3,15 @@ import { ResetPasswordService } from './reset-password.service';
 import { PrismaService } from '@weaver2/prisma';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 
+jest.mock('../repositories/reserve-auth-attempt.command', () => ({
+  ...jest.requireActual<
+    typeof import('../repositories/reserve-auth-attempt.command')
+  >('../repositories/reserve-auth-attempt.command'),
+  ReserveAuthAttemptCommand: jest.fn().mockResolvedValue(true),
+}));
+jest.mock('../repositories/reset-auth-attempts.command', () => ({
+  ResetAuthAttemptsCommand: jest.fn(),
+}));
 jest.mock('bcrypt', () => ({
   hash: jest.fn((pw: string) => Promise.resolve(`hashed:${pw}`)),
 }));

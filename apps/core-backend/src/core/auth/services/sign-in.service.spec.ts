@@ -11,25 +11,28 @@ jest.mock('../repositories/find-user-by-email.query', () => ({
   FindUserByEmailQuery: jest.fn(),
 }));
 
-jest.mock('../repositories/reserve-login-attempt.command', () => ({
-  ReserveLoginAttemptCommand: jest.fn(),
+jest.mock('../repositories/reserve-auth-attempt.command', () => ({
+  ...jest.requireActual<
+    typeof import('../repositories/reserve-auth-attempt.command')
+  >('../repositories/reserve-auth-attempt.command'),
+  ReserveAuthAttemptCommand: jest.fn(),
 }));
 
-jest.mock('../repositories/reset-failed-attempts.command', () => ({
-  ResetFailedAttemptsCommand: jest.fn(),
+jest.mock('../repositories/reset-auth-attempts.command', () => ({
+  ResetAuthAttemptsCommand: jest.fn(),
 }));
 
 import * as bcrypt from 'bcrypt';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
-import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
-import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
+import { ReserveAuthAttemptCommand } from '../repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 
 describe('SignInService.validateUserByEmail', () => {
   let service: SignInService;
   let prisma: any;
   const mockFind = FindUserByEmailQuery as jest.Mock;
-  const mockReserve = ReserveLoginAttemptCommand as jest.Mock;
-  const mockReset = ResetFailedAttemptsCommand as jest.Mock;
+  const mockReserve = ReserveAuthAttemptCommand as jest.Mock;
+  const mockReset = ResetAuthAttemptsCommand as jest.Mock;
   const mockCompare = bcrypt.compare as jest.Mock;
 
   beforeEach(() => {
@@ -99,7 +102,7 @@ describe('SignInService.validateUserByEmail', () => {
     await expect(
       service.validateUserByEmail('a@b.c', 'pw'),
     ).resolves.toBeDefined();
-    expect(mockReset).toHaveBeenCalledWith(prisma, 'u1');
+    expect(mockReset).toHaveBeenCalledWith(prisma, 'u1', 'PASSWORD');
   });
 
   it('계정 잠금 (시도를 잡지 못함) → 비밀번호를 보지도 않고 temporarily locked', async () => {
@@ -139,7 +142,7 @@ describe('SignInService.validateUserByEmail', () => {
       /Invalid credentials/,
     );
 
-    expect(mockReserve).toHaveBeenCalledWith(prisma, 'u1');
+    expect(mockReserve).toHaveBeenCalledWith(prisma, 'u1', 'PASSWORD');
     expect(mockReset).not.toHaveBeenCalled();
   });
 
@@ -161,7 +164,7 @@ describe('SignInService.validateUserByEmail', () => {
     );
   });
 
-  it('성공 시 ResetFailedAttempts 호출 후 user 반환', async () => {
+  it('성공 시 PASSWORD 시도를 되돌리고 user 반환', async () => {
     const user = {
       id: 'u1',
       suspendedUntil: null,
@@ -176,12 +179,12 @@ describe('SignInService.validateUserByEmail', () => {
     mockCompare.mockResolvedValue(true);
 
     const result = await service.validateUserByEmail('a@b.c', 'pw');
-    expect(mockReset).toHaveBeenCalledWith(prisma, 'u1');
+    expect(mockReset).toHaveBeenCalledWith(prisma, 'u1', 'PASSWORD');
     expect(result).toBe(user);
   });
 
-  it('2FA 가 켜진 계정은 비밀번호만 맞아서는 실패 횟수를 지우지 않는다', async () => {
-    // 지우면 「다시 로그인 → 2FA 코드 4번」을 되풀이해 잠금 없이 코드를 대입할 수 있다
+  it('2FA 가 켜진 계정도 비밀번호가 맞으면 PASSWORD 만 비운다 — 2FA 실패는 따로 센다', async () => {
+    // 2FA 코드는 SECOND_FACTOR 로 세므로 「다시 로그인 → 코드 4번」을 되풀이해도 그쪽은 비지 않는다
     const user = {
       id: 'u1',
       suspendedUntil: null,
@@ -196,7 +199,8 @@ describe('SignInService.validateUserByEmail', () => {
     mockCompare.mockResolvedValue(true);
 
     await service.validateUserByEmail('a@b.c', 'pw');
-    expect(mockReset).not.toHaveBeenCalled();
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(mockReset).toHaveBeenCalledWith(prisma, 'u1', 'PASSWORD');
   });
 });
 

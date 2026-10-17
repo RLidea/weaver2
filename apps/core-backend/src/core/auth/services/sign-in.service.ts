@@ -9,8 +9,11 @@ import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query'
 import { MarkRefreshTokenRotatedCommand } from '../repositories/mark-refresh-token-rotated.command';
 import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refresh-tokens.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
-import { ReserveLoginAttemptCommand } from '../repositories/reserve-login-attempt.command';
-import { ResetFailedAttemptsCommand } from '../repositories/reset-failed-attempts.command';
+import {
+  ACCOUNT_LOCKED_MESSAGE,
+  ReserveAuthAttemptCommand,
+} from '../repositories/reserve-auth-attempt.command';
+import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 import { normalizeEmail } from '../utils/email.util';
 
 /**
@@ -57,11 +60,8 @@ export class SignInService {
     const { localCredential } = user;
 
     // 비밀번호를 보기 전에 시도를 원자적으로 잡는다 — 동시 요청이 잠금을 앞질러 대입하지 못하게.
-    // 맞으면 아래에서 되돌린다(2FA 가 남았으면 2FA 통과 뒤에).
-    if (!(await ReserveLoginAttemptCommand(this.prisma, user.id))) {
-      throw new UnauthorizedException(
-        'Account is temporarily locked. Please try again later.',
-      );
+    if (!(await ReserveAuthAttemptCommand(this.prisma, user.id, 'PASSWORD'))) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
     const match = await bcrypt.compare(password, localCredential.password);
@@ -73,12 +73,9 @@ export class SignInService {
       throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 
-    // 2단계 인증이 남아 있으면 실패 횟수를 아직 지우지 않는다 — 지우면 비밀번호를 가진
-    // 공격자가 「다시 로그인 → 코드 4번」을 되풀이해 잠금 없이 2FA 코드를 대입할 수 있다.
-    // 그 경우 리셋은 2FA 까지 통과한 뒤(TwoFactorService.authenticate)에 한다.
-    if (user.twoFactorMethods.length === 0) {
-      await ResetFailedAttemptsCommand(this.prisma, user.id);
-    }
+    // 비밀번호 요소만 비운다. 2FA 코드는 SECOND_FACTOR 로 따로 세므로, 「다시 로그인 →
+    // 코드 4번」을 되풀이해도 2FA 쪽 카운터는 비지 않는다.
+    await ResetAuthAttemptsCommand(this.prisma, user.id, 'PASSWORD');
 
     this.logger.debug(
       `validateUserByEmail: Returning user: ${JSON.stringify(user.id)}`,
