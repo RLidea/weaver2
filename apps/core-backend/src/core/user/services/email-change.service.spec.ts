@@ -27,14 +27,24 @@ import { UpdateUserEmailCommand } from '../repositories/update-user-email.comman
 
 describe('EmailChangeService', () => {
   const mockUpdate = UpdateUserEmailCommand as jest.Mock;
-  let oneTimeCode: { issueCode: jest.Mock; verifyCode: jest.Mock };
+  let oneTimeCode: {
+    issueCode: jest.Mock;
+    verifyCode: jest.Mock;
+    deliverOrRevoke: jest.Mock;
+  };
   let email: { sendEmailChangeVerificationEmail: jest.Mock };
   let prisma: { user: { findUnique: jest.Mock } };
   let service: EmailChangeService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    oneTimeCode = { issueCode: jest.fn(), verifyCode: jest.fn() };
+    oneTimeCode = {
+      issueCode: jest.fn(),
+      verifyCode: jest.fn(),
+      deliverOrRevoke: jest.fn(
+        (_u: string, _p: string, send: () => Promise<unknown>) => send(),
+      ),
+    };
     email = { sendEmailChangeVerificationEmail: jest.fn() };
     prisma = { user: { findUnique: jest.fn().mockResolvedValue(null) } };
     service = new EmailChangeService(
@@ -45,7 +55,7 @@ describe('EmailChangeService', () => {
   });
 
   describe('requestEmailChange', () => {
-    it('새 주소를 소문자로 코드와 함께 저장하고, 새 주소로 코드를 보낸다', async () => {
+    it('새 주소를 소문자로 코드와 함께 저장하고, 그 주소로 코드를 보낸다', async () => {
       oneTimeCode.issueCode.mockResolvedValue('012345');
 
       await service.requestEmailChange('user-1', 'pw', 'New@X.com');
@@ -56,7 +66,7 @@ describe('EmailChangeService', () => {
         { newEmail: 'new@x.com' },
       );
       expect(email.sendEmailChangeVerificationEmail).toHaveBeenCalledWith(
-        'New@X.com',
+        'new@x.com',
         '012345',
         'user-1',
       );

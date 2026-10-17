@@ -53,7 +53,13 @@ const credential = (overrides: Record<string, unknown> = {}) => ({
 });
 
 function build() {
-  const oneTimeCode = { issueCode: jest.fn(), verifyCode: jest.fn() };
+  const oneTimeCode = {
+    issueCode: jest.fn(),
+    verifyCode: jest.fn(),
+    deliverOrRevoke: jest.fn(
+      (_u: string, _p: string, send: () => Promise<unknown>) => send(),
+    ),
+  };
   const email = { sendTwoFactorCodeEmail: jest.fn() };
   const prisma = {
     user: {

@@ -12,6 +12,11 @@ import {
 } from './helpers/test-app.helper';
 import { OneTimeCodeService } from '../../src/core/auth/one-time-code/one-time-code.service';
 import { MAX_CODE_ATTEMPTS } from '../../src/core/auth/one-time-code/one-time-code.constants';
+import { UpsertOneTimeCodeCommand } from '../../src/core/auth/one-time-code/repositories/upsert-one-time-code.command';
+import { ReserveOneTimeCodeAttemptCommand } from '../../src/core/auth/one-time-code/repositories/reserve-one-time-code-attempt.command';
+import { UpdateUserEmailCommand } from '../../src/core/user/repositories/update-user-email.command';
+import { SoftDeleteUserCommand } from '../../src/core/user/repositories/soft-delete-user.command';
+import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 
 describe('One-Time Code (Integration)', () => {
   let prisma: PrismaService;
@@ -228,5 +233,168 @@ describe('One-Time Code (Integration)', () => {
     expect(await prisma.oneTimeCode.count({ where: { userId: dead.id } })).toBe(
       0,
     );
+  });
+
+  describe('리뷰 보강', () => {
+    it('만료된 6자리 코드는 시도조차 잡히지 않는다', async () => {
+      const user = await createUser();
+      const code = (await service.issueCode(user.id, 'STEP_UP'))!;
+      await prisma.oneTimeCode.updateMany({
+        where: { userId: user.id },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+
+      expect(await service.verifyCode(user.id, 'STEP_UP', code)).toBeNull();
+      const row = await prisma.oneTimeCode.findFirstOrThrow({
+        where: { userId: user.id },
+      });
+      expect(row.attempts).toBe(0);
+    });
+
+    it('유예 중 재발급은 저장된 코드·새 주소를 바꾸지 않는다', async () => {
+      const user = await createUser();
+      await service.issueCode(user.id, 'EMAIL_CHANGE', {
+        newEmail: 'first@integration-test.local',
+      });
+      const before = await prisma.oneTimeCode.findFirstOrThrow({
+        where: { userId: user.id },
+      });
+
+      expect(
+        await service.issueCode(user.id, 'EMAIL_CHANGE', {
+          newEmail: 'second@integration-test.local',
+        }),
+      ).toBeNull();
+      const after = await prisma.oneTimeCode.findFirstOrThrow({
+        where: { userId: user.id },
+      });
+      expect(after.secretHash).toBe(before.secretHash);
+      expect(after.newEmail).toBe('first@integration-test.local');
+    });
+
+    it.each(['Asia/Seoul', 'America/Los_Angeles', 'UTC'])(
+      'DB 세션 시간대(%s)와 무관하게 만료를 판단한다 — 시각은 앱이 UTC 로 넘긴다',
+      async (zone) => {
+        const user = await createUser();
+        await prisma.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(`SET LOCAL TIME ZONE '${zone}'`);
+          const now = new Date();
+          await UpsertOneTimeCodeCommand(tx, {
+            userId: user.id,
+            purpose: 'STEP_UP',
+            secretHash: `tz-${zone}-${user.id}`,
+            newEmail: null,
+            now,
+            expiresAt: new Date(now.getTime() + 5 * 60_000),
+            cooldownMs: 60_000,
+          });
+          // 5분 뒤 만료 — 살아 있어야 한다
+          expect(
+            await ReserveOneTimeCodeAttemptCommand(tx, user.id, 'STEP_UP', now),
+          ).not.toBeNull();
+          // 10분 뒤 시각으로 보면 만료여야 한다
+          expect(
+            await ReserveOneTimeCodeAttemptCommand(
+              tx,
+              user.id,
+              'STEP_UP',
+              new Date(now.getTime() + 10 * 60_000),
+            ),
+          ).toBeNull();
+        });
+      },
+    );
+
+    it('메일 발송이 실패하면 발급을 거둬, 유예에 걸리지 않고 바로 다시 받을 수 있다', async () => {
+      const user = await createUser();
+      await service.issueCode(user.id, 'STEP_UP');
+      const boom = new Error('smtp down');
+
+      await expect(
+        service.deliverOrRevoke(user.id, 'STEP_UP', () => Promise.reject(boom)),
+      ).rejects.toBe(boom);
+      expect(
+        await prisma.oneTimeCode.count({ where: { userId: user.id } }),
+      ).toBe(0);
+      expect(await service.issueCode(user.id, 'STEP_UP')).not.toBeNull();
+    });
+
+    it('본인이 이메일을 바꾸면 인증 시각을 새로 정하고 옛 주소로 나간 링크를 버린다', async () => {
+      const user = await createUser();
+      const reset = (await service.issueLink(user.id, 'PASSWORD_RESET'))!;
+      await service.issueCode(user.id, 'STEP_UP');
+
+      await UpdateUserEmailCommand(
+        prisma,
+        user.id,
+        `moved_${user.id}@integration-test.local`,
+      );
+
+      expect(await service.findLinkOwner(reset, 'PASSWORD_RESET')).toBeNull();
+      // 링크가 아닌 코드는 건드리지 않는다
+      expect(
+        await prisma.oneTimeCode.count({
+          where: { userId: user.id, purpose: 'STEP_UP' },
+        }),
+      ).toBe(1);
+      const moved = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(moved.emailVerifiedAt).not.toBeNull();
+    });
+
+    it('관리자가 이메일을 바꾸면 인증을 풀고 옛 주소로 나간 링크를 버린다', async () => {
+      const user = await createUser();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: new Date() },
+      });
+      const reset = (await service.issueLink(user.id, 'PASSWORD_RESET'))!;
+
+      await getTestingModule()
+        .get(UserAdminService)
+        .updateUser(user.id, {
+          email: `admin_set_${user.id}@integration-test.local`,
+        });
+
+      const updated = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(updated.emailVerifiedAt).toBeNull();
+      expect(await service.findLinkOwner(reset, 'PASSWORD_RESET')).toBeNull();
+    });
+
+    it('관리자가 이메일 말고 다른 것만 바꾸면 인증은 그대로다', async () => {
+      const user = await createUser();
+      const verifiedAt = new Date();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: verifiedAt },
+      });
+
+      await getTestingModule()
+        .get(UserAdminService)
+        .updateUser(user.id, {
+          email: user.email,
+          displayName: `renamed ${user.id}`,
+        });
+
+      const updated = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      expect(updated.emailVerifiedAt).not.toBeNull();
+    });
+
+    it('탈퇴하면 일회용 비밀이 남지 않는다', async () => {
+      const user = await createUser();
+      await service.issueCode(user.id, 'STEP_UP');
+      await service.issueLink(user.id, 'PASSWORD_RESET');
+
+      await SoftDeleteUserCommand(prisma, user.id);
+
+      expect(
+        await prisma.oneTimeCode.count({ where: { userId: user.id } }),
+      ).toBe(0);
+    });
   });
 });

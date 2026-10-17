@@ -40,10 +40,15 @@ export class RequestPasswordResetService {
       'CLIENT_URL',
     )}/reset-password?token=${token}`;
 
-    await this.emailBusinessService.sendPasswordResetEmail(
-      user.email,
-      resetLink,
+    await this.oneTimeCodeService.deliverOrRevoke(
       user.id,
+      'PASSWORD_RESET',
+      () =>
+        this.emailBusinessService.sendPasswordResetEmail(
+          user.email,
+          resetLink,
+          user.id,
+        ),
     );
   }
 }

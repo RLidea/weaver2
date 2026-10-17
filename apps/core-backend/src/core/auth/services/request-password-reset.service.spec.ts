@@ -13,7 +13,7 @@ import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 describe('RequestPasswordResetService', () => {
   const mockFind = FindUserByEmailQuery as jest.Mock;
   let email: { sendPasswordResetEmail: jest.Mock };
-  let oneTimeCode: { issueLink: jest.Mock };
+  let oneTimeCode: { issueLink: jest.Mock; deliverOrRevoke: jest.Mock };
   let service: RequestPasswordResetService;
 
   const owner = {
@@ -25,7 +25,12 @@ describe('RequestPasswordResetService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     email = { sendPasswordResetEmail: jest.fn() };
-    oneTimeCode = { issueLink: jest.fn() };
+    oneTimeCode = {
+      issueLink: jest.fn(),
+      deliverOrRevoke: jest.fn(
+        (_u: string, _p: string, send: () => Promise<unknown>) => send(),
+      ),
+    };
     service = new RequestPasswordResetService(
       {} as PrismaService,
       email as unknown as EmailBusinessService,

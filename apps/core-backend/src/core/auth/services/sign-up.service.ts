@@ -95,10 +95,15 @@ export class SignUpService {
         'EMAIL_VERIFICATION',
       );
       if (token) {
-        await this.emailBusinessService.sendVerificationEmail(
-          email,
-          this.verificationLink(token),
+        await this.oneTimeCodeService.deliverOrRevoke(
           createdUser.id,
+          'EMAIL_VERIFICATION',
+          () =>
+            this.emailBusinessService.sendVerificationEmail(
+              email,
+              this.verificationLink(token),
+              createdUser.id,
+            ),
         );
       }
 
@@ -133,10 +138,15 @@ export class SignUpService {
 
     if (user && token) {
       // 입력값이 아니라 저장된 주소로 보낸다
-      await this.emailBusinessService.sendVerificationEmail(
-        user.email,
-        this.verificationLink(token),
+      await this.oneTimeCodeService.deliverOrRevoke(
         user.id,
+        'EMAIL_VERIFICATION',
+        () =>
+          this.emailBusinessService.sendVerificationEmail(
+            user.email,
+            this.verificationLink(token),
+            user.id,
+          ),
       );
     }
 

@@ -364,10 +364,12 @@ export class TwoFactorService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    await this.emailBusinessService.sendTwoFactorCodeEmail(
-      user.email,
-      code,
-      user.id,
+    await this.oneTimeCodeService.deliverOrRevoke(user.id, purpose, () =>
+      this.emailBusinessService.sendTwoFactorCodeEmail(
+        user.email,
+        code,
+        user.id,
+      ),
     );
   }
 

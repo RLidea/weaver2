@@ -33,6 +33,7 @@ describe('SignUpService', () => {
     findLinkOwner: jest.Mock;
     consumeLink: jest.Mock;
     issueLink: jest.Mock;
+    deliverOrRevoke: jest.Mock;
   };
   let service: SignUpService;
 
@@ -57,6 +58,9 @@ describe('SignUpService', () => {
       findLinkOwner: jest.fn().mockResolvedValue('user-1'),
       consumeLink: jest.fn().mockResolvedValue('user-1'),
       issueLink: jest.fn(),
+      deliverOrRevoke: jest.fn(
+        (_u: string, _p: string, send: () => Promise<unknown>) => send(),
+      ),
     };
     service = new SignUpService(
       prisma as unknown as PrismaService,

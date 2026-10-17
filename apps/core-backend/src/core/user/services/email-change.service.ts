@@ -53,12 +53,11 @@ export class EmailChangeService {
     }
 
     // 새 주소는 코드와 함께 저장한다 — 확인 때 입력이 아니라 이 값으로 바꾼다
+    const normalized = normalizeEmail(newEmail);
     const code = await this.oneTimeCodeService.issueCode(
       userId,
       'EMAIL_CHANGE',
-      {
-        newEmail: normalizeEmail(newEmail),
-      },
+      { newEmail: normalized },
     );
     if (!code) {
       throw new HttpException(
@@ -67,10 +66,12 @@ export class EmailChangeService {
       );
     }
 
-    await this.emailBusinessService.sendEmailChangeVerificationEmail(
-      newEmail,
-      code,
-      userId,
+    await this.oneTimeCodeService.deliverOrRevoke(userId, 'EMAIL_CHANGE', () =>
+      this.emailBusinessService.sendEmailChangeVerificationEmail(
+        normalized,
+        code,
+        userId,
+      ),
     );
   }
 

@@ -221,7 +221,8 @@ CHECK ("failedAttempts" >= 0)
 `OneTimeCodeService` 하나가 발급·확인·소비를 맡는다.
 
 **발급**
-- 목적마다 **재발급 유예**(링크 10분, 코드 60초)를 DB 가 지킨다: `INSERT … ON CONFLICT ("userId", purpose) DO UPDATE SET … WHERE one_time_codes."createdAt" < now() - 유예`. 갱신된 행이 없으면 429.
+- 목적마다 **재발급 유예**(링크 10분, 코드 60초)를 DB 가 지킨다: `INSERT … ON CONFLICT ("userId", purpose) DO UPDATE SET … WHERE one_time_codes."createdAt" < now() - 유예`. 갱신된 행이 없으면 429. 시각은 SQL `now()` 가 아니라 앱이 UTC 로 넘긴다 — 컬럼은 시간대 없는 `TIMESTAMP` 에 UTC 벽시계 값이고 DB 세션 시간대는 서버 설정을 따른다(이 맥은 KST, 9시간 차).
+- **메일 발송이 실패하면 방금 쓴 행을 거둔다** (리뷰에서 추가) — 안 거두면 메일도 못 받은 채 유예에 걸린다.
 - **재발급은 `attempts` 를 되돌리지 않는다.** 되돌리면 「5번 틀리고 → 새로 받고 → 5번 더」가 끝없이 된다. 한도를 다 쓴 코드는 만료될 때까지 새로 받을 수 없다.
 - 코드 생성은 한 함수 — `randomInt(0, 1_000_000)` 을 6자리로 0 채움.
 
@@ -261,6 +262,7 @@ WHERE id = $id AND ("lastUsedTimeStep" IS NULL OR "lastUsedTimeStep" < $step)
 
 - 가입 인증·재설정·이메일 변경 확인 성공 → 같은 UPDATE 에서 `"emailVerifiedAt" = now()`. 로그인은 `LocalCredential` 이 아니라 이 컬럼을 본다.
 - **관리자가 이메일을 바꾸면 `emailVerifiedAt = null`.** 관리자는 그 주소의 주인임을 증명하지 못한다. 사용자는 인증 메일 재발송으로 다시 증명한다.
+- **이메일이 바뀌면(본인·관리자 모두) 옛 주소로 나간 재설정·인증 링크를 버린다** (2026-10-17 리뷰에서 추가). 옛 메일함이 털려 주소를 옮긴 사람이 그 링크로 1시간 안에 다시 털리지 않게.
 - OAuth: `OAuthUserProfile` 에 `emailVerified: boolean` 을 더하고 공급자마다 옮긴다(Google `email_verified`, Kakao `is_email_verified`, Apple `email_verified`). **Naver 는 이 값을 주지 않는다** — 믿는 것으로 정했다(§7).
 - 가입 인증·재설정은 `deletedAt` 이면 거절. 정지는 막지 않는다 — 메일함 주인 증명은 정지와 별개이고, 로그인은 4.1 이 막는다.
 - 탈퇴 트랜잭션은 `TwoFactorMethod`·`OneTimeCode`·`AuthLockout` 도 지운다(지금은 챌린지·변경 요청이 남는다).

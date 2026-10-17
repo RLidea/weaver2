@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, PrismaService } from '@weaver2/prisma';
+import { OneTimeCodePurpose, Prisma, PrismaService } from '@weaver2/prisma';
 import { generateTokenUtil } from '@weaver2/common/utility/generate-token.util';
 import { hashToken } from '../utils/auth-crypto.util';
 import { deriveCodeKey, generateCode, hashCode } from './one-time-code.crypto';
@@ -123,6 +123,23 @@ export class OneTimeCodeService {
       id,
       hashCode(this.codeKey, purpose, userId, code),
     );
+  }
+
+  /**
+   * 방금 발급한 것을 메일로 보낸다. 발송이 실패하면 거두고 오류를 그대로 올린다 —
+   * 안 거두면 메일도 받지 못한 채 재발급 유예에 걸린다.
+   */
+  async deliverOrRevoke(
+    userId: string,
+    purpose: OneTimeCodePurpose,
+    send: () => Promise<unknown>,
+  ): Promise<void> {
+    try {
+      await send();
+    } catch (err) {
+      await this.prisma.oneTimeCode.deleteMany({ where: { userId, purpose } });
+      throw err;
+    }
   }
 
   purgeExpired(): Promise<number> {

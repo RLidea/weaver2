@@ -67,14 +67,34 @@ export class UserAdminService {
         throw new ConflictException('이미 사용 중인 사용자명입니다.');
     }
 
-    await this.prisma.user.update({
-      where: { id },
-      data: {
-        ...(dto.displayName !== undefined && { displayName: dto.displayName }),
-        ...(dto.username !== undefined && { username: dto.username }),
-        ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
-      },
-    });
+    // 관리자는 새 주소의 주인임을 증명하지 못한다 — 인증을 풀고, 옛 주소로 나간 링크를
+    // 버린다. 사용자는 인증 메일 재발송으로 다시 증명한다.
+    const emailChanged =
+      dto.email !== undefined && normalizeEmail(dto.email) !== user.email;
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: {
+          ...(dto.displayName !== undefined && {
+            displayName: dto.displayName,
+          }),
+          ...(dto.username !== undefined && { username: dto.username }),
+          ...(dto.email !== undefined && { email: normalizeEmail(dto.email) }),
+          ...(emailChanged && { emailVerifiedAt: null }),
+        },
+      }),
+      ...(emailChanged
+        ? [
+            this.prisma.oneTimeCode.deleteMany({
+              where: {
+                userId: id,
+                purpose: { in: ['PASSWORD_RESET', 'EMAIL_VERIFICATION'] },
+              },
+            }),
+          ]
+        : []),
+    ]);
 
     return this.findUserById(id);
   }
