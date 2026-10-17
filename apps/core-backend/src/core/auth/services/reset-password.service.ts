@@ -2,48 +2,62 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@weaver2/prisma';
-import { FindLocalCredentialByResetTokenQuery } from '../repositories/find-local-credential-by-reset-token.query';
 import { UpdateLocalCredentialPasswordCommand } from '../repositories/update-local-credential-password.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
+import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
+
+const INVALID_TOKEN = 'Invalid or expired password reset token.';
 
 @Injectable()
 export class ResetPasswordService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly oneTimeCodeService: OneTimeCodeService,
+  ) {}
 
   async execute(dto: ResetPasswordDto): Promise<void> {
     const { token, password } = dto;
-
-    const credential = await FindLocalCredentialByResetTokenQuery(
-      this.prisma,
-      token,
-    );
-
-    if (!credential) {
-      throw new BadRequestException('Invalid or expired password reset token.');
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 재설정 링크를 받았다는 것은 메일함을 가졌다는 증명이다 — 인증도 함께 끝낸다.
-    // 미인증 선점 가입을 당한 주인은 이 길로 계정을 되찾는다(남아 있던 인증 토큰도 버린다).
-    await UpdateLocalCredentialPasswordCommand(
-      this.prisma,
-      credential.userId,
-      hashedPassword,
-      { markVerified: true },
-    );
+    // 링크 소비부터 세션 무효화까지 한 트랜잭션 — 중간에 실패하면 링크도 되살아난다.
+    // 같은 링크로 동시에 두 번 와도 소비는 하나만 성공한다.
+    await this.prisma.$transaction(async (tx) => {
+      const userId = await this.oneTimeCodeService.consumeLink(
+        token,
+        'PASSWORD_RESET',
+        tx,
+      );
+      if (!userId) throw new BadRequestException(INVALID_TOKEN);
 
-    // 미인증 계정을 재설정이 인증했다면, 가입은 다른 사람이 했을 수 있다(선점 가입).
-    // 주인이 준 적 없는 마케팅 수신 동의를 되돌린다.
-    if (!credential.isVerified) {
-      await this.prisma.userSetting.updateMany({
-        where: { userId: credential.userId },
-        data: { isMarketingConsentGiven: false },
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { deletedAt: true, emailVerifiedAt: true },
       });
-    }
+      if (!user || user.deletedAt) throw new BadRequestException(INVALID_TOKEN);
 
-    // 비밀번호가 바뀌면 기존 세션을 전부 무효화한다(변경 경로와 동일 정책).
-    // 계정이 이미 탈취된 상태에서 재설정으로 복구할 때 공격자 세션이 살아남지 않게 함.
-    await DeleteRefreshTokensByUserIdCommand(this.prisma, credential.userId);
+      await UpdateLocalCredentialPasswordCommand(tx, userId, hashedPassword);
+
+      // 재설정 링크를 받았다는 것은 메일함을 가졌다는 증명이다 — 인증도 함께 끝낸다.
+      // 미인증 선점 가입을 당한 주인은 이 길로 계정을 되찾는다. 그 경우 가입은 다른
+      // 사람이 했을 수 있으니, 주인이 준 적 없는 마케팅 수신 동의를 되돌리고 남아 있던
+      // 인증 링크도 버린다.
+      if (!user.emailVerifiedAt) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { emailVerifiedAt: new Date() },
+        });
+        await tx.userSetting.updateMany({
+          where: { userId },
+          data: { isMarketingConsentGiven: false },
+        });
+        await tx.oneTimeCode.deleteMany({
+          where: { userId, purpose: 'EMAIL_VERIFICATION' },
+        });
+      }
+
+      // 비밀번호가 바뀌면 기존 세션을 전부 무효화한다(변경 경로와 동일 정책).
+      // 계정이 이미 탈취된 상태에서 재설정으로 복구할 때 공격자 세션이 살아남지 않게 함.
+      await DeleteRefreshTokensByUserIdCommand(tx, userId);
+    });
   }
 }

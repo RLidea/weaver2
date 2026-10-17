@@ -69,7 +69,7 @@ export class SignInService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!localCredential.isVerified) {
+    if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 

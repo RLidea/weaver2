@@ -202,10 +202,10 @@ describe('Route Guard Coverage (Integration)', () => {
         email,
         username: email.split('@')[0],
         displayName: email.split('@')[0],
+        emailVerifiedAt: new Date(),
         localCredential: {
           create: {
             password: await bcrypt.hash(TEST_PASSWORD, 10),
-            isVerified: true,
           },
         },
       },

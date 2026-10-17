@@ -73,7 +73,8 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: future,
-      localCredential: { password: 'hash', isVerified: true },
+      emailVerifiedAt: new Date(),
+      localCredential: { password: 'hash' },
     });
 
     await expect(service.validateUserByEmail('a@b.c', 'pw')).rejects.toThrow(
@@ -85,9 +86,9 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: new Date(0),
+      emailVerifiedAt: new Date(),
       localCredential: {
         password: 'hash',
-        isVerified: true,
         lockedUntil: null,
       },
     });
@@ -105,9 +106,9 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: null,
+      emailVerifiedAt: new Date(),
       localCredential: {
         password: 'hash',
-        isVerified: true,
         lockedUntil: future,
       },
     });
@@ -122,9 +123,9 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: null,
+      emailVerifiedAt: new Date(),
       localCredential: {
         password: 'hash',
-        isVerified: true,
         lockedUntil: null,
       },
     });
@@ -142,9 +143,9 @@ describe('SignInService.validateUserByEmail', () => {
     mockFind.mockResolvedValue({
       id: 'u1',
       suspendedUntil: null,
+      emailVerifiedAt: null,
       localCredential: {
         password: 'hash',
-        isVerified: false,
         lockedUntil: null,
       },
     });
@@ -159,9 +160,9 @@ describe('SignInService.validateUserByEmail', () => {
     const user = {
       id: 'u1',
       suspendedUntil: null,
+      emailVerifiedAt: new Date(),
       localCredential: {
         password: 'hash',
-        isVerified: true,
         lockedUntil: null,
       },
     };
@@ -178,9 +179,9 @@ describe('SignInService.validateUserByEmail', () => {
     const user = {
       id: 'u1',
       suspendedUntil: null,
+      emailVerifiedAt: new Date(),
       localCredential: {
         password: 'hash',
-        isVerified: true,
         lockedUntil: null,
         totpEnabled: true,
         emailOtpEnabled: false,

@@ -10,14 +10,13 @@ import { PrismaService } from '@weaver2/prisma';
 import { EmailSignUpDto } from '../dto/email-sign-up.dto';
 import * as bcrypt from 'bcrypt';
 import { SignUpCommand } from '../repositories/sign-up.command';
-import { CreateValidationTokenCommand } from '../repositories/create-validation-token.command';
-import { FindLocalCredentialByTokenQuery } from '../repositories/find-local-credential-by-token.query';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { FindUserService } from '../../user/services/find-user.service';
 import { CreateUserSettingCommand } from '../../user/repositories/create-user-setting.command';
 import { CreateUserTermsAgreementCommand } from '../../user/repositories/create-user-terms-agreement.command';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { TermsService } from '../../terms/services/terms.service';
+import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 
 @Injectable()
 export class SignUpService {
@@ -28,6 +27,7 @@ export class SignUpService {
     private readonly findUserService: FindUserService,
     private readonly emailBusinessService: EmailBusinessService,
     private readonly termsService: TermsService,
+    private readonly oneTimeCodeService: OneTimeCodeService,
   ) {}
 
   async emailSignUp(dto: EmailSignUpDto) {
@@ -89,17 +89,18 @@ export class SignUpService {
 
       await CreateUserTermsAgreementCommand(this.prisma, userTermsAgreements);
 
-      // create validation token
-      const token = await CreateValidationTokenCommand(this.prisma, {
-        userId: createdUser.id,
-      });
-
-      // send verification email using template
-      await this.emailBusinessService.sendVerificationEmail(
-        email,
-        `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
+      // 막 만든 계정이라 앞선 링크가 없어 유예에 걸리지 않는다
+      const token = await this.oneTimeCodeService.issueLink(
         createdUser.id,
+        'EMAIL_VERIFICATION',
       );
+      if (token) {
+        await this.emailBusinessService.sendVerificationEmail(
+          email,
+          this.verificationLink(token),
+          createdUser.id,
+        );
+      }
 
       return {
         message: 'Sign-up completed successfully.',
@@ -123,24 +124,21 @@ export class SignUpService {
   async resendVerificationEmail(email: string): Promise<{ message: string }> {
     const user = await FindUserByEmailQuery(this.prisma, email);
 
-    // 계정 존재 여부를 노출하지 않기 위해 동일한 응답 반환
-    if (!user || !user.localCredential || user.localCredential.isVerified) {
-      return {
-        message:
-          'If the email address exists and is unverified, a new verification email has been sent.',
-      };
+    // 계정 존재 여부를 노출하지 않기 위해 동일한 응답 반환.
+    // 재발급 유예(10분) 중이어도 같다 — 앞서 보낸 링크가 아직 살아 있다.
+    const token =
+      user && user.localCredential && !user.emailVerifiedAt
+        ? await this.oneTimeCodeService.issueLink(user.id, 'EMAIL_VERIFICATION')
+        : null;
+
+    if (user && token) {
+      // 입력값이 아니라 저장된 주소로 보낸다
+      await this.emailBusinessService.sendVerificationEmail(
+        user.email,
+        this.verificationLink(token),
+        user.id,
+      );
     }
-
-    const token = await CreateValidationTokenCommand(this.prisma, {
-      userId: user.id,
-    });
-
-    // 입력값이 아니라 저장된 주소로 보낸다
-    await this.emailBusinessService.sendVerificationEmail(
-      user.email,
-      `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token.verificationToken}`,
-      user.id,
-    );
 
     return {
       message:
@@ -157,50 +155,58 @@ export class SignUpService {
    * (메일함 소유 증명 → 인증 완료 · 세션 전부 무효화)으로 계정을 되찾는다.
    */
   async verifyEmail(token: string, password: string) {
-    const credential = await FindLocalCredentialByTokenQuery(this.prisma, {
-      verificationToken: token,
-    });
-    // check valid token
-    if (!credential) {
+    // 만료된 링크도 「없음」과 같게 답한다 — 둘을 가를 정보가 링크에 없다
+    const ownerId = await this.oneTimeCodeService.findLinkOwner(
+      token,
+      'EMAIL_VERIFICATION',
+    );
+    const owner = ownerId
+      ? await this.prisma.user.findUnique({
+          where: { id: ownerId },
+          include: { localCredential: true },
+        })
+      : null;
+    if (!owner || owner.deletedAt || !owner.localCredential) {
       throw new BadRequestException('Invalid verification token.');
     }
-    // check token expiry
-    if (
-      !credential?.verificationTokenExpiry ||
-      credential?.verificationTokenExpiry < new Date()
-    ) {
-      throw new BadRequestException('Verification token has expired.');
-    }
-    // 틀려도 토큰은 남긴다 — 오타면 다시 입력하면 되고, 주인이 아니면 재설정으로 간다
-    const passwordMatches =
-      !!credential.password &&
-      (await bcrypt.compare(password, credential.password));
+    // 비밀번호가 먼저다. 틀려도 링크는 남긴다 — 오타면 다시 입력하면 되고, 주인이 아니면
+    // 재설정으로 간다
+    const passwordMatches = await bcrypt.compare(
+      password,
+      owner.localCredential.password,
+    );
     if (!passwordMatches) {
       throw new BadRequestException('VERIFY_PASSWORD_MISMATCH');
     }
-    // remove token and update isVerified
-    await this.prisma.localCredential.update({
-      where: { id: credential.id },
-      data: {
-        isVerified: true,
-        verificationToken: null,
-        verificationTokenExpiry: null,
-      },
-    });
-    // send welcome email using template
-    const user = await this.prisma.user.findUnique({
-      where: { id: credential.userId },
-    });
-
-    if (user) {
-      await this.emailBusinessService.sendWelcomeEmail(
-        user.email,
-        user.displayName,
-        user.id,
+    // 소비와 인증 표시를 한 트랜잭션으로 — 같은 링크로 동시에 와도 한 번만 인증한다
+    const verified = await this.prisma.$transaction(async (tx) => {
+      const consumed = await this.oneTimeCodeService.consumeLink(
+        token,
+        'EMAIL_VERIFICATION',
+        tx,
       );
+      if (consumed !== owner.id) return false;
+      await tx.user.update({
+        where: { id: owner.id },
+        data: { emailVerifiedAt: new Date() },
+      });
+      return true;
+    });
+    if (!verified) {
+      throw new BadRequestException('Invalid verification token.');
     }
+
+    await this.emailBusinessService.sendWelcomeEmail(
+      owner.email,
+      owner.displayName,
+      owner.id,
+    );
     return {
       message: 'Email successfully verified.',
     };
+  }
+
+  private verificationLink(token: string): string {
+    return `${this.configService.get('CLIENT_URL')}/auth/verify?token=${token}`;
   }
 }

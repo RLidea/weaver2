@@ -41,9 +41,9 @@ describe('Email case (Integration)', () => {
       displayName: `ec ${Date.now()} ${createdUserIds.length}`,
       hashedPassword: await bcrypt.hash(TEST_PASSWORD, 10),
     });
-    await prisma.localCredential.update({
-      where: { userId: user.id },
-      data: { isVerified: true },
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date() },
     });
     createdUserIds.push(user.id);
     return user;

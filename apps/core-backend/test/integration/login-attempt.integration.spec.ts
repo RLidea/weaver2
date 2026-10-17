@@ -37,7 +37,8 @@ describe('ReserveLoginAttemptCommand (Integration)', () => {
         email: `attempt_${stamp}@integration-test.local`,
         username: `attempt_${stamp}`,
         displayName: `attempt ${stamp}`,
-        localCredential: { create: { password: 'x', isVerified: true } },
+        emailVerifiedAt: new Date(),
+        localCredential: { create: { password: 'x' } },
       },
     });
     createdUserIds.push(user.id);

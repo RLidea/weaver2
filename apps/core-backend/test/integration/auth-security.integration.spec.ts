@@ -55,10 +55,10 @@ describe('Auth Security (Integration)', () => {
         email,
         username: email.split('@')[0],
         displayName: email.split('@')[0],
+        emailVerifiedAt: new Date(),
         localCredential: {
           create: {
             password: hashedPw,
-            isVerified: true,
           },
         },
       },
