@@ -353,7 +353,7 @@ describe('One-Time Code (Integration)', () => {
 
       await getTestingModule()
         .get(UserAdminService)
-        .updateUser(user.id, {
+        .updateUser((await createUser()).id, user.id, {
           email: `admin_set_${user.id}@integration-test.local`,
         });
 
@@ -374,7 +374,7 @@ describe('One-Time Code (Integration)', () => {
 
       await getTestingModule()
         .get(UserAdminService)
-        .updateUser(user.id, {
+        .updateUser((await createUser()).id, user.id, {
           email: user.email,
           displayName: `renamed ${user.id}`,
         });

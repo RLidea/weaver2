@@ -30,7 +30,7 @@ import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command'
 import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
 import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
-import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
+import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../repositories/delete-two-factor-method-if-other-remains.command';
 import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { CodePurpose } from '../one-time-code/one-time-code.constants';
@@ -139,6 +139,12 @@ export class TwoFactorService {
       timeStep,
     );
     if (!confirmed) {
+      // 같은 코드로 동시에 확인해 진 쪽이면 이미 켜져 있다 — 「다시 시작됐다」는 틀린 안내다
+      const { confirmedTotp } = await FindTwoFactorMethodsQuery(
+        this.prisma,
+        userId,
+      );
+      if (confirmedTotp) throw this.totpAlreadyEnabled();
       throw new ConflictException(
         'TOTP setup was restarted. Scan the new QR code and try again.',
       );
@@ -278,7 +284,7 @@ export class TwoFactorService {
     }
 
     await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
-    await DeleteTwoFactorMethodCommand(this.prisma, userId, 'TOTP');
+    await this.deleteIfOtherRemains(userId, 'TOTP');
     this.logger.log(`TOTP disabled for userId=${userId}`);
   }
 
@@ -294,7 +300,7 @@ export class TwoFactorService {
     }
 
     await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
-    await DeleteTwoFactorMethodCommand(this.prisma, userId, 'EMAIL');
+    await this.deleteIfOtherRemains(userId, 'EMAIL');
     // 살아 있던 로그인·등록 코드는 이제 쓸 데가 없다
     await this.prisma.oneTimeCode.deleteMany({
       where: {
@@ -404,15 +410,40 @@ export class TwoFactorService {
       throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
 
-    // 인증 앱이 없거나 그 코드가 아니면, 로그인한 사용자가 메일로 받은 STEP_UP 코드
+    // 인증 앱 코드로 맞으면 그것으로 끝이다 — 이미 쓴 단위라 거절돼도 STEP_UP 으로 넘기지
+    // 않는다(넘기면 그 코드의 시도 5번 중 하나를 까먹는다). 인증 앱 코드가 아닐 때만
+    // 로그인한 사용자가 메일로 받은 STEP_UP 코드로 본다.
+    const timeStep = confirmedTotp
+      ? await this.verifyTotp(confirmedTotp, code)
+      : null;
     const passed =
-      (confirmedTotp !== null &&
-        (await this.consumeTotp(userId, confirmedTotp, code))) ||
-      (await this.oneTimeCodeService.verifyCode(userId, 'STEP_UP', code)) !==
-        null;
+      timeStep !== null
+        ? await RecordTotpTimeStepCommand(this.prisma, userId, timeStep)
+        : (await this.oneTimeCodeService.verifyCode(
+            userId,
+            'STEP_UP',
+            code,
+          )) !== null;
     if (!passed) throw new UnauthorizedException('Invalid verification code');
 
     await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
+  }
+
+  private async deleteIfOtherRemains(
+    userId: string,
+    kind: 'TOTP' | 'EMAIL',
+  ): Promise<void> {
+    if (
+      !(await DeleteTwoFactorMethodIfOtherRemainsCommand(
+        this.prisma,
+        userId,
+        kind,
+      ))
+    ) {
+      throw new BadRequestException(
+        'Cannot disable the only active 2FA method.',
+      );
+    }
   }
 
   private reserveSecondFactor(userId: string): Promise<boolean> {

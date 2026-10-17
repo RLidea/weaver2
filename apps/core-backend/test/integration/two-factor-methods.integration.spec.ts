@@ -13,6 +13,7 @@ import {
 import { StartTotpSetupCommand } from '../../src/core/auth/repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../../src/core/auth/repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../../src/core/auth/repositories/record-totp-time-step.command';
+import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../../src/core/auth/repositories/delete-two-factor-method-if-other-remains.command';
 import { TwoFactorService } from '../../src/core/auth/services/two-factor.service';
 import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 import { OneTimeCodeService } from '../../src/core/auth/one-time-code/one-time-code.service';
@@ -174,6 +175,108 @@ describe('Two-Factor Methods (Integration)', () => {
           .get(UserAdminService)
           .resetTwoFactor(admin.id, admin.id),
       ).rejects.toThrow(/설정 화면/);
+    });
+  });
+
+  it('TOTP 해제와 이메일 해제가 동시에 와도 하나만 지워진다 — 2FA 가 0개가 되지 않는다', async () => {
+    const user = await createUser();
+    await prisma.twoFactorMethod.createMany({
+      data: [
+        {
+          userId: user.id,
+          kind: 'TOTP',
+          secretEncrypted: 'v1:s',
+          confirmedAt: new Date(),
+        },
+        { userId: user.id, kind: 'EMAIL', confirmedAt: new Date() },
+      ],
+    });
+
+    const results = await Promise.all([
+      DeleteTwoFactorMethodIfOtherRemainsCommand(prisma, user.id, 'TOTP'),
+      DeleteTwoFactorMethodIfOtherRemainsCommand(prisma, user.id, 'EMAIL'),
+    ]);
+
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(
+      await prisma.twoFactorMethod.count({ where: { userId: user.id } }),
+    ).toBe(1);
+  });
+
+  it('등록 중인 TOTP 는 「남는 다른 수단」으로 치지 않는다', async () => {
+    const user = await createUser();
+    await prisma.twoFactorMethod.createMany({
+      data: [
+        { userId: user.id, kind: 'TOTP', secretEncrypted: 'v1:s' },
+        { userId: user.id, kind: 'EMAIL', confirmedAt: new Date() },
+      ],
+    });
+    expect(
+      await DeleteTwoFactorMethodIfOtherRemainsCommand(
+        prisma,
+        user.id,
+        'EMAIL',
+      ),
+    ).toBe(false);
+  });
+
+  describe('관리자 상하 검사', () => {
+    async function inGroup(name: string) {
+      const user = await createUser();
+      const group = await prisma.permissionGroup.findUniqueOrThrow({
+        where: { name },
+      });
+      await prisma.userPermissionGroup.create({
+        data: { userId: user.id, permissionGroupId: group.id },
+      });
+      return user;
+    }
+
+    it('Admin 은 SuperAdmin 의 2FA 를 초기화하지도, 이메일을 바꾸지도 못한다', async () => {
+      const admin = await inGroup('Admin');
+      const superAdmin = await inGroup('SuperAdmin');
+      const service = getTestingModule().get(UserAdminService);
+
+      await expect(
+        service.resetTwoFactor(admin.id, superAdmin.id),
+      ).rejects.toThrow(/권한이 넓은/);
+      await expect(
+        service.updateUser(admin.id, superAdmin.id, {
+          email: `taken_${superAdmin.id}@integration-test.local`,
+        }),
+      ).rejects.toThrow(/권한이 넓은/);
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: superAdmin.id },
+      });
+      expect(after.email).toBe(superAdmin.email);
+    });
+
+    it('SuperAdmin 은 Admin 의 2FA 를 초기화할 수 있다', async () => {
+      const admin = await inGroup('Admin');
+      const superAdmin = await inGroup('SuperAdmin');
+      await prisma.twoFactorMethod.create({
+        data: { userId: admin.id, kind: 'EMAIL', confirmedAt: new Date() },
+      });
+
+      await getTestingModule()
+        .get(UserAdminService)
+        .resetTwoFactor(superAdmin.id, admin.id);
+
+      expect(
+        await prisma.twoFactorMethod.count({ where: { userId: admin.id } }),
+      ).toBe(0);
+    });
+
+    it('Admin 은 이메일 말고 다른 정보는 상위자라도 바꿀 수 있다(이메일만이 탈취 경로)', async () => {
+      const admin = await inGroup('Admin');
+      const superAdmin = await inGroup('SuperAdmin');
+      await expect(
+        getTestingModule()
+          .get(UserAdminService)
+          .updateUser(admin.id, superAdmin.id, {
+            displayName: `renamed ${superAdmin.id}`,
+          }),
+      ).resolves.toBeDefined();
     });
   });
 });

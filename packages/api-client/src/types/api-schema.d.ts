@@ -2897,7 +2897,10 @@ export interface components {
              * @enum {string}
              */
             method: "totp" | "email";
-            /** @description 6자리 인증 코드 */
+            /**
+             * @description 6자리 인증 코드
+             * @example 012345
+             */
             code: string;
         };
         TwoFactorSendEmailDto: {
@@ -2905,7 +2908,10 @@ export interface components {
             preAuthToken: string;
         };
         TwoFactorConfirmDto: {
-            /** @description 6자리 인증 코드 */
+            /**
+             * @description 6자리 인증 코드
+             * @example 012345
+             */
             code: string;
         };
         AuthProvidersResponseDto: {

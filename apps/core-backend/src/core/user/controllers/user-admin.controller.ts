@@ -51,10 +51,11 @@ export class UserAdminController {
   @ApiOperation({ summary: '사용자 정보 수정 (관리자 전용)' })
   @ApiStandardResponses({ type: AdminUserDto })
   updateUser(
+    @AuthUser() authUser: CommonAuthUserDto,
     @Param('id') id: string,
     @Body() dto: AdminUpdateUserDto,
   ): Promise<AdminUserDto> {
-    return this.userAdminService.updateUser(id, dto);
+    return this.userAdminService.updateUser(authUser.id, id, dto);
   }
 
   @Patch(':id/suspend')
@@ -79,7 +80,7 @@ export class UserAdminController {
   }
 
   @Delete(':id/two-factor')
-  @RequirePermission(PERMISSIONS.USER.UPDATE_ALL)
+  @RequirePermission(PERMISSIONS.USER.RESET_2FA)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '사용자 2단계 인증 초기화 (관리자 전용) — 인증 앱 분실 복구',

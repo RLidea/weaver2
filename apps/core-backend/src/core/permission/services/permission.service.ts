@@ -139,6 +139,19 @@ export class PermissionService {
   }
 
   /**
+   * 요청자가 대상이 가진 권한을 **모두** 가졌는지 — 관리자가 남의 계정을 건드릴 때의 상하 검사.
+   * 대상의 권한 문자열(와일드카드 포함)을 그대로 hasPermission 에 넣으므로, 대상이 `*:*` 면
+   * 요청자도 `*:*` 여야 하고, `user:*` 면 `user:*` 이상이어야 한다.
+   */
+  async covers(requesterId: string, targetId: string): Promise<boolean> {
+    const targetPermissions = await this.getUserPermissions(targetId);
+    for (const permission of targetPermissions) {
+      if (!(await this.hasPermission(requesterId, permission))) return false;
+    }
+    return true;
+  }
+
+  /**
    * 유저가 여러 권한 중 하나라도 가지고 있는지 체크
    */
   async hasAnyPermission(

@@ -69,13 +69,14 @@ export class SignInService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // 비밀번호가 맞았으니 비밀번호 요소를 비운다 — 아래 미인증 거절보다 먼저(안 그러면 맞는
+    // 비밀번호로 다섯 번 들어와 본 미인증 사용자가 잠긴다). 2FA 코드는 SECOND_FACTOR 로 따로
+    // 세므로, 「다시 로그인 → 코드 4번」을 되풀이해도 2FA 쪽 카운터는 비지 않는다.
+    await ResetAuthAttemptsCommand(this.prisma, user.id, 'PASSWORD');
+
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
-
-    // 비밀번호 요소만 비운다. 2FA 코드는 SECOND_FACTOR 로 따로 세므로, 「다시 로그인 →
-    // 코드 4번」을 되풀이해도 2FA 쪽 카운터는 비지 않는다.
-    await ResetAuthAttemptsCommand(this.prisma, user.id, 'PASSWORD');
 
     this.logger.debug(
       `validateUserByEmail: Returning user: ${JSON.stringify(user.id)}`,

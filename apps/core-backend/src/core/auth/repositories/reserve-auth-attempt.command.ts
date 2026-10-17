@@ -41,26 +41,19 @@ export async function ReserveAuthAttemptCommand(
     data: { failedAttempts: 0, lockedUntil: null },
   });
 
-  const reserved = await prisma.authLockout.updateMany({
-    where: {
-      userId,
-      factor,
-      failedAttempts: { lt: MAX_FAILED_ATTEMPTS },
-      lockedUntil: null,
-    },
-    data: { failedAttempts: { increment: 1 } },
-  });
-  if (reserved.count === 0) return false;
-
-  // 이번 시도로 한도에 닿았으면 잠근다 — 이 요청 자체는 이미 잡은 시도라 확인은 계속한다
-  await prisma.authLockout.updateMany({
-    where: {
-      userId,
-      factor,
-      failedAttempts: { gte: MAX_FAILED_ATTEMPTS },
-      lockedUntil: null,
-    },
-    data: { lockedUntil: new Date(now.getTime() + LOCKOUT_DURATION_MS) },
-  });
-  return true;
+  // 「한도 밑일 때만 +1」과 「이번 시도로 한도에 닿으면 잠금」을 한 문장으로 — 둘로 나누면
+  // 사이에서 프로세스가 죽었을 때 failedAttempts = 5 · lockedUntil = null 로 남아, 풀릴 일
+  // 없이 계속 막힌다. 이 요청 자체는 이미 잡은 시도라 잠기더라도 확인은 계속한다.
+  // 시각은 앱이 넘긴다(컬럼은 UTC 벽시계 값, DB 세션 시간대와 무관하게).
+  const lockUntil = new Date(now.getTime() + LOCKOUT_DURATION_MS);
+  const reserved = await prisma.$executeRaw`
+    UPDATE auth_lockouts
+       SET "failedAttempts" = "failedAttempts" + 1,
+           "lockedUntil" = CASE WHEN "failedAttempts" + 1 >= ${MAX_FAILED_ATTEMPTS}
+                                THEN ${lockUntil}::timestamp(3) ELSE NULL END
+     WHERE "userId" = ${userId}
+       AND factor = ${factor}::"AuthFactor"
+       AND "failedAttempts" < ${MAX_FAILED_ATTEMPTS}
+       AND "lockedUntil" IS NULL`;
+  return reserved > 0;
 }

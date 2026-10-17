@@ -25,9 +25,12 @@ jest.mock('../repositories/reserve-auth-attempt.command', () => ({
 jest.mock('../repositories/reset-auth-attempts.command', () => ({
   ResetAuthAttemptsCommand: jest.fn(),
 }));
-jest.mock('../repositories/delete-two-factor-method.command', () => ({
-  DeleteTwoFactorMethodCommand: jest.fn(),
-}));
+jest.mock(
+  '../repositories/delete-two-factor-method-if-other-remains.command',
+  () => ({
+    DeleteTwoFactorMethodIfOtherRemainsCommand: jest.fn(),
+  }),
+);
 jest.mock('../repositories/enable-email-two-factor.command', () => ({
   EnableEmailTwoFactorCommand: jest.fn(),
 }));
@@ -43,7 +46,7 @@ import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-metho
 import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
 import { ReserveAuthAttemptCommand } from '../repositories/reserve-auth-attempt.command';
 import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
-import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
+import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../repositories/delete-two-factor-method-if-other-remains.command';
 import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
 
 const mockFindCredential = FindTwoFactorMethodsQuery as jest.Mock;
@@ -103,7 +106,13 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
+    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
+      true,
+    );
     mockReserve.mockResolvedValue(true);
+    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
+      true,
+    );
     ctx = build();
   });
 
@@ -226,6 +235,9 @@ describe('TwoFactorService — 이메일 코드 발송', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
+    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
+      true,
+    );
     ctx = build();
   });
 
@@ -291,6 +303,9 @@ describe('TwoFactorService — 해제', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
+    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
+      true,
+    );
     ctx = build();
     mockFindCredential.mockResolvedValue(credential());
   });
@@ -301,7 +316,7 @@ describe('TwoFactorService — 해제', () => {
     await ctx.service.disableTotp('user-1', '123456');
 
     expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
-    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
+    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
       'TOTP',
@@ -319,7 +334,7 @@ describe('TwoFactorService — 해제', () => {
       'STEP_UP',
       '654321',
     );
-    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
+    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
       'EMAIL',
@@ -332,6 +347,37 @@ describe('TwoFactorService — 해제', () => {
     });
   });
 
+  it('인증 앱 코드가 맞지만 이미 쓴 단위면 거절하고, STEP_UP 코드의 시도를 까먹지 않는다', async () => {
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+    mockRecordStep.mockResolvedValue(false);
+
+    await expect(
+      ctx.service.disableTotp('user-1', '123456'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
+  });
+
+  it('동시 해제로 마지막 수단이 될 상황이면(지우지 못함) 거절한다', async () => {
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
+      false,
+    );
+
+    await expect(ctx.service.disableTotp('user-1', '123456')).rejects.toThrow(
+      /only active 2FA method/,
+    );
+  });
+
+  it('해제 시도도 SECOND_FACTOR 로 잡고, 잠겼으면 코드를 보지 않는다', async () => {
+    mockReserve.mockResolvedValue(false);
+
+    await expect(ctx.service.disableTotp('user-1', '123456')).rejects.toThrow(
+      /locked/,
+    );
+    expect(mockOtpVerify).not.toHaveBeenCalled();
+    expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
+  });
+
   it('둘 다 아니면 거절하고 아무것도 끄지 않는다', async () => {
     mockOtpVerify.mockResolvedValue({ valid: false });
     ctx.oneTimeCode.verifyCode.mockResolvedValue(null);
@@ -339,6 +385,6 @@ describe('TwoFactorService — 해제', () => {
     await expect(
       ctx.service.disableTotp('user-1', '000000'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(DeleteTwoFactorMethodCommand).not.toHaveBeenCalled();
+    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).not.toHaveBeenCalled();
   });
 });
