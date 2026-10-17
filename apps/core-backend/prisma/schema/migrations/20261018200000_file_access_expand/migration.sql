@@ -36,6 +36,7 @@ CREATE TABLE "files" (
     "uploadedById" TEXT,
     "hiddenAt" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
+    "detachedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "files_pkey" PRIMARY KEY ("id")
 );

@@ -229,7 +229,14 @@ export class UploadService {
     const candidates = await this.prisma.file.findMany({
       where: {
         OR: [
-          { ...UNATTACHED, deletedAt: null, createdAt: { lte: cutoff } },
+          // 한 번도 안 붙었던 파일은 올린 때부터, 떼어진 파일은 뗀 때부터 잰다
+          {
+            ...UNATTACHED,
+            deletedAt: null,
+            detachedAt: null,
+            createdAt: { lte: cutoff },
+          },
+          { ...UNATTACHED, deletedAt: null, detachedAt: { lte: cutoff } },
           { ...UNATTACHED, deletedAt: { lte: cutoff } },
         ],
       },

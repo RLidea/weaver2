@@ -261,7 +261,7 @@ export class PostService {
   ): Promise<void> {
     const current = await tx.postAttachment.findMany({
       where: { postId },
-      select: { fileId: true },
+      select: { fileId: true, file: { select: { hiddenAt: true } } },
     });
     const currentIds = new Set(current.map((a) => a.fileId));
     const added = fileIds.filter((id) => !currentIds.has(id));
@@ -273,15 +273,38 @@ export class PostService {
       await LockAttachableFilesCommand(tx, added, attacherId);
     }
 
+    // 가린 첨부는 응답에 안 나가 클라이언트가 보낸 목록에 없다 — 그걸로 떼면 신고 처리 증거가 정리된다.
+    // 목록에 없어도 남겨 둔다
     const keep = new Set(fileIds);
-    await tx.postAttachment.deleteMany({
-      where: { postId, fileId: { notIn: [...keep] } },
-    });
+    const detached = current
+      .filter((a) => !keep.has(a.fileId) && !a.file.hiddenAt)
+      .map((a) => a.fileId);
+    if (detached.length > 0) {
+      await tx.postAttachment.deleteMany({
+        where: { postId, fileId: { in: detached } },
+      });
+      // 고아 보존 기간은 떼어진 때부터 — 「실수로 뺐다 다시 넣기」가 되게
+      await tx.file.updateMany({
+        where: { id: { in: detached } },
+        data: { detachedAt: new Date() },
+      });
+    }
+
     for (const [position, fileId] of fileIds.entries()) {
-      await tx.postAttachment.upsert({
-        where: { fileId },
-        update: { position },
-        create: { fileId, postId, position },
+      if (currentIds.has(fileId)) {
+        await tx.postAttachment.update({
+          where: { fileId },
+          data: { position },
+        });
+      } else {
+        // 잠금 뒤 「안 붙음」을 확인했다 — 그래도 겹치면 PK 가 막아 오류가 난다(조용히 옮기지 않는다)
+        await tx.postAttachment.create({ data: { fileId, postId, position } });
+      }
+    }
+    if (added.length > 0) {
+      await tx.file.updateMany({
+        where: { id: { in: added } },
+        data: { detachedAt: null },
       });
     }
   }

@@ -3,7 +3,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { FileAccessRule, FileAccessVerdict } from './file-access-rule';
 import { FileAccessRuleRegistry } from './file-access-rule.registry';
 
-/** 프로필 이미지는 누구나 본다 */
+/** 프로필 이미지는 누구나 본다. 탈퇴한 사람의 것은 아무도 못 본다 */
 @Injectable()
 export class ProfileImageAccessRule implements FileAccessRule, OnModuleInit {
   constructor(
@@ -18,8 +18,9 @@ export class ProfileImageAccessRule implements FileAccessRule, OnModuleInit {
   async decide(fileId: string): Promise<FileAccessVerdict | null> {
     const owner = await this.prisma.user.findUnique({
       where: { profileImageFileId: fileId },
-      select: { id: true },
+      select: { deletedAt: true },
     });
-    return owner ? 'public' : null;
+    if (!owner) return null;
+    return owner.deletedAt ? 'deny' : 'public';
   }
 }
