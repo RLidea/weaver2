@@ -4307,8 +4307,8 @@ export interface operations {
     };
     EmailController_getEmailTemplates: {
         parameters: {
-            query: {
-                activeOnly: boolean;
+            query?: {
+                activeOnly?: boolean;
             };
             header?: never;
             path?: never;
