@@ -146,6 +146,8 @@ export class AppleOAuthProvider implements OAuthProvider {
       provider: this.name,
       providerId: claims.sub,
       email,
+      // 검증되지 않은 email 은 위에서 이미 비웠다
+      emailVerified: email !== '',
       displayName: name ?? (email ? email.split('@')[0] : 'Apple User'),
     };
   }

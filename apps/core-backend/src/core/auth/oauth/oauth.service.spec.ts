@@ -1,7 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@weaver2/prisma';
-import { Response } from 'express';
 import { OAuthService } from './oauth.service';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { OAuthProvider } from './interfaces/oauth-provider.interface';
@@ -15,22 +13,19 @@ jest.mock('../repositories/find-user-by-email.query', () => ({
 jest.mock('../repositories/create-oauth-user.command', () => ({
   CreateOAuthUserCommand: jest.fn(),
 }));
-jest.mock('../repositories/create-refresh-token.command', () => ({
-  CreateRefreshTokenCommand: jest.fn(),
-}));
-jest.mock('../utils/auth-cookie.util', () => ({
-  setAuthCookies: jest.fn(),
+jest.mock('../repositories/upsert-oauth-account.command', () => ({
+  UpsertOAuthAccountCommand: jest.fn(),
 }));
 
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
+import { UpsertOAuthAccountCommand } from '../repositories/upsert-oauth-account.command';
 
 describe('OAuthService', () => {
   let env: Record<string, string | undefined>;
   let registry: OAuthProviderRegistry;
   let service: OAuthService;
-  let res: { redirect: jest.Mock; cookie: jest.Mock };
   let prisma: { user: { findFirst: jest.Mock; update: jest.Mock } };
 
   type FakeProvider = OAuthProvider & {
@@ -73,11 +68,9 @@ describe('OAuthService', () => {
     };
     service = new OAuthService(
       prisma as unknown as PrismaService,
-      { sign: () => 'jwt' } as unknown as JwtService,
       config,
       registry,
     );
-    res = { redirect: jest.fn(), cookie: jest.fn() };
   });
 
   describe('getEnabledProviders', () => {
@@ -103,7 +96,6 @@ describe('OAuthService', () => {
       const config = { get: (k: string) => env[k] } as unknown as ConfigService;
       const extended = new OAuthService(
         prisma as unknown as PrismaService,
-        {} as JwtService,
         config,
         registry,
         [
@@ -127,7 +119,6 @@ describe('OAuthService', () => {
     const config = { get: (k: string) => env[k] } as unknown as ConfigService;
     const extended = new OAuthService(
       prisma as unknown as PrismaService,
-      {} as JwtService,
       config,
       registry,
       [
@@ -153,20 +144,17 @@ describe('OAuthService', () => {
     });
   });
 
-  describe('handleOAuthCallback', () => {
+  describe('resolveCallbackUser', () => {
     it('콜백의 user 를 provider 의 getUserProfile 로 넘긴다', async () => {
       const provider = fakeProvider('apple', '');
       registry.register(provider);
       (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
 
-      await service.handleOAuthCallback(
-        'apple',
-        'code',
-        'st',
-        'st',
-        res as unknown as Response,
-        { user: '{"name":{"firstName":"Jane"}}' },
-      );
+      await service
+        .resolveCallbackUser('apple', 'code', 'st', 'st', {
+          user: '{"name":{"firstName":"Jane"}}',
+        })
+        .catch(() => undefined);
 
       expect(provider.mocks.getUserProfile).toHaveBeenCalledWith(
         { accessToken: 'at' },
@@ -174,37 +162,61 @@ describe('OAuthService', () => {
       );
     });
 
-    it('email 없는 신규 가입은 사용자를 만들지 않고 실패로 보낸다', async () => {
+    it('email 없는 신규 가입은 사용자를 만들지 않고 실패한다', async () => {
       registry.register(fakeProvider('apple', ''));
       (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
 
-      await service.handleOAuthCallback(
-        'apple',
-        'code',
-        'st',
-        'st',
-        res as unknown as Response,
-      );
-
+      await expect(
+        service.resolveCallbackUser('apple', 'code', 'st', 'st'),
+      ).rejects.toThrow();
       expect(FindUserByEmailQuery).not.toHaveBeenCalled();
       expect(CreateOAuthUserCommand).not.toHaveBeenCalled();
-      expect(res.redirect).toHaveBeenCalledWith('/fail');
     });
 
     it('state 가 쿠키와 다르면 code 를 교환하지 않는다', async () => {
       const provider = fakeProvider('apple', 'a@b.c');
       registry.register(provider);
 
-      await service.handleOAuthCallback(
-        'apple',
-        'code',
-        'st',
-        'other',
-        res as unknown as Response,
-      );
-
+      await expect(
+        service.resolveCallbackUser('apple', 'code', 'st', 'other'),
+      ).rejects.toThrow(/state mismatch/);
       expect(provider.mocks.exchangeCodeForTokens).not.toHaveBeenCalled();
-      expect(res.redirect).toHaveBeenCalledWith('/fail');
+    });
+
+    it('연동이 남아 있어도 탈퇴한 사람이면 로그인 길이 아니다', async () => {
+      registry.register(fakeProvider('google', 'a@b.c'));
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue({
+        userId: 'u1',
+        user: { deletedAt: new Date() },
+      });
+
+      await expect(
+        service.resolveCallbackUser('google', 'code', 'st', 'st'),
+      ).rejects.toThrow(/ACCOUNT_DELETED/);
+      expect(UpsertOAuthAccountCommand).not.toHaveBeenCalled();
+    });
+
+    it('신규 사용자는 공급자의 이메일 검증 여부를 그대로 받는다', async () => {
+      const provider = fakeProvider('google', 'new@b.c');
+      provider.mocks.getUserProfile.mockResolvedValue({
+        provider: 'google',
+        providerId: 'sub-9',
+        email: 'new@b.c',
+        emailVerified: true,
+        displayName: 'New',
+      });
+      registry.register(provider);
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
+      (FindUserByEmailQuery as jest.Mock).mockResolvedValue(null);
+      (CreateOAuthUserCommand as jest.Mock).mockResolvedValue({ userId: 'u9' });
+
+      await expect(
+        service.resolveCallbackUser('google', 'code', 'st', 'st'),
+      ).resolves.toBe('u9');
+      expect(CreateOAuthUserCommand).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ emailVerified: true }),
+      );
     });
   });
 
@@ -232,14 +244,9 @@ describe('OAuthService', () => {
       (FindUserByEmailQuery as jest.Mock).mockResolvedValue(null);
       (CreateOAuthUserCommand as jest.Mock).mockResolvedValue({ userId: 'u1' });
 
-      await service.handleOAuthCallback(
-        'google',
-        'code',
-        'st',
-        'st',
-        res as unknown as Response,
-      );
-      expect(res.redirect).toHaveBeenCalledWith('/ok');
+      await expect(
+        service.resolveCallbackUser('google', 'code', 'st', 'st'),
+      ).resolves.toBe('u1');
       const [, options] = (CreateOAuthUserCommand as jest.Mock).mock
         .calls[0] as [unknown, { displayName: string }];
       return options.displayName;

@@ -228,6 +228,7 @@ describe('AppleOAuthProvider', () => {
         provider: 'apple',
         providerId: 'apple-sub-1',
         email: 'user@privaterelay.appleid.com',
+        emailVerified: true,
         displayName: 'Jane Doe',
       });
     });

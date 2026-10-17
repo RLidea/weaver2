@@ -99,6 +99,9 @@ export class NaverOAuthProvider implements OAuthProvider {
       provider: this.name,
       providerId: data.response.id,
       email,
+      // Naver API 는 검증 여부를 주지 않지만 계정 이메일은 Naver 가 관리한다 — 검증된 것으로
+      // 본다(메인테이너 결정, 2026-10-17). 생각이 다르면 이 한 줄을 false 로 바꾼다.
+      emailVerified: true,
       displayName: data.response.name ?? `naver_${data.response.id}`,
       profileImageUrl: data.response.profile_image,
     };

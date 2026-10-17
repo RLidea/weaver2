@@ -20,6 +20,8 @@ interface KakaoUserResponse {
   id: number;
   kakao_account?: {
     email?: string;
+    is_email_valid?: boolean;
+    is_email_verified?: boolean;
     profile?: {
       nickname?: string;
       profile_image_url?: string;
@@ -100,6 +102,9 @@ export class KakaoOAuthProvider implements OAuthProvider {
       provider: this.name,
       providerId: String(data.id),
       email,
+      emailVerified:
+        data.kakao_account?.is_email_verified === true &&
+        data.kakao_account?.is_email_valid !== false,
       displayName:
         data.kakao_account?.profile?.nickname ?? `kakao_${String(data.id)}`,
       profileImageUrl: data.kakao_account?.profile?.profile_image_url,

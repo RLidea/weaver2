@@ -123,6 +123,17 @@ export function LoginForm() {
         ? error.message
         : null;
 
+  // OAuth 콜백이 실패하면 OAUTH_FAILURE_REDIRECT_URL 에 error 를 붙여 돌려보낸다
+  const oauthError = searchParams.get('error');
+  const oauthErrorMessage =
+    oauthError === 'oauth_email_conflict'
+      ? '이미 같은 이메일로 가입된 계정이 있습니다. 그 계정으로 로그인한 뒤 설정에서 소셜 계정을 연동해주세요.'
+      : oauthError === 'account_suspended'
+        ? '이용이 정지된 계정입니다.'
+        : oauthError === 'oauth_failed'
+          ? '소셜 로그인에 실패했습니다. 다시 시도해주세요.'
+          : null;
+
   const isRegistered = searchParams.get('registered') === '1';
   const isReset = searchParams.get('reset') === '1';
 
@@ -215,6 +226,11 @@ export function LoginForm() {
         {isRegistered && (
           <p className="mt-2 rounded-md bg-success/10 px-3 py-2 text-center text-sm text-success">
             가입이 완료되었습니다. 이메일을 확인하여 인증을 완료해주세요.
+          </p>
+        )}
+        {oauthErrorMessage && (
+          <p className="mt-2 rounded-md bg-error/10 px-3 py-2 text-center text-sm text-error">
+            {oauthErrorMessage}
           </p>
         )}
         {twoFactorExpired && (

@@ -1,10 +1,12 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Query,
@@ -16,6 +18,7 @@ import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { OAuthService } from '../oauth/oauth.service';
+import { SignInCompletionService } from '../services/sign-in-completion.service';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 
@@ -34,9 +37,12 @@ interface OAuthFormPostBody {
 @ApiTags('Auth')
 @Controller({ path: 'auth/oauth', version: '1' })
 export class OAuthController {
+  private readonly logger = new Logger(OAuthController.name);
+
   constructor(
     private readonly oauthService: OAuthService,
     private readonly configService: ConfigService,
+    private readonly signInCompletionService: SignInCompletionService,
   ) {}
 
   @Get('connections')
@@ -140,13 +146,69 @@ export class OAuthController {
       return;
     }
 
-    await this.oauthService.handleOAuthCallback(
-      provider,
-      code,
-      state,
-      cookieState ?? '',
-      res,
-      { user },
+    try {
+      const userId = await this.oauthService.resolveCallbackUser(
+        provider,
+        code,
+        state,
+        cookieState ?? '',
+        { user },
+      );
+      // 비밀번호 로그인과 같은 끝 — 탈퇴·정지를 보고, 2FA 가 있으면 pre_auth 쿠키만 준다.
+      // OAuth 에는 「로그인 유지」 선택이 없어 기본 수명으로 준다.
+      const completion = await this.signInCompletionService.complete(
+        userId,
+        {
+          provider,
+          rememberMe: false,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+        },
+        res,
+      );
+      res.redirect(
+        completion.twoFactorRequired ? this.twoFactorUrl : this.successUrl,
+      );
+    } catch (err) {
+      this.logger.error(
+        `OAuth callback failed for provider=${provider}: ${(err as Error).message}`,
+      );
+      res.redirect(this.failureRedirect(provider, err));
+    }
+  }
+
+  private get successUrl(): string {
+    return this.configService.get<string>('OAUTH_SUCCESS_REDIRECT_URL') ?? '/';
+  }
+
+  private get twoFactorUrl(): string {
+    return (
+      this.configService.get<string>('OAUTH_TWO_FACTOR_REDIRECT_URL') ??
+      '/login?step=2fa'
     );
+  }
+
+  /**
+   * 화면이 안내를 고를 수 있게 실패 종류를 query 로 싣는다. 덧붙이지 않고 **바꾼다** — 기본
+   * 실패 URL 에 이미 `?error=oauth_failed` 가 있어, 덧붙이면 error 가 둘이 되고 화면은 첫
+   * 것만 읽는다(전에는 그래서 oauth_email_conflict 안내가 뜨지 않았다).
+   */
+  private failureRedirect(provider: string, err: unknown): string {
+    const base = this.failureUrl;
+    const withError = (error: string, extra: Record<string, string> = {}) => {
+      const url = new URL(base, 'http://relative.invalid');
+      url.searchParams.set('error', error);
+      for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, v);
+      return url.origin === 'http://relative.invalid'
+        ? `${url.pathname}${url.search}`
+        : url.toString();
+    };
+    if (err instanceof ConflictException) {
+      return withError('oauth_email_conflict', { provider });
+    }
+    if (err instanceof Error && /suspended/i.test(err.message)) {
+      return withError('account_suspended');
+    }
+    return base;
   }
 }
