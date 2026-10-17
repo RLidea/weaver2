@@ -196,7 +196,8 @@ export class FilesController {
       'Content-Type',
       type?.contentType ?? 'application/octet-stream',
     );
-    if (!thumbnail) res.setHeader('Content-Length', String(file.size));
+    // Content-Length 는 DB 의 size 로 걸지 않는다 — 저장된 바이트와 어긋나면(옛 데이터 등) 본문이 길이를
+    // 넘쳐 keep-alive 연결의 다음 응답이 깨진다. 청크 전송에 맡긴다
     delivery.stream.on('error', () => res.destroy());
     delivery.stream.pipe(res);
   }
