@@ -18,7 +18,8 @@
 |---|---|---|
 | `_config.prisma` | (generator/datasource만) | — |
 | `auth.prisma` | User, UserSetting, LocalCredential, TwoFactorMethod, OneTimeCode, AuthLockout, OAuthAccount, RefreshToken | TwoFactorKind, OneTimeCodePurpose, AuthFactor |
-| `board.prisma` | Board, Post, Comment, PostCategory, Emoji, PostReaction, PostFile | PostStatus |
+| `board.prisma` | Board, Post, Comment, PostCategory, Emoji, PostReaction | PostStatus |
+| `file.prisma` | File, PostAttachment | — |
 | `permissions.prisma` | PermissionGroup, PermissionGroupPermission, UserPermissionGroup, ResourcePermission, ResourcePermissionAllowedGroup, ResourcePermissionDeniedGroup | — |
 | `notification.prisma` | Notification, PushSubscription | NotificationType |
 | `report.prisma` | Report | ReportTarget, ReportReason, ReportStatus, ReportAction |
@@ -48,11 +49,11 @@
 
 > CHARTER §1: 게시판은 substrate가 아니라 **레퍼런스 예시**입니다. 새 도메인을 만들 때 이 파일의 패턴(상태 enum, 숨김/삭제 이중 필드, 인덱스 설계)을 미러링하세요 → [10. 새 기능 만들기](10-new-feature.md)
 
-- **Board** → **Post** → **Comment** 계층. Post는 `status`(DRAFT/PUBLISHED/ARCHIVED/DELETED), 고정(`isPinned`), 비밀글(`isSecret`), `viewCount`, 게시글 단위 권한(`requiredPermission`)을 가짐.
+- **Board** → **Post** → **Comment** 계층. Post는 `status`(DRAFT/PUBLISHED/ARCHIVED/DELETED), 고정(`isPinned`), 비밀글(`isSecret` — 작성자와 그 게시판 관리자만 읽는다), `viewCount`를 가짐. 누가 읽는지는 `PostReadPolicy` 한 곳이 정한다([07장](07-board-reference.md)).
 - **Comment** — `parentId` 자기참조로 대댓글 표현 (깊이 제한은 서비스 레이어에서 — [07장](07-board-reference.md)).
 - **PostCategory** — 게시판별 카테고리. `@@unique([boardId, name])`.
 - **Emoji** + **PostReaction** — 이모지 마스터 테이블과 리액션 조인. `@@unique([postId, userId, emojiId])`이 "같은 글에 같은 이모지 중복 리액션 불가"를 DB 레벨에서 보장.
-- **PostFile** — 첨부 파일. 별도 Upload/Media 모델은 없고 파일은 전부 PostFile입니다. `postId`가 nullable + `onDelete: SetNull`이라 **게시글이 하드 삭제되어도 파일 레코드는 살아남습니다** (파일 정리는 별도 처리).
+- **File** (`file.prisma`) — 저장소에 있는 객체 하나. **무엇에 붙었는지 모릅니다** — 붙은 쪽이 압니다: **PostAttachment**(게시글 첨부, `fileId` PK = 파일 하나는 한 글에만), `User.profileImageFileId`(프로필), 파생 프로젝트의 첨부 테이블. 붙은 쪽 → `files` FK 는 **Restrict** 라 정리 작업이 「아직 붙은 파일」을 FK 위반으로 알아챕니다. 누가 받는지는 붙은 쪽의 읽기 정책이 정합니다([06장](06-uploads.md)).
 
 ### 2.3 권한 (`permissions.prisma`)
 
@@ -121,14 +122,16 @@ erDiagram
     Post ||--o{ PostReaction : ""
     Emoji ||--o{ PostReaction : ""
     User ||--o{ PostReaction : ""
-    Post |o--o{ PostFile : "postId? (SetNull)"
+    Post ||--o{ PostAttachment : "Cascade"
+    File ||--o| PostAttachment : "fileId (Restrict)"
+    File |o--o| User : "profileImageFileId (Restrict)"
     User ||--o{ Notification : "Cascade"
     User ||--o{ PushSubscription : "Cascade"
     User ||--o{ Report : "reporterId (Cascade)"
     User |o--o{ Report : "resolvedById? (SetNull)"
 ```
 
-> Report → Post/Comment/User/PostFile 연결은 `targetType`+`targetId` 다형 참조라 ERD에 FK 선이 없습니다 (§2.5).
+> Report → Post/Comment/User/File 연결은 `targetType`+`targetId` 다형 참조라 ERD에 FK 선이 없습니다 (§2.5).
 
 ## 4. 삭제·숨김 정책
 
@@ -136,15 +139,16 @@ erDiagram
 
 | 상태 | 필드 | 가진 모델 | 의미 |
 |---|---|---|---|
-| 숨김 | `hiddenAt` | Post, Comment, PostFile | 모더레이션 조치. 데이터는 온전하고 노출만 차단 |
-| 소프트 삭제 | `deletedAt` | User, Board, Post, Comment, PostFile | 사용자/운영자의 삭제. 조회 쿼리가 `deletedAt: null` 필터 |
+| 숨김 | `hiddenAt` | Post, Comment, File | 모더레이션 조치. 데이터는 온전하고 노출만 차단 |
+| 소프트 삭제 | `deletedAt` | User, Board, Post, Comment, File | 사용자/운영자의 삭제. 조회 쿼리가 `deletedAt: null` 필터 |
 | 하드 삭제 | (실제 DELETE) | — | 명시적으로만 수행 |
 
 **왜 soft-delete + 명시적 hard-delete인가** (CHARTER §5): `ON DELETE CASCADE`는 실제 DELETE에서만 발동합니다. soft-delete는 UPDATE이므로 자식 행이 자동 정리되지 않습니다 — 그래서 연쇄 정리가 필요한 삭제는 명시적 hard-delete로 처리하는 것이 안전하다는 원칙입니다.
 
 `onDelete` 규칙 요약:
 - **Cascade** — User의 인증 부속 테이블 전부(LocalCredential, OAuthAccount, RefreshToken …), 권한 조인 테이블, Notification, PushSubscription: 사용자 하드 삭제 시 함께 정리
-- **SetNull** — `PostFile.postId`, `Report.resolvedById`: 부모가 사라져도 레코드 유지
+- **SetNull** — `File.uploadedById`, `Report.resolvedById`: 부모가 사라져도 레코드 유지
+- **Restrict** — `PostAttachment.fileId`, `User.profileImageFileId` → `files`: 붙어 있는 파일은 지울 수 없다(정리 작업이 건너뛴다)
 - **미지정(Prisma 기본)** — Post.author, Comment.post 등: non-nullable FK는 기본이 Restrict이므로 부모를 먼저 지울 수 없음. 콘텐츠 계열이 soft-delete 우선인 이유와 맞물림
 
 ## 5. Enum 전수 목록

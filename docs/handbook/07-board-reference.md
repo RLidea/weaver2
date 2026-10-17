@@ -16,6 +16,18 @@ BoardModule 하나에 컨트롤러 11개·서비스 9개가 모여 있습니다.
 
 레포지토리 함수가 `PrismaClient | Prisma.TransactionClient`를 받으므로, 서비스가 트랜잭션 안에서 같은 함수를 재사용할 수 있습니다.
 
+## 1.5 읽기 정책 — `PostReadPolicy` 한 곳
+
+「이 사람이 이 글을 읽을 수 있나」는 `services/post-read-policy.service.ts` 하나가 답합니다. 글 상세·목록(게시판 있음/없음)·작성자별 글/댓글 목록·글의 댓글·검색·**첨부 파일**([06장 §5](06-uploads.md#5-접근-통제--누가-받나는-붙은-쪽이-정한다))이 전부 이걸 씁니다 — 경로마다 따로 구현하면 어딘가 하나가 샙니다(전에는 `GET /posts`·작성자 목록·검색이 회원 전용 글을 흘렸습니다).
+
+1. **글 상태** — `PUBLISHED`, 안 가림, 안 지움. 작성자·관리자에게도 예외 없음
+2. **게시판 READ** — `PermissionService.hasResourcePermission` 그대로(거부 기본값·최고관리자 통과·거부 그룹). 없으면 **403**
+3. **비밀글** — 작성자와 그 게시판의 관리자(`edit_all` 또는 `delete_all`)만. 아니면 **404**(존재를 알리지 않는다)
+
+- 상세는 `postService.findReadablePost(id, viewer)`. `findPostById(id)` 는 「보이는 상태」만 보는 내부용 — 이미 판정을 거친 경로(댓글 작성 등)가 씁니다
+- 목록은 `listWhere(viewer, boardId?)` — 게시판마다 한 번씩 물어 `boardId IN (…)` 으로 거르고, 남의 비밀글은 목록에서도 뺍니다
+- 자기 댓글은 글을 못 읽게 됐어도(남의 비밀글) 고치거나 지울 수 있습니다 — 글이 보이는 상태이기만 하면 됩니다
+
 ## 2. 키셋 페이지네이션 — 목록 조회의 표준
 
 게시글 목록은 `libs/pagination`의 **keyset** 방식을 씁니다. 동작 원리:
@@ -68,7 +80,7 @@ BoardModule 하나에 컨트롤러 11개·서비스 9개가 모여 있습니다.
 2. **1단계 (raw)** — ID + rank만 조회. 정렬 `isPinned DESC, priority DESC, rank DESC, viewCount DESC, createdAt DESC`, **offset 페이지네이션**(page/limit)
 3. **2단계 (Prisma)** — 그 ID들을 `findMany({ where: { id: { in } } })`로 관계 포함 재조회 + `deletedAt: null` 필터
 
-- 대상: 게시글(title+content, `PUBLISHED`이고 비밀글 아닌 것만), 댓글(content)
+- 대상: **읽을 수 있는 게시판**(§1.5 의 READ)의 게시글(title+content — 게시됨·안 가림·안 지움·비밀글 아님), 댓글(content — 안 지움·안 가림, 그런 글에 달린 것). 검색은 비밀글을 작성자에게도 내지 않습니다
 - 필터: `boardId`, `type`(posts/comments/all). 작성자·날짜 필터와 키워드 하이라이팅은 **현재 구현에 없습니다**
 - 성능은 GIN 표현식 인덱스가 뒷받침 — 스키마가 아니라 마이그레이션 SQL로 관리됩니다 (`20260509060314_add_search_gin_indexes`). **검색 대상 컬럼을 바꾸면 이 인덱스도 함께 바꿔야 합니다**
 
