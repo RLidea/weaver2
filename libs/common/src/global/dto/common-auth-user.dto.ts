@@ -2,8 +2,6 @@ class CommonAuthUserDto {
   id: string;
   username: string;
   isLogin: boolean;
-  totpEnabled?: boolean;
-  emailOtpEnabled?: boolean;
   userSetting?: {
     isMarketingConsentGiven: boolean;
     isNewsletterSubscribed: boolean;
