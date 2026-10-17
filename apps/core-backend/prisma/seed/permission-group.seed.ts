@@ -2,14 +2,14 @@ import { PrismaClient } from '@weaver2/prisma';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { logSeedResult } from './seed-logger';
 
-interface PermissionGroupSeed {
+export interface PermissionGroupSeed {
   name: string;
   description: string;
   isSystem: boolean;
   permissions: string[];
 }
 
-const permissionGroupsToSeed: PermissionGroupSeed[] = [
+export const permissionGroupsToSeed: PermissionGroupSeed[] = [
   {
     name: 'SuperAdmin',
     description: '모든 권한을 가진 최고 관리자',

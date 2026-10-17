@@ -10,6 +10,7 @@ import {
   closeTestApp,
   getTestingModule,
 } from './helpers/test-app.helper';
+import { ensureSystemPermissionGroups } from './helpers/permission-group.helper';
 import { StartTotpSetupCommand } from '../../src/core/auth/repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../../src/core/auth/repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../../src/core/auth/repositories/record-totp-time-step.command';
@@ -25,6 +26,7 @@ describe('Two-Factor Methods (Integration)', () => {
   beforeAll(async () => {
     await createTestApp();
     prisma = getTestingModule().get(PrismaService);
+    await ensureSystemPermissionGroups(prisma);
   });
 
   afterAll(async () => {

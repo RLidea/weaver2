@@ -2,7 +2,7 @@
  * Admin Privilege Ceiling Integration Tests
  *
  * 「자기가 가진 것보다 넓은 권한은 남에게(자기 포함) 주지도, 넓은 사람에게 손대지도 못한다」를
- * 실제 DB·실제 권한 그룹(시드의 Admin·SuperAdmin)으로 잰다. 막지 않으면 permission-group
+ * 실제 DB·실제 권한 그룹(시드 정의의 Admin·SuperAdmin)으로 잰다. 막지 않으면 permission-group
  * 관리 권한을 가진 Admin 이 자기를 SuperAdmin 그룹에 넣어 모든 상하 검사를 돌아간다.
  */
 import { PrismaService } from '@weaver2/prisma';
@@ -11,6 +11,7 @@ import {
   closeTestApp,
   getTestingModule,
 } from './helpers/test-app.helper';
+import { ensureSystemPermissionGroups } from './helpers/permission-group.helper';
 import { AdminPermissionApiService } from '../../src/system/admin/api/services/admin-permission.api.service';
 import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 import { PermissionService } from '../../src/core/permission/services/permission.service';
@@ -25,6 +26,7 @@ describe('Admin Privilege Ceiling (Integration)', () => {
   beforeAll(async () => {
     await createTestApp();
     prisma = getTestingModule().get(PrismaService);
+    await ensureSystemPermissionGroups(prisma);
     groups = getTestingModule().get(AdminPermissionApiService);
     users = getTestingModule().get(UserAdminService);
   });
