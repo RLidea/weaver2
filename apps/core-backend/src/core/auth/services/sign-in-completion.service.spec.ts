@@ -160,4 +160,73 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       service.complete('u1', context, res as unknown as Response),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
+
+  describe('decide — 전달 방식에 묶이지 않는 결정', () => {
+    const suspended = {
+      deletedAt: null,
+      suspendedUntil: new Date(Date.now() + 60_000),
+    };
+
+    const untouched = () => {
+      expect(signIn.login).not.toHaveBeenCalled();
+      expect(twoFactor.createPreAuthToken).not.toHaveBeenCalled();
+      expect(res.cookie).not.toHaveBeenCalled();
+      expect(res.clearCookie).not.toHaveBeenCalled();
+    };
+
+    it('탈퇴 계정은 거절한다', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        deletedAt: new Date(),
+        suspendedUntil: null,
+      });
+      await expect(
+        service.decide('u1', { twoFactorPassed: false }),
+      ).rejects.toThrow(/ACCOUNT_DELETED/);
+      untouched();
+    });
+
+    it('확인된 2FA 가 있고 통과 전이면 twoFactorRequired 와 수단을 돌려준다', async () => {
+      prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+      await expect(
+        service.decide('u1', { twoFactorPassed: false }),
+      ).resolves.toEqual({
+        twoFactorRequired: true,
+        availableMethods: { totp: true, email: false },
+      });
+      untouched();
+    });
+
+    it('2FA 가 없는 정지 계정은 바로 거절한다', async () => {
+      prisma.user.findUnique.mockResolvedValue(suspended);
+      await expect(
+        service.decide('u1', { twoFactorPassed: false }),
+      ).rejects.toBeInstanceOf(AccountSuspendedException);
+      untouched();
+    });
+
+    it('2FA 가 있는 정지 계정은 통과 전에는 정지 대신 twoFactorRequired 를 돌려준다', async () => {
+      prisma.user.findUnique.mockResolvedValue(suspended);
+      prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'EMAIL' }]);
+      await expect(
+        service.decide('u1', { twoFactorPassed: false }),
+      ).resolves.toMatchObject({ twoFactorRequired: true });
+      untouched();
+    });
+
+    it('2FA 를 통과한 정지 계정은 거절한다', async () => {
+      prisma.user.findUnique.mockResolvedValue(suspended);
+      prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'EMAIL' }]);
+      await expect(
+        service.decide('u1', { twoFactorPassed: true }),
+      ).rejects.toBeInstanceOf(AccountSuspendedException);
+      untouched();
+    });
+
+    it('정상 계정은 twoFactorRequired: false', async () => {
+      await expect(
+        service.decide('u1', { twoFactorPassed: false }),
+      ).resolves.toEqual({ twoFactorRequired: false });
+      untouched();
+    });
+  });
 });

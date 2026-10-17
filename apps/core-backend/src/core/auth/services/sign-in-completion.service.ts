@@ -36,6 +36,9 @@ export type SignInCompletion =
   | { twoFactorRequired: false }
   | { twoFactorRequired: true; availableMethods: AvailableTwoFactorMethods };
 
+/** `decide` 의 결과 — 쿠키 경로의 `SignInCompletion` 과 같은 모양이다 */
+export type SignInDecision = SignInCompletion;
+
 /**
  * 모든 로그인 경로(비밀번호·OAuth·2FA 통과)의 끝. 요소(비밀번호·OAuth 콜백·2FA 코드)가
  * 이미 확인된 뒤에 부른다 — 계정 상태는 그 뒤에야 말한다(이메일만으로 상태가 새지 않게).
@@ -45,6 +48,11 @@ export type SignInCompletion =
  * 3. 정지면 거절 — 2FA 가 있는 계정은 2FA 를 통과한 **뒤에야** 말한다. 앞에서 말하면
  *    비밀번호만 가진 사람이 정지 사실과 기간을 알게 된다.
  * 4. 세션(IP·UA·rememberMe 반영)
+ *
+ * 1~3 은 `decide` 에 있고 `complete*` 는 거기에 쿠키 전달(pre-auth·세션)을 얹은 것이다.
+ * 토큰을 쿠키가 아닌 응답 본문으로 주는 파생 프로젝트(모바일 등)는 `decide` 를 부른 뒤
+ * `signInService.login` 을 직접 부른다. `twoFactorRequired` 일 때 pre-auth 토큰
+ * (`twoFactorService.createPreAuthToken`)도 직접 만들어 줘야 한다.
  *
  * 경로마다 검사를 복사하면 경로가 늘 때마다 하나씩 빠진다 — 전에는 OAuth 가 정지·2FA 를,
  * 2FA 통과가 탈퇴·정지를 보지 않았다.
@@ -94,12 +102,14 @@ export class SignInCompletionService {
     };
   }
 
-  private async run(
+  /**
+   * 1~3 만 — 계정 상태를 가려 결정만 돌려준다. 쿠키·Response·토큰은 만지지 않는다.
+   * 토큰을 응답 본문으로 주는 파생 프로젝트(모바일 등)가 같은 검사를 그대로 쓰는 자리다.
+   */
+  async decide(
     userId: string,
-    context: SignInContext,
-    res: Response,
     { twoFactorPassed }: { twoFactorPassed: boolean },
-  ): Promise<SignInCompletion> {
+  ): Promise<SignInDecision> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { deletedAt: true, suspendedUntil: true },
@@ -111,17 +121,31 @@ export class SignInCompletionService {
     if (!twoFactorPassed) {
       const availableMethods = await this.availableMethods(userId);
       if (availableMethods.totp || availableMethods.email) {
-        setPreAuthCookie(
-          res,
-          this.twoFactorService.createPreAuthToken(userId, context.rememberMe),
-          this.isProduction,
-        );
         return { twoFactorRequired: true, availableMethods };
       }
     }
 
     if (user.suspendedUntil && user.suspendedUntil > new Date()) {
       throw new AccountSuspendedException(user.suspendedUntil);
+    }
+
+    return { twoFactorRequired: false };
+  }
+
+  private async run(
+    userId: string,
+    context: SignInContext,
+    res: Response,
+    { twoFactorPassed }: { twoFactorPassed: boolean },
+  ): Promise<SignInCompletion> {
+    const decision = await this.decide(userId, { twoFactorPassed });
+    if (decision.twoFactorRequired) {
+      setPreAuthCookie(
+        res,
+        this.twoFactorService.createPreAuthToken(userId, context.rememberMe),
+        this.isProduction,
+      );
+      return decision;
     }
 
     const tokens = await this.signInService.login(
@@ -133,6 +157,6 @@ export class SignInCompletionService {
     );
     setAuthCookies(res, tokens, this.isProduction);
     clearPreAuthCookie(res, this.isProduction);
-    return { twoFactorRequired: false };
+    return decision;
   }
 }
