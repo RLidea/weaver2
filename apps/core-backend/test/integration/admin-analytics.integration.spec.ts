@@ -73,6 +73,33 @@ describe('Admin analytics — 응답 모양 (Integration)', () => {
     expect(Array.isArray(res.body.data.topBoards)).toBe(true);
   });
 
+  it('overview — data 가 곧 AnalyticsOverview 다', async () => {
+    const res = await get('/v1/admin/analytics/overview').expect(200);
+    expect(res.body.data).toEqual(
+      expect.objectContaining({
+        totalUsers: expect.any(Number),
+        todaySignups: expect.any(Number),
+        activeUsers: expect.any(Number),
+      }),
+    );
+    expect(res.body.data).not.toHaveProperty('success');
+  });
+
+  it('system — data 가 곧 SystemAnalytics 다', async () => {
+    const res = await get('/v1/admin/analytics/system').expect(200);
+    expect(Array.isArray(res.body.data.apiResponseTimes)).toBe(true);
+    expect(Array.isArray(res.body.data.errorRates)).toBe(true);
+    expect(Array.isArray(res.body.data.trafficPatterns)).toBe(true);
+  });
+
+  it('기간이 거꾸로이거나 366일을 넘으면 400, 날짜가 아니면 422', async () => {
+    await get('/v1/admin/analytics/users?from=2026-10-10&to=2026-10-01').expect(
+      400,
+    );
+    await get('/v1/admin/analytics/content?from=2000-01-01').expect(400);
+    await get('/v1/admin/analytics/users?from=not-a-date').expect(422);
+  });
+
   it('summary — data 아래에 네 묶음이 바로 있다', async () => {
     const res = await get('/v1/admin/analytics/summary').expect(200);
     expect(Object.keys(res.body.data).sort()).toEqual([

@@ -2870,6 +2870,97 @@ export interface components {
             /** @description Apple OAuth 사용 가능 여부 (APPLE_OAUTH_ENABLED=true 일 때만) */
             apple: boolean;
         };
+        DailyViewsDto: {
+            /** @example 2026-10-18 */
+            date: string;
+            views: number;
+        };
+        TrafficSourcesDto: {
+            direct: number;
+            search: number;
+            social: number;
+            referral: number;
+        };
+        AnalyticsOverviewDto: {
+            totalUsers: number;
+            todaySignups: number;
+            totalPosts: number;
+            todayPosts: number;
+            totalComments: number;
+            todayComments: number;
+            activeUsers: number;
+            trafficOverview?: components["schemas"]["DailyViewsDto"][];
+            trafficSources?: components["schemas"]["TrafficSourcesDto"];
+        };
+        DailyCountDto: {
+            /** @example 2026-10-18 */
+            date: string;
+            count: number;
+        };
+        GroupCountDto: {
+            group: string;
+            count: number;
+        };
+        DailyActiveUsersDto: {
+            /** @example 2026-10-18 */
+            date: string;
+            activeUsers: number;
+        };
+        RetentionRateDto: {
+            daily: number;
+            weekly: number;
+            monthly: number;
+        };
+        UserAnalyticsDto: {
+            signupTrends: components["schemas"]["DailyCountDto"][];
+            usersByGroup: components["schemas"]["GroupCountDto"][];
+            userActivity: components["schemas"]["DailyActiveUsersDto"][];
+            retentionRate: components["schemas"]["RetentionRateDto"];
+        };
+        DailyPostsDto: {
+            /** @example 2026-10-18 */
+            date: string;
+            posts: number;
+            comments: number;
+        };
+        TopBoardDto: {
+            boardName: string;
+            postCount: number;
+            commentCount: number;
+        };
+        ContentQualityDto: {
+            avgPostLength: number;
+            avgCommentsPerPost: number;
+            postsWithImages: number;
+        };
+        ContentAnalyticsDto: {
+            postTrends: components["schemas"]["DailyPostsDto"][];
+            topBoards: components["schemas"]["TopBoardDto"][];
+            contentQuality: components["schemas"]["ContentQualityDto"];
+        };
+        EndpointResponseTimeDto: {
+            endpoint: string;
+            avgResponseTime: number;
+        };
+        StatusCodeCountDto: {
+            statusCode: number;
+            count: number;
+        };
+        HourlyRequestsDto: {
+            hour: number;
+            requestCount: number;
+        };
+        SystemAnalyticsDto: {
+            apiResponseTimes: components["schemas"]["EndpointResponseTimeDto"][];
+            errorRates: components["schemas"]["StatusCodeCountDto"][];
+            trafficPatterns: components["schemas"]["HourlyRequestsDto"][];
+        };
+        AnalyticsSummaryDto: {
+            overview: components["schemas"]["AnalyticsOverviewDto"];
+            users: components["schemas"]["UserAnalyticsDto"];
+            content: components["schemas"]["ContentAnalyticsDto"];
+            system: components["schemas"]["SystemAnalyticsDto"];
+        };
         CreatePermissionGroupDto: {
             /**
              * @description 그룹 이름
@@ -5445,7 +5536,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["AnalyticsOverviewDto"];
                 };
             };
         };
@@ -5469,7 +5560,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["UserAnalyticsDto"];
                 };
             };
         };
@@ -5493,7 +5584,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ContentAnalyticsDto"];
                 };
             };
         };
@@ -5512,7 +5603,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SystemAnalyticsDto"];
                 };
             };
         };
@@ -5535,7 +5626,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AnalyticsSummaryDto"];
+                };
             };
         };
     };

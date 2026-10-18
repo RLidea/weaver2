@@ -1,6 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { PageViewLoggingService } from '../../../../infrastructure/analytics/page-view-logging.service';
+import {
+  AnalyticsOverviewDto,
+  ContentAnalyticsDto,
+  SystemAnalyticsDto,
+  UserAnalyticsDto,
+} from '../dto/admin-analytics-response.dto';
 
 export interface TimeRangeFilter {
   from?: Date;
@@ -34,53 +40,11 @@ function resolveTimeRange(
   return { from, to };
 }
 
-export interface AnalyticsOverview {
-  totalUsers: number;
-  todaySignups: number;
-  totalPosts: number;
-  todayPosts: number;
-  totalComments: number;
-  todayComments: number;
-  activeUsers: number;
-  trafficOverview?: Array<{ date: string; views: number }>;
-  trafficSources?: {
-    direct: number;
-    search: number;
-    social: number;
-    referral: number;
-  };
-}
-
-export interface UserAnalytics {
-  signupTrends: Array<{ date: string; count: number }>;
-  usersByGroup: Array<{ group: string; count: number }>;
-  userActivity: Array<{ date: string; activeUsers: number }>;
-  retentionRate: {
-    daily: number;
-    weekly: number;
-    monthly: number;
-  };
-}
-
-export interface ContentAnalytics {
-  postTrends: Array<{ date: string; posts: number; comments: number }>;
-  topBoards: Array<{
-    boardName: string;
-    postCount: number;
-    commentCount: number;
-  }>;
-  contentQuality: {
-    avgPostLength: number;
-    avgCommentsPerPost: number;
-    postsWithImages: number;
-  };
-}
-
-export interface SystemAnalytics {
-  apiResponseTimes: Array<{ endpoint: string; avgResponseTime: number }>;
-  errorRates: Array<{ statusCode: number; count: number }>;
-  trafficPatterns: Array<{ hour: number; requestCount: number }>;
-}
+// 응답 모양은 DTO 한 곳에 둔다 — Swagger 와 서비스가 같은 정의를 본다
+export type AnalyticsOverview = AnalyticsOverviewDto;
+export type UserAnalytics = UserAnalyticsDto;
+export type ContentAnalytics = ContentAnalyticsDto;
+export type SystemAnalytics = SystemAnalyticsDto;
 
 @Injectable()
 export class AdminAnalyticsApiService {
