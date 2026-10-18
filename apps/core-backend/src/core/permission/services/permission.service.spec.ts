@@ -197,3 +197,39 @@ describe('PermissionService.hasResourcePermission', () => {
     });
   });
 });
+
+describe('PermissionService.withSuperAdminGuard', () => {
+  function guardWith(remaining: number) {
+    const mutate = jest.fn().mockResolvedValue('done');
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+      user: { count: jest.fn().mockResolvedValue(remaining) },
+    };
+    const prisma = {
+      $transaction: (fn: (t: typeof tx) => Promise<unknown>) => fn(tx),
+    } as unknown as PrismaService;
+    const config = { get: () => undefined } as unknown as ConfigService;
+    return { service: new PermissionService(prisma, config), mutate, tx };
+  }
+
+  it('변경 뒤 활성 슈퍼관리자가 0명이면 되돌린다(409)', async () => {
+    const { service, mutate } = guardWith(0);
+    await expect(service.withSuperAdminGuard(mutate)).rejects.toThrow(
+      /마지막 슈퍼관리자/,
+    );
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it('한 명이라도 남으면 변경 결과를 그대로 돌려준다', async () => {
+    const { service, mutate } = guardWith(1);
+    await expect(service.withSuperAdminGuard(mutate)).resolves.toBe('done');
+  });
+
+  it('변경 전에 advisory lock 으로 줄을 세운다', async () => {
+    const { service, mutate, tx } = guardWith(1);
+    await service.withSuperAdminGuard(mutate);
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      mutate.mock.invocationCallOrder[0],
+    );
+  });
+});

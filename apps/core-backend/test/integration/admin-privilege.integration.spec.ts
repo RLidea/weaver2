@@ -15,6 +15,7 @@ import { ensureSystemPermissionGroups } from './helpers/permission-group.helper'
 import { AdminPermissionApiService } from '../../src/system/admin/api/services/admin-permission.api.service';
 import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 import { PermissionService } from '../../src/core/permission/services/permission.service';
+import { DeleteAccountService } from '../../src/core/user/services/delete-account.service';
 
 describe('Admin Privilege Ceiling (Integration)', () => {
   let prisma: PrismaService;
@@ -160,5 +161,57 @@ describe('Admin Privilege Ceiling (Integration)', () => {
     });
     expect(after.suspendedUntil).toBeNull();
     expect(after.deletedAt).toBeNull();
+  });
+
+  describe('마지막 슈퍼관리자', () => {
+    // 「마지막」인지는 DB 전체 상태에 달려 시험이 만들 수 없다(시드·다른 스위트의 슈퍼관리자가 있다).
+    // 그래서 ① 가드가 실제 DB 에서 0명을 되돌리는지 ② 줄일 수 있는 경로가 전부 가드를 타는지를 잰다.
+
+    it('가드 안에서 슈퍼관리자가 0명이 되면 409 와 함께 되돌린다 (실제 DB)', async () => {
+      const permissions = getTestingModule().get(PermissionService);
+      const superMembership = {
+        permissionGroup: { permissions: { some: { permission: '*:*' } } },
+      };
+      const before = await prisma.userPermissionGroup.count({
+        where: superMembership,
+      });
+      await inGroup('SuperAdmin'); // 빈 DB 에서도 지울 것이 있게
+
+      await expect(
+        permissions.withSuperAdminGuard((tx) =>
+          tx.userPermissionGroup.deleteMany({ where: superMembership }),
+        ),
+      ).rejects.toThrow(/마지막 슈퍼관리자/);
+      expect(
+        await prisma.userPermissionGroup.count({ where: superMembership }),
+      ).toBe(before + 1);
+    });
+
+    it('슈퍼관리자를 줄일 수 있는 경로는 전부 가드를 탄다', async () => {
+      const permissions = getTestingModule().get(PermissionService);
+      const guard = jest.spyOn(permissions, 'withSuperAdminGuard');
+      const superAdmin = await inGroup('SuperAdmin');
+      const target = await inGroup('SuperAdmin');
+      const group = await prisma.permissionGroup.create({
+        data: { name: `priv-guard-${Date.now()}` },
+      });
+      createdGroupIds.push(group.id);
+
+      await groups.setGroupPermissions(superAdmin.id, group.id, {
+        permissions: ['post:read'],
+      });
+      await groups.removeGroupPermissions(superAdmin.id, group.id, {
+        permissions: ['post:read'],
+      });
+      await groups.removeUserFromGroup(
+        superAdmin.id,
+        await groupId('SuperAdmin'),
+        target.id,
+      );
+      await getTestingModule().get(DeleteAccountService).execute(target.id);
+
+      expect(guard).toHaveBeenCalledTimes(4);
+      guard.mockRestore();
+    });
   });
 });

@@ -1,6 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '@weaver2/prisma';
+import { Prisma, PrismaService } from '@weaver2/prisma';
 
 type CacheStrategy = 'memory' | 'none';
 
@@ -298,6 +302,42 @@ export class PermissionService {
   /**
    * 특정 유저의 캐시 무효화 — 권한과 소속 그룹이 함께 버려진다.
    */
+  /**
+   * 마지막 슈퍼관리자를 지키는 트랜잭션. fn 이 끝난 뒤 활성 슈퍼관리자(탈퇴·정지 안 함, `*:*` 를 가진
+   * 그룹 소속)가 한 명도 없으면 되돌린다 — 그러면 아무도 권한을 되돌려 줄 수 없게 된다.
+   *
+   * 슈퍼관리자를 줄이는 변경은 advisory lock 으로 줄을 세운다. 둘이 동시에 「다른 사람이 남아 있다」를
+   * 보고 각자 빠지면 0명이 되기 때문이다.
+   */
+  async withSuperAdminGuard<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext('weaver2:superadmin-guard'))`;
+      const result = await fn(tx);
+      const now = new Date();
+      const remaining = await tx.user.count({
+        where: {
+          deletedAt: null,
+          OR: [{ suspendedUntil: null }, { suspendedUntil: { lte: now } }],
+          permissionGroups: {
+            some: {
+              permissionGroup: {
+                permissions: { some: { permission: '*:*' } },
+              },
+            },
+          },
+        },
+      });
+      if (remaining === 0) {
+        throw new ConflictException(
+          '마지막 슈퍼관리자입니다 — 다른 슈퍼관리자를 먼저 지정하세요.',
+        );
+      }
+      return result;
+    });
+  }
+
   invalidateCache(userId: string): void {
     this.cache.delete(userId);
   }
