@@ -128,6 +128,51 @@ describe('UploadService.uploadFiles — 형식 확인', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('sharp 가 못 읽는 깨진 이미지는 저장하기 전에 400 으로 거절한다', async () => {
+    const broken = new UploadService(
+      {} as PrismaService,
+      { save } as unknown as StorageProvider,
+      {
+        isImage: () => true,
+        generate: () => Promise.reject(new Error('corrupt header')),
+      },
+      {} as CreateFileCommand,
+      {} as FindFileByIdQuery,
+      {} as DeleteFileCommand,
+      new ConfigService({}),
+    );
+    await expect(
+      broken.uploadFiles([multerFile('x.png', 'image/png', PNG)], 'u1', {
+        ...options,
+        generateThumbnail: true,
+      }),
+    ).rejects.toThrow(/손상된 파일/);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('저장 뒤 기록이 실패하면 저장소에 쓴 객체를 거둔다', async () => {
+    const del = jest.fn().mockResolvedValue(undefined);
+    const failing = new UploadService(
+      {} as PrismaService,
+      { save, delete: del } as unknown as StorageProvider,
+      {} as ThumbnailService,
+      {
+        execute: () => Promise.reject(new Error('db down')),
+      } as unknown as CreateFileCommand,
+      {} as FindFileByIdQuery,
+      {} as DeleteFileCommand,
+      new ConfigService({}),
+    );
+    await expect(
+      failing.uploadFiles(
+        [multerFile('x.png', 'image/png', PNG)],
+        'u1',
+        options,
+      ),
+    ).rejects.toThrow('db down');
+    expect(del).toHaveBeenCalledWith(expect.stringMatching(/stored\.png$/));
+  });
+
   // 표를 `[mime]` 으로 찾으면 프로토타입의 함수가 형식으로 잡혀 `.matches` 에서 500 이 났다
   it.each(['constructor', '__proto__', 'toString'])(
     '프로토타입 이름(%s)을 형식으로 보내면 400 으로 거절한다',
