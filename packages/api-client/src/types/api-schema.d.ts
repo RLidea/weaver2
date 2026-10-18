@@ -1972,51 +1972,11 @@ export interface paths {
         put?: never;
         /**
          * 페이지뷰 트래킹
-         * @description 사용자의 페이지 방문을 기록하는 API입니다.
+         * @description 페이지 방문 한 건을 기록한다. 기록은 30일 뒤 지운다.
          *
-         *     **주요 기능:**
-         *     - 페이지 URL별 방문 통계 수집
-         *     - 유입 경로 분석 (Direct, Search, Social, Referral)
-         *     - 로그인/비로그인 사용자 구분 추적
-         *     - IP 주소 및 브라우저 정보 수집
-         *
-         *     **사용 시나리오:**
-         *     1. **SPA 라우팅**: React/Vue 등에서 페이지 이동 시 호출
-         *     2. **페이지 로드**: 일반 웹페이지 로드 완료 시 호출
-         *     3. **이벤트 기반**: 특정 액션 완료 시 호출
-         *
-         *     **데이터 보관 정책:**
-         *     - 원본 로그: 30일간 보관 после 자동 삭제
-         *     - 월간 집계: 영구 보관
-         *     - 개인정보: IP는 익명화 처리됨
-         *
-         *     **성능 고려사항:**
-         *     - 비동기 처리로 응답 속도에 영향 없음
-         *     - 실패해도 사용자 경험에 지장 없음
-         *     - 중복 호출 방지 권장 (클라이언트에서 debounce 처리)
-         *
-         *       🚀 프론트엔드에서 사용 방법
-         *
-         *       // React/Vue 등에서 페이지 이동 시
-         *       const trackPageView = async (pageUrl, userId = null) => {
-         *         try {
-         *           await fetch('/v1/analytics/tracking/page-view', {
-         *             method: 'POST',
-         *             headers: { 'Content-Type': 'application/json' },
-         *             body: JSON.stringify({
-         *               pageUrl,
-         *               userId,
-         *               referrer: document.referrer
-         *             })
-         *           });
-         *         } catch (error) {
-         *           // 트래킹 실패해도 사용자 경험에 영향 없음
-         *           console.warn('Analytics tracking failed:', error);
-         *         }
-         *       };
-         *
-         *       // 사용 예시
-         *       trackPageView('/products/smartphone', 'user-123');
+         *     - 로그인한 요청이면 그 사용자로, 아니면 익명으로 남긴다. userId 는 본문으로 받지 않는다.
+         *     - IP · User-Agent 는 요청에서 읽는다.
+         *     - 기록에 실패해도 200 을 돌려준다 — 트래킹이 화면을 막지 않게.
          */
         post: operations["AnalyticsTrackingController_trackPageView"];
         delete?: never;
@@ -2036,17 +1996,8 @@ export interface paths {
         put?: never;
         /**
          * 대량 페이지뷰 트래킹
-         * @description 여러 페이지뷰를 한 번에 기록하는 API입니다.
-         *
-         *     **사용 사례:**
-         *     - 오프라인 상태에서 쌓인 페이지뷰를 온라인 복구 시 일괄 전송
-         *     - 배치 처리로 네트워크 요청 수 최적화
-         *     - 모바일 앱에서 주기적으로 쌓인 데이터 전송
-         *
-         *     **제한사항:**
-         *     - 한 번에 최대 100개까지 처리
-         *     - 각 항목은 개별 유효성 검증 수행
-         *     - 일부 실패해도 성공한 항목은 정상 처리
+         * @description 오프라인에서 쌓인 방문을 한 번에 보낸다. 한 번에 1~100개.
+         *     누가 · 어디서 · 무엇으로는 page-view 와 같이 이 요청에서 읽는다. 일부가 실패해도 나머지는 기록한다.
          */
         post: operations["AnalyticsTrackingController_trackBulkPageViews"];
         delete?: never;
@@ -3403,37 +3354,26 @@ export interface components {
              */
             pageUrl: string;
             /**
-             * @description 사용자 ID (로그인한 사용자의 경우만)
-             * @example user-uuid-123
-             */
-            userId?: string | null;
-            /**
-             * @description 방문자의 IP 주소 (자동으로 수집되지만 명시적으로 전달 가능)
-             * @example 192.168.1.100
-             */
-            ipAddress?: string;
-            /**
-             * @description 유입 경로 (이전 페이지 URL)
+             * @description 유입 경로 (이전 페이지 URL). 비우면 Referer 헤더를 쓴다
              * @example https://google.com/search?q=example
              */
-            referrer?: string | null;
-            /**
-             * @description 사용자 브라우저 정보 (자동으로 수집되지만 명시적으로 전달 가능)
-             * @example Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
-             */
-            userAgent?: string | null;
+            referrer?: string;
         };
-        TrackPageViewResponseDto: {
+        TrackBulkPageViewsDto: {
+            /** @description 트래킹할 페이지뷰 목록 (최대 100개) */
+            pageViews: components["schemas"]["TrackPageViewDto"][];
+        };
+        TrackBulkPageViewsResponseDto: {
             /**
-             * @description 페이지뷰 트래킹 성공 여부
-             * @example true
+             * @description 기록한 개수
+             * @example 3
              */
-            success: boolean;
+            processed: number;
             /**
-             * @description 응답 메시지
-             * @example Page view tracked successfully
+             * @description 기록하지 못한 개수
+             * @example 0
              */
-            message: string;
+            failed: number;
         };
         TermsDto: {
             id: string;
@@ -7860,39 +7800,18 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description 페이지뷰 트래킹 데이터 */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TrackPageViewDto"];
             };
         };
         responses: {
-            /** @description 페이지뷰가 성공적으로 기록됨 */
+            /** @description 기록했거나 시도했다 (data 는 비어 있다) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["TrackPageViewResponseDto"];
-                };
-            };
-            /** @description 잘못된 요청 데이터 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description 서버 내부 오류 (트래킹 실패해도 사용자에게는 성공 응답) */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
         };
     };
@@ -7903,23 +7822,18 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description 페이지뷰 배열 데이터 */
         requestBody: {
             content: {
-                "application/json": {
-                    /** @description 트래킹할 페이지뷰 목록 (최대 100개) */
-                    pageViews: components["schemas"]["TrackPageViewDto"][];
-                };
+                "application/json": components["schemas"]["TrackBulkPageViewsDto"];
             };
         };
         responses: {
-            /** @description 대량 페이지뷰가 처리됨 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TrackBulkPageViewsResponseDto"];
                 };
             };
         };
