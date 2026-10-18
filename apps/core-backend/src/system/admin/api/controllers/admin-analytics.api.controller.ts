@@ -28,6 +28,8 @@ export class AdminAnalyticsApiController {
     private readonly adminAnalyticsApiService: AdminAnalyticsApiService,
   ) {}
 
+  // 값을 그대로 돌려준다 — SuccessInterceptor 가 { message, data } 로 감싼다.
+  // 여기서 { success, message, data } 로 또 싸면 화면이 받는 data 가 { success, data } 가 된다
   @Get('overview')
   @ApiOperation({ summary: '분석 개요 조회 (대시보드용)' })
   async getOverview(@Query() query: AdminAnalyticsRangeQueryDto) {
@@ -35,11 +37,7 @@ export class AdminAnalyticsApiController {
 
     const data = await this.adminAnalyticsApiService.getOverview(filter);
 
-    return {
-      success: true,
-      message: 'Analytics overview retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('users')
@@ -49,11 +47,7 @@ export class AdminAnalyticsApiController {
 
     const data = await this.adminAnalyticsApiService.getUserAnalytics(filter);
 
-    return {
-      success: true,
-      message: 'User analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('content')
@@ -64,11 +58,7 @@ export class AdminAnalyticsApiController {
     const data =
       await this.adminAnalyticsApiService.getContentAnalytics(filter);
 
-    return {
-      success: true,
-      message: 'Content analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('system')
@@ -76,11 +66,7 @@ export class AdminAnalyticsApiController {
   getSystemAnalytics() {
     const data = this.adminAnalyticsApiService.getSystemAnalytics();
 
-    return {
-      success: true,
-      message: 'System analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('summary')
@@ -95,15 +81,6 @@ export class AdminAnalyticsApiController {
     ]);
     const system = this.adminAnalyticsApiService.getSystemAnalytics();
 
-    return {
-      success: true,
-      message: 'Analytics summary retrieved successfully',
-      data: {
-        overview,
-        users,
-        content,
-        system,
-      },
-    };
+    return { overview, users, content, system };
   }
 }
