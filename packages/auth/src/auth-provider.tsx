@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@weaver2/api-client';
+import { clearSessionCookies } from './api/auth.api';
 
 /**
  * ApiClient에 onAuthError 콜백을 주입하는 얇은 레이어.
@@ -12,7 +13,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const handleAuthError = useCallback(() => {
-    router.push('/login');
+    void clearSessionCookies().then(() => router.push('/login'));
   }, [router]);
 
   useEffect(() => {
