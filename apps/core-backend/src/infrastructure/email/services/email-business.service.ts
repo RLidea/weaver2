@@ -8,6 +8,10 @@ import {
   SendTemplateEmailDto,
 } from '../dto/send-business-email.dto';
 
+/** 비밀이 담긴 메일의 기록에 본문 대신 남기는 문구 */
+const SENSITIVE_PLACEHOLDER =
+  '[비밀(링크·코드)이 담긴 메일이라 본문을 저장하지 않습니다]';
+
 @Injectable()
 export class EmailBusinessService {
   constructor(
@@ -29,18 +33,20 @@ export class EmailBusinessService {
       templateId,
       userId,
       metadata,
+      sensitive,
     } = dto;
 
-    // 1. 이메일 로그 생성
+    // 1. 이메일 로그 생성 — 비밀이 담긴 메일은 본문을 남기지 않는다. 남기면 DB 를 읽을 수 있는 사람
+    //    (이메일 기록을 보는 관리자 포함)이 살아 있는 재설정 링크로 남의 계정을 가져간다
     const emailLog = await this.emailLogService.createLog({
       to,
       from: from || '"Weaver2" <no-reply@weaver2.com>',
       subject,
-      htmlContent,
-      textContent,
+      htmlContent: sensitive ? SENSITIVE_PLACEHOLDER : htmlContent,
+      textContent: sensitive ? undefined : textContent,
       templateId,
       userId,
-      metadata,
+      metadata: sensitive ? { ...metadata, sensitive: true } : metadata,
     });
 
     try {
@@ -77,7 +83,8 @@ export class EmailBusinessService {
    * 템플릿 기반 이메일 발송
    */
   async sendTemplateEmail(dto: SendTemplateEmailDto) {
-    const { to, templateName, variables, from, userId, metadata } = dto;
+    const { to, templateName, variables, from, userId, metadata, sensitive } =
+      dto;
 
     // 1. 템플릿 조회
     const template =
@@ -111,10 +118,12 @@ export class EmailBusinessService {
       from,
       templateId: template.id,
       userId,
+      sensitive,
+      // 비밀이 담긴 메일은 변수(코드·링크)도 남기지 않는다
       metadata: {
         ...metadata,
         templateName,
-        variables,
+        ...(!sensitive && { variables }),
       },
     });
   }
@@ -130,6 +139,7 @@ export class EmailBusinessService {
     return this.sendTemplateEmail({
       to: email,
       templateName: 'email-verification',
+      sensitive: true,
       variables: {
         verificationLink,
       },
@@ -148,6 +158,7 @@ export class EmailBusinessService {
     return this.sendTemplateEmail({
       to: email,
       templateName: 'password-reset',
+      sensitive: true,
       variables: {
         resetLink,
       },
@@ -176,6 +187,7 @@ export class EmailBusinessService {
     return this.sendTemplateEmail({
       to: email,
       templateName: 'two-factor-code',
+      sensitive: true,
       variables: { code },
       userId,
     });
@@ -192,6 +204,7 @@ export class EmailBusinessService {
     return this.sendTemplateEmail({
       to: newEmail,
       templateName: 'email-change',
+      sensitive: true,
       variables: { code },
       userId,
     });
@@ -209,6 +222,13 @@ export class EmailBusinessService {
 
     if (emailLog.status !== EmailStatus.FAILED) {
       throw new Error('Only failed emails can be retried');
+    }
+
+    // 본문을 남기지 않은 메일 — 다시 보낼 내용이 없고, 그 비밀은 사용자가 새로 받는다
+    if ((emailLog.metadata as Prisma.JsonObject | null)?.sensitive === true) {
+      throw new Error(
+        'Sensitive emails (links/codes) are not stored and cannot be retried — ask the user to request a new one',
+      );
     }
 
     // 재발송 시도
