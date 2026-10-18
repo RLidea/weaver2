@@ -6,6 +6,7 @@ export * from './components/confirm-dialog';
 export * from './components/data-table';
 export * from './components/icons';
 export * from './components/input';
+export * from './components/markdown-editor';
 export * from './components/modal';
 export * from './components/pagination';
 export * from './components/revision-diff';
