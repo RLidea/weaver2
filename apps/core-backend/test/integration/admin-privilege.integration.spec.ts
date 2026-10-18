@@ -172,10 +172,9 @@ describe('Admin Privilege Ceiling (Integration)', () => {
       const superMembership = {
         permissionGroup: { permissions: { some: { permission: '*:*' } } },
       };
-      const before = await prisma.userPermissionGroup.count({
-        where: superMembership,
-      });
-      await inGroup('SuperAdmin'); // 빈 DB 에서도 지울 것이 있게
+      // 전체 수를 앞뒤로 비교하지 않는다 — 병렬로 도는 다른 스위트가 슈퍼관리자를 만들고 지운다.
+      // 이 시험이 만든 소속이 되돌림 뒤에도 살아 있는지를 본다
+      const mine = await inGroup('SuperAdmin');
 
       await expect(
         permissions.withSuperAdminGuard((tx) =>
@@ -183,8 +182,10 @@ describe('Admin Privilege Ceiling (Integration)', () => {
         ),
       ).rejects.toThrow(/마지막 슈퍼관리자/);
       expect(
-        await prisma.userPermissionGroup.count({ where: superMembership }),
-      ).toBe(before + 1);
+        await prisma.userPermissionGroup.count({
+          where: { userId: mine.id, ...superMembership },
+        }),
+      ).toBe(1);
     });
 
     it('슈퍼관리자를 줄일 수 있는 경로는 전부 가드를 탄다', async () => {
