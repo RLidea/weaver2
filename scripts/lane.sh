@@ -1107,12 +1107,14 @@ cmd_e2e() {
 
   printf '\n'
   local rc=0
-  # playwright 에 넘기는 것은 이 둘뿐이다 — weaver2 의 `playwright.config.ts` 가
-  # 읽는 것이 그 둘이기 때문이다 (이웃 프로젝트의 E2E_PORT·E2E_API_PORT 는 여기 없다).
+  # playwright 에 넘기는 것은 이 셋뿐이다 — weaver2 의 `playwright.config.ts` 와 스펙이
+  # 읽는 것이 그 셋이기 때문이다 (이웃 프로젝트의 E2E_PORT·E2E_API_PORT 는 여기 없다).
   #   E2E_NO_WEBSERVER : 서버를 직접 안 띄운다. 위에서 이미 켰다.
   #   E2E_BASE_URL     : 이 레인의 프론트를 본다. 안 주면 3000(런타임 레인)을 잰다.
+  #   E2E_API_URL      : 이 레인의 백엔드. 백엔드가 내주는 관리자 뷰(/admin/login)를 보는 스펙이 쓴다.
   ( cd "$wt" && E2E_NO_WEBSERVER=1 \
       E2E_BASE_URL="http://localhost:${fe}" \
+      E2E_API_URL="http://localhost:${be}" \
       pnpm --filter core-frontend exec playwright test "$@" ) || rc=$?
 
   local peak=""

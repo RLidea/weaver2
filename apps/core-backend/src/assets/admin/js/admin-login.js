@@ -41,18 +41,30 @@ async function updateLoginPageTitle() {
     }
 }
 
+// 로그인 뒤 들어가는 관리자 화면 (뷰 경로는 /admin 과 /admin/security 뿐이다)
+const ADMIN_HOME = '/admin/security';
+
+// 백엔드 오류 본문에서 사람이 읽을 메시지를 꺼낸다
+async function readErrorMessage(response, fallback) {
+    const errorData = await response.json().catch(() => ({}));
+    if (errorData.error && errorData.error.message) return errorData.error.message;
+    if (errorData.message) return errorData.message;
+    if (response.status === 429) return 'Too many attempts. Please try again later.';
+    if (response.status >= 500) return 'Server error. Please try again later.';
+    return fallback;
+}
+
 // Login form handler
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const loginForm = event.currentTarget;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const rememberMe = document.getElementById('rememberMe').checked;
-    const errorMessageDiv = document.getElementById('errorMessage');
-    const loginButton = document.querySelector('.login-button');
     
     // Clear previous error and show loading state
     hideError();
-    setLoading(true);
+    setLoading(loginForm, true);
 
     try {
         // Ensure ApiClient is available
@@ -60,30 +72,123 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
         const response = await window.ApiClient.post('/v1/auth/sign-in', { email, password, rememberMe });
 
         if (response.ok) {
-            window.location.href = '/admin/dashboard';
-        } else {
-            const errorData = await response.json();
-            let errorMessage = 'Login failed. Please check your credentials.';
-            
-            // Handle different error types
-            if (errorData.error && errorData.error.message) {
-                errorMessage = errorData.error.message;
-            } else if (response.status === 401) {
-                errorMessage = 'Invalid email or password. Please try again.';
-            } else if (response.status === 429) {
-                errorMessage = 'Too many login attempts. Please try again later.';
-            } else if (response.status >= 500) {
-                errorMessage = 'Server error. Please try again later.';
+            // 2FA 를 켠 계정은 세션 대신 pre_auth 쿠키와 고를 수 있는 수단만 받는다
+            const result = await response.json().catch(() => ({}));
+            if (result.data && result.data.twoFactorRequired) {
+                setLoading(loginForm, false);
+                startTwoFactor(result.data.availableMethods);
+                return;
             }
-            
-            showError(errorMessage);
-            setLoading(false);
+            window.location.href = ADMIN_HOME;
+        } else {
+            const fallback = response.status === 401
+                ? 'Invalid email or password. Please try again.'
+                : 'Login failed. Please check your credentials.';
+            showError(await readErrorMessage(response, fallback));
+            setLoading(loginForm, false);
         }
     } catch (error) {
         console.error('Login error:', error);
         showError('Connection error. Please check your internet connection and try again.');
-        setLoading(false);
+        setLoading(loginForm, false);
     }
+});
+
+// ── 2FA step ─────────────────────────────────────────────
+
+function selectedTwoFactorMethod() {
+    const checked = document.querySelector('input[name="twoFactorMethod"]:checked');
+    return checked ? checked.value : null;
+}
+
+function updateTwoFactorHint() {
+    const isEmail = selectedTwoFactorMethod() === 'email';
+    document.getElementById('twoFactorHint').textContent = isEmail
+        ? 'Send a code to your email, then enter it below.'
+        : 'Enter the 6-digit code from your authenticator app.';
+    document.getElementById('sendEmailCode').hidden = !isEmail;
+}
+
+// availableMethods 는 { totp: boolean, email: boolean } 이다
+function startTwoFactor(availableMethods) {
+    const methods = ['totp', 'email'].filter((m) => availableMethods && availableMethods[m]);
+    document.getElementById('loginForm').hidden = true;
+    document.getElementById('twoFactorForm').hidden = false;
+
+    // 쓸 수 있는 수단만 남기고, 둘 다면 고르게 한다 (TOTP 가 먼저)
+    const radios = document.querySelectorAll('input[name="twoFactorMethod"]');
+    radios.forEach((radio) => {
+        radio.closest('label').hidden = !methods.includes(radio.value);
+    });
+    const first = Array.from(radios).find((radio) => methods.includes(radio.value));
+    if (first) first.checked = true;
+    document.getElementById('twoFactorMethods').hidden = methods.length < 2;
+
+    updateTwoFactorHint();
+    const codeInput = document.getElementById('twoFactorCode');
+    codeInput.value = '';
+    codeInput.focus();
+}
+
+function showSignInForm() {
+    document.getElementById('twoFactorForm').hidden = true;
+    document.getElementById('loginForm').hidden = false;
+    document.getElementById('password').value = '';
+    document.getElementById('password').focus();
+}
+
+document.querySelectorAll('input[name="twoFactorMethod"]').forEach((radio) => {
+    radio.addEventListener('change', updateTwoFactorHint);
+});
+
+document.getElementById('sendEmailCode').addEventListener('click', async () => {
+    hideError();
+    try {
+        const response = await window.ApiClient.post('/v1/auth/2fa/email/send');
+        if (response.ok) {
+            document.getElementById('twoFactorHint').textContent = 'A code was sent to your email. Enter it below.';
+        } else {
+            showError(await readErrorMessage(response, 'Could not send the code. Please try again.'));
+        }
+    } catch (error) {
+        console.error('Send code error:', error);
+        showError('Connection error. Please check your internet connection and try again.');
+    }
+});
+
+document.getElementById('twoFactorForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const twoFactorForm = event.currentTarget;
+    const method = selectedTwoFactorMethod();
+    const code = document.getElementById('twoFactorCode').value.trim();
+
+    hideError();
+    setLoading(twoFactorForm, true);
+
+    try {
+        const response = await window.ApiClient.post('/v1/auth/2fa/authenticate', { method, code });
+        if (response.ok) {
+            window.location.href = ADMIN_HOME;
+            return;
+        }
+        showError(await readErrorMessage(response, 'Verification failed. Please try again.'));
+        setLoading(twoFactorForm, false);
+    } catch (error) {
+        console.error('2FA error:', error);
+        showError('Connection error. Please check your internet connection and try again.');
+        setLoading(twoFactorForm, false);
+    }
+});
+
+// 2FA 단계를 그만둔다 — 세션이 없어 로그아웃 대신 pre_auth 쿠키를 지운다
+document.getElementById('backToSignIn').addEventListener('click', async () => {
+    hideError();
+    try {
+        await window.ApiClient.delete('/v1/auth/2fa/pending');
+    } catch (error) {
+        console.error('Abandon 2FA error:', error);
+    }
+    showSignInForm();
 });
 
 // Helper functions
@@ -99,20 +204,20 @@ function hideError() {
     errorMessageDiv.classList.remove('show');
 }
 
-function setLoading(isLoading) {
-    const loginButton = document.querySelector('.login-button');
-    const buttonText = loginButton.querySelector('i');
-    const spinner = loginButton.querySelector('.loading-spinner');
+function setLoading(form, isLoading) {
+    const button = form.querySelector('.login-button');
+    const buttonIcon = button.querySelector('i');
+    const spinner = button.querySelector('.loading-spinner');
     
     if (isLoading) {
-        loginButton.disabled = true;
-        loginButton.classList.add('loading');
-        buttonText.style.display = 'none';
+        button.disabled = true;
+        button.classList.add('loading');
+        buttonIcon.style.display = 'none';
         spinner.style.display = 'inline-block';
     } else {
-        loginButton.disabled = false;
-        loginButton.classList.remove('loading');
-        buttonText.style.display = 'inline';
+        button.disabled = false;
+        button.classList.remove('loading');
+        buttonIcon.style.display = 'inline';
         spinner.style.display = 'none';
     }
 }

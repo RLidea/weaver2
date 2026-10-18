@@ -12,6 +12,10 @@ import {
   clearAuthCookies,
 } from '../../../../core/auth/utils/auth-cookie.util';
 
+// sendFile 에 root 를 준다 — root 가 없으면 `send` 가 절대경로 전체에서 점으로 시작하는
+// 세그먼트를 찾아 404(→ 500)를 낸다. 저장소가 `.claude/worktrees/…`(레인) 아래면 화면이 안 뜬다.
+const ASSETS_ROOT = join(process.cwd(), 'apps/core-backend/src/assets');
+
 @ApiExcludeController()
 @Controller({ path: 'admin' })
 export class AdminAuthViewController {
@@ -51,7 +55,7 @@ export class AdminAuthViewController {
           this.logger.debug(
             'Valid refresh token found, tokens rotated, redirecting to dashboard',
           );
-          return res.redirect('/admin/dashboard');
+          return res.redirect('/admin/security');
         }
       } catch {
         this.logger.debug('Invalid refresh token, clearing cookies');
@@ -61,36 +65,18 @@ export class AdminAuthViewController {
     }
 
     // 토큰이 없거나 무효하면 로그인 페이지 렌더링
-    res.sendFile(
-      join(
-        process.cwd(),
-        'apps/core-backend/src/assets/admin',
-        'admin-login.html',
-      ),
-    );
+    res.sendFile('admin/admin-login.html', { root: ASSETS_ROOT });
   }
 
   @Public()
   @Get('request-password-reset')
   getRequestPasswordResetPage(@Res() res: Response) {
-    res.sendFile(
-      join(
-        process.cwd(),
-        'apps/core-backend/src/assets/admin',
-        'request-password-reset.html',
-      ),
-    );
+    res.sendFile('admin/request-password-reset.html', { root: ASSETS_ROOT });
   }
 
   @Public()
   @Get('reset-password')
   getResetPasswordPage(@Res() res: Response) {
-    res.sendFile(
-      join(
-        process.cwd(),
-        'apps/core-backend/src/assets',
-        'reset-password.html',
-      ),
-    );
+    res.sendFile('reset-password.html', { root: ASSETS_ROOT });
   }
 }

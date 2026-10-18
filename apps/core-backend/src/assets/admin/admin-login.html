@@ -60,6 +60,44 @@
         </button>
     </form>
 
+    <!-- 2FA step — shown when sign-in answers twoFactorRequired (a pre_auth cookie, no session yet) -->
+    <form id="twoFactorForm" class="login-form" hidden>
+        <h2 class="login-title text-primary">Two-Step Verification</h2>
+
+        <div id="twoFactorMethods" class="remember-me" hidden>
+            <label><input type="radio" name="twoFactorMethod" value="totp"> Authenticator app</label>
+            <label><input type="radio" name="twoFactorMethod" value="email"> Email code</label>
+        </div>
+
+        <p id="twoFactorHint" class="login-subtitle text-secondary"></p>
+
+        <div class="form-group">
+            <label for="twoFactorCode">Verification Code</label>
+            <input
+              type="text"
+              id="twoFactorCode"
+              class="form-input glass-focus"
+              placeholder="6-digit code"
+              inputmode="numeric"
+              pattern="\d{6}"
+              maxlength="6"
+              required
+              autocomplete="one-time-code"
+            >
+            <i class="fas fa-key input-icon"></i>
+        </div>
+
+        <div class="remember-me">
+            <button type="button" id="sendEmailCode" class="forgot-password" hidden>Send code to email</button>
+            <button type="button" id="backToSignIn" class="forgot-password">Back to sign in</button>
+        </div>
+
+        <button type="submit" class="login-button btn btn-primary">
+            <span class="loading-spinner"></span>
+            <i class="fas fa-check"></i> Verify
+        </button>
+    </form>
+
     <div id="errorMessage" class="error-message"></div>
 
     <div class="footer-text">

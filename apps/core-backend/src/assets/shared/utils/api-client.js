@@ -6,33 +6,72 @@ class ApiClient {
   constructor() {
     this.isRefreshing = false;
     this.failedQueue = [];
+    this.csrfToken = null;
+  }
+
+  /**
+   * CSRF token (double-submit). The backend checks x-csrf-token on every non-GET request.
+   * The token is bound to the refresh_token cookie, so it goes stale whenever that cookie
+   * changes (sign-in, 2FA, refresh) — drop the cache then, and retry once on a 403.
+   */
+  async ensureCsrfToken() {
+    if (this.csrfToken) return this.csrfToken;
+    const response = await fetch('/v1/auth/csrf-token', {
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+    const result = await response.json();
+    this.csrfToken = result.data.csrfToken;
+    return this.csrfToken;
+  }
+
+  /**
+   * Send one request with cookies and, for non-GET methods, the CSRF header.
+   * A stale token gets one fresh retry.
+   */
+  async send(url, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+
+    const buildConfig = async () => ({
+      ...options,
+      credentials: 'include', // Important: include cookies in requests
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(needsCsrf ? { 'x-csrf-token': await this.ensureCsrfToken() } : {}),
+        ...options.headers
+      }
+    });
+
+    const response = await fetch(url, await buildConfig());
+    if (needsCsrf && response.status === 403) {
+      const body = await response.clone().json().catch(() => null);
+      if (body && body.message === 'Invalid CSRF token') {
+        this.csrfToken = null;
+        return fetch(url, await buildConfig());
+      }
+    }
+    return response;
   }
 
   /**
    * Main request method that handles all API calls
    */
   async request(url, options = {}) {
-    // Use cookies for authentication (HttpOnly cookies)
-    const config = {
-      ...options,
-      credentials: 'include', // Important: include cookies in requests
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers
-      }
-    };
-
     try {
-      let response = await fetch(url, config);
-      
+      const response = await this.send(url, options);
+
       // Handle 401 Unauthorized - token might be expired
-      // Skip token refresh for login/auth endpoints
-      const isAuthEndpoint = url.includes('/auth/sign-in') || url.includes('/auth/sign-up') || url.includes('/auth/refresh');
+      // Skip token refresh for login/auth endpoints. The 2FA step runs on a pre_auth cookie
+      // with no session — a 401 there is a wrong code or an expired step, not an old token.
+      const isAuthEndpoint = url.includes('/auth/sign-in') || url.includes('/auth/sign-up') || url.includes('/auth/refresh')
+        || url.includes('/auth/2fa/pending') || url.includes('/auth/2fa/authenticate') || url.includes('/auth/2fa/email/send');
       if (response.status === 401 && !this.isRefreshing && !isAuthEndpoint) {
-        return this.handleTokenRefresh(url, config);
+        return this.handleTokenRefresh(url, options);
       }
-      
+
       return response;
     } catch (error) {
       console.error('API request failed:', error);
@@ -43,7 +82,7 @@ class ApiClient {
   /**
    * Handle token refresh when 401 error occurs
    */
-  async handleTokenRefresh(originalUrl, originalConfig) {
+  async handleTokenRefresh(originalUrl, originalOptions) {
     // If already refreshing, queue the request
     if (this.isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -51,7 +90,7 @@ class ApiClient {
           resolve, 
           reject, 
           url: originalUrl, 
-          config: originalConfig 
+          options: originalOptions 
         });
       });
     }
@@ -63,27 +102,20 @@ class ApiClient {
       
       // With HttpOnly cookies, browser automatically sends refresh token
       console.log('Calling refresh endpoint with HttpOnly cookies...');
-      const refreshResponse = await fetch('/v1/auth/refresh', {
-        method: 'POST',
-        credentials: 'include', // Include HttpOnly cookies
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
+      const refreshResponse = await this.send('/v1/auth/refresh', { method: 'POST' });
 
       console.log('Refresh response status:', refreshResponse.status);
       
       if (refreshResponse.ok) {
-        const result = await refreshResponse.json();
-        console.log('Refresh response data:', result);
+        // The refresh_token cookie rotated — the cached CSRF token is bound to the old one
+        this.csrfToken = null;
         console.log('Token refreshed successfully - new HttpOnly cookies set by backend');
 
         // Process queued requests (no token needed, cookies are automatic)
         this.processQueue(null);
         
         // Retry original request (cookies will be included automatically)
-        return fetch(originalUrl, originalConfig);
+        return this.send(originalUrl, originalOptions);
       } else {
         // Refresh failed - redirect to login
         console.error('Token refresh failed:', refreshResponse.status);
@@ -105,12 +137,12 @@ class ApiClient {
    * Process queued requests after token refresh
    */
   processQueue(error) {
-    this.failedQueue.forEach(({ resolve, reject, url, config }) => {
+    this.failedQueue.forEach(({ resolve, reject, url, options }) => {
       if (error) {
         reject(error);
       } else {
         // Retry request with HttpOnly cookies (no manual token needed)
-        resolve(fetch(url, config));
+        resolve(this.send(url, options));
       }
     });
     
