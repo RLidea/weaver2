@@ -17,7 +17,10 @@ describe('AdminAnalyticsApiService — 빈 필터', () => {
   // 시계를 멈춘다 — 시험의 Date.now() 와 서비스의 new Date() 사이에 1ms 만 흘러도 올림(ceil)이 하루를 더 센다
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers({ now: new Date('2026-10-18T03:00:00Z'), doNotFake: ['nextTick', 'setImmediate'] });
+    jest.useFakeTimers({
+      now: new Date('2026-10-18T03:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    });
   });
   afterEach(() => jest.useRealTimers());
 
