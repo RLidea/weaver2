@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ReactionService } from '../services/reaction.service';
+import { PostService } from '../services/post.service';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { AddReactionDto } from '../dto/add-reaction.dto';
@@ -19,7 +20,10 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 @ApiTags('Post Reaction')
 @Controller({ path: 'posts', version: '1' })
 export class PostReactionController {
-  constructor(private readonly reactionService: ReactionService) {}
+  constructor(
+    private readonly reactionService: ReactionService,
+    private readonly postService: PostService,
+  ) {}
 
   @Get(':postId/reactions')
   @Public()
@@ -33,6 +37,8 @@ export class PostReactionController {
     @Param('postId') postId: string,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<PostReactionsResponseDto> {
+    // 리액션도 글 읽기와 같다 — 회원 전용·남의 비밀글의 반응 수가 새지 않게
+    await this.postService.findReadablePost(postId, authUser);
     return this.reactionService.getReactions(
       postId,
       authUser?.isLogin ? authUser.id : undefined,
@@ -49,6 +55,7 @@ export class PostReactionController {
     @Body() dto: AddReactionDto,
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<PostReactionsResponseDto> {
+    await this.postService.findReadablePost(postId, authUser);
     return this.reactionService.addReaction(postId, authUser.id, dto.emojiId);
   }
 
@@ -62,6 +69,8 @@ export class PostReactionController {
     @Param('emojiId') emojiId: string,
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<PostReactionsResponseDto> {
+    // 자기 반응을 거두는 것은 글이 보이는 상태이기만 하면 된다(자기 댓글 지우기와 같다)
+    await this.postService.findPostById(postId);
     return this.reactionService.removeReaction(postId, authUser.id, emojiId);
   }
 }
