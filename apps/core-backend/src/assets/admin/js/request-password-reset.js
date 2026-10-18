@@ -1,6 +1,5 @@
 // Request Password Reset Page Script
 document.addEventListener('DOMContentLoaded', function() {
-    const API_BASE_URL = window.location.origin;
     const form = document.getElementById('resetRequestForm');
     const emailInput = document.getElementById('email');
     const successContainer = document.getElementById('success-container');
@@ -15,14 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
         successContainer.style.display = 'none';
 
         try {
-            const response = await fetch(`${API_BASE_URL}/v1/auth/password/request-reset`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: emailInput.value.trim()
-                })
+            // ApiClient 가 CSRF 토큰을 싣는다 — 맨 fetch 면 403 이다
+            const response = await window.ApiClient.post('/v1/auth/password/request-reset', {
+                email: emailInput.value.trim()
             });
 
             const result = await response.json();

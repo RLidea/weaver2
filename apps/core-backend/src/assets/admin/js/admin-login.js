@@ -101,12 +101,56 @@ function selectedTwoFactorMethod() {
     return checked ? checked.value : null;
 }
 
+// 이 2FA 단계의 이메일 코드 상태 — idle · sending · sent · failed.
+// 수단을 오갈 때마다(보내는 중에도) 다시 보내지 않는다.
+let emailCodeState = 'idle';
+
+const EMAIL_HINTS = {
+    idle: 'Sending a code to your email...',
+    sending: 'Sending a code to your email...',
+    sent: 'A code was sent to your email. Enter it below.',
+    failed: 'The code was not sent. Use Resend code to try again.',
+};
+
 function updateTwoFactorHint() {
     const isEmail = selectedTwoFactorMethod() === 'email';
     document.getElementById('twoFactorHint').textContent = isEmail
-        ? 'Send a code to your email, then enter it below.'
+        ? EMAIL_HINTS[emailCodeState]
         : 'Enter the 6-digit code from your authenticator app.';
     document.getElementById('sendEmailCode').hidden = !isEmail;
+}
+
+// 이메일 수단이 골라지면 코드를 한 번 보낸다 (메인 프런트 login-form 과 같다).
+// 재발급 유예(60초)·한도는 백엔드가 지킨다 — 거절되면 그 메시지를 그대로 보인다.
+async function sendEmailCode() {
+    if (emailCodeState === 'sending') return;
+    const button = document.getElementById('sendEmailCode');
+    // 다시 보내기가 거절돼도 앞서 보낸 코드는 살아 있다 — 「보냄」을 「실패」로 덮지 않는다
+    const wasSent = emailCodeState === 'sent';
+    emailCodeState = 'sending';
+    button.disabled = true;
+    hideError();
+    try {
+        const response = await window.ApiClient.post('/v1/auth/2fa/email/send');
+        if (response.ok) {
+            emailCodeState = 'sent';
+        } else {
+            emailCodeState = wasSent ? 'sent' : 'failed';
+            showError(await readErrorMessage(response, 'Could not send the code. Please try again.'));
+        }
+    } catch (error) {
+        console.error('Send code error:', error);
+        emailCodeState = wasSent ? 'sent' : 'failed';
+        showError('Connection error. Please check your internet connection and try again.');
+    } finally {
+        button.disabled = false;
+        updateTwoFactorHint();
+    }
+}
+
+function onTwoFactorMethodSelected() {
+    updateTwoFactorHint();
+    if (selectedTwoFactorMethod() === 'email' && emailCodeState === 'idle') sendEmailCode();
 }
 
 // availableMethods 는 { totp: boolean, email: boolean } 이다
@@ -124,7 +168,8 @@ function startTwoFactor(availableMethods) {
     if (first) first.checked = true;
     document.getElementById('twoFactorMethods').hidden = methods.length < 2;
 
-    updateTwoFactorHint();
+    emailCodeState = 'idle';
+    onTwoFactorMethodSelected();
     const codeInput = document.getElementById('twoFactorCode');
     codeInput.value = '';
     codeInput.focus();
@@ -138,23 +183,10 @@ function showSignInForm() {
 }
 
 document.querySelectorAll('input[name="twoFactorMethod"]').forEach((radio) => {
-    radio.addEventListener('change', updateTwoFactorHint);
+    radio.addEventListener('change', onTwoFactorMethodSelected);
 });
 
-document.getElementById('sendEmailCode').addEventListener('click', async () => {
-    hideError();
-    try {
-        const response = await window.ApiClient.post('/v1/auth/2fa/email/send');
-        if (response.ok) {
-            document.getElementById('twoFactorHint').textContent = 'A code was sent to your email. Enter it below.';
-        } else {
-            showError(await readErrorMessage(response, 'Could not send the code. Please try again.'));
-        }
-    } catch (error) {
-        console.error('Send code error:', error);
-        showError('Connection error. Please check your internet connection and try again.');
-    }
-});
+document.getElementById('sendEmailCode').addEventListener('click', sendEmailCode);
 
 document.getElementById('twoFactorForm').addEventListener('submit', async (event) => {
     event.preventDefault();
