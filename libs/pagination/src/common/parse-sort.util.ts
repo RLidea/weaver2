@@ -6,14 +6,15 @@ export function parseSort(
   sort?: string,
   allowed?: readonly string[],
 ): Record<string, 'asc' | 'desc'> {
-  const result: Record<string, 'asc' | 'desc'> = {};
-  if (!sort) return result;
+  // 객체에 요청 이름을 바로 쓰지 않는다 — Map 에 모았다가 한 번에 바꾼다
+  const result = new Map<string, 'asc' | 'desc'>();
+  if (!sort) return {};
   for (const part of sort.split(',')) {
     const [rawField, rawOrder] = part.split(':');
     const field = rawField?.trim();
     if (!field) continue;
     if (allowed && !allowed.includes(field)) continue;
-    result[field] = rawOrder?.trim() === 'desc' ? 'desc' : 'asc';
+    result.set(field, rawOrder?.trim() === 'desc' ? 'desc' : 'asc');
   }
-  return result;
+  return Object.fromEntries(result);
 }

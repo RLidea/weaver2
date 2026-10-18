@@ -45,6 +45,12 @@ export default defineConfig({
           // before playwright runs (see .github/workflows/ci.yml e2e job).
           {
             command: 'pnpm prod:core',
+            // e2e 는 기능 흐름을 잰다 — 스펙마다 로그인해 IP 당 로그인 한도(1분 10회)를 넘는다.
+            // 통합 시험(test/integration/setup.ts)처럼 명시 플래그로 스로틀을 끈다. 로컬 레인은 .env 에 있다
+            env: { ...process.env, THROTTLE_DISABLED: 'true' } as Record<
+              string,
+              string
+            >,
             // `/v1/health`(전체) 를 기다리지 않는다 — 거기에는 RSS 150MB 임계가 걸려
             // 있고, CI 러너의 Node+Nest 는 그 값을 정상적으로 넘긴다. 그러면 서버가
             // 멀쩡히 떠 있는데도 503 이 돌아와 120초 뒤 "기동 실패" 로 끝난다.

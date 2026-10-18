@@ -6,15 +6,16 @@ export function parseFilter(
   filter?: string,
   allowed?: readonly string[],
 ): Record<string, string> {
-  const result: Record<string, string> = {};
-  if (!filter) return result;
+  // 객체에 요청 이름을 바로 쓰지 않는다 — Map 에 모았다가 한 번에 바꾼다(__proto__ 같은 이름이 무해하다)
+  const result = new Map<string, string>();
+  if (!filter) return {};
   for (const part of filter.split(',')) {
     const [rawKey, rawValue] = part.split(':');
     const key = rawKey?.trim();
     const value = rawValue?.trim();
     if (!key || !value) continue;
     if (allowed && !allowed.includes(key)) continue;
-    result[key] = value;
+    result.set(key, value);
   }
-  return result;
+  return Object.fromEntries(result);
 }
