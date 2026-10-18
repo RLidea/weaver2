@@ -14,9 +14,9 @@ import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-stan
 import { UploadService, FileDto, AdminFilesQueryDto } from '@weaver2/upload';
 import { ApiKeysetResponse, KeysetResponseDto } from '@weaver2/pagination';
 
-@ApiTags('Admin - Upload')
-@Controller({ path: 'admin/upload', version: '1' })
-export class UploadAdminController {
+@ApiTags('Admin - Files')
+@Controller({ path: 'admin/files', version: '1' })
+export class FilesAdminController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Get()
@@ -40,7 +40,8 @@ export class UploadAdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: '파일 물리 삭제 (관리자 전용)',
-    description: '파일과 DB 레코드를 모두 삭제합니다.',
+    description:
+      '글 첨부·프로필에서 떼고 행과 저장소 객체를 지운다. 그 밖(파생 프로젝트의 첨부)에 붙어 있으면 409.',
   })
   @ApiStandardResponses({
     status: 204,

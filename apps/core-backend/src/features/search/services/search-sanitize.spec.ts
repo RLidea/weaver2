@@ -1,7 +1,9 @@
+import { PostReadPolicy } from '../../board/services/post-read-policy.service';
 import { SearchService } from './search.service';
 import { PrismaService } from '@weaver2/prisma';
 
-const service = new SearchService({} as PrismaService);
+// sanitize 는 DB·권한을 쓰지 않는다
+const service = new SearchService({} as PrismaService, {} as PostReadPolicy);
 
 describe('SearchService.sanitizeSearchQuery', () => {
   it('공백을 AND 연산자로 변환', () => {

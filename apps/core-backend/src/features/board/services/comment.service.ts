@@ -19,6 +19,8 @@ import { buildCommentTree } from '../repositories/comment-tree.builder';
 import { UpdateCommentCommand } from '../repositories/update-comment.command';
 import { DeleteCommentCommand } from '../repositories/delete-comment.command';
 import { PostService } from './post.service';
+import { PostReadPolicy } from './post-read-policy.service';
+import { CommonAuthUserDto } from '@weaver2/common';
 import {
   KeysetPaginationService,
   KeysetPreset,
@@ -43,6 +45,7 @@ export class CommentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postService: PostService,
+    private readonly readPolicy: PostReadPolicy,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -129,13 +132,16 @@ export class CommentService {
   async findCommentsByUserId(
     userId: string,
     dto: KeysetRequestDto,
+    viewer?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<CommentDto>> {
+    // 보는 사람이 읽을 수 있는 글에 달린 댓글만 — 회원 전용·남의 비밀글의 댓글이 여기로 새지 않게
+    const post = await this.readPolicy.listWhere(viewer);
     return KeysetPaginationService.paginate<CommentDto>({
       prisma: this.prisma.comment,
       preset: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
-      where: { authorId: userId, deletedAt: null },
+      where: { authorId: userId, deletedAt: null, hiddenAt: null, post },
       include: {
         author: { select: { id: true, username: true, displayName: true } },
         post: { select: { id: true, title: true, boardId: true } },
@@ -208,6 +214,15 @@ export class CommentService {
   async findCommentById(id: string): Promise<CommentDto> {
     const comment = await FindCommentByIdQuery(this.prisma, id);
     if (!comment) {
+      throw new NotFoundException(`Comment with ID '${id}' not found.`);
+    }
+    return comment;
+  }
+
+  /** 사용자가 읽는 댓글 하나 — 가린·지운 댓글은 목록처럼 404(가린 댓글은 내용이 그대로 남아 있다) */
+  async findVisibleCommentById(id: string): Promise<CommentDto> {
+    const comment = await FindCommentByIdQuery(this.prisma, id);
+    if (!comment || comment.hiddenAt || comment.deletedAt) {
       throw new NotFoundException(`Comment with ID '${id}' not found.`);
     }
     return comment;

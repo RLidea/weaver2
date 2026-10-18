@@ -1,7 +1,7 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { User } from '@weaver2/prisma';
-import { STORAGE_PROVIDER, StorageProvider } from '@weaver2/upload';
+import { UploadService } from '@weaver2/upload';
 
 import { findUserQuery } from '../repositories/find-user.query';
 import { OffsetResponseDto } from '@weaver2/pagination';
@@ -16,12 +16,18 @@ import { UserDto } from '../dto/user.dto';
 export class FindUserService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly uploads: UploadService,
     private readonly permissionService: PermissionService,
   ) {}
 
-  findUsers(query: PaginationRequestDto): Promise<OffsetResponseDto<User>> {
-    return findUserQuery(this.prisma, query);
+  async findUsers(
+    query: PaginationRequestDto,
+  ): Promise<OffsetResponseDto<User & { profileImageUrl: string | null }>> {
+    const page = await findUserQuery(this.prisma, query);
+    return {
+      ...page,
+      data: page.data.map((u) => this.withFreshProfileImageUrl(u)),
+    };
   }
 
   async findUserById(id: string): Promise<UserDto> {
@@ -30,10 +36,8 @@ export class FindUserService {
       throw new NotFoundException(`User with ID ${id} not found.`);
     }
 
-    const [userWithImage, permissionsSet] = await Promise.all([
-      this.withFreshProfileImageUrl(user),
-      this.permissionService.getUserPermissions(id),
-    ]);
+    const userWithImage = this.withFreshProfileImageUrl(user);
+    const permissionsSet = await this.permissionService.getUserPermissions(id);
 
     const setting = user.userSetting;
 
@@ -57,20 +61,26 @@ export class FindUserService {
     };
   }
 
-  private async withFreshProfileImageUrl<T extends User>(user: T): Promise<T> {
-    if (!user.profileImagePath) return user;
-    const profileImageUrl = await this.storage.getFileUrl(
-      user.profileImagePath,
-    );
-    return { ...user, profileImageUrl };
+  /** 프로필 이미지 주소는 저장하지 않고 파일 id 로 만든다 — 받을 때마다 /v1/files 가 권한을 본다 */
+  private withFreshProfileImageUrl<T extends User>(
+    user: T,
+  ): T & { profileImageUrl: string | null } {
+    return {
+      ...user,
+      profileImageUrl: user.profileImageFileId
+        ? this.uploads.urlFor(user.profileImageFileId)
+        : null,
+    };
   }
 
-  async findUserByUsername(username: string): Promise<User> {
+  async findUserByUsername(
+    username: string,
+  ): Promise<User & { profileImageUrl: string | null }> {
     const user = await FindUserByUsernameQuery(this.prisma, username);
     if (!user) {
       throw new NotFoundException(`User with username ${username} not found.`);
     }
-    return user;
+    return this.withFreshProfileImageUrl(user);
   }
 
   checkExistingUser(query: {

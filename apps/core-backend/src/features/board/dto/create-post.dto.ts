@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -58,4 +60,15 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      '첨부 파일 id (순서대로). 내가 올렸고 아무 데도 안 붙은 파일만 붙는다 — 업로드는 POST /v1/files.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  attachmentFileIds?: string[];
 }

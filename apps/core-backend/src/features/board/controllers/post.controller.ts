@@ -150,18 +150,8 @@ export class PostController {
     @Param('postId') postId: string,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<PostDto> {
-    const post = await this.postService.findPostById(postId, false, authUser);
-
-    // 읽기 권한 체크
-    await this.permissionService.requirePermission(
-      post.boardId,
-      BoardActionType.READ,
-      authUser,
-      '게시글 읽기 권한이 없습니다.',
-    );
-
-    // 권한이 있으면 조회수 증가
-    return this.postService.findPostById(postId, true, authUser);
+    // 읽을 수 있을 때만 조회수를 올린다
+    return this.postService.findReadablePost(postId, authUser, true);
   }
 
   @Get(':postId/comments')
@@ -173,16 +163,8 @@ export class PostController {
     @Query() keysetDto: KeysetRequestDto,
     @AuthUser() authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<CommentDto>> {
-    // 게시글 조회해서 boardId 확인
-    const post = await this.postService.findPostById(postId, false, authUser);
-
-    // 읽기 권한 체크 (댓글 조회는 게시글 읽기 권한과 동일)
-    await this.permissionService.requirePermission(
-      post.boardId,
-      BoardActionType.READ,
-      authUser,
-      '댓글 조회 권한이 없습니다.',
-    );
+    // 댓글 조회는 게시글 읽기와 같다
+    await this.postService.findReadablePost(postId, authUser);
 
     return this.commentService.findCommentsByPostIdWithKeyset(
       postId,
@@ -198,12 +180,12 @@ export class PostController {
     @AuthUser() authUser: CommonAuthUserDto,
     @Body() updatePostDto: UpdatePostDto,
   ): Promise<PostDto> {
-    const post = await this.postService.findPostById(postId, false, authUser);
+    const post = await this.postService.findReadablePost(postId, authUser);
 
     // 수정 권한 체크
     await this.permissionService.requireEditPermission(post, authUser);
 
-    return this.postService.updatePost(postId, updatePostDto);
+    return this.postService.updatePost(postId, updatePostDto, authUser, post);
   }
 
   @Delete(':postId')
@@ -217,7 +199,7 @@ export class PostController {
     @Param('postId') postId: string,
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<void> {
-    const post = await this.postService.findPostById(postId, false, authUser);
+    const post = await this.postService.findReadablePost(postId, authUser);
 
     // 삭제 권한 체크
     await this.permissionService.requireDeletePermission(post, authUser);

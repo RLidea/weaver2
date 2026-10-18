@@ -1,4 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  FileDto,
+  LockAttachableFilesCommand,
+  UploadService,
+} from '@weaver2/upload';
 import { PrismaService } from '@weaver2/prisma';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
@@ -12,6 +22,7 @@ import { IncrementPostViewCountCommand } from '../repositories/increment-post-vi
 import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
+import { PostReadPolicy, VISIBLE_POST_WHERE } from './post-read-policy.service';
 import {
   KeysetPaginationService,
   KeysetRequestDto,
@@ -30,6 +41,8 @@ export class PostService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly boardService: BoardService,
+    private readonly readPolicy: PostReadPolicy,
+    private readonly uploads: UploadService,
   ) {}
 
   async createPost(
@@ -54,11 +67,22 @@ export class PostService {
       ? { ...baseData, author: { connect: { id: authorId } } }
       : baseData;
 
-    const post = await CreatePostCommand(
-      this.prisma,
-      createData as Prisma.PostCreateInput,
-    );
-    return post;
+    const fileIds = dto.attachmentFileIds ?? [];
+    if (fileIds.length > 0 && !authorId) {
+      throw new BadRequestException('로그인해야 파일을 붙일 수 있습니다.');
+    }
+
+    const post = await this.prisma.$transaction(async (tx) => {
+      const created = await CreatePostCommand(
+        tx,
+        createData as Prisma.PostCreateInput,
+      );
+      if (authorId) {
+        await this.replaceAttachments(tx, created.id, fileIds, authorId);
+      }
+      return created;
+    });
+    return this.withAttachments(post);
   }
 
   async findAllPostsForAdmin(
@@ -87,13 +111,9 @@ export class PostService {
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<PostDto>> {
-    const isSelf = authUser?.isLogin === true && authUser.id === userId;
-    const where: Record<string, unknown> = {
+    const where = {
+      ...(await this.readPolicy.listWhere(authUser)),
       authorId: userId,
-      status: 'PUBLISHED',
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isSelf && { isSecret: false }),
     };
 
     return KeysetPaginationService.paginate<PostDto>({
@@ -111,13 +131,7 @@ export class PostService {
     dto: KeysetRequestDto,
     authUser?: CommonAuthUserDto,
   ): Promise<KeysetResponseDto<PostDto>> {
-    const isLoggedIn = authUser?.isLogin === true;
-    const where = {
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
-    };
+    const where = await this.readPolicy.listWhere(authUser);
 
     return KeysetPaginationService.paginate<PostDto>({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -138,13 +152,8 @@ export class PostService {
   ): Promise<BoardPostsResponseDto> {
     await this.boardService.findBoardById(boardId);
 
-    const isLoggedIn = authUser?.isLogin === true;
     const baseWhere = {
-      boardId,
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
+      ...(await this.readPolicy.listWhere(authUser, boardId)),
       ...(categoryId && { categoryId }),
     };
 
@@ -166,23 +175,38 @@ export class PostService {
     };
   }
 
-  async findPostById(
-    id: string,
-    incrementView = false,
-    authUser?: CommonAuthUserDto,
-  ): Promise<PostDto> {
-    const isLoggedIn = authUser?.isLogin === true;
-    const whereCondition = {
+  /**
+   * 보이는 상태(게시됨·안 가림·안 지움)인 글. 읽기 판정은 하지 않는다 —
+   * 사용자 요청은 findReadablePost 를, 이미 판정을 거친 내부 경로(댓글 작성 등)가 이것을 쓴다.
+   */
+  async findPostById(id: string): Promise<PostDto> {
+    const post = await FindPostByIdQuery(this.prisma, {
       id,
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      hiddenAt: null,
-      ...(!isLoggedIn && { isSecret: false }),
-    };
-
-    const post = await FindPostByIdQuery(this.prisma, whereCondition);
-
+      ...VISIBLE_POST_WHERE,
+    });
     if (!post) {
+      throw new NotFoundException(`Post with ID '${id}' not found.`);
+    }
+    return post;
+  }
+
+  /**
+   * 이 사람이 읽을 수 있는 글 (PostReadPolicy). 게시판 READ 가 없으면 403,
+   * 글이 없거나 남의 비밀글이면 404.
+   */
+  async findReadablePost(
+    id: string,
+    viewer: CommonAuthUserDto | undefined,
+    incrementView = false,
+  ): Promise<PostDto> {
+    const post = await FindPostByIdQuery(this.prisma, { id });
+    const verdict = post
+      ? await this.readPolicy.check(viewer, post)
+      : 'not_found';
+    if (verdict === 'forbidden') {
+      throw new ForbiddenException('게시글 읽기 권한이 없습니다.');
+    }
+    if (!post || verdict !== 'ok') {
       throw new NotFoundException(`Post with ID '${id}' not found.`);
     }
 
@@ -190,17 +214,114 @@ export class PostService {
       await this.incrementViewCount(id);
       post.viewCount = post.viewCount + 1;
     }
-
-    return post;
+    return this.withAttachments(post);
   }
 
   async incrementViewCount(postId: string): Promise<void> {
     await IncrementPostViewCountCommand(this.prisma, postId);
   }
 
-  async updatePost(id: string, dto: UpdatePostDto): Promise<PostDto> {
-    const updatedPost = await UpdatePostCommand(this.prisma, id, dto);
-    return updatedPost;
+  /**
+   * 글을 고친다. attachmentFileIds 를 보내면 첨부 목록을 통째로 그것으로 바꾼다 — 새로 붙는 파일은
+   * 글 작성자가 올렸고 아무 데도 안 붙은 것만(잠금 뒤 확인). 순서만 바꾸거나 떼는 것은 편집 권한이면 된다.
+   */
+  async updatePost(
+    id: string,
+    dto: UpdatePostDto,
+    editor: CommonAuthUserDto,
+    post: { authorId: string },
+  ): Promise<PostDto> {
+    const { attachmentFileIds, ...fields } = dto;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await UpdatePostCommand(tx, id, fields);
+      if (attachmentFileIds) {
+        const isAuthor = editor.isLogin && editor.id === post.authorId;
+        await this.replaceAttachments(
+          tx,
+          id,
+          attachmentFileIds,
+          isAuthor ? editor.id : null,
+        );
+      }
+      return row;
+    });
+    return this.withAttachments(updated);
+  }
+
+  /**
+   * 첨부 목록을 fileIds 로 맞춘다. 빠진 파일은 관계만 지워 고아로 만든다 — 즉시 지우지 않아
+   * 「실수로 뺐다 다시 넣기」가 되고, 보존 기간 뒤 정리된다. 새로 붙는 파일은 attacherId 가 올린 것이어야 하고,
+   * attacherId 가 null(작성자가 아닌 편집자)이면 새 파일을 붙일 수 없다.
+   */
+  private async replaceAttachments(
+    tx: Prisma.TransactionClient,
+    postId: string,
+    fileIds: string[],
+    attacherId: string | null,
+  ): Promise<void> {
+    const current = await tx.postAttachment.findMany({
+      where: { postId },
+      select: { fileId: true, file: { select: { hiddenAt: true } } },
+    });
+    const currentIds = new Set(current.map((a) => a.fileId));
+    const added = fileIds.filter((id) => !currentIds.has(id));
+
+    if (added.length > 0) {
+      if (!attacherId) {
+        throw new ForbiddenException('글 작성자만 파일을 붙일 수 있습니다.');
+      }
+      await LockAttachableFilesCommand(tx, added, attacherId);
+    }
+
+    // 가린 첨부는 응답에 안 나가 클라이언트가 보낸 목록에 없다 — 그걸로 떼면 신고 처리 증거가 정리된다.
+    // 목록에 없어도 남겨 둔다
+    const keep = new Set(fileIds);
+    const detached = current
+      .filter((a) => !keep.has(a.fileId) && !a.file.hiddenAt)
+      .map((a) => a.fileId);
+    if (detached.length > 0) {
+      await tx.postAttachment.deleteMany({
+        where: { postId, fileId: { in: detached } },
+      });
+      // 고아 보존 기간은 떼어진 때부터 — 「실수로 뺐다 다시 넣기」가 되게
+      await tx.file.updateMany({
+        where: { id: { in: detached } },
+        data: { detachedAt: new Date() },
+      });
+    }
+
+    for (const [position, fileId] of fileIds.entries()) {
+      if (currentIds.has(fileId)) {
+        await tx.postAttachment.update({
+          where: { fileId },
+          data: { position },
+        });
+      } else {
+        // 잠금 뒤 「안 붙음」을 확인했다 — 그래도 겹치면 PK 가 막아 오류가 난다(조용히 옮기지 않는다)
+        await tx.postAttachment.create({ data: { fileId, postId, position } });
+      }
+    }
+    if (added.length > 0) {
+      await tx.file.updateMany({
+        where: { id: { in: added } },
+        data: { detachedAt: null },
+      });
+    }
+  }
+
+  /** 글 응답에 첨부(순서대로)를 싣는다. 지우거나 가린 파일은 뺀다 */
+  private async withAttachments<T extends { id: string }>(
+    post: T,
+  ): Promise<T & { attachments: FileDto[] }> {
+    const rows = await this.prisma.postAttachment.findMany({
+      where: { postId: post.id, file: { deletedAt: null, hiddenAt: null } },
+      include: { file: true },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+    });
+    return {
+      ...post,
+      attachments: rows.map((r) => this.uploads.toDto(r.file)),
+    };
   }
 
   async deletePost(id: string): Promise<void> {

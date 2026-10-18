@@ -133,7 +133,7 @@ export class ModerationService {
     moderatorId: string,
   ): Promise<{ id: string; hiddenAt: Date }> {
     return this.prisma.$transaction(async (tx) => {
-      const file = await tx.postFile.findUnique({ where: { id } });
+      const file = await tx.file.findUnique({ where: { id } });
       if (!file) throw new NotFoundException(`Media '${id}' not found.`);
 
       const hiddenAt = new Date();
@@ -150,7 +150,7 @@ export class ModerationService {
   }
 
   async unhideMedia(id: string): Promise<void> {
-    const file = await this.prisma.postFile.findUnique({ where: { id } });
+    const file = await this.prisma.file.findUnique({ where: { id } });
     if (!file) throw new NotFoundException(`Media '${id}' not found.`);
     await UnhidePostFileCommand(this.prisma, id);
   }

@@ -6,7 +6,7 @@ import { StorageProvider } from '../providers/storage-provider.interface';
 import { CreateFileCommand } from '../repositories/create-file.command';
 import { FindFileByIdQuery } from '../repositories/find-file-by-id.query';
 import { DeleteFileCommand } from '../repositories/delete-file.command';
-import { UpdateFileCommand } from '../repositories/update-file.command';
+import { ConfigService } from '@nestjs/config';
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 const PDF = Buffer.from('%PDF-1.7\n');
@@ -51,16 +51,12 @@ describe('UploadService.uploadFiles — 형식 확인', () => {
         path: `${directory}/stored${type.ext}`,
       }),
     );
-    const storage = {
-      save,
-      getFileUrl: (p: string) => Promise.resolve(`/${p}`),
-    } as unknown as StorageProvider;
+    const storage = { save } as unknown as StorageProvider;
     const createFileCmd = {
       execute: jest.fn((data: Record<string, unknown>) =>
         Promise.resolve({
           id: 'f1',
-          thumbnailPath: null,
-          postId: null,
+          thumbnailKey: null,
           createdAt: new Date(),
           deletedAt: null,
           ...data,
@@ -75,7 +71,7 @@ describe('UploadService.uploadFiles — 형식 확인', () => {
       createFileCmd,
       {} as FindFileByIdQuery,
       {} as DeleteFileCommand,
-      {} as UpdateFileCommand,
+      new ConfigService({}),
     );
   });
 
@@ -102,7 +98,9 @@ describe('UploadService.uploadFiles — 형식 확인', () => {
       contentType: 'image/png',
       inline: true,
     });
-    expect(dto.storedName).toBe('stored.png');
+    // 저장 키는 밖으로 나가지 않는다 — 주소는 권한을 묻는 /v1/files
+    expect(dto).not.toHaveProperty('storageKey');
+    expect(dto.url).toBe('/api/v1/files/f1');
   });
 
   it('PDF 는 내려받기로만 내도록 표시한다', async () => {

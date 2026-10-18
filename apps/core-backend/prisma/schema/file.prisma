@@ -1,0 +1,47 @@
+// =============================================================================
+// Framework: Files
+// 파일 기록은 파일만 안다. 「무엇에 붙었나」는 붙은 쪽이, 「누가 보나」는 붙은 쪽의 읽기 정책이 정한다
+// (docs/design/specs/2026-10-17-file-access-control-design.md).
+// =============================================================================
+
+/// 저장소에 있는 객체 하나. 무엇에 붙었는지는 모른다.
+model File {
+  // post_files.id 를 그대로 잇는다 — 신고(targetType MEDIA)가 이 id 를 가리킨다
+  id           String    @id @default(uuid())
+  // uploads/YYYY/MM/<uuid>.<ext> — 밖으로 내보내지 않는다
+  storageKey   String    @unique
+  thumbnailKey String?   @unique
+  originalName String
+  mimeType     String
+  size         Int
+  uploadedById String?
+  // 신고 처리로 가림
+  hiddenAt     DateTime?
+  // 지움 — 보존 기간 뒤 저장소와 행을 물리 삭제
+  deletedAt    DateTime?
+  // 붙은 쪽에서 떼어진 시각 — 고아 보존 기간은 올린 시각이 아니라 이때부터 잰다
+  detachedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  uploadedBy   User?     @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  postAttachment PostAttachment?
+  profileOf      User?           @relation("ProfileImage")
+
+  @@index([uploadedById])
+  @@index([createdAt(sort: Desc), id], map: "file_cursor_idx")
+  @@map("files")
+}
+
+/// 게시글 첨부. 파일 하나는 한 글에만 붙는다.
+/// 붙은 쪽 FK 는 files 를 향해 Restrict — 정리 작업이 「아직 붙은 파일」을 FK 위반으로 알아챈다.
+model PostAttachment {
+  fileId    String   @id
+  postId    String
+  position  Int
+  createdAt DateTime @default(now())
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, position])
+  @@map("post_attachments")
+}

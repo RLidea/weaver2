@@ -1,15 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@weaver2/prisma';
-import { PostFile } from '@weaver2/prisma';
+import { File, PrismaService } from '@weaver2/prisma';
 
 export interface CreateFileInput {
   originalName: string;
-  storedName: string;
   mimeType: string;
   size: number;
-  path: string;
-  thumbnailPath?: string;
-  postId?: string;
+  storageKey: string;
+  thumbnailKey?: string;
   uploadedById?: string;
 }
 
@@ -17,7 +14,7 @@ export interface CreateFileInput {
 export class CreateFileCommand {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(input: CreateFileInput): Promise<PostFile> {
-    return this.prisma.postFile.create({ data: input });
+  async execute(input: CreateFileInput): Promise<File> {
+    return this.prisma.file.create({ data: input });
   }
 }

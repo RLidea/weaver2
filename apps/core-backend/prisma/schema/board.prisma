@@ -17,28 +17,27 @@ model Board {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Post {
-  id                 String         @id @default(uuid())
-  title              String
-  content            String
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  boardId            String
-  authorId           String
-  categoryId         String?
-  isPinned           Boolean        @default(false)
-  isSecret           Boolean        @default(false)
-  priority           Int            @default(0)
-  status             PostStatus     @default(PUBLISHED)
-  viewCount          Int            @default(0)
-  requiredPermission String?
-  hiddenAt           DateTime?
-  deletedAt          DateTime?
-  comments           Comment[]
-  reactions          PostReaction[]
-  files              PostFile[]
-  author             User           @relation(fields: [authorId], references: [id])
-  board              Board          @relation(fields: [boardId], references: [id])
-  category           PostCategory?  @relation(fields: [categoryId], references: [id])
+  id          String           @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  boardId     String
+  authorId    String
+  categoryId  String?
+  isPinned    Boolean          @default(false)
+  isSecret    Boolean          @default(false)
+  priority    Int              @default(0)
+  status      PostStatus       @default(PUBLISHED)
+  viewCount   Int              @default(0)
+  hiddenAt    DateTime?
+  deletedAt   DateTime?
+  comments    Comment[]
+  reactions   PostReaction[]
+  attachments PostAttachment[]
+  author      User             @relation(fields: [authorId], references: [id])
+  board       Board            @relation(fields: [boardId], references: [id])
+  category    PostCategory?    @relation(fields: [categoryId], references: [id])
 
   @@index([boardId, status, isPinned, priority, viewCount], map: "post_list_idx")
   @@index([createdAt(sort: Desc), id], map: "post_cursor_idx")
@@ -113,29 +112,6 @@ model PostReaction {
   @@index([postId])
   @@index([userId])
   @@map("post_reactions")
-}
-
-model PostFile {
-  id            String    @id @default(uuid())
-  originalName  String
-  storedName    String    @unique
-  mimeType      String
-  size          Int
-  path          String
-  thumbnailPath String?
-  postId        String?
-  uploadedById  String?
-  hiddenAt      DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-  post          Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
-  uploadedBy    User?     @relation(fields: [uploadedById], references: [id])
-
-  @@index([uploadedById])
-  @@index([postId])
-  @@index([createdAt(sort: Desc), id], map: "post_file_cursor_idx")
-  @@map("post_files")
 }
 
 enum PostStatus {

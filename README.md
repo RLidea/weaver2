@@ -252,9 +252,11 @@ PATCH  /v1/reports/:id/reject            # 신고 기각
 
 ### 업로드
 ```
-POST /v1/upload                          # 파일 업로드
-GET  /v1/upload/:id/file                 # 파일 서빙 (302 redirect)
-GET  /v1/upload/:id/thumbnail            # 썸네일 서빙 (302 redirect)
+POST   /v1/files                        # 파일 업로드 (붙을 곳 없이 — 글 저장 때 attachmentFileIds 로 붙인다)
+GET    /v1/files                        # 내가 올린 파일
+GET    /v1/files/:id                    # 파일 받기 — 붙은 쪽의 읽기 정책을 매번 본다 (로컬 스트림 · S3 302)
+GET    /v1/files/:id/thumbnail          # 썸네일 받기 (같은 판정)
+DELETE /v1/files/:id                    # 내 파일 지우기
 ```
 
 ---

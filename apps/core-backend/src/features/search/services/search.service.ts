@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
+import { CommonAuthUserDto } from '@weaver2/common';
+import { PostReadPolicy } from '../../board/services/post-read-policy.service';
 import { SearchRequestDto, SearchType } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
 import { PostDto } from '../../board/dto/post.dto';
@@ -15,10 +17,18 @@ import {
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readPolicy: PostReadPolicy,
+  ) {}
 
-  async search(searchDto: SearchRequestDto): Promise<SearchResultDto> {
+  async search(
+    searchDto: SearchRequestDto,
+    viewer?: CommonAuthUserDto,
+  ): Promise<SearchResultDto> {
     const { q, type, boardId, page = 1, limit = 10 } = searchDto;
+    // 읽을 수 있는 게시판의 글·댓글만 찾는다 (PostReadPolicy) — 회원 전용 글 본문이 검색으로 새지 않게
+    const boardIds = await this.readPolicy.readableBoardIds(viewer, boardId);
 
     const skip = (page - 1) * limit;
 
@@ -31,8 +41,8 @@ export class SearchService {
 
     if (type === SearchType.POSTS || type === SearchType.ALL) {
       const [foundPosts, postsCount] = await Promise.all([
-        this.fetchPostsByMatch(sanitizedQuery, boardId, skip, limit),
-        CountPostMatchesQuery(this.prisma, sanitizedQuery, boardId),
+        this.fetchPostsByMatch(sanitizedQuery, boardIds, skip, limit),
+        CountPostMatchesQuery(this.prisma, sanitizedQuery, boardIds),
       ]);
       posts = foundPosts;
       totalPosts = postsCount;
@@ -40,8 +50,8 @@ export class SearchService {
 
     if (type === SearchType.COMMENTS || type === SearchType.ALL) {
       const [foundComments, commentsCount] = await Promise.all([
-        this.fetchCommentsByMatch(sanitizedQuery, boardId, skip, limit),
-        CountCommentMatchesQuery(this.prisma, sanitizedQuery, boardId),
+        this.fetchCommentsByMatch(sanitizedQuery, boardIds, skip, limit),
+        CountCommentMatchesQuery(this.prisma, sanitizedQuery, boardIds),
       ]);
       comments = foundComments;
       totalComments = commentsCount;
@@ -68,7 +78,7 @@ export class SearchService {
 
   private async fetchPostsByMatch(
     query: string,
-    boardId: string | undefined,
+    boardIds: string[],
     skip: number,
     limit: number,
   ): Promise<PostDto[]> {
@@ -77,7 +87,7 @@ export class SearchService {
     const matched = await SearchPostIdsQuery(
       this.prisma,
       query,
-      boardId,
+      boardIds,
       skip,
       limit,
     );
@@ -103,7 +113,7 @@ export class SearchService {
 
   private async fetchCommentsByMatch(
     query: string,
-    boardId: string | undefined,
+    boardIds: string[],
     skip: number,
     limit: number,
   ): Promise<CommentDto[]> {
@@ -112,7 +122,7 @@ export class SearchService {
     const matched = await SearchCommentIdsQuery(
       this.prisma,
       query,
-      boardId,
+      boardIds,
       skip,
       limit,
     );

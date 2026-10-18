@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SearchService } from '../services/search.service';
 import { SearchRequestDto } from '../dto/search-request.dto';
 import { SearchResultDto } from '../dto/search-response.dto';
+import { AuthUser, CommonAuthUserDto } from '@weaver2/common';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 
 @ApiTags('Search')
@@ -29,7 +30,10 @@ export class SearchController {
     type: SearchResultDto,
     description: '검색 결과와 각 타입별 총 개수',
   })
-  async search(@Query() searchDto: SearchRequestDto): Promise<SearchResultDto> {
-    return this.searchService.search(searchDto);
+  async search(
+    @Query() searchDto: SearchRequestDto,
+    @AuthUser() authUser?: CommonAuthUserDto,
+  ): Promise<SearchResultDto> {
+    return this.searchService.search(searchDto, authUser);
   }
 }

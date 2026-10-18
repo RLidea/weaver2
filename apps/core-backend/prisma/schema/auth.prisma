@@ -3,39 +3,40 @@
 // =============================================================================
 
 model User {
-  id                String                @id @default(uuid())
-  email             String                @unique
-  username          String                @unique
-  displayName       String                @unique
-  profileImageUrl   String?
-  profileImagePath  String?
-  warningCount      Int                   @default(0)
-  suspendedUntil    DateTime?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  deletedAt         DateTime?
-  lastLoginAt       DateTime?
+  id                 String                @id @default(uuid())
+  email              String                @unique
+  username           String                @unique
+  displayName        String                @unique
+  // 프로필 이미지는 files 의 한 행 — 주소는 저장하지 않고 /v1/files/:id 로 만든다
+  profileImageFileId String?               @unique
+  profileImage       File?                 @relation("ProfileImage", fields: [profileImageFileId], references: [id], onDelete: Restrict)
+  warningCount       Int                   @default(0)
+  suspendedUntil     DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deletedAt          DateTime?
+  lastLoginAt        DateTime?
   // 지금의 email 주인임이 증명된 시각. email 이 바뀌면 다시 정해진다
-  emailVerifiedAt   DateTime?
-  localCredential   LocalCredential?
-  oauthAccounts     OAuthAccount[]
-  refreshTokens     RefreshToken[]
-  twoFactorMethods  TwoFactorMethod[]
-  oneTimeCodes      OneTimeCode[]
-  authLockouts      AuthLockout[]
-  emailLogs         EmailLog[]
-  pageViews         PageView[]
-  userSetting       UserSetting?
-  userAgreements    UserTermsAgreement[]
-  permissionGroups  UserPermissionGroup[]
-  notifications     Notification[]
-  pushSubscriptions PushSubscription[]
+  emailVerifiedAt    DateTime?
+  localCredential    LocalCredential?
+  oauthAccounts      OAuthAccount[]
+  refreshTokens      RefreshToken[]
+  twoFactorMethods   TwoFactorMethod[]
+  oneTimeCodes       OneTimeCode[]
+  authLockouts       AuthLockout[]
+  emailLogs          EmailLog[]
+  pageViews          PageView[]
+  userSetting        UserSetting?
+  userAgreements     UserTermsAgreement[]
+  permissionGroups   UserPermissionGroup[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
 
   // Project-specific relations (board)
-  posts     Post[]
-  comments  Comment[]
-  reactions PostReaction[]
-  files     PostFile[]
+  posts         Post[]
+  comments      Comment[]
+  reactions     PostReaction[]
+  uploadedFiles File[]         @relation("FileUploader")
 
   // Project-specific relations (report)
   reportsMade    Report[] @relation("ReportsMade")

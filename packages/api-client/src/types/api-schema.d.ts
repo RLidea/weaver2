@@ -1856,6 +1856,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 내가 올린 파일 목록 (keyset 페이지네이션) */
+        get: operations["FilesController_getMyFiles"];
+        put?: never;
+        /**
+         * 파일 업로드
+         * @description multipart/form-data 로 올린다. 어디에도 붙지 않은 채 저장되고, 붙이기는 붙는 쪽이 한다 — 글 생성·수정의 `attachmentFileIds`. 붙지 않은 파일은 보존 기간 뒤 정리된다.
+         */
+        post: operations["FilesController_uploadFiles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 파일 받기
+         * @description 붙은 쪽의 읽기 정책을 본다. 로컬은 본문을 스트림하고, S3 는 60초짜리 서명 URL 로 302. 못 보는 파일은 404.
+         */
+        get: operations["FilesController_serveFile"];
+        put?: never;
+        post?: never;
+        /**
+         * 파일 지우기 (본인 파일만)
+         * @description 지움 표시와 함께 글 첨부·프로필에서 떼어 낸다. 실제 삭제는 보존 기간 뒤.
+         */
+        delete: operations["FilesController_deleteFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 썸네일 받기
+         * @description 파일과 같은 판정. 썸네일이 없으면 404.
+         */
+        get: operations["FilesController_serveThumbnail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 전체 파일 목록 조회 (관리자 전용)
+         * @description 업로더, 게시글 ID 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.
+         */
+        get: operations["FilesAdminController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 파일 물리 삭제 (관리자 전용)
+         * @description 글 첨부·프로필에서 떼고 행과 저장소 객체를 지운다. 그 밖(파생 프로젝트의 첨부)에 붙어 있으면 409.
+         */
+        delete: operations["FilesAdminController_hardDelete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/analytics/tracking/page-view": {
         parameters: {
             query?: never;
@@ -1945,182 +2050,6 @@ export interface paths {
          */
         post: operations["AnalyticsTrackingController_trackBulkPageViews"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 내 파일 목록 조회 (keyset 페이지네이션) */
-        get: operations["UploadController_getMyFiles"];
-        put?: never;
-        /**
-         * 파일 업로드
-         * @description multipart/form-data로 파일을 업로드합니다. 최대 업로드 개수는 시스템 설정을 따릅니다. postId를 지정하면 게시글과 연결됩니다.
-         */
-        post: operations["UploadController_uploadFiles"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload/post/{postId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 게시글에 첨부된 파일 목록 조회 (공개) */
-        get: operations["UploadController_getPostFiles"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 파일 메타데이터 조회 */
-        get: operations["UploadController_getFileById"];
-        put?: never;
-        post?: never;
-        /** 파일 소프트 삭제 (본인 파일만) */
-        delete: operations["UploadController_deleteFile"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload/{id}/file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 파일 서빙 (302 리다이렉트)
-         * @description local: 정적 경로로 리다이렉트, s3: presigned URL로 리다이렉트
-         */
-        get: operations["UploadController_serveFile"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload/{id}/thumbnail": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 썸네일 서빙 (302 리다이렉트)
-         * @description 이미지가 아니거나 썸네일이 없으면 404
-         */
-        get: operations["UploadController_serveThumbnail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/upload/{id}/unlink": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * 파일 게시글 연결 해제
-         * @description postId를 null로 초기화합니다. 본인 파일만 가능합니다.
-         */
-        patch: operations["UploadController_unlinkFromPost"];
-        trace?: never;
-    };
-    "/upload/{id}/link": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * 파일을 게시글에 연결
-         * @description 업로드된 파일에 postId를 설정합니다. 본인 파일만 가능합니다.
-         */
-        patch: operations["UploadController_linkToPost"];
-        trace?: never;
-    };
-    "/admin/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 전체 파일 목록 조회 (관리자 전용)
-         * @description 업로더, 게시글 ID 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.
-         */
-        get: operations["UploadAdminController_findAll"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/upload/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * 파일 물리 삭제 (관리자 전용)
-         * @description 파일과 DB 레코드를 모두 삭제합니다.
-         */
-        delete: operations["UploadAdminController_hardDelete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3047,6 +2976,29 @@ export interface components {
             /** @description 소프트 삭제 시각 (null이면 삭제되지 않음) */
             deletedAt?: Record<string, never> | null;
         };
+        FileDto: {
+            /** @description 파일 ID */
+            id: string;
+            /** @description 원본 파일명 */
+            originalName: string;
+            /** @description MIME 타입 */
+            mimeType: string;
+            /** @description 파일 크기 (bytes) */
+            size: number;
+            /** @description 파일 주소 `${FILE_URL_BASE}/v1/files/:id` — 받을 때마다 권한을 본다(로컬은 스트림, S3 는 60초 서명 URL 로 302) */
+            url: string;
+            /** @description 썸네일 주소 (이미지만) */
+            thumbnailUrl?: Record<string, never> | null;
+            /** @description 업로드한 사용자 ID */
+            uploadedById?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @description 생성 시각
+             */
+            createdAt: string;
+            /** @description 소프트 삭제 시각 */
+            deletedAt?: Record<string, never> | null;
+        };
         PostDto: {
             /** @description Post ID */
             id: string;
@@ -3089,6 +3041,8 @@ export interface components {
             board: components["schemas"]["BoardDto"];
             /** @description Author information */
             author?: Record<string, never>;
+            /** @description 첨부 파일 (순서대로) — 글 상세·생성·수정 응답에만 있다 */
+            attachments?: components["schemas"]["FileDto"][];
         };
         BoardPostsResponseDto: {
             /** @description 다음 페이지 조회를 위한 커서 */
@@ -3138,6 +3092,8 @@ export interface components {
             priority: number;
             /** @description 카테고리 ID */
             categoryId?: string;
+            /** @description 첨부 파일 id (순서대로). 내가 올렸고 아무 데도 안 붙은 파일만 붙는다 — 업로드는 POST /v1/files. */
+            attachmentFileIds?: string[];
         };
         KeysetResponseDto: {
             /** @description 다음 페이지 조회를 위한 커서 */
@@ -3195,6 +3151,8 @@ export interface components {
             priority?: number;
             /** @description 카테고리 ID (null 전송 시 카테고리 해제) */
             categoryId?: Record<string, never> | null;
+            /** @description 첨부 파일 id (순서대로). 내가 올렸고 아무 데도 안 붙은 파일만 붙는다 — 업로드는 POST /v1/files. 보내면 목록 전체를 이것으로 바꾼다(빠진 파일은 떼어져 보존 기간 뒤 정리), 안 보내면 그대로. */
+            attachmentFileIds?: string[];
         };
         CreateCommentDto: {
             /** @description Post ID */
@@ -3385,37 +3343,6 @@ export interface components {
              * @example Page view tracked successfully
              */
             message: string;
-        };
-        FileDto: {
-            /** @description 파일 ID */
-            id: string;
-            /** @description 원본 파일명 */
-            originalName: string;
-            /** @description 저장된 파일명 (UUID 기반) */
-            storedName: string;
-            /** @description MIME 타입 */
-            mimeType: string;
-            /** @description 파일 크기 (bytes) */
-            size: number;
-            /** @description 파일 접근 URL (local: 정적 경로, s3: presigned URL) */
-            url: string;
-            /** @description 썸네일 접근 URL (이미지만) */
-            thumbnailUrl?: Record<string, never> | null;
-            /** @description 연결된 게시글 ID */
-            postId?: Record<string, never> | null;
-            /** @description 업로드한 사용자 ID */
-            uploadedById?: Record<string, never> | null;
-            /**
-             * Format: date-time
-             * @description 생성 시각
-             */
-            createdAt: string;
-            /** @description 소프트 삭제 시각 */
-            deletedAt?: Record<string, never> | null;
-        };
-        LinkPostDto: {
-            /** @description 연결할 게시글 ID */
-            postId: string;
         };
         TermsDto: {
             id: string;
@@ -7540,6 +7467,291 @@ export interface operations {
             };
         };
     };
+    FilesController_getMyFiles: {
+        parameters: {
+            query?: {
+                /** @description 다음 페이지 커서 (불투명 문자열) */
+                cursor?: string;
+                /** @description 페이지당 아이템 수 */
+                limit?: number;
+                /** @description 정렬 preset (created-at | view-count) */
+                preset?: "created-at" | "view-count";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetResponseDto"] & {
+                        data?: components["schemas"]["FileDto"][];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    FilesController_uploadFiles: {
+        parameters: {
+            query?: {
+                /** @description 썸네일 생성 여부 (기본: true, 이미지 파일에만 적용) */
+                generateThumbnail?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileDto"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    FilesController_serveFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 파일 본문 (로컬) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 서명 URL (S3) */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 없거나 볼 수 없는 파일 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FilesController_deleteFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    FilesController_serveThumbnail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 썸네일 본문 (로컬) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 서명 URL (S3) */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 없거나 볼 수 없는 썸네일 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FilesAdminController_findAll: {
+        parameters: {
+            query?: {
+                /** @description 다음 페이지 커서 (불투명 문자열) */
+                cursor?: string;
+                /** @description 페이지당 아이템 수 */
+                limit?: number;
+                /** @description 정렬 preset (created-at | view-count) */
+                preset?: "created-at" | "view-count";
+                /** @description 업로더 ID 필터 */
+                uploadedById?: string;
+                /** @description 그 게시글에 붙은 파일만 */
+                postId?: string;
+                /** @description 소프트 삭제된 파일 포함 여부 (기본값: false) */
+                includeDeleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetResponseDto"] & {
+                        data?: components["schemas"]["FileDto"][];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    FilesAdminController_hardDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File hard deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
     AnalyticsTrackingController_trackPageView: {
         parameters: {
             query?: never;
@@ -7607,429 +7819,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    UploadController_getMyFiles: {
-        parameters: {
-            query?: {
-                /** @description 다음 페이지 커서 (불투명 문자열) */
-                cursor?: string;
-                /** @description 페이지당 아이템 수 */
-                limit?: number;
-                /** @description 정렬 preset (created-at | view-count) */
-                preset?: "created-at" | "view-count";
-                /** @description 게시글 ID 필터 */
-                postId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetResponseDto"] & {
-                        data?: components["schemas"]["FileDto"][];
-                    };
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_uploadFiles: {
-        parameters: {
-            query?: {
-                /** @description 연결할 게시글 ID (선택) */
-                postId?: string;
-                /** @description 썸네일 생성 여부 (기본: true, 이미지 파일에만 적용) */
-                generateThumbnail?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileDto"][];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_getPostFiles: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                postId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileDto"][];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_getFileById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileDto"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_deleteFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description File deleted successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_serveFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    UploadController_serveThumbnail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    UploadController_unlinkFromPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileDto"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadController_linkToPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkPostDto"];
-            };
-        };
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileDto"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadAdminController_findAll: {
-        parameters: {
-            query?: {
-                /** @description 다음 페이지 커서 (불투명 문자열) */
-                cursor?: string;
-                /** @description 페이지당 아이템 수 */
-                limit?: number;
-                /** @description 정렬 preset (created-at | view-count) */
-                preset?: "created-at" | "view-count";
-                /** @description 업로더 ID 필터 */
-                uploadedById?: string;
-                /** @description 게시글 ID 필터 */
-                postId?: string;
-                /** @description 소프트 삭제된 파일 포함 여부 (기본값: false) */
-                includeDeleted?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetResponseDto"] & {
-                        data?: components["schemas"]["FileDto"][];
-                    };
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
-                };
-            };
-        };
-    };
-    UploadAdminController_hardDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description File hard deleted successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponseDto"];
                 };
             };
         };
