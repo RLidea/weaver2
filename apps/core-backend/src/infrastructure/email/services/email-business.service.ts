@@ -41,7 +41,8 @@ export class EmailBusinessService {
     const emailLog = await this.emailLogService.createLog({
       to,
       from: from || '"Weaver2" <no-reply@weaver2.com>',
-      subject,
+      // 제목도 템플릿 변수로 렌더되므로 비밀이 들어갈 수 있다 — 비밀 메일은 렌더 전 제목을 남긴다
+      subject: sensitive ? (dto.subjectForLog ?? subject) : subject,
       htmlContent: sensitive ? SENSITIVE_PLACEHOLDER : htmlContent,
       textContent: sensitive ? undefined : textContent,
       templateId,
@@ -113,6 +114,7 @@ export class EmailBusinessService {
     return this.sendEmail({
       to,
       subject,
+      subjectForLog: template.subject,
       htmlContent,
       textContent,
       from,

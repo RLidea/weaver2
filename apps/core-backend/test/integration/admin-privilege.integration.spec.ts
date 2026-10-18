@@ -188,7 +188,7 @@ describe('Admin Privilege Ceiling (Integration)', () => {
       ).toBe(1);
     });
 
-    it('슈퍼관리자를 줄일 수 있는 경로는 전부 가드를 탄다', async () => {
+    it('슈퍼관리자를 줄일 수 있는 경로는 전부 가드를 탄다 (그룹·권한·탈퇴·정지·삭제)', async () => {
       const permissions = getTestingModule().get(PermissionService);
       const guard = jest.spyOn(permissions, 'withSuperAdminGuard');
       const superAdmin = await inGroup('SuperAdmin');
@@ -210,8 +210,12 @@ describe('Admin Privilege Ceiling (Integration)', () => {
         target.id,
       );
       await getTestingModule().get(DeleteAccountService).execute(target.id);
+      // 남을 정지·삭제하는 길도 — 슈퍼관리자끼리 서로를 동시에 치면 0명이 될 수 있다
+      const victim = await inGroup('SuperAdmin');
+      await users.suspendUser(superAdmin.id, victim.id, { days: 1 });
+      await users.deleteUser(superAdmin.id, victim.id);
 
-      expect(guard).toHaveBeenCalledTimes(4);
+      expect(guard).toHaveBeenCalledTimes(6);
       guard.mockRestore();
     });
   });

@@ -14,6 +14,11 @@ export class SendBusinessEmailDto {
   @IsString()
   subject: string;
 
+  /** 비밀 메일의 기록에 남길 제목(렌더 전 템플릿 제목). 없으면 subject */
+  @IsOptional()
+  @IsString()
+  subjectForLog?: string;
+
   @IsString()
   htmlContent: string;
 

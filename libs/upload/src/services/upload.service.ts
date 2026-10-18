@@ -147,7 +147,8 @@ export class UploadService {
         results.push(this.toDto(record));
       } catch (err) {
         // 행 없이 저장소에만 남은 객체는 정리 작업도 모른다 — 여기서 거둔다
-        await Promise.all(stored.map((key) => this.storage.delete(key)));
+        // 정리 실패가 원래 오류를 가리지 않게 allSettled
+        await Promise.allSettled(stored.map((key) => this.storage.delete(key)));
         throw err;
       }
     }

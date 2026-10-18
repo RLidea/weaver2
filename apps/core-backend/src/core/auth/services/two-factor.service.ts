@@ -102,7 +102,7 @@ export class TwoFactorService {
    * 갱신하므로, 그보다 먼저 발급된 토큰은 이미 쓴 것이다 — 5분 안에 같은 토큰과 새 코드로 세션을 또
    * 받는 길을 닫는다. 표가 따로 필요 없다. 발급 시각이 없는 옛 토큰(배포 전 발급)은 수명(5분) 안에서만 통한다.
    */
-  private async assertPreAuthUnused(
+  async assertPreAuthUnused(
     userId: string,
     issuedAtMs: number | undefined,
   ): Promise<void> {

@@ -29,17 +29,20 @@ import { authApi } from '../api/auth.api';
 /**
  * 로그인 뒤 갈 곳. 같은 출처의 경로만 받는다 — `?redirect=https://…`·`//…` 를 그대로 넘기면
  * 로그인 화면이 남의 사이트로 보내는 오픈 리다이렉트가 된다.
+ * 접두어 검사가 아니라 **URL 로 파싱해 출처를 비교**한다. URL 파서는 탭·줄바꿈을 지우므로
+ * `/\t/evil.com` 같은 값은 문자열로는 경로처럼 보여도 실제로는 `//evil.com` 이 된다.
  */
 function safeRedirectPath(value: string | null): string {
-  if (
-    !value ||
-    !value.startsWith('/') ||
-    value.startsWith('//') ||
-    value.startsWith('/\\')
-  ) {
+  if (!value) return '/dashboard';
+  const base = 'http://same-origin.invalid';
+  try {
+    const url = new URL(value, base);
+    return url.origin === base
+      ? `${url.pathname}${url.search}${url.hash}`
+      : '/dashboard';
+  } catch {
     return '/dashboard';
   }
-  return value;
 }
 
 export function LoginForm() {
