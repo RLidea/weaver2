@@ -15,12 +15,10 @@ import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
 import { FindOAuthAccountsByUserIdQuery } from '../repositories/find-oauth-accounts-by-user-id.query';
-import { UpsertOAuthAccountCommand } from '../repositories/upsert-oauth-account.command';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
 import { DeleteOAuthAccountCommand } from '../repositories/delete-oauth-account.command';
 import {
   OAuthCallbackExtras,
-  OAuthTokens,
   OAuthUserProfile,
 } from './interfaces/oauth-provider.interface';
 import { AuthProvidersResponseDto } from '../dto/auth-providers-response.dto';
@@ -122,11 +120,12 @@ export class OAuthService {
     const tokens = await provider.exchangeCodeForTokens(code);
     const profile = await provider.getUserProfile(tokens, extras);
 
+    // 이메일은 남기지 않는다 — 로그는 오래 남고 여러 손을 거친다. 추적은 providerId 로 한다
     this.logger.debug(
-      `OAuth profile: provider=${profile.provider}, email=${profile.email}`,
+      `OAuth profile: provider=${profile.provider}, providerId=${profile.providerId}`,
     );
 
-    const { userId } = await this.findOrCreateUser(profile, tokens);
+    const { userId } = await this.findOrCreateUser(profile);
     return userId;
   }
 
@@ -155,9 +154,13 @@ export class OAuthService {
     await DeleteOAuthAccountCommand(this.prisma, userId, provider);
   }
 
+  /**
+   * 공급자 토큰은 프로필을 받는 데만 쓰고 저장하지 않는다 — 그 뒤로 읽는 곳이 없고,
+   * DB 가 새면 공급자 계정까지 위험해진다. 파생 프로젝트가 공급자 API 를 부를 일이 생기면
+   * 그때 암호화해 저장하는 자리를 따로 낸다.
+   */
   private async findOrCreateUser(
     profile: OAuthUserProfile,
-    tokens: OAuthTokens,
   ): Promise<{ userId: string }> {
     // 1. 기존 OAuthAccount으로 조회
     const existing = await FindOAuthAccountQuery(
@@ -166,18 +169,10 @@ export class OAuthService {
       profile.providerId,
     );
     if (existing) {
-      // 탈퇴한 사람의 연동은 남아 있어도 로그인 길이 아니다 — 공급자 토큰도 새로 쓰지 않는다
+      // 탈퇴한 사람의 연동은 남아 있어도 로그인 길이 아니다
       if (existing.user.deletedAt) {
         throw new UnauthorizedException('ACCOUNT_DELETED');
       }
-      await UpsertOAuthAccountCommand(this.prisma, {
-        userId: existing.userId,
-        provider: profile.provider,
-        providerId: profile.providerId,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        tokenExpiry: tokens.tokenExpiry,
-      });
       return { userId: existing.userId };
     }
 
@@ -227,9 +222,6 @@ export class OAuthService {
       emailVerified: profile.emailVerified,
       provider: profile.provider,
       providerId: profile.providerId,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      tokenExpiry: tokens.tokenExpiry,
     });
   }
 

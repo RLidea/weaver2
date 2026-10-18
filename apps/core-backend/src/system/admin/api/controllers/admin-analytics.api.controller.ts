@@ -1,11 +1,21 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import {
   AdminAnalyticsApiService,
   TimeRangeFilter,
 } from '../services/admin-analytics.api.service';
+import { AdminAnalyticsRangeQueryDto } from '../dto/admin-analytics-range-query.dto';
+
+function toTimeRangeFilter(
+  query: AdminAnalyticsRangeQueryDto,
+): TimeRangeFilter {
+  const filter: TimeRangeFilter = {};
+  if (query.from) filter.from = new Date(query.from);
+  if (query.to) filter.to = new Date(query.to);
+  return filter;
+}
 
 @ApiTags('Admin Analytics')
 @Controller({
@@ -18,89 +28,37 @@ export class AdminAnalyticsApiController {
     private readonly adminAnalyticsApiService: AdminAnalyticsApiService,
   ) {}
 
+  // 값을 그대로 돌려준다 — SuccessInterceptor 가 { message, data } 로 감싼다.
+  // 여기서 { success, message, data } 로 또 싸면 화면이 받는 data 가 { success, data } 가 된다
   @Get('overview')
   @ApiOperation({ summary: '분석 개요 조회 (대시보드용)' })
-  @ApiQuery({
-    name: 'from',
-    required: false,
-    description: 'Start date (ISO string)',
-  })
-  @ApiQuery({
-    name: 'to',
-    required: false,
-    description: 'End date (ISO string)',
-  })
-  async getOverview(@Query('from') from?: string, @Query('to') to?: string) {
-    const filter: TimeRangeFilter = {};
-    if (from) filter.from = new Date(from);
-    if (to) filter.to = new Date(to);
+  async getOverview(@Query() query: AdminAnalyticsRangeQueryDto) {
+    const filter = toTimeRangeFilter(query);
 
     const data = await this.adminAnalyticsApiService.getOverview(filter);
 
-    return {
-      success: true,
-      message: 'Analytics overview retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('users')
   @ApiOperation({ summary: '사용자 분석 상세 조회' })
-  @ApiQuery({
-    name: 'from',
-    required: false,
-    description: 'Start date (ISO string)',
-  })
-  @ApiQuery({
-    name: 'to',
-    required: false,
-    description: 'End date (ISO string)',
-  })
-  async getUserAnalytics(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    const filter: TimeRangeFilter = {};
-    if (from) filter.from = new Date(from);
-    if (to) filter.to = new Date(to);
+  async getUserAnalytics(@Query() query: AdminAnalyticsRangeQueryDto) {
+    const filter = toTimeRangeFilter(query);
 
     const data = await this.adminAnalyticsApiService.getUserAnalytics(filter);
 
-    return {
-      success: true,
-      message: 'User analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('content')
   @ApiOperation({ summary: '콘텐츠 분석 상세 조회' })
-  @ApiQuery({
-    name: 'from',
-    required: false,
-    description: 'Start date (ISO string)',
-  })
-  @ApiQuery({
-    name: 'to',
-    required: false,
-    description: 'End date (ISO string)',
-  })
-  async getContentAnalytics(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    const filter: TimeRangeFilter = {};
-    if (from) filter.from = new Date(from);
-    if (to) filter.to = new Date(to);
+  async getContentAnalytics(@Query() query: AdminAnalyticsRangeQueryDto) {
+    const filter = toTimeRangeFilter(query);
 
     const data =
       await this.adminAnalyticsApiService.getContentAnalytics(filter);
 
-    return {
-      success: true,
-      message: 'Content analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('system')
@@ -108,32 +66,13 @@ export class AdminAnalyticsApiController {
   getSystemAnalytics() {
     const data = this.adminAnalyticsApiService.getSystemAnalytics();
 
-    return {
-      success: true,
-      message: 'System analytics retrieved successfully',
-      data,
-    };
+    return data;
   }
 
   @Get('summary')
   @ApiOperation({ summary: '종합 분석 요약 조회' })
-  @ApiQuery({
-    name: 'from',
-    required: false,
-    description: 'Start date (ISO string)',
-  })
-  @ApiQuery({
-    name: 'to',
-    required: false,
-    description: 'End date (ISO string)',
-  })
-  async getAnalyticsSummary(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    const filter: TimeRangeFilter = {};
-    if (from) filter.from = new Date(from);
-    if (to) filter.to = new Date(to);
+  async getAnalyticsSummary(@Query() query: AdminAnalyticsRangeQueryDto) {
+    const filter = toTimeRangeFilter(query);
 
     const [overview, users, content] = await Promise.all([
       this.adminAnalyticsApiService.getOverview(filter),
@@ -142,15 +81,6 @@ export class AdminAnalyticsApiController {
     ]);
     const system = this.adminAnalyticsApiService.getSystemAnalytics();
 
-    return {
-      success: true,
-      message: 'Analytics summary retrieved successfully',
-      data: {
-        overview,
-        users,
-        content,
-        system,
-      },
-    };
+    return { overview, users, content, system };
   }
 }

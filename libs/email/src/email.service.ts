@@ -43,9 +43,8 @@ export class EmailService {
   async sendMail(options: SendEmailOptions): Promise<EmailResult> {
     const transporter = this.transporter;
     if (!transporter) {
-      this.logger.warn(
-        `SMTP 미설정으로 이메일 발송 스킵: ${options.subject} → ${options.to}`,
-      );
+      // 제목·수신자는 남기지 않는다 — 제목에 인증 코드를 넣는 템플릿이면 살아 있는 코드가 로그에 남는다
+      this.logger.warn('SMTP 미설정으로 이메일 발송 스킵');
       return {
         success: false,
         error: 'SMTP is not configured. Email sending is disabled.',
