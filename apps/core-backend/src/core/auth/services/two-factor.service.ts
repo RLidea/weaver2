@@ -36,7 +36,14 @@ import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { CodePurpose } from '../one-time-code/one-time-code.constants';
 import { encryptSecret, decryptSecret } from '../utils/auth-crypto.util';
 
-const APP_NAME = 'Weaver2';
+/**
+ * 인증 앱(Google Authenticator 등)에 보이는 발급자 이름. 파생 프로젝트는 .env 의 TOTP_ISSUER 로 바꾼다.
+ * 등록할 때 QR 에 실리는 값이라, 바꿔도 이미 등록한 항목의 코드는 그대로 맞는다(표시 이름만 옛 것).
+ */
+function totpIssuer(): string {
+  // 쌍점은 otpauth 라벨의 「발급자:계정」 구분자라 빼 둔다 — 남으면 앱이 발급자를 잘라 읽는다
+  return process.env.TOTP_ISSUER?.replace(/:/g, '').trim() || 'Weaver2';
+}
 
 interface PreAuthPayload {
   sub: string;
@@ -135,7 +142,7 @@ export class TwoFactorService {
     const secret = otpGenerateSecret();
     const otpAuthUrl = otpGenerateURI({
       label: user.email,
-      issuer: APP_NAME,
+      issuer: totpIssuer(),
       secret,
     });
     const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);

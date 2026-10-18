@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../../core/permission/decorators/require-permission.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import {
@@ -7,6 +7,13 @@ import {
   TimeRangeFilter,
 } from '../services/admin-analytics.api.service';
 import { AdminAnalyticsRangeQueryDto } from '../dto/admin-analytics-range-query.dto';
+import {
+  AnalyticsOverviewDto,
+  AnalyticsSummaryDto,
+  ContentAnalyticsDto,
+  SystemAnalyticsDto,
+  UserAnalyticsDto,
+} from '../dto/admin-analytics-response.dto';
 
 function toTimeRangeFilter(
   query: AdminAnalyticsRangeQueryDto,
@@ -32,7 +39,10 @@ export class AdminAnalyticsApiController {
   // 여기서 { success, message, data } 로 또 싸면 화면이 받는 data 가 { success, data } 가 된다
   @Get('overview')
   @ApiOperation({ summary: '분석 개요 조회 (대시보드용)' })
-  async getOverview(@Query() query: AdminAnalyticsRangeQueryDto) {
+  @ApiOkResponse({ type: AnalyticsOverviewDto })
+  async getOverview(
+    @Query() query: AdminAnalyticsRangeQueryDto,
+  ): Promise<AnalyticsOverviewDto> {
     const filter = toTimeRangeFilter(query);
 
     const data = await this.adminAnalyticsApiService.getOverview(filter);
@@ -42,7 +52,10 @@ export class AdminAnalyticsApiController {
 
   @Get('users')
   @ApiOperation({ summary: '사용자 분석 상세 조회' })
-  async getUserAnalytics(@Query() query: AdminAnalyticsRangeQueryDto) {
+  @ApiOkResponse({ type: UserAnalyticsDto })
+  async getUserAnalytics(
+    @Query() query: AdminAnalyticsRangeQueryDto,
+  ): Promise<UserAnalyticsDto> {
     const filter = toTimeRangeFilter(query);
 
     const data = await this.adminAnalyticsApiService.getUserAnalytics(filter);
@@ -52,7 +65,10 @@ export class AdminAnalyticsApiController {
 
   @Get('content')
   @ApiOperation({ summary: '콘텐츠 분석 상세 조회' })
-  async getContentAnalytics(@Query() query: AdminAnalyticsRangeQueryDto) {
+  @ApiOkResponse({ type: ContentAnalyticsDto })
+  async getContentAnalytics(
+    @Query() query: AdminAnalyticsRangeQueryDto,
+  ): Promise<ContentAnalyticsDto> {
     const filter = toTimeRangeFilter(query);
 
     const data =
@@ -63,7 +79,8 @@ export class AdminAnalyticsApiController {
 
   @Get('system')
   @ApiOperation({ summary: '시스템 성능 분석 조회' })
-  getSystemAnalytics() {
+  @ApiOkResponse({ type: SystemAnalyticsDto })
+  getSystemAnalytics(): SystemAnalyticsDto {
     const data = this.adminAnalyticsApiService.getSystemAnalytics();
 
     return data;
@@ -71,7 +88,10 @@ export class AdminAnalyticsApiController {
 
   @Get('summary')
   @ApiOperation({ summary: '종합 분석 요약 조회' })
-  async getAnalyticsSummary(@Query() query: AdminAnalyticsRangeQueryDto) {
+  @ApiOkResponse({ type: AnalyticsSummaryDto })
+  async getAnalyticsSummary(
+    @Query() query: AdminAnalyticsRangeQueryDto,
+  ): Promise<AnalyticsSummaryDto> {
     const filter = toTimeRangeFilter(query);
 
     const [overview, users, content] = await Promise.all([
