@@ -359,7 +359,7 @@ export function TwoFactorSettings() {
       </CardContent>
       <CardFooter className="pb-4 pt-0">
         <p className="text-xs text-text-muted">
-          2단계 인증을 비활성화하려면 다른 인증 수단이 활성화되어 있어야 합니다.
+          마지막 인증 수단을 끄면 2단계 인증이 꺼지고, 꺼졌다는 알림 메일을 보냅니다.
         </p>
       </CardFooter>
     </Card>
