@@ -62,7 +62,12 @@ export function RevisionDiff({ before, after, className }: RevisionDiffProps) {
                     line.kind === 'removed' && 'text-error',
                   )}
                 >
-                  {style.label ? <span aria-label={style.label}>{style.symbol}</span> : null}
+                  {style.label ? (
+                    <>
+                      <span aria-hidden="true">{style.symbol}</span>
+                      <span className="sr-only">{style.label}</span>
+                    </>
+                  ) : null}
                 </td>
                 <td className="whitespace-pre-wrap break-all pr-3 text-text">
                   {line.text || ' '}
