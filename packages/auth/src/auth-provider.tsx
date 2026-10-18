@@ -11,9 +11,10 @@ import { useLeaveSession } from './hooks/use-leave-session';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { leave } = useLeaveSession();
 
-  // 쿠키를 못 지웠으면 이 자리에 머문다(useLeaveSession) — 이 층에는 그릴 화면이 없다
+  // 쿠키를 못 지웠으면 이 자리에 머문다(useLeaveSession) — 이 층에는 그릴 화면이 없다.
+  // 막 실패했으면 401 이 이어져도 다시 부르지 않는다(automatic)
   const handleAuthError = useCallback(() => {
-    void leave('/login');
+    void leave('/login', { automatic: true });
   }, [leave]);
 
   useEffect(() => {

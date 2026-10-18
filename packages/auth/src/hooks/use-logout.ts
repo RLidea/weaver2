@@ -1,20 +1,17 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { authApi } from '../api/auth.api';
-import { authKeys } from '../query-keys';
+import { useCallback } from 'react';
+import { useLeaveSession } from './use-leave-session';
 
+/**
+ * 로그아웃 버튼. 쿠키를 지운 뒤에만 /login 으로 보낸다 (useLeaveSession).
+ *
+ * 실패해도 보내면 쿠키가 남아 proxy 가 /dashboard 로 되돌리고, 실패는 조용히 묻힌다.
+ * `logout` 은 보냈으면 true — 아니면 부른 쪽이 알린다.
+ */
 export function useLogout() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  const { leave, isLeaving } = useLeaveSession();
+  const logout = useCallback(() => leave('/login'), [leave]);
 
-  return useMutation({
-    mutationFn: authApi.signOut,
-    onSettled: () => {
-      // 성공/실패 여부 관계없이 로컬 상태 즉시 클리어
-      queryClient.setQueryData(authKeys.me, null);
-      router.push('/login');
-    },
-  });
+  return { logout, isPending: isLeaving };
 }

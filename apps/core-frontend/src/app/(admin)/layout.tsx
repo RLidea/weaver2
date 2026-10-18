@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (isUnavailable) return;
     if (!isAuthenticated) {
       // 쿠키나 me 캐시가 남아 있으면 /dashboard 로 되돌려진다 — 지우고 보낸다 (useLeaveSession)
-      void leave('/login');
+      void leave('/login', { automatic: true });
       return;
     }
     if (!hasAdminAccess) {

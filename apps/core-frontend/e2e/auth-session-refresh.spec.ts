@@ -139,6 +139,17 @@ test.describe('세션 — 액세스 토큰 만료 뒤 refresh', () => {
 });
 
 test.describe('세션 — 로그아웃', () => {
+  test('로그아웃하면 쿠키가 지워지고 로그인 화면에 닿는다', async ({ page, context }) => {
+    await loginAsAdmin(page);
+
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '로그아웃' }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
+    expect((await context.cookies()).some((c) => c.name === 'refresh_token')).toBe(false);
+  });
+
   test('sign-out 이 실패하면 제자리에 머물고 알린다 — /dashboard 로 되돌려지지 않는다', async ({
     page,
   }) => {

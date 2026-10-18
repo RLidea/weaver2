@@ -23,7 +23,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     if (isUnavailable) return;
     if (!isAuthenticated) {
       // 쿠키나 me 캐시가 남아 있으면 /dashboard 로 되돌려진다 — 지우고 보낸다 (useLeaveSession)
-      void leave(loginHref);
+      void leave(loginHref, { automatic: true });
     }
   }, [isAuthenticated, isLoading, isUnavailable, leave, loginHref]);
 
