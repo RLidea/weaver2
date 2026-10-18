@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent, useId, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
 import { Tabs } from './tabs';
 
@@ -10,6 +10,8 @@ export interface MarkdownEditorProps {
   /**
    * 마크다운을 HTML 로 바꾼다. **소독은 이 함수의 책임이다** — 편집기는 돌려받은 HTML 을
    * 그대로 꽂는다. 공개 화면과 같은 함수를 넣어야 미리보기와 공개 화면이 같은 소독을 거친다.
+   *
+   * 이 함수만 바꿔 끼워서는 미리보기를 다시 그리지 않는다 — 다음 입력부터 새 함수를 쓴다.
    */
   renderPreview: (markdown: string) => Promise<string>;
   /** 미리보기 본문에 붙일 className (공개 화면의 본문 스타일을 그대로 입힐 때) */
@@ -47,22 +49,33 @@ export function MarkdownEditor({
     failed: false,
   });
 
-  // 호출자가 renderPreview 를 렌더마다 새로 만들어도 미리보기를 다시 그리지 않게 한다
-  const render = useEffectEvent((markdown: string) => renderPreview(markdown));
+  // 호출자가 renderPreview 를 렌더마다 새로 만들어도 미리보기를 다시 그리지 않게,
+  // 최신 함수는 ref 로 들고 입력이 바뀔 때만 부른다
+  const renderRef = useRef(renderPreview);
+  useLayoutEffect(() => {
+    renderRef.current = renderPreview;
+  });
+  // 처음 그릴 때는 기다리지 않는다 — 편집기를 열자마자 미리보기가 비어 있지 않게
+  const isFirstPreviewRef = useRef(true);
 
   useEffect(() => {
     // 늦게 도착한 옛 결과가 새 결과를 덮지 않게, 정리된 요청의 결과는 버린다
     let stale = false;
+    const delay = isFirstPreviewRef.current ? 0 : PREVIEW_DELAY_MS;
+    isFirstPreviewRef.current = false;
     const timer = setTimeout(() => {
-      render(value).then(
-        (html) => {
-          if (!stale) setPreview({ html, failed: false });
-        },
-        () => {
-          if (!stale) setPreview((current) => ({ ...current, failed: true }));
-        },
-      );
-    }, PREVIEW_DELAY_MS);
+      // renderPreview 가 동기로 던져도 실패 문구로 받는다
+      Promise.resolve()
+        .then(() => renderRef.current(value))
+        .then(
+          (html) => {
+            if (!stale) setPreview({ html, failed: false });
+          },
+          () => {
+            if (!stale) setPreview((current) => ({ ...current, failed: true }));
+          },
+        );
+    }, delay);
     return () => {
       stale = true;
       clearTimeout(timer);
@@ -95,8 +108,8 @@ export function MarkdownEditor({
             pane !== 'preview' && 'hidden',
             'md:block min-h-80 overflow-auto rounded-md border border-border bg-surface px-4 py-3',
           )}
+          role="region"
           aria-label="미리보기"
-          aria-live="polite"
         >
           {preview.failed && (
             <p role="alert" className="mb-2 text-sm text-error">
