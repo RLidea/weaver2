@@ -11,22 +11,10 @@ export async function CreateOAuthUserCommand(
     emailVerified: boolean;
     provider: string;
     providerId: string;
-    accessToken?: string;
-    refreshToken?: string;
-    tokenExpiry?: Date;
   },
 ): Promise<{ userId: string }> {
-  const {
-    username,
-    displayName,
-    email,
-    emailVerified,
-    provider,
-    providerId,
-    accessToken,
-    refreshToken,
-    tokenExpiry,
-  } = options;
+  const { username, displayName, email, emailVerified, provider, providerId } =
+    options;
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
@@ -39,13 +27,11 @@ export async function CreateOAuthUserCommand(
       },
     });
 
+    // 공급자 토큰은 저장하지 않는다 — OAuthService.findOrCreateUser 참조
     await tx.oAuthAccount.create({
       data: {
         provider,
         providerId,
-        accessToken,
-        refreshToken,
-        tokenExpiry,
         userId: user.id,
       },
     });

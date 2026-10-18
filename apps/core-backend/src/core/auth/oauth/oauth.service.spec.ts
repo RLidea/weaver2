@@ -13,14 +13,10 @@ jest.mock('../repositories/find-user-by-email.query', () => ({
 jest.mock('../repositories/create-oauth-user.command', () => ({
   CreateOAuthUserCommand: jest.fn(),
 }));
-jest.mock('../repositories/upsert-oauth-account.command', () => ({
-  UpsertOAuthAccountCommand: jest.fn(),
-}));
 
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { CreateOAuthUserCommand } from '../repositories/create-oauth-user.command';
-import { UpsertOAuthAccountCommand } from '../repositories/upsert-oauth-account.command';
 
 describe('OAuthService', () => {
   let env: Record<string, string | undefined>;
@@ -193,7 +189,6 @@ describe('OAuthService', () => {
       await expect(
         service.resolveCallbackUser('google', 'code', 'st', 'st'),
       ).rejects.toThrow(/ACCOUNT_DELETED/);
-      expect(UpsertOAuthAccountCommand).not.toHaveBeenCalled();
     });
 
     it('공급자가 검증하지 않은 이메일로는 가입시키지 않는다 — 남의 주소 선점 차단', async () => {
@@ -235,6 +230,31 @@ describe('OAuthService', () => {
         expect.anything(),
         expect.objectContaining({ emailVerified: true }),
       );
+    });
+
+    it('공급자 토큰은 프로필을 받는 데만 쓰고 저장으로 넘기지 않는다', async () => {
+      const provider = fakeProvider('google', 'new@b.c');
+      provider.mocks.exchangeCodeForTokens.mockResolvedValue({
+        accessToken: 'at',
+        refreshToken: 'rt',
+        tokenExpiry: new Date(),
+      });
+      provider.mocks.getUserProfile.mockResolvedValue({
+        provider: 'google',
+        providerId: 'sub-9',
+        email: 'new@b.c',
+        emailVerified: true,
+        displayName: 'New',
+      });
+      registry.register(provider);
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue(null);
+      (FindUserByEmailQuery as jest.Mock).mockResolvedValue(null);
+      (CreateOAuthUserCommand as jest.Mock).mockResolvedValue({ userId: 'u9' });
+
+      await service.resolveCallbackUser('google', 'code', 'st', 'st');
+
+      const [, options] = (CreateOAuthUserCommand as jest.Mock).mock.calls[0];
+      expect(JSON.stringify(options)).not.toMatch(/"at"|"rt"/);
     });
   });
 

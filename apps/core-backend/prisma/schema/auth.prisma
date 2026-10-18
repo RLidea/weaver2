@@ -143,6 +143,7 @@ model OAuthAccount {
   id           String    @id @default(uuid())
   provider     String
   providerId   String
+  /// 아래 세 칸은 비워 둔다 — 공급자 토큰은 저장하지 않는다 (OAuthService.findOrCreateUser 참조)
   accessToken  String?
   refreshToken String?
   tokenExpiry  DateTime?
