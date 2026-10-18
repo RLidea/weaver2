@@ -199,11 +199,16 @@ describe('PermissionService.hasResourcePermission', () => {
 });
 
 describe('PermissionService.withSuperAdminGuard', () => {
-  function guardWith(remaining: number) {
+  function guardWith(remaining: number, before = 1) {
     const mutate = jest.fn().mockResolvedValue('done');
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
-      user: { count: jest.fn().mockResolvedValue(remaining) },
+      user: {
+        count: jest
+          .fn()
+          .mockResolvedValueOnce(before)
+          .mockResolvedValueOnce(remaining),
+      },
     };
     const prisma = {
       $transaction: (fn: (t: typeof tx) => Promise<unknown>) => fn(tx),
@@ -218,6 +223,11 @@ describe('PermissionService.withSuperAdminGuard', () => {
       /마지막 슈퍼관리자/,
     );
     expect(mutate).toHaveBeenCalled();
+  });
+
+  it('처음부터 0명이던 DB(새 설치·시험)에서는 상관없는 변경을 막지 않는다', async () => {
+    const { service, mutate } = guardWith(0, 0);
+    await expect(service.withSuperAdminGuard(mutate)).resolves.toBe('done');
   });
 
   it('한 명이라도 남으면 변경 결과를 그대로 돌려준다', async () => {
