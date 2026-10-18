@@ -8,6 +8,8 @@ import { authKeys } from '../query-keys';
 
 /** sign-out 이 실패한 뒤 저절로는 다시 부르지 않는 시간 */
 const AUTOMATIC_RETRY_COOLDOWN_MS = 30_000;
+/** 떠난 화면에 이만큼 넘게 머물렀으면 이동이 막힌 것이다 — 그 뒤의 401 은 다시 떠나게 한다 */
+const LEAVING_GRACE_MS = 5_000;
 
 // AuthProvider 와 레이아웃이 같은 순간에 부른다 — 진행 중인 sign-out 하나를 같이 쓴다
 let inFlight: Promise<boolean> | null = null;
@@ -17,6 +19,11 @@ let lastFailedAt: number | null = null;
 // automatic leave 를 또 부르는데, 그 sign-out 이 끝나 늦게 하는 replace(`/login?redirect=…`)가
 // 먼저 간 곳(`/login`)을 덮어쓴다. 그 화면에 머무는 동안의 automatic 은 이미 떠난 것으로 본다
 let leavingFrom: string | null = null;
+let leftAt = 0;
+
+function stillLeavingFrom(pathname: string): boolean {
+  return leavingFrom === pathname && Date.now() - leftAt < LEAVING_GRACE_MS;
+}
 
 function signOutOnce(): Promise<boolean> {
   inFlight ??= authApi
@@ -37,9 +44,10 @@ function signOutOnce(): Promise<boolean> {
   return inFlight;
 }
 
-/** 새로 로그인했다 — 앞 세션에서 실패한 기록으로 새 세션의 401 을 건너뛰지 않게 지운다 */
+/** 새로 로그인했다 — 앞 세션에서 실패·떠난 기록으로 새 세션의 401 을 건너뛰지 않게 지운다 */
 export function forgetLeaveFailure() {
   lastFailedAt = null;
+  leavingFrom = null;
 }
 
 function failedRecently(): boolean {
@@ -74,7 +82,7 @@ export function useLeaveSession() {
 
   const leave = useCallback(
     async (href: string, { automatic = false }: LeaveOptions = {}): Promise<boolean> => {
-      if (automatic && leavingFrom === pathname) return true;
+      if (automatic && stillLeavingFrom(pathname)) return true;
       if (automatic && failedRecently()) {
         setFailed(true);
         return false;
@@ -85,6 +93,7 @@ export function useLeaveSession() {
       setFailed(!cleared);
       if (!cleared) return false;
       leavingFrom = pathname;
+      leftAt = Date.now();
       queryClient.setQueryData(authKeys.me, null);
       router.replace(href);
       return true;

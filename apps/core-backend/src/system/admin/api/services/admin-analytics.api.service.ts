@@ -1,10 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { PageViewLoggingService } from '../../../../infrastructure/analytics/page-view-logging.service';
 
 export interface TimeRangeFilter {
   from?: Date;
   to?: Date;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_RANGE_DAYS = 30;
+// 추이는 날마다 count 를 차례로 부른다 — 기간에 상한이 없으면 ?from=2000-01-01 한 번이 수천 번이 된다
+const MAX_RANGE_DAYS = 366;
+
+/**
+ * 비운 칸을 채운다 — 컨트롤러는 쿼리가 없어도 빈 객체를 넘기므로 칸마다 본다.
+ * 둘 다 비우면 최근 30일, to 만 비우면 지금까지, from 만 비우면 to 의 30일 전부터.
+ */
+function resolveTimeRange(
+  filter: TimeRangeFilter | undefined,
+  now: Date,
+): Required<TimeRangeFilter> {
+  const to = filter?.to ?? now;
+  const from =
+    filter?.from ?? new Date(to.getTime() - DEFAULT_RANGE_DAYS * DAY_MS);
+  if (from.getTime() > to.getTime()) {
+    throw new BadRequestException('from 은 to 보다 늦을 수 없습니다.');
+  }
+  if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * DAY_MS) {
+    throw new BadRequestException(
+      `분석 기간은 최대 ${MAX_RANGE_DAYS}일입니다.`,
+    );
+  }
+  return { from, to };
 }
 
 export interface AnalyticsOverview {
@@ -67,11 +94,7 @@ export class AdminAnalyticsApiService {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 기본 필터 설정 — 컨트롤러는 쿼리가 없어도 빈 객체를 넘기므로 칸마다 채운다
-    const timeFilter = {
-      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30일 전
-      to: filter?.to ?? now,
-    };
+    const timeFilter = resolveTimeRange(filter, now);
 
     const [
       totalUsers,
@@ -171,10 +194,7 @@ export class AdminAnalyticsApiService {
   // ============ 사용자 분석 ============
   async getUserAnalytics(filter?: TimeRangeFilter): Promise<UserAnalytics> {
     const now = new Date();
-    const timeFilter = {
-      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      to: filter?.to ?? now,
-    };
+    const timeFilter = resolveTimeRange(filter, now);
 
     const [signupTrends, usersByGroup, userActivity] = await Promise.all([
       // 가입 트렌드 (일별)
@@ -202,10 +222,7 @@ export class AdminAnalyticsApiService {
     filter?: TimeRangeFilter,
   ): Promise<ContentAnalytics> {
     const now = new Date();
-    const timeFilter = {
-      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      to: filter?.to ?? now,
-    };
+    const timeFilter = resolveTimeRange(filter, now);
 
     const [postTrends, topBoards, contentQuality] = await Promise.all([
       // 게시물/댓글 트렌드
