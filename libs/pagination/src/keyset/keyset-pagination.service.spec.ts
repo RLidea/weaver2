@@ -73,7 +73,7 @@ describe('KeysetPaginationService', () => {
 
     await KeysetPaginationService.paginate({
       prisma: prismaMock,
-      preset: {
+      presetDef: {
         name: 'custom',
         fields: [{ field: 'priority', direction: 'desc', type: 'number' }],
       },
@@ -110,4 +110,18 @@ describe('KeysetPaginationService', () => {
     expect(result.hasNextPage).toBe(false);
     expect(result.nextCursor).toBeNull();
   });
+});
+
+describe('KeysetPaginationService — 프리셋 이름', () => {
+  it.each(['constructor', '__proto__', 'toString'])(
+    '표에 없는 이름(%s)은 프로토타입 값을 프리셋으로 쓰지 않는다',
+    async (name) => {
+      await expect(
+        KeysetPaginationService.paginate({
+          prisma: { findMany: jest.fn().mockResolvedValue([]) },
+          preset: name,
+        }),
+      ).rejects.toThrow(/Unknown keyset preset/);
+    },
+  );
 });

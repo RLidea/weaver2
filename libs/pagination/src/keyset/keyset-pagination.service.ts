@@ -12,7 +12,13 @@ interface KeysetPaginationOptions<T> {
   prisma: {
     findMany: (args: any) => Promise<T[]>;
   };
-  preset?: string | KeysetPreset;
+  /** 요청에서 온 프리셋 이름 — KEYSET_PRESETS 에 있는 것만 통한다 */
+  preset?: string;
+  /**
+   * 서버가 정의한 프리셋(예: 댓글 시간순). 요청 값을 여기에 넣지 않는다 — 필드 이름이 그대로
+   * where·orderBy 의 키가 된다. 이름(`preset`)과 나눠, 요청 값이 객체로 들어올 길을 없앤다
+   */
+  presetDef?: KeysetPreset;
   cursor?: string;
   limit?: number;
   where?: Record<string, unknown>;
@@ -23,7 +29,7 @@ interface KeysetPaginationOptions<T> {
 export class KeysetPaginationService {
   /**
    * 직접 WHERE 조건을 생성하는 keyset 페이지네이션.
-   * - preset 또는 커스텀 KeysetPreset 수용
+   * - 프리셋 이름(preset) 또는 서버 정의 프리셋(presetDef)
    * - cursor payload에 모든 정렬 필드 값 인코딩 (DB 재조회 불필요)
    * - take: limit+1 전략으로 hasNextPage 판단
    */
@@ -32,7 +38,8 @@ export class KeysetPaginationService {
   ): Promise<KeysetResponseDto<T>> {
     const {
       prisma,
-      preset: presetInput = 'created-at',
+      preset: presetName = 'created-at',
+      presetDef,
       cursor,
       limit = DEFAULT_LIMIT,
       where = {},
@@ -40,10 +47,7 @@ export class KeysetPaginationService {
       select,
     } = options;
 
-    const preset =
-      typeof presetInput === 'string'
-        ? getKeysetPreset(presetInput)
-        : presetInput;
+    const preset = presetDef ?? getKeysetPreset(presetName);
 
     const orderBy = preset.fields.map((f) => ({ [f.field]: f.direction }));
 
