@@ -71,6 +71,8 @@ sequenceDiagram
 2FA 수단은 **사람에 붙습니다** (`TwoFactorMethod`) — 로그인 수단(비밀번호·OAuth)과 무관해 OAuth 사용자도 켤 수 있고, OAuth 로그인도 2FA 를 요구합니다. TOTP 비밀은 **AES-256-GCM** 으로 암호화합니다(`TOTP_ENCRYPTION_KEY`, `v1:iv:tag:ct`). 평문은 받지 않습니다(던짐).
 
 > ⚠️ **`TOTP_ENCRYPTION_KEY`는 불변으로 취급하세요.** 키를 바꾸면 기존 암호문의 복호화가 실패해 해당 사용자의 TOTP가 잠깁니다. 비어 있으면 TOTP 등록이 500 입니다(로컬 `.env` 포함).
+>
+> 인증 앱에 보이는 발급자 이름은 `TOTP_ISSUER` 로 바꿉니다(비우면 `Weaver2`). 등록할 때 QR 에 실리는 값이라 바꿔도 이미 등록한 항목의 코드는 그대로 맞고, 표시 이름만 옛 것으로 남습니다.
 
 **설정** (로그인 상태에서):
 

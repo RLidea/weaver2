@@ -133,6 +133,28 @@ describe('TwoFactorService TOTP 등록 — 확인된 TOTP 는 등록 경로가 �
     (otplib.generateURI as jest.Mock).mockReturnValue('otpauth://test');
   });
 
+  it('인증 앱 발급자 이름은 TOTP_ISSUER 를 따르고, 없으면 Weaver2', async () => {
+    mockFindMethods.mockResolvedValue(methods(null));
+    mockStart.mockResolvedValue(true);
+    const original = process.env.TOTP_ISSUER;
+    try {
+      delete process.env.TOTP_ISSUER;
+      await service.generateTotpSetup('user-1');
+      expect(otplib.generateURI).toHaveBeenLastCalledWith(
+        expect.objectContaining({ issuer: 'Weaver2', label: 'a@b.c' }),
+      );
+
+      process.env.TOTP_ISSUER = ' RLidea ';
+      await service.generateTotpSetup('user-1');
+      expect(otplib.generateURI).toHaveBeenLastCalledWith(
+        expect.objectContaining({ issuer: 'RLidea' }),
+      );
+    } finally {
+      if (original === undefined) delete process.env.TOTP_ISSUER;
+      else process.env.TOTP_ISSUER = original;
+    }
+  });
+
   it('확인된 TOTP 가 있으면 등록 시작을 거절하고 아무것도 쓰지 않는다', async () => {
     mockFindMethods.mockResolvedValue(methods({ confirmedAt: new Date() }));
     await expect(service.generateTotpSetup('user-1')).rejects.toThrow(
