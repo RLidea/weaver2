@@ -7,7 +7,11 @@ module.exports = {
   collectCoverageFrom: ['apps/core-backend/src/**/*.(t|j)s', 'libs/**/*.(t|j)s'],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
-  roots: ['<rootDir>/apps/core-backend/src', '<rootDir>/libs'],
+  roots: [
+    '<rootDir>/apps/core-backend/src',
+    '<rootDir>/libs',
+    '<rootDir>/packages/api-client/src',
+  ],
   moduleNameMapper: {
     '^@weaver2/common(|/.*)$': '<rootDir>/libs/common/src/$1',
     '^@weaver2/email(|/.*)$': '<rootDir>/libs/email/src/$1',
