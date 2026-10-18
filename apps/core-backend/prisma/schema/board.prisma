@@ -3,14 +3,16 @@
 // =============================================================================
 
 model Board {
-  id          String         @id @default(uuid())
-  name        String         @unique
-  description String?
-  deletedAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  posts       Post[]
-  categories  PostCategory[]
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String?
+  /// 켜면 글을 만들고 고칠 때마다 판(PostRevision)을 남긴다
+  keepRevisions Boolean        @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  posts         Post[]
+  categories    PostCategory[]
 
   @@map("boards")
 }
@@ -35,6 +37,7 @@ model Post {
   comments    Comment[]
   reactions   PostReaction[]
   attachments PostAttachment[]
+  revisions   PostRevision[]
   author      User             @relation(fields: [authorId], references: [id])
   board       Board            @relation(fields: [boardId], references: [id])
   category    PostCategory?    @relation(fields: [categoryId], references: [id])
@@ -45,6 +48,22 @@ model Post {
   @@index([authorId, createdAt(sort: Desc)], map: "post_author_idx")
   @@index([categoryId], map: "post_category_idx")
   @@map("posts")
+}
+
+/// 글의 판 — 저장한 뒤의 제목 · 본문. 게시판의 keepRevisions 가 켜져 있을 때만 쌓인다
+model PostRevision {
+  id          String                @id @default(uuid())
+  postId      String
+  title       String
+  content     String
+  actorUserId String?
+  actorKind   PostRevisionActorKind @default(SESSION)
+  createdAt   DateTime              @default(now())
+  post        Post                  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  actorUser   User?                 @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt(sort: Desc)], map: "post_revision_post_idx")
+  @@map("post_revisions")
 }
 
 model Comment {
@@ -119,4 +138,10 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
   DELETED
+}
+
+/// 판을 남긴 주체가 로그인 세션인지, 범위 토큰인지
+enum PostRevisionActorKind {
+  SESSION
+  TOKEN
 }

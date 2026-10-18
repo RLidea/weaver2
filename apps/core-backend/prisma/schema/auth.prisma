@@ -37,6 +37,7 @@ model User {
   comments      Comment[]
   reactions     PostReaction[]
   uploadedFiles File[]         @relation("FileUploader")
+  postRevisions PostRevision[]
 
   // Project-specific relations (report)
   reportsMade    Report[] @relation("ReportsMade")
