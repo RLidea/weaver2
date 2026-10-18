@@ -45,8 +45,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <SessionUnavailable onRetry={() => void refetch()} isRetrying={isFetching} />;
   }
 
-  // 세션을 내려놓지 못했다(쿠키가 남았다) — 로그인으로 보내면 되돌려지므로 여기서 다시 시도한다
-  if (leaveFailed) {
+  // 세션을 내려놓지 못했다(쿠키가 남았다) — 로그인으로 보내면 되돌려지므로 여기서 다시 시도한다.
+  // 그 사이 me 가 다시 살아났으면 세션이 멀쩡한 것이다 — 다시 시도로 내쫓지 않는다
+  if (leaveFailed && !isAuthenticated) {
     return <SessionUnavailable onRetry={() => void leave('/login')} isRetrying={isLeaving} />;
   }
 

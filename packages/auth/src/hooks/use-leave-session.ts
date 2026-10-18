@@ -11,6 +11,7 @@ const AUTOMATIC_RETRY_COOLDOWN_MS = 30_000;
 
 // AuthProvider 와 레이아웃이 같은 순간에 부른다 — 진행 중인 sign-out 하나를 같이 쓴다
 let inFlight: Promise<boolean> | null = null;
+// 실패는 누가 불렀든(버튼이든 401 이든) 센다 — 어느 쪽이든 지금 서버가 sign-out 을 못 받는다는 뜻이다
 let lastFailedAt: number | null = null;
 
 function signOutOnce(): Promise<boolean> {
@@ -30,6 +31,11 @@ function signOutOnce(): Promise<boolean> {
       inFlight = null;
     });
   return inFlight;
+}
+
+/** 새로 로그인했다 — 앞 세션에서 실패한 기록으로 새 세션의 401 을 건너뛰지 않게 지운다 */
+export function forgetLeaveFailure() {
+  lastFailedAt = null;
 }
 
 function failedRecently(): boolean {
