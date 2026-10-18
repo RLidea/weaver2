@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { authApi } from '../api/auth.api';
 import { authKeys } from '../query-keys';
 
@@ -13,6 +13,10 @@ const AUTOMATIC_RETRY_COOLDOWN_MS = 30_000;
 let inFlight: Promise<boolean> | null = null;
 // 실패는 누가 불렀든(버튼이든 401 이든) 센다 — 어느 쪽이든 지금 서버가 sign-out 을 못 받는다는 뜻이다
 let lastFailedAt: number | null = null;
+// 방금 세션을 내려놓고 떠나는 중인 화면. me 를 비우면 그 화면의 레이아웃이 「로그인 안 됨」을 보고
+// automatic leave 를 또 부르는데, 그 sign-out 이 끝나 늦게 하는 replace(`/login?redirect=…`)가
+// 먼저 간 곳(`/login`)을 덮어쓴다. 그 화면에 머무는 동안의 automatic 은 이미 떠난 것으로 본다
+let leavingFrom: string | null = null;
 
 function signOutOnce(): Promise<boolean> {
   inFlight ??= authApi
@@ -64,11 +68,13 @@ interface LeaveOptions {
 export function useLeaveSession() {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const pathname = usePathname();
   const [failed, setFailed] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
   const leave = useCallback(
     async (href: string, { automatic = false }: LeaveOptions = {}): Promise<boolean> => {
+      if (automatic && leavingFrom === pathname) return true;
       if (automatic && failedRecently()) {
         setFailed(true);
         return false;
@@ -78,12 +84,18 @@ export function useLeaveSession() {
       setIsLeaving(false);
       setFailed(!cleared);
       if (!cleared) return false;
+      leavingFrom = pathname;
       queryClient.setQueryData(authKeys.me, null);
       router.replace(href);
       return true;
     },
-    [queryClient, router],
+    [queryClient, router, pathname],
   );
+
+  // 화면을 옮겼으면 떠나는 중이 아니다 — AuthProvider 는 늘 붙어 있어 이동을 본다
+  useEffect(() => {
+    if (leavingFrom !== null && leavingFrom !== pathname) leavingFrom = null;
+  }, [pathname]);
 
   return { leave, failed, isLeaving };
 }
