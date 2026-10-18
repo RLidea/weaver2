@@ -218,6 +218,18 @@ export class EmailBusinessService {
   }
 
   /**
+   * 2단계 인증이 꺼졌다는 알림 (비밀 없음)
+   */
+  async sendTwoFactorDisabledEmail(email: string, userId?: string) {
+    return this.sendTemplateEmail({
+      to: email,
+      templateName: 'two-factor-disabled',
+      variables: {},
+      userId,
+    });
+  }
+
+  /**
    * 이메일 변경 인증 코드 메일 발송
    */
   async sendEmailChangeVerificationEmail(

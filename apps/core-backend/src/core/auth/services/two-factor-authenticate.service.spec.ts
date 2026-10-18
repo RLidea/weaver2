@@ -25,12 +25,9 @@ jest.mock('../repositories/reserve-auth-attempt.command', () => ({
 jest.mock('../repositories/reset-auth-attempts.command', () => ({
   ResetAuthAttemptsCommand: jest.fn(),
 }));
-jest.mock(
-  '../repositories/delete-two-factor-method-if-other-remains.command',
-  () => ({
-    DeleteTwoFactorMethodIfOtherRemainsCommand: jest.fn(),
-  }),
-);
+jest.mock('../repositories/delete-two-factor-method.command', () => ({
+  DeleteTwoFactorMethodCommand: jest.fn(),
+}));
 jest.mock('../repositories/enable-email-two-factor.command', () => ({
   EnableEmailTwoFactorCommand: jest.fn(),
 }));
@@ -46,7 +43,7 @@ import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-metho
 import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
 import { ReserveAuthAttemptCommand } from '../repositories/reserve-auth-attempt.command';
 import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
-import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../repositories/delete-two-factor-method-if-other-remains.command';
+import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
 import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
 
 const mockFindCredential = FindTwoFactorMethodsQuery as jest.Mock;
@@ -76,7 +73,10 @@ function build() {
       (_u: string, _p: string, send: () => Promise<unknown>) => send(),
     ),
   };
-  const email = { sendTwoFactorCodeEmail: jest.fn() };
+  const email = {
+    sendTwoFactorCodeEmail: jest.fn(),
+    sendTwoFactorDisabledEmail: jest.fn(),
+  };
   const prisma = {
     user: {
       findUnique: jest.fn().mockResolvedValue({ id: 'user-1', email: 'a@b.c' }),
@@ -106,13 +106,13 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
-    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
-      true,
-    );
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 1,
+    });
     mockReserve.mockResolvedValue(true);
-    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
-      true,
-    );
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 1,
+    });
     ctx = build();
   });
 
@@ -235,9 +235,9 @@ describe('TwoFactorService — 이메일 코드 발송', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
-    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
-      true,
-    );
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 1,
+    });
     ctx = build();
   });
 
@@ -303,9 +303,9 @@ describe('TwoFactorService — 해제', () => {
     jest.clearAllMocks();
     mockRecordStep.mockResolvedValue(true);
     mockReserve.mockResolvedValue(true);
-    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
-      true,
-    );
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 1,
+    });
     ctx = build();
     mockFindCredential.mockResolvedValue(credential());
   });
@@ -316,7 +316,7 @@ describe('TwoFactorService — 해제', () => {
     await ctx.service.disableTotp('user-1', '123456');
 
     expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
-    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).toHaveBeenCalledWith(
+    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
       'TOTP',
@@ -334,7 +334,7 @@ describe('TwoFactorService — 해제', () => {
       'STEP_UP',
       '654321',
     );
-    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).toHaveBeenCalledWith(
+    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
       'EMAIL',
@@ -357,15 +357,50 @@ describe('TwoFactorService — 해제', () => {
     expect(ctx.oneTimeCode.verifyCode).not.toHaveBeenCalled();
   });
 
-  it('동시 해제로 마지막 수단이 될 상황이면(지우지 못함) 거절한다', async () => {
+  it('마지막 수단이어도 코드로 증명하면 끈다 — 다른 수단을 먼저 켜라고 하지 않는다', async () => {
+    mockFindCredential.mockResolvedValue({
+      totp: totpMethod,
+      confirmedTotp: totpMethod,
+      email: null,
+    });
     mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
-    (DeleteTwoFactorMethodIfOtherRemainsCommand as jest.Mock).mockResolvedValue(
-      false,
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 0,
+    });
+
+    await ctx.service.disableTotp('user-1', '123456');
+
+    expect(DeleteTwoFactorMethodCommand).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      'TOTP',
+    );
+    expect(ctx.email.sendTwoFactorDisabledEmail).toHaveBeenCalledWith(
+      'a@b.c',
+      'user-1',
+    );
+  });
+
+  it('다른 수단이 남으면 꺼짐 알림을 보내지 않는다', async () => {
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+
+    await ctx.service.disableTotp('user-1', '123456');
+
+    expect(ctx.email.sendTwoFactorDisabledEmail).not.toHaveBeenCalled();
+  });
+
+  it('꺼짐 알림 메일이 실패해도 해제는 성공한다', async () => {
+    mockOtpVerify.mockResolvedValue({ valid: true, timeStep: 11 });
+    (DeleteTwoFactorMethodCommand as jest.Mock).mockResolvedValue({
+      remaining: 0,
+    });
+    ctx.email.sendTwoFactorDisabledEmail.mockRejectedValue(
+      new Error('Template not found'),
     );
 
-    await expect(ctx.service.disableTotp('user-1', '123456')).rejects.toThrow(
-      /only active 2FA method/,
-    );
+    await expect(
+      ctx.service.disableTotp('user-1', '123456'),
+    ).resolves.toBeUndefined();
   });
 
   it('해제 시도도 SECOND_FACTOR 로 잡고, 잠겼으면 코드를 보지 않는다', async () => {
@@ -385,6 +420,6 @@ describe('TwoFactorService — 해제', () => {
     await expect(
       ctx.service.disableTotp('user-1', '000000'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(DeleteTwoFactorMethodIfOtherRemainsCommand).not.toHaveBeenCalled();
+    expect(DeleteTwoFactorMethodCommand).not.toHaveBeenCalled();
   });
 });

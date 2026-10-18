@@ -174,7 +174,7 @@ function TotpSection({ enabled }: { enabled: boolean }) {
         <div className="mt-4 rounded-md border border-border p-4">
           <p className="mb-3 text-sm text-text-muted">
             TOTP를 비활성화하려면 인증 앱의 현재 코드나 이메일로 받은 확인 코드를 입력하세요.
-            이메일 OTP가 활성화된 경우에만 비활성화할 수 있습니다.
+            마지막 수단을 끄면 2단계 인증이 꺼지고, 꺼졌다는 알림 메일을 보냅니다.
           </p>
           <form onSubmit={disableForm.handleSubmit(handleDisable)} className="flex gap-2">
             <div className="flex-1">
@@ -309,7 +309,7 @@ function EmailOtpSection({ enabled }: { enabled: boolean }) {
         <div className="mt-4 rounded-md border border-border p-4">
           <p className="mb-3 text-sm text-text-muted">
             이메일 OTP를 비활성화하려면 인증 앱(TOTP)의 현재 코드나 이메일로 받은 확인 코드를 입력하세요.
-            TOTP가 활성화된 경우에만 비활성화할 수 있습니다.
+            마지막 수단을 끄면 2단계 인증이 꺼지고, 꺼졌다는 알림 메일을 보냅니다.
           </p>
           <form onSubmit={disableForm.handleSubmit(handleDisable)} className="flex gap-2">
             <div className="flex-1">

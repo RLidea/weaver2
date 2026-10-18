@@ -30,7 +30,7 @@ import { StartTotpSetupCommand } from '../repositories/start-totp-setup.command'
 import { ConfirmTotpSetupCommand } from '../repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../repositories/record-totp-time-step.command';
 import { EnableEmailTwoFactorCommand } from '../repositories/enable-email-two-factor.command';
-import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../repositories/delete-two-factor-method-if-other-remains.command';
+import { DeleteTwoFactorMethodCommand } from '../repositories/delete-two-factor-method.command';
 import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { CodePurpose } from '../one-time-code/one-time-code.constants';
@@ -322,14 +322,8 @@ export class TwoFactorService {
     if (!methods.confirmedTotp)
       throw new BadRequestException('TOTP is not enabled');
 
-    if (!methods.email) {
-      throw new BadRequestException(
-        'Cannot disable TOTP: it is the only active 2FA method. Enable Email OTP first.',
-      );
-    }
-
     await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
-    await this.deleteIfOtherRemains(userId, 'TOTP');
+    await this.deleteMethod(userId, 'TOTP');
     this.logger.log(`TOTP disabled for userId=${userId}`);
   }
 
@@ -338,14 +332,8 @@ export class TwoFactorService {
     if (!methods.email)
       throw new BadRequestException('Email OTP is not enabled');
 
-    if (!methods.confirmedTotp) {
-      throw new BadRequestException(
-        'Cannot disable Email OTP: it is the only active 2FA method. Enable TOTP first.',
-      );
-    }
-
     await this.verifyAnyMethodCode(userId, code, methods.confirmedTotp);
-    await this.deleteIfOtherRemains(userId, 'EMAIL');
+    await this.deleteMethod(userId, 'EMAIL');
     // 살아 있던 로그인·등록 코드는 이제 쓸 데가 없다
     await this.prisma.oneTimeCode.deleteMany({
       where: {
@@ -474,19 +462,38 @@ export class TwoFactorService {
     await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
   }
 
-  private async deleteIfOtherRemains(
+  /**
+   * 수단 하나를 지운다. 마지막 수단이어도 지운다 — 2FA 는 선택이라, 현재 코드로 본인을 증명했으면
+   * 끌 수 있어야 한다(Google · GitHub 와 같다). 지운 뒤 확인된 수단이 하나도 남지 않으면 2FA 가
+   * 꺼진 것이니 주인에게 알린다 — 계정을 가져간 사람이 2FA 를 끄면 주인이 알아채게.
+   */
+  private async deleteMethod(
     userId: string,
     kind: 'TOTP' | 'EMAIL',
   ): Promise<void> {
-    if (
-      !(await DeleteTwoFactorMethodIfOtherRemainsCommand(
-        this.prisma,
+    const { remaining } = await DeleteTwoFactorMethodCommand(
+      this.prisma,
+      userId,
+      kind,
+    );
+    if (remaining === 0) await this.notifyTwoFactorOff(userId);
+  }
+
+  /** 알림은 덤이다 — 메일이 실패해도 해제는 되돌리지 않는다 */
+  private async notifyTwoFactorOff(userId: string): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (!user) return;
+      await this.emailBusinessService.sendTwoFactorDisabledEmail(
+        user.email,
         userId,
-        kind,
-      ))
-    ) {
-      throw new BadRequestException(
-        'Cannot disable the only active 2FA method.',
+      );
+    } catch (error) {
+      this.logger.error(
+        `2FA-off notice failed for userId=${userId}: ${(error as Error).message}`,
       );
     }
   }

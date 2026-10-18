@@ -91,7 +91,7 @@ sign-in(또는 OAuth 콜백) → pre_auth 쿠키
 ```
 
 - **TOTP 재사용 차단**: 통과한 코드의 시간 단위를 남기고 그 이하는 거절합니다 — 같은 코드는 30초 안에도 두 번 못 씁니다
-- **해제**는 인증 앱 코드 또는 `POST /2fa/step-up/send` 로 받은 메일 코드(STEP_UP)로. 마지막 남은 수단은 해제할 수 없고(동시 해제도 행 잠금으로 막음), 분실 복구는 관리자 초기화(`DELETE /v1/admin/users/:id/two-factor`, `user:2fa:reset` — 기본 SuperAdmin 만, 자기보다 넓은 권한의 사람은 불가)
+- **해제**는 인증 앱 코드 또는 `POST /2fa/step-up/send` 로 받은 메일 코드(STEP_UP)로. 마지막 남은 수단도 해제할 수 있습니다(2FA 는 선택) — 그러면 2FA 가 꺼지고 「2단계 인증이 꺼졌습니다」 메일(`two-factor-disabled` 템플릿)을 보냅니다. 메일이 실패해도 해제는 되돌리지 않습니다. 동시 해제는 행 잠금으로 줄을 세워 알림이 한 번만 갑니다. 분실 복구는 관리자 초기화(`DELETE /v1/admin/users/:id/two-factor`, `user:2fa:reset` — 기본 SuperAdmin 만, 자기보다 넓은 권한의 사람은 불가)
 - **백업 코드(recovery code)는 없습니다**
 - Rate limit: authenticate 5회/60초, 이메일 발송·설정 3회/60초 + 코드별 시도 5회·재발급 60초
 

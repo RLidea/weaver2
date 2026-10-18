@@ -14,7 +14,7 @@ import { ensureSystemPermissionGroups } from './helpers/permission-group.helper'
 import { StartTotpSetupCommand } from '../../src/core/auth/repositories/start-totp-setup.command';
 import { ConfirmTotpSetupCommand } from '../../src/core/auth/repositories/confirm-totp-setup.command';
 import { RecordTotpTimeStepCommand } from '../../src/core/auth/repositories/record-totp-time-step.command';
-import { DeleteTwoFactorMethodIfOtherRemainsCommand } from '../../src/core/auth/repositories/delete-two-factor-method-if-other-remains.command';
+import { DeleteTwoFactorMethodCommand } from '../../src/core/auth/repositories/delete-two-factor-method.command';
 import { TwoFactorService } from '../../src/core/auth/services/two-factor.service';
 import { UserAdminService } from '../../src/core/user/services/user-admin.service';
 import { OneTimeCodeService } from '../../src/core/auth/one-time-code/one-time-code.service';
@@ -180,7 +180,7 @@ describe('Two-Factor Methods (Integration)', () => {
     });
   });
 
-  it('TOTP 해제와 이메일 해제가 동시에 와도 하나만 지워진다 — 2FA 가 0개가 되지 않는다', async () => {
+  it('TOTP 해제와 이메일 해제가 동시에 와도 둘 다 지워지고, 「0개가 됐다」는 한 번만 나온다', async () => {
     const user = await createUser();
     await prisma.twoFactorMethod.createMany({
       data: [
@@ -195,17 +195,18 @@ describe('Two-Factor Methods (Integration)', () => {
     });
 
     const results = await Promise.all([
-      DeleteTwoFactorMethodIfOtherRemainsCommand(prisma, user.id, 'TOTP'),
-      DeleteTwoFactorMethodIfOtherRemainsCommand(prisma, user.id, 'EMAIL'),
+      DeleteTwoFactorMethodCommand(prisma, user.id, 'TOTP'),
+      DeleteTwoFactorMethodCommand(prisma, user.id, 'EMAIL'),
     ]);
 
-    expect(results.filter(Boolean)).toHaveLength(1);
+    // 꺼짐 알림이 두 번 가거나 한 번도 안 가지 않게
+    expect(results.map((r) => r.remaining).sort()).toEqual([0, 1]);
     expect(
       await prisma.twoFactorMethod.count({ where: { userId: user.id } }),
-    ).toBe(1);
+    ).toBe(0);
   });
 
-  it('등록 중인 TOTP 는 「남는 다른 수단」으로 치지 않는다', async () => {
+  it('등록 중인 TOTP 는 「남은 수단」으로 치지 않는다', async () => {
     const user = await createUser();
     await prisma.twoFactorMethod.createMany({
       data: [
@@ -214,12 +215,8 @@ describe('Two-Factor Methods (Integration)', () => {
       ],
     });
     expect(
-      await DeleteTwoFactorMethodIfOtherRemainsCommand(
-        prisma,
-        user.id,
-        'EMAIL',
-      ),
-    ).toBe(false);
+      await DeleteTwoFactorMethodCommand(prisma, user.id, 'EMAIL'),
+    ).toEqual({ remaining: 0 });
   });
 
   describe('관리자 상하 검사', () => {
