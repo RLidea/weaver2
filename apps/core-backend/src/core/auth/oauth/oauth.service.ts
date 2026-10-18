@@ -120,8 +120,9 @@ export class OAuthService {
     const tokens = await provider.exchangeCodeForTokens(code);
     const profile = await provider.getUserProfile(tokens, extras);
 
+    // 이메일은 남기지 않는다 — 로그는 오래 남고 여러 손을 거친다. 추적은 providerId 로 한다
     this.logger.debug(
-      `OAuth profile: provider=${profile.provider}, email=${profile.email}`,
+      `OAuth profile: provider=${profile.provider}, providerId=${profile.providerId}`,
     );
 
     const { userId } = await this.findOrCreateUser(profile);

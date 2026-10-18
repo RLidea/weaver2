@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 import { OAuthService } from './oauth.service';
@@ -255,6 +256,20 @@ describe('OAuthService', () => {
 
       const [, options] = (CreateOAuthUserCommand as jest.Mock).mock.calls[0];
       expect(JSON.stringify(options)).not.toMatch(/"at"|"rt"/);
+    });
+
+    it('콜백 로그에 이메일을 남기지 않는다', async () => {
+      const debug = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+      registry.register(fakeProvider('google', 'secret@b.c'));
+      (FindOAuthAccountQuery as jest.Mock).mockResolvedValue({
+        userId: 'u1',
+        user: { deletedAt: null },
+      });
+
+      await service.resolveCallbackUser('google', 'code', 'st', 'st');
+
+      expect(JSON.stringify(debug.mock.calls)).not.toContain('secret@b.c');
+      debug.mockRestore();
     });
   });
 
