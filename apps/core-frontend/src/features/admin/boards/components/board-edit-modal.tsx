@@ -13,6 +13,7 @@ interface Props {
 export function BoardEditModal({ board, onClose }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [keepRevisions, setKeepRevisions] = useState(false);
   const { mutate, isPending } = useUpdateBoard();
 
   // 대상 board가 바뀌면 폼 상태를 렌더 중에 재설정 (effect 내 동기 setState 회피)
@@ -22,6 +23,7 @@ export function BoardEditModal({ board, onClose }: Props) {
     if (board) {
       setName(board.name);
       setDescription(board.description ?? '');
+      setKeepRevisions(board.keepRevisions);
     }
   }
 
@@ -29,7 +31,10 @@ export function BoardEditModal({ board, onClose }: Props) {
     e.preventDefault();
     if (!board || !name.trim()) return;
     mutate(
-      { id: board.id, body: { name: name.trim(), description: description.trim() || undefined } },
+      {
+        id: board.id,
+        body: { name: name.trim(), description: description.trim() || undefined, keepRevisions },
+      },
       { onSuccess: onClose },
     );
   };
@@ -48,6 +53,15 @@ export function BoardEditModal({ board, onClose }: Props) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
+          <input
+            type="checkbox"
+            checked={keepRevisions}
+            onChange={(e) => setKeepRevisions(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          저장할 때마다 판 남기기
+        </label>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             취소
