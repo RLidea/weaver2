@@ -22,7 +22,7 @@ const SESSION_ROTATING_REQUESTS = new Set([
   'DELETE /v1/users/me', // 탈퇴 — 쿠키를 지운다
 ]);
 
-class ApiClient {
+export class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
   private refreshQueue: ((success: boolean) => void)[] = [];
