@@ -8,17 +8,18 @@ type RequestOptions = Omit<RequestInit, 'body' | 'method'> & {
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
- * 성공하면 refresh_token 쿠키가 바뀌는 경로.
+ * 성공하면 refresh_token 쿠키가 바뀌는 요청 (`메서드 경로`).
  *
  * 서버는 CSRF 토큰을 refresh_token 에 묶는다(security.middleware.ts 의 getSessionIdentifier).
  * 그래서 이 경로가 성공한 뒤에는 받아 둔 CSRF 토큰이 무효다 — 캐시를 버린다.
  * OAuth 복귀는 백엔드 리다이렉트로 페이지를 새로 받으므로 캐시가 저절로 비어 여기 없다.
  */
-const SESSION_ROTATING_PATHS = new Set([
-  '/v1/auth/sign-in',
-  '/v1/auth/2fa/authenticate',
-  '/v1/auth/refresh',
-  '/v1/auth/sign-out',
+const SESSION_ROTATING_REQUESTS = new Set([
+  'POST /v1/auth/sign-in',
+  'POST /v1/auth/2fa/authenticate',
+  'POST /v1/auth/refresh',
+  'POST /v1/auth/sign-out',
+  'DELETE /v1/users/me', // 탈퇴 — 쿠키를 지운다
 ]);
 
 class ApiClient {
@@ -91,7 +92,7 @@ class ApiClient {
       body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
 
-    if (response.ok && SESSION_ROTATING_PATHS.has(path)) {
+    if (response.ok && SESSION_ROTATING_REQUESTS.has(`${method} ${path}`)) {
       this.csrfToken = null;
     }
 

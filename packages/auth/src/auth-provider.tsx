@@ -1,21 +1,20 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiClient } from '@weaver2/api-client';
-import { useClearSession } from './hooks/use-clear-session';
+import { useLeaveSession } from './hooks/use-leave-session';
 
 /**
  * ApiClient에 onAuthError 콜백을 주입하는 얇은 레이어.
  * 사용자 상태는 useMe() 훅(React Query)이 담당한다.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const clearSession = useClearSession();
+  const { leave } = useLeaveSession();
 
+  // 쿠키를 못 지웠으면 이 자리에 머문다(useLeaveSession) — 이 층에는 그릴 화면이 없다
   const handleAuthError = useCallback(() => {
-    void clearSession().then(() => router.push('/login'));
-  }, [router, clearSession]);
+    void leave('/login');
+  }, [leave]);
 
   useEffect(() => {
     apiClient.setOnAuthError(handleAuthError);

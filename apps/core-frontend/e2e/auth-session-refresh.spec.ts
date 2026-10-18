@@ -86,4 +86,28 @@ test.describe('세션 — 액세스 토큰 만료 뒤 refresh', () => {
     await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
     expect((await context.cookies()).some((c) => c.name === 'refresh_token')).toBe(false);
   });
+
+  test('쿠키를 못 지우면 로그인과 대시보드를 오가며 서버를 두드리지 않는다', async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(page);
+
+    // refresh 가 핸들러에 못 닿아 쿠키가 남고, sign-out 까지 실패하는 경우
+    await page.route('**/v1/auth/refresh', (route) => route.fulfill({ status: 503 }));
+    let signOutCalls = 0;
+    await page.route('**/v1/auth/sign-out', (route) => {
+      signOutCalls += 1;
+      return route.abort();
+    });
+
+    await context.clearCookies({ name: 'access_token' });
+    await page.locator('header a[href="/notifications"]').click();
+    await expect.poll(() => signOutCalls).toBeGreaterThan(0);
+
+    // 부재를 재는 시험이라 잠시 지켜본다 — 왕복이면 이 사이에 수십 번 부른다
+    await page.waitForTimeout(3_000);
+    expect(signOutCalls).toBeLessThan(5);
+    await expect(page).not.toHaveURL(/\/login/);
+  });
 });

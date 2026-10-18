@@ -11,7 +11,7 @@ export * from './api/auth.api';
 export * from './hooks/use-me';
 export * from './hooks/use-login';
 export * from './hooks/use-logout';
-export * from './hooks/use-clear-session';
+export * from './hooks/use-leave-session';
 export * from './hooks/use-register';
 export * from './hooks/use-password-reset';
 export * from './hooks/use-sessions';

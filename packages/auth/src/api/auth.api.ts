@@ -36,8 +36,9 @@ export const authApi = {
   twoFactorAuthenticate: (body: TwoFactorAuthenticateRequest) =>
     apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),
 
+  // 세션이 끝난 뒤에 부르는 길이기도 하다 — 여기서 onAuthError 가 다시 돌면 재귀가 된다
   signOut: () =>
-    apiClient.post<void>('/v1/auth/sign-out'),
+    apiClient.post<void>('/v1/auth/sign-out', undefined, { skipOnAuthError: true }),
 
   signUp: (body: SignUpRequest) =>
     apiClient.post<void>('/v1/auth/sign-up/email', body),
