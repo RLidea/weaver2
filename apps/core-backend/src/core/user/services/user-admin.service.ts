@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { OffsetResponseDto } from '@weaver2/pagination';
@@ -23,6 +25,10 @@ import { SoftDeleteUserCommand } from '../repositories/soft-delete-user.command'
 import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
 import { normalizeEmail } from '../../auth/utils/email.util';
 import { PermissionService } from '../../permission/services/permission.service';
+import {
+  USER_WITHDRAWAL_HOOKS,
+  UserWithdrawalHook,
+} from '../user-withdrawal-hooks';
 
 @Injectable()
 export class UserAdminService {
@@ -32,6 +38,10 @@ export class UserAdminService {
     private readonly prisma: PrismaService,
     private readonly uploads: UploadService,
     private readonly permissionService: PermissionService,
+    // 탈퇴 정리 자리 (user-withdrawal-hooks.ts)
+    @Optional()
+    @Inject(USER_WITHDRAWAL_HOOKS)
+    private readonly withdrawalHooks: UserWithdrawalHook[] = [],
   ) {}
 
   async findUsers(
@@ -218,6 +228,8 @@ export class UserAdminService {
       await tx.oAuthAccount.deleteMany({ where: { userId: targetId } });
       await tx.localCredential.deleteMany({ where: { userId: targetId } });
       await SoftDeleteUserCommand(tx, targetId);
+      // 파생 프로젝트의 탈퇴 정리 (같은 트랜잭션)
+      for (const hook of this.withdrawalHooks) await hook(tx, targetId);
     });
   }
 
