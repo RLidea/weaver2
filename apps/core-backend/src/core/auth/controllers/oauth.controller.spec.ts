@@ -146,13 +146,36 @@ describe('OAuthController', () => {
       expect(res.redirect).toHaveBeenCalledWith('/ok');
     });
 
-    it('2FA 가 필요하면 2FA 화면으로 보낸다', async () => {
+    it('2FA 가 필요하면 2FA 화면으로, 통과 뒤 갈 성공 주소를 redirect 에 실어 보낸다', async () => {
       completion.complete.mockResolvedValue({
         twoFactorRequired: true,
         availableMethods: { totp: true, email: false },
       });
       await callback();
-      expect(res.redirect).toHaveBeenCalledWith('/login?step=2fa');
+      expect(res.redirect).toHaveBeenCalledWith(
+        '/login?step=2fa&redirect=%2Fok',
+      );
+    });
+
+    it('성공 주소가 다른 출처면 redirect 를 싣지 않는다 — 화면은 같은 출처의 경로만 받는다', async () => {
+      const env: Record<string, string> = {
+        OAUTH_FAILURE_REDIRECT_URL: '/fail',
+        OAUTH_SUCCESS_REDIRECT_URL: 'https://app.example.com/home',
+        OAUTH_TWO_FACTOR_REDIRECT_URL: 'https://web.example.com/login?step=2fa',
+      };
+      controller = new OAuthController(
+        service as unknown as OAuthService,
+        { get: (k: string) => env[k] } as unknown as ConfigService,
+        completion as unknown as SignInCompletionService,
+      );
+      completion.complete.mockResolvedValue({
+        twoFactorRequired: true,
+        availableMethods: { totp: true, email: false },
+      });
+      await callback();
+      expect(res.redirect).toHaveBeenCalledWith(
+        'https://web.example.com/login?step=2fa',
+      );
     });
 
     it('정지된 계정은 안내를 붙여 실패로 보낸다', async () => {
