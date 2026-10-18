@@ -4,6 +4,7 @@ import { passwordResetTemplate } from '../../src/infrastructure/email/templates/
 import { welcomeTemplate } from '../../src/infrastructure/email/templates/welcome.template';
 import { twoFactorCodeTemplate } from '../../src/infrastructure/email/templates/two-factor-code.template';
 import { emailChangeTemplate } from '../../src/infrastructure/email/templates/email-change.template';
+import { twoFactorDisabledTemplate } from '../../src/infrastructure/email/templates/two-factor-disabled.template';
 import { logSeedResult } from './seed-logger';
 
 export async function seedEmailTemplates(prisma: PrismaClient) {
@@ -13,6 +14,7 @@ export async function seedEmailTemplates(prisma: PrismaClient) {
     welcomeTemplate,
     twoFactorCodeTemplate,
     emailChangeTemplate,
+    twoFactorDisabledTemplate,
   ];
 
   for (const template of templates) {
