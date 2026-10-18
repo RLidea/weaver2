@@ -1,14 +1,24 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ComponentType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { hasPermission, PERMISSIONS } from '@weaver2/shared';
+import { hasPermission, PERMISSIONS, type Permission } from '@weaver2/shared';
 import { BoardIcon, cn, FileTextIcon, FlagIcon, HomeIcon, MailIcon, SettingsIcon, ShieldIcon, UsersIcon, XIcon } from '@weaver2/ui';
 import { useMe } from '@weaver2/auth';
 import { useSidebar } from './sidebar-context';
+import { ADMIN_NAV_EXTRA } from './admin-nav.extra';
 
-const NAV_ITEMS = [
+export interface AdminNavItem {
+  label: string;
+  href: string;
+  Icon: ComponentType<{ className?: string }>;
+  permission: Permission;
+  /** true 면 href 와 똑같을 때만, false 면 그 아래 경로까지 활성으로 본다 */
+  exact: boolean;
+}
+
+const BASE_NAV_ITEMS: AdminNavItem[] = [
   {
     label: '대시보드',
     href: '/admin',
@@ -65,7 +75,9 @@ const NAV_ITEMS = [
     permission: PERMISSIONS.ADMIN.SYSTEM_SETTINGS,
     exact: false,
   },
-] as const;
+];
+
+const NAV_ITEMS = [...BASE_NAV_ITEMS, ...ADMIN_NAV_EXTRA];
 
 export function AdminSidebar() {
   const pathname = usePathname();
