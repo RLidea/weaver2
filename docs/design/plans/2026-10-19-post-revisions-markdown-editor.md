@@ -37,11 +37,13 @@
 ### 정한 것
 
 - **판은 「저장한 뒤의 모습」이다.** 글을 만들 때 첫 판, 고칠 때마다 다음 판. 그래서 두 판을 고르면 그 사이의 변화가 나온다. 게시판을 켜기 **전**에 있던 글은 첫 수정 때 첫 판이 생긴다(켜기 전의 모습은 없다)
-- **제목 · 본문이 직전 판과 같으면 쓰지 않는다.** 상태 · 고정 · 첨부만 바꾼 저장이 판을 늘리지 않게 한다. 이 판정은 `record` 가 한다 — 호출자마다 비교를 되풀이하지 않게
+- **제목 · 본문이 직전 판과 같으면 쓰지 않는다.** 상태 · 고정 · 첨부만 바꾼 저장이 판을 늘리지 않게 한다. 이 판정은 `record` 가 한다 — 호출자마다 비교를 되풀이하지 않게. 단, 게시판을 켠 뒤 **첫 저장은 상태만 바꾼 것이어도 기준 판을 하나 남긴다**(비교할 직전 판이 없다)
+- **`record` 의 호출자는 같은 트랜잭션에서 그 글 행을 먼저 고쳤거나 잠가야 한다.** 그래야 같은 글을 동시에 저장하는 두 요청이 「직전 판」을 엇갈려 읽지 않는다
+- **판 목록은 최신 200개까지.** `createdAt` 은 쓰는 쪽이 `new Date()` 로 박아, 순서가 넣은 때를 따른다
 - **`actorKind` 는 Prisma enum `PostRevisionActorKind { SESSION TOKEN }`.** 저장소의 enum 은 모두 대문자다. `TOKEN` 은 범위 토큰(뒤 단계)이 쓸 자리로 미리 둔다
 - **지운 사람 · 지운 글:** `actorUserId` 는 `onDelete: SetNull`(누가 썼는지는 잃어도 판은 남는다), `postId` 는 `onDelete: Cascade`(글을 영구 삭제하면 판도 — 내용 정리 스케줄러가 `post.deleteMany` 를 그대로 쓸 수 있게)
 - **관리 조회는 소프트 삭제 · 숨김 글도 본다.** 관리자 글 목록(`includeDeleted`)과 같은 태도다. 글 행 자체가 없으면 404, 판이 그 글의 것이 아니면 404
-- **판 목록은 쪽 나누기를 하지 않는다.** 한 글의 판은 수십 개 단위다. 넘치면 그때 keyset 으로 바꾼다
+- **판 목록은 쪽 나누기를 하지 않는다.** 한 글의 판은 수십 개 단위다. 200개 상한을 넘기는 글이 생기면 그때 keyset 으로 바꾼다
 - **diff 는 `diff`(jsdiff) 의 `diffLines` 를 쓴다.** 줄 번호 붙이기만 우리가 한다(`packages/ui/src/lib/line-diff.ts`). LCS 를 손으로 짜지 않는다
 - **`MarkdownEditor` 는 소독하지 않는다.** `renderPreview` 가 돌려준 HTML 을 그대로 꽂는다. 소독은 주입하는 쪽의 책임이고, 공개 화면과 같은 함수를 넣어야 미리보기와 공개 화면이 같은 소독을 거친다
 - **관리 메뉴 자리는 `feat/module-registry` 를 따르지 않는다.** 그 가지의 슬롯 시스템은 대시보드 슬롯(`dashboard-top` · `global-popup`)만 다루고 관리 사이드바는 여전히 고정 배열이다. 게다가 `dev` 보다 194 커밋 뒤에 있다. 여기서는 가장 작은 정적 파일 하나로 자리를 연다
@@ -164,7 +166,8 @@ model PostRevision {
 ### Task 9: OpenAPI 타입 · 검증
 
 - [ ] `pnpm openapi:types` → `api-schema.d.ts` 커밋
-- [ ] `pnpm typecheck` · `pnpm lint:check` · `pnpm --filter @weaver2/ui lint` · `pnpm test:core`
+- [ ] `pnpm typecheck` · `pnpm lint:check` · `pnpm test:core`
+- [ ] `pnpm --filter @weaver2/ui lint` 는 이 레인과 무관하게 **지금 실패한다** — 기존 `search-input.tsx:42` 의 `react-hooks/set-state-in-effect`. 이 레인이 더한 파일만 `npx eslint <파일>` 로 깨끗한지 본다
 - [ ] `pnpm test:integration:run -- post-revisions route-guard-coverage admin-privilege post-read-policy` (레인 DB)
 
 ## 파생 프로젝트가 upstream 을 merge 할 때
