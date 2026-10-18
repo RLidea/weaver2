@@ -68,14 +68,26 @@ async function boardWhereAnonymousRead(db: Client, anonymous: boolean) {
   return rows[0].id;
 }
 
+/**
+ * 로그인 한도는 IP 당 1분 10회다. CI 는 스로틀을 켠 채 돌고 앞선 스펙들이 매번 로그인하므로,
+ * 429 면 Retry-After 만큼 기다렸다 한 번 더 한다.
+ */
 async function login(request: APIRequestContext) {
-  const csrf = await request.get('/api/v1/auth/csrf-token');
-  const token = ((await csrf.json()) as { data: { csrfToken: string } }).data.csrfToken;
-  const res = await request.post('/api/v1/auth/sign-in', {
-    headers: { 'x-csrf-token': token },
-    data: { email: EMAIL, password: PASSWORD },
-  });
-  expect(res.ok(), await res.text()).toBe(true);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const csrf = await request.get('/api/v1/auth/csrf-token');
+    const token = ((await csrf.json()) as { data: { csrfToken: string } }).data.csrfToken;
+    const res = await request.post('/api/v1/auth/sign-in', {
+      headers: { 'x-csrf-token': token },
+      data: { email: EMAIL, password: PASSWORD },
+    });
+    if (res.status() === 429 && attempt === 0) {
+      const wait = Number(res.headers()['retry-after'] ?? '60');
+      await new Promise((r) => setTimeout(r, (Math.min(wait, 65) + 1) * 1000));
+      continue;
+    }
+    expect(res.ok(), await res.text()).toBe(true);
+    return;
+  }
 }
 
 test.describe('/api/v1/files — Next 리라이트를 지나서', () => {
@@ -167,6 +179,7 @@ test.describe('/api/v1/files — Next 리라이트를 지나서', () => {
   });
 
   test('회원 전용 글의 첨부는 비회원에게 404, 로그인하면 200 (캐시는 private)', async ({ request }) => {
+    test.setTimeout(100_000); // 로그인 한도에 걸리면 최대 1분 기다린다
     expect((await request.get(`/api/v1/files/${ids.memberPng}`, NO_REDIRECT)).status()).toBe(404);
 
     await login(request);

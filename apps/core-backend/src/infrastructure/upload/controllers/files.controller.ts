@@ -86,6 +86,10 @@ export class FilesController {
     @Query() dto: UploadFileDto,
     @AuthUser() authUser: CommonAuthUserDto,
   ): Promise<FileDto[]> {
+    // multer 가 주는 값이지만 형태를 믿지 않는다 — 배열이 아니면 length 가 다른 뜻이 된다
+    if (!Array.isArray(files) || files.length === 0) {
+      throw new BadRequestException('업로드할 파일이 없습니다.');
+    }
     const settings = await this.systemSettingService.getAll();
 
     if (files.length > settings.uploadMaxFileCount) {

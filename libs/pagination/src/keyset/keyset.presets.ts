@@ -40,7 +40,10 @@ export const KEYSET_PRESETS: Record<string, KeysetPreset> = {
 export const KEYSET_PRESET_NAMES = Object.keys(KEYSET_PRESETS);
 
 export function getKeysetPreset(name: string): KeysetPreset {
-  const preset = KEYSET_PRESETS[name];
+  // 표에 직접 있는 키만 — `constructor`·`__proto__` 가 프로토타입의 값을 꺼내 오지 않게
+  const preset = Object.hasOwn(KEYSET_PRESETS, name)
+    ? KEYSET_PRESETS[name]
+    : undefined;
   if (!preset) {
     const available = Object.keys(KEYSET_PRESETS).join(', ');
     throw new Error(
