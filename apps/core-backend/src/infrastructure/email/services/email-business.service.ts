@@ -8,6 +8,16 @@ import {
   SendTemplateEmailDto,
 } from '../dto/send-business-email.dto';
 
+/**
+ * 서버 안에서만 정하는 발송 옵션 — 공개 DTO(관리자 발송 API)에 두면 호출자가 기록을 다르게 남길 수 있다.
+ * sensitive: 본문에 살아 있는 비밀(재설정·인증 링크, 2FA·이메일 변경 코드)이 있다. 기록에 본문·변수를
+ * 남기지 않고 재발송하지 않는다. subjectForLog: 그때 기록에 남길 제목(렌더 전 템플릿 제목)
+ */
+interface SensitiveMailOptions {
+  sensitive?: boolean;
+  subjectForLog?: string;
+}
+
 /** 비밀이 담긴 메일의 기록에 본문 대신 남기는 문구 */
 const SENSITIVE_PLACEHOLDER =
   '[비밀(링크·코드)이 담긴 메일이라 본문을 저장하지 않습니다]';
@@ -23,7 +33,10 @@ export class EmailBusinessService {
   /**
    * 일반 이메일 발송 (DB 로깅 포함)
    */
-  async sendEmail(dto: SendBusinessEmailDto) {
+  async sendEmail(
+    dto: SendBusinessEmailDto,
+    options: SensitiveMailOptions = {},
+  ) {
     const {
       to,
       subject,
@@ -33,8 +46,8 @@ export class EmailBusinessService {
       templateId,
       userId,
       metadata,
-      sensitive,
     } = dto;
+    const { sensitive, subjectForLog } = options;
 
     // 1. 이메일 로그 생성 — 비밀이 담긴 메일은 본문을 남기지 않는다. 남기면 DB 를 읽을 수 있는 사람
     //    (이메일 기록을 보는 관리자 포함)이 살아 있는 재설정 링크로 남의 계정을 가져간다
@@ -42,7 +55,7 @@ export class EmailBusinessService {
       to,
       from: from || '"Weaver2" <no-reply@weaver2.com>',
       // 제목도 템플릿 변수로 렌더되므로 비밀이 들어갈 수 있다 — 비밀 메일은 렌더 전 제목을 남긴다
-      subject: sensitive ? (dto.subjectForLog ?? subject) : subject,
+      subject: sensitive ? (subjectForLog ?? subject) : subject,
       htmlContent: sensitive ? SENSITIVE_PLACEHOLDER : htmlContent,
       textContent: sensitive ? undefined : textContent,
       templateId,
@@ -83,9 +96,11 @@ export class EmailBusinessService {
   /**
    * 템플릿 기반 이메일 발송
    */
-  async sendTemplateEmail(dto: SendTemplateEmailDto) {
-    const { to, templateName, variables, from, userId, metadata, sensitive } =
-      dto;
+  async sendTemplateEmail(
+    dto: SendTemplateEmailDto,
+    { sensitive }: Pick<SensitiveMailOptions, 'sensitive'> = {},
+  ) {
+    const { to, templateName, variables, from, userId, metadata } = dto;
 
     // 1. 템플릿 조회
     const template =
@@ -111,23 +126,24 @@ export class EmailBusinessService {
       : undefined;
 
     // 3. 이메일 발송
-    return this.sendEmail({
-      to,
-      subject,
-      subjectForLog: template.subject,
-      htmlContent,
-      textContent,
-      from,
-      templateId: template.id,
-      userId,
-      sensitive,
-      // 비밀이 담긴 메일은 변수(코드·링크)도 남기지 않는다
-      metadata: {
-        ...metadata,
-        templateName,
-        ...(!sensitive && { variables }),
+    return this.sendEmail(
+      {
+        to,
+        subject,
+        htmlContent,
+        textContent,
+        from,
+        templateId: template.id,
+        userId,
+        // 비밀이 담긴 메일은 변수(코드·링크)도 남기지 않는다
+        metadata: {
+          ...metadata,
+          templateName,
+          ...(!sensitive && { variables }),
+        },
       },
-    });
+      { sensitive, subjectForLog: template.subject },
+    );
   }
 
   /**
@@ -138,15 +154,17 @@ export class EmailBusinessService {
     verificationLink: string,
     userId?: string,
   ) {
-    return this.sendTemplateEmail({
-      to: email,
-      templateName: 'email-verification',
-      sensitive: true,
-      variables: {
-        verificationLink,
+    return this.sendTemplateEmail(
+      {
+        to: email,
+        templateName: 'email-verification',
+        variables: {
+          verificationLink,
+        },
+        userId,
       },
-      userId,
-    });
+      { sensitive: true },
+    );
   }
 
   /**
@@ -157,15 +175,17 @@ export class EmailBusinessService {
     resetLink: string,
     userId?: string,
   ) {
-    return this.sendTemplateEmail({
-      to: email,
-      templateName: 'password-reset',
-      sensitive: true,
-      variables: {
-        resetLink,
+    return this.sendTemplateEmail(
+      {
+        to: email,
+        templateName: 'password-reset',
+        variables: {
+          resetLink,
+        },
+        userId,
       },
-      userId,
-    });
+      { sensitive: true },
+    );
   }
 
   /**
@@ -186,13 +206,15 @@ export class EmailBusinessService {
    * 2단계 인증 코드 메일 발송
    */
   async sendTwoFactorCodeEmail(email: string, code: string, userId?: string) {
-    return this.sendTemplateEmail({
-      to: email,
-      templateName: 'two-factor-code',
-      sensitive: true,
-      variables: { code },
-      userId,
-    });
+    return this.sendTemplateEmail(
+      {
+        to: email,
+        templateName: 'two-factor-code',
+        variables: { code },
+        userId,
+      },
+      { sensitive: true },
+    );
   }
 
   /**
@@ -203,13 +225,15 @@ export class EmailBusinessService {
     code: string,
     userId?: string,
   ) {
-    return this.sendTemplateEmail({
-      to: newEmail,
-      templateName: 'email-change',
-      sensitive: true,
-      variables: { code },
-      userId,
-    });
+    return this.sendTemplateEmail(
+      {
+        to: newEmail,
+        templateName: 'email-change',
+        variables: { code },
+        userId,
+      },
+      { sensitive: true },
+    );
   }
 
   /**

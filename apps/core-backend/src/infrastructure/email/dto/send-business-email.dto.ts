@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsUUID,
   IsObject,
-  IsBoolean,
 } from 'class-validator';
 
 export class SendBusinessEmailDto {
@@ -13,11 +12,6 @@ export class SendBusinessEmailDto {
 
   @IsString()
   subject: string;
-
-  /** 비밀 메일의 기록에 남길 제목(렌더 전 템플릿 제목). 없으면 subject */
-  @IsOptional()
-  @IsString()
-  subjectForLog?: string;
 
   @IsString()
   htmlContent: string;
@@ -41,14 +35,6 @@ export class SendBusinessEmailDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
-
-  /**
-   * 본문에 살아 있는 비밀(재설정·인증 링크, 2FA·이메일 변경 코드)이 있다. 발송 기록에 본문과
-   * 변수를 남기지 않고, 재발송도 하지 않는다(비밀은 새로 받게 한다).
-   */
-  @IsOptional()
-  @IsBoolean()
-  sensitive?: boolean;
 }
 
 export class SendTemplateEmailDto {
@@ -72,12 +58,4 @@ export class SendTemplateEmailDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
-
-  /**
-   * 본문에 살아 있는 비밀(재설정·인증 링크, 2FA·이메일 변경 코드)이 있다. 발송 기록에 본문과
-   * 변수를 남기지 않고, 재발송도 하지 않는다(비밀은 새로 받게 한다).
-   */
-  @IsOptional()
-  @IsBoolean()
-  sensitive?: boolean;
 }
