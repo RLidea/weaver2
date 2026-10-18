@@ -23,6 +23,7 @@ import { UpdatePostCommand } from '../repositories/update-post.command';
 import { DeletePostCommand } from '../repositories/delete-post.command';
 import { BoardService } from './board.service';
 import { PostReadPolicy, VISIBLE_POST_WHERE } from './post-read-policy.service';
+import { PostRevisionService } from './post-revision.service';
 import {
   KeysetPaginationService,
   KeysetRequestDto,
@@ -43,6 +44,7 @@ export class PostService {
     private readonly boardService: BoardService,
     private readonly readPolicy: PostReadPolicy,
     private readonly uploads: UploadService,
+    private readonly revisions: PostRevisionService,
   ) {}
 
   async createPost(
@@ -80,6 +82,12 @@ export class PostService {
       if (authorId) {
         await this.replaceAttachments(tx, created.id, fileIds, authorId);
       }
+      await this.revisions.record(tx, {
+        postId: created.id,
+        title: created.title,
+        content: created.content,
+        actor: { userId: authorId, kind: 'SESSION' },
+      });
       return created;
     });
     return this.withAttachments(post);
@@ -243,6 +251,12 @@ export class PostService {
           isAuthor ? editor.id : null,
         );
       }
+      await this.revisions.record(tx, {
+        postId: id,
+        title: row.title,
+        content: row.content,
+        actor: { userId: editor.isLogin ? editor.id : null, kind: 'SESSION' },
+      });
       return row;
     });
     return this.withAttachments(updated);
