@@ -11,6 +11,7 @@ module.exports = {
     '<rootDir>/apps/core-backend/src',
     '<rootDir>/libs',
     '<rootDir>/packages/api-client/src',
+    '<rootDir>/packages/ui/src',
   ],
   moduleNameMapper: {
     '^@weaver2/common(|/.*)$': '<rootDir>/libs/common/src/$1',
