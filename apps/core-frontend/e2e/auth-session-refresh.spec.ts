@@ -111,4 +111,48 @@ test.describe('세션 — 액세스 토큰 만료 뒤 refresh', () => {
     await expect(page).toHaveURL(/\/notifications$/);
     await expect(page.getByRole('heading', { name: '알림', level: 1 })).toBeVisible();
   });
+
+  test('sign-out 이 실패한 뒤 401 이 이어져도 sign-out 을 거듭 두드리지 않는다', async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(page);
+
+    await page.route('**/v1/auth/refresh', (route) => route.fulfill({ status: 503 }));
+    let signOutCalls = 0;
+    await page.route('**/v1/auth/sign-out', (route) => {
+      signOutCalls += 1;
+      return route.abort();
+    });
+
+    await context.clearCookies({ name: 'access_token' });
+    await page.locator('header a[href="/notifications"]').click();
+    await expect.poll(() => signOutCalls).toBe(1);
+
+    // 처음 여는 화면으로 한 번 더 — 그 화면의 요청도 401 이다
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '보안 설정' }).click();
+    await expect(page).toHaveURL(/\/settings\/security$/);
+    await page.waitForTimeout(2_000);
+    expect(signOutCalls).toBe(1);
+  });
+});
+
+test.describe('세션 — 로그아웃', () => {
+  test('sign-out 이 실패하면 제자리에 머물고 알린다 — /dashboard 로 되돌려지지 않는다', async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await page.locator('header a[href="/notifications"]').click();
+    await expect(page.getByRole('heading', { name: '알림', level: 1 })).toBeVisible();
+
+    await page.route('**/v1/auth/sign-out', (route) => route.abort());
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '로그아웃' }).click();
+
+    // 예전에는 /login 으로 보냈고 쿠키가 남아 proxy 가 /dashboard 로 돌려 실패가 묻혔다
+    await expect(page.getByText('로그아웃하지 못했습니다')).toBeVisible();
+    await page.waitForTimeout(1_000);
+    await expect(page).toHaveURL(/\/notifications$/);
+  });
 });
