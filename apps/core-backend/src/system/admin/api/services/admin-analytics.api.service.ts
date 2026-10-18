@@ -67,10 +67,10 @@ export class AdminAnalyticsApiService {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 기본 필터 설정
-    const timeFilter = filter || {
-      from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30일 전
-      to: now,
+    // 기본 필터 설정 — 컨트롤러는 쿼리가 없어도 빈 객체를 넘기므로 칸마다 채운다
+    const timeFilter = {
+      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30일 전
+      to: filter?.to ?? now,
     };
 
     const [
@@ -171,9 +171,9 @@ export class AdminAnalyticsApiService {
   // ============ 사용자 분석 ============
   async getUserAnalytics(filter?: TimeRangeFilter): Promise<UserAnalytics> {
     const now = new Date();
-    const timeFilter = filter || {
-      from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      to: now,
+    const timeFilter = {
+      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      to: filter?.to ?? now,
     };
 
     const [signupTrends, usersByGroup, userActivity] = await Promise.all([
@@ -202,9 +202,9 @@ export class AdminAnalyticsApiService {
     filter?: TimeRangeFilter,
   ): Promise<ContentAnalytics> {
     const now = new Date();
-    const timeFilter = filter || {
-      from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      to: now,
+    const timeFilter = {
+      from: filter?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      to: filter?.to ?? now,
     };
 
     const [postTrends, topBoards, contentQuality] = await Promise.all([
