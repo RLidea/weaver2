@@ -18,7 +18,10 @@ import { DeletePostCommand } from '../../board/repositories/delete-post.command'
 describe('ModerationService', () => {
   let service: ModerationService;
   let prisma: any;
-  let permissionService: { assertCovers: jest.Mock };
+  let permissionService: {
+    assertCovers: jest.Mock;
+    withSuperAdminGuard: jest.Mock;
+  };
   const mockResolve = ResolveRelatedReportsCommand as jest.Mock;
   const mockDeletePost = DeletePostCommand as jest.Mock;
 
@@ -50,6 +53,10 @@ describe('ModerationService', () => {
 
     permissionService = {
       assertCovers: jest.fn().mockResolvedValue(undefined),
+      // 실제 가드는 트랜잭션 + 슈퍼관리자 수 확인 — 여기서는 tx 로 그대로 넘긴다
+      withSuperAdminGuard: jest.fn((cb: (tx: any) => Promise<unknown>) =>
+        cb(prisma),
+      ),
     };
     service = new ModerationService(
       prisma as PrismaService,
@@ -137,17 +144,30 @@ describe('ModerationService', () => {
       );
     });
 
-    it('days 미지정 시 영구 정지(null)', async () => {
+    it('days 미지정 시 영구 정지 — null 이 아니라 먼 미래 시각', async () => {
+      // null 은 로그인·토큰 검사가 「정지 안 됨」으로 읽는다. 예전에는 이 시험이 null 을 정답으로
+      // 적어 두어, 모더레이터의 영구 정지가 아무 효과가 없는 것을 굳히고 있었다
       prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
-      prisma.user.update.mockResolvedValue({
-        id: 'u1',
-        suspendedUntil: null,
-      });
+      prisma.user.update.mockResolvedValue({ id: 'u1', suspendedUntil: null });
 
       await service.suspendUser('u1', 'mod-1', {});
-      expect(
-        prisma.user.update.mock.calls[0][0].data.suspendedUntil,
-      ).toBeNull();
+      const until = prisma.user.update.mock.calls[0][0].data
+        .suspendedUntil as Date;
+      expect(until.getUTCFullYear()).toBe(9999);
+    });
+
+    it('자기 자신은 정지하지 못한다 — 마지막 슈퍼관리자가 스스로 정지하면 0명이 된다', async () => {
+      await expect(service.suspendUser('mod-1', 'mod-1', {})).rejects.toThrow(
+        /자기 자신/,
+      );
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('슈퍼관리자 가드 안에서 정지한다', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.user.update.mockResolvedValue({ id: 'u1', suspendedUntil: null });
+      await service.suspendUser('u1', 'mod-1', { days: 1 });
+      expect(permissionService.withSuperAdminGuard).toHaveBeenCalled();
     });
   });
 

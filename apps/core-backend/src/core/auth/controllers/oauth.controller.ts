@@ -189,11 +189,27 @@ export class OAuthController {
     return this.configService.get<string>('OAUTH_SUCCESS_REDIRECT_URL') ?? '/';
   }
 
+  /**
+   * 2FA 화면 주소. 2FA 를 통과한 뒤 갈 곳으로 성공 주소를 `redirect` 에 싣는다 — 안 실으면 화면이
+   * 기본값(/dashboard)으로 가서 OAUTH_SUCCESS_REDIRECT_URL 이 무시됐다. 화면은 같은 출처의 경로만
+   * 받으므로, 두 주소의 출처가 같을 때만 경로로 싣는다.
+   */
   private get twoFactorUrl(): string {
-    return (
+    const base =
       this.configService.get<string>('OAUTH_TWO_FACTOR_REDIRECT_URL') ??
-      '/login?step=2fa'
-    );
+      '/login?step=2fa';
+    const relative = 'http://relative.invalid';
+    const twoFactor = new URL(base, relative);
+    const success = new URL(this.successUrl, relative);
+    if (twoFactor.origin === success.origin) {
+      twoFactor.searchParams.set(
+        'redirect',
+        `${success.pathname}${success.search}${success.hash}`,
+      );
+    }
+    return twoFactor.origin === relative
+      ? `${twoFactor.pathname}${twoFactor.search}`
+      : twoFactor.toString();
   }
 
   /**

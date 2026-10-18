@@ -255,6 +255,9 @@ sequenceDiagram
 | `OAuthUserProfile.emailVerified` 필수 | 자체 공급자는 값을 채운다 — **검증 안 된 이메일은 가입 거절** |
 | `CommonAuthUser.totpEnabled/emailOtpEnabled` 제거 | — |
 | 관리자: 자기보다 넓은 권한의 사용자는 이메일 변경·2FA 초기화·정지·삭제 불가, 갖지 않은 권한은 그룹으로 주거나 거둘 수 없음 | SuperAdmin 지정·해제는 SuperAdmin 만 |
+| 비밀 메일(재설정·가입 인증 링크, 2FA·이메일 변경 코드)은 발송 기록(`email_logs`)에 본문·변수를 남기지 않고 재발송하지 않는다 | 새로 보내는 메일이 비밀을 담으면 `sensitive: true`. 옛 기록 정리 SQL 은 커밋 `7c4c86d` |
+| pre-auth 토큰은 로그인을 끝내면 다시 쓰지 못한다 | — |
+| OAuth 2FA 화면 주소에 `redirect`(성공 주소의 경로, 같은 출처일 때만), 로그인 `?redirect=` 는 같은 출처 경로만 | `OAUTH_SUCCESS_REDIRECT_URL` 이 2FA 뒤에도 지켜진다 |
 
 **받아들인 위험**: 이메일만 아는 누군가가 비밀번호를 5번 틀려 남을 15분 잠글 수 있습니다(계정 잠금의 본질적 대가).
 

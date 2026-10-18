@@ -45,6 +45,12 @@ body {
   z-index: 1;
 }
 
+/* display: flex 가 hidden 속성을 이기므로 다시 숨긴다 (2FA 단계 전환) */
+.login-form[hidden],
+.login-form [hidden] {
+  display: none;
+}
+
 .form-group {
   position: relative;
   text-align: left;
@@ -119,6 +125,14 @@ body {
 
 .forgot-password:hover {
   color: var(--text-primary);
+}
+
+button.forgot-password {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }
 
 .error-message {

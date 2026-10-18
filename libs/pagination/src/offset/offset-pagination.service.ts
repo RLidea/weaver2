@@ -3,23 +3,6 @@ import { parseSort } from '../common/parse-sort.util';
 import { DEFAULT_LIMIT, DEFAULT_PAGE } from '../common/constants';
 import { OffsetResponseDto } from './dto/offset-response.dto';
 
-// 사용자 입력에서 파싱한 키/값 맵을, allowlist 에 있는 키만 남겨 되돌린다.
-// allowlist 가 없으면(undefined) 전부 버린다 — deny-by-default.
-// 사용자 입력이 그대로 Prisma where·orderBy 의 컬럼명이 되는 것을 막는 관문이다
-// (CodeQL js/remote-property-injection). 라이브러리 한 곳에서 막으므로, 이걸 쓰는
-// 모든 목록이 자동으로 안전하고, 열려는 목록만 allowlist 를 명시한다.
-function pickAllowed<V>(
-  parsed: Record<string, V>,
-  allowed?: readonly string[],
-): Record<string, V> {
-  if (!allowed || allowed.length === 0) return {};
-  const result: Record<string, V> = {};
-  for (const key of Object.keys(parsed)) {
-    if (allowed.includes(key)) result[key] = parsed[key];
-  }
-  return result;
-}
-
 interface PrismaPaginationOptions<T, WhereInput> {
   prisma: {
     findMany: (args: any) => Promise<T[]>;
@@ -99,13 +82,12 @@ export class OffsetPaginationService {
     const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = options;
     const { skip, take } = this.getPaginationParams({ page, limit });
 
-    // 사용자 sort·filter 는 각각 allowlist 에 있는 키만 통과시킨다. 기본(allowlist
-    // 미지정)은 전부 차단 — 위 sortableFields·filterableFields 주석 참조.
-    const orderBy = pickAllowed(parseSort(options.sort), sortableFields);
-    const safeFilter = pickAllowed(
-      parseFilter(options.filter),
-      filterableFields,
-    );
+    // 사용자 sort·filter 는 각각 allowlist 에 있는 키만 통과시킨다 — 파서가 **쓰기 전에** 본다.
+    // allowlist 를 안 주면 빈 목록으로 넘겨 전부 차단(deny-by-default). 사용자 입력이 그대로
+    // Prisma where·orderBy 의 컬럼명이 되는 것을 막는 관문이고(CodeQL js/remote-property-injection),
+    // 라이브러리 한 곳에서 막으므로 열려는 목록만 allowlist 를 명시한다.
+    const orderBy = parseSort(options.sort, sortableFields ?? []);
+    const safeFilter = parseFilter(options.filter, filterableFields ?? []);
 
     const finalWhere = { ...where, ...safeFilter };
 

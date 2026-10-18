@@ -149,6 +149,7 @@ NAV_ITEMS.filter(({ permission }) => hasPermission(userPermissions, permission))
 - 그룹 권한 전체 교체 / 부분 제거 (`PERMISSION_GROUP.UPDATE`)
 - 사용자 그룹 할당/해제 (`PERMISSION_GROUP.ASSIGN_USER`)
 - 리소스 규칙 조회/교체/삭제 — 이쪽만 **`BOARD.MANAGE`** 권한으로 보호 (게시판 ACL 관리이므로)
+- **마지막 슈퍼관리자는 사라지지 않는다** — 그룹에서 빼기·`*:*` 를 가진 그룹의 권한 교체/제거·본인 탈퇴는 `PermissionService.withSuperAdminGuard` 안에서 돌고, 변경 뒤 활성 슈퍼관리자(탈퇴·정지 안 함)가 0명이면 409 로 되돌린다. 남을 정지·삭제하는 길은 상하 검사(요청자도 슈퍼관리자)라 0명이 될 수 없다. 슈퍼관리자를 줄이는 다른 경로를 더하면 이 가드로 감싼다
 
 ## 새 권한을 추가하려면
 

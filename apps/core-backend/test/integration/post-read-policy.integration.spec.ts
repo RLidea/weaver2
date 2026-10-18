@@ -284,6 +284,18 @@ describe('Post Read Policy (Integration)', () => {
     });
   });
 
+  describe('리액션', () => {
+    it('회원 전용 글의 리액션은 비회원에게 403, 남의 비밀글은 로그인해도 404', async () => {
+      expect((await get(`/v1/posts/${memberOnlyPost}/reactions`)).status).toBe(
+        403,
+      );
+      expect(
+        (await get(`/v1/posts/${secretPost}/reactions`, memberCookies)).status,
+      ).toBe(404);
+      expect((await get(`/v1/posts/${publicPost}/reactions`)).status).toBe(200);
+    });
+  });
+
   describe('작성자별 목록', () => {
     it('비회원이 보는 작성자 글 목록에 회원 전용·비밀글이 없다', async () => {
       const got = ids(

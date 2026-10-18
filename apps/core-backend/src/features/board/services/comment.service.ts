@@ -138,7 +138,7 @@ export class CommentService {
     const post = await this.readPolicy.listWhere(viewer);
     return KeysetPaginationService.paginate<CommentDto>({
       prisma: this.prisma.comment,
-      preset: COMMENT_PRESET,
+      presetDef: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
       where: { authorId: userId, deletedAt: null, hiddenAt: null, post },
@@ -160,7 +160,7 @@ export class CommentService {
 
     return KeysetPaginationService.paginate<CommentDto>({
       prisma: this.prisma.comment,
-      preset: COMMENT_PRESET,
+      presetDef: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
       where,
@@ -186,7 +186,7 @@ export class CommentService {
     // 1. 루트 댓글만 keyset 페이지네이션 (children은 include 안 함)
     const result = await KeysetPaginationService.paginate<CommentDto>({
       prisma: this.prisma.comment,
-      preset: COMMENT_PRESET,
+      presetDef: COMMENT_PRESET,
       cursor: dto.cursor,
       limit: dto.limit,
       where: { postId, parentId: null, deletedAt: null, hiddenAt: null },

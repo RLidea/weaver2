@@ -105,6 +105,33 @@ describe('Two-Factor Login (Integration)', () => {
     return { send, jar };
   }
 
+  it('로그인을 끝낸 pre_auth 토큰은 다시 쓸 수 없다', async () => {
+    const user = await createUserWithEmail2fa();
+    const b = await browser();
+    await b.send('post', '/v1/auth/sign-in', {
+      email: user.email,
+      password: TEST_PASSWORD,
+    });
+    const usedPreAuth = b.jar.get('pre_auth');
+    expect(usedPreAuth).toBeTruthy();
+    await b.send('post', '/v1/auth/2fa/email/send');
+    const done = await b.send('post', '/v1/auth/2fa/authenticate', {
+      method: 'email',
+      code: sentCodes[0],
+    });
+    expect(done.status).toBe(201);
+
+    // 훔친(또는 남은) pre_auth 만 든 다른 브라우저로 다시 — 코드를 보기 전에 토큰에서 거절된다
+    const attacker = await browser();
+    attacker.jar.set('pre_auth', usedPreAuth!);
+    const replay = await attacker.send('post', '/v1/auth/2fa/authenticate', {
+      method: 'email',
+      code: '000000',
+    });
+    expect(replay.status).toBe(401);
+    expect(JSON.stringify(replay.body)).toContain('pre-auth token');
+  });
+
   it('비밀번호 → pre_auth 쿠키 → 코드 발송 → 2FA 통과 → 세션 쿠키', async () => {
     const user = await createUserWithEmail2fa();
     const b = await browser();

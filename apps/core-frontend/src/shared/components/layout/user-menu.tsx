@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLogout, useMe } from '@weaver2/auth';
-import { BellIcon, ChevronDownIcon, cn, FlagIcon, HomeIcon, LogOutIcon, SettingsIcon, ShieldIcon, UserIcon } from '@weaver2/ui';
+import { BellIcon, ChevronDownIcon, cn, FlagIcon, HomeIcon, LogOutIcon, SettingsIcon, ShieldIcon, UserIcon, useToast } from '@weaver2/ui';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
 
 function MenuItem({
@@ -34,7 +34,8 @@ export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useMe();
-  const { mutate: logout, isPending } = useLogout();
+  const { logout, isPending } = useLogout();
+  const toast = useToast();
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -126,7 +127,12 @@ export function UserMenu() {
           <div className="border-t border-border p-1">
             <button
               role="menuitem"
-              onClick={() => { close(); logout(); }}
+              onClick={() => {
+                close();
+                void logout().then((left) => {
+                  if (!left) toast.error('로그아웃하지 못했습니다. 잠시 후 다시 시도해주세요.');
+                });
+              }}
               disabled={isPending}
               className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-error hover:bg-surface-2 transition-colors disabled:opacity-50"
             >

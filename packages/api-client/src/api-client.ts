@@ -7,6 +7,21 @@ type RequestOptions = Omit<RequestInit, 'body' | 'method'> & {
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+/**
+ * 성공하면 refresh_token 쿠키가 바뀌는 요청 (`메서드 경로`).
+ *
+ * 서버는 CSRF 토큰을 refresh_token 에 묶는다(security.middleware.ts 의 getSessionIdentifier).
+ * 그래서 이 경로가 성공한 뒤에는 받아 둔 CSRF 토큰이 무효다 — 캐시를 버린다.
+ * OAuth 복귀는 백엔드 리다이렉트로 페이지를 새로 받으므로 캐시가 저절로 비어 여기 없다.
+ */
+const SESSION_ROTATING_REQUESTS = new Set([
+  'POST /v1/auth/sign-in',
+  'POST /v1/auth/2fa/authenticate',
+  'POST /v1/auth/refresh',
+  'POST /v1/auth/sign-out',
+  'DELETE /v1/users/me', // 탈퇴 — 쿠키를 지운다
+]);
+
 class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
@@ -76,6 +91,10 @@ class ApiClient {
       },
       body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
+
+    if (response.ok && SESSION_ROTATING_REQUESTS.has(`${method} ${path}`)) {
+      this.csrfToken = null;
+    }
 
     if (response.status === 204) {
       return { message: 'success', data: undefined as T };
@@ -164,19 +183,17 @@ class ApiClient {
     this.isRefreshing = true;
 
     try {
-      const csrfToken = await this.ensureCsrfToken();
-      const response = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'x-csrf-token': csrfToken,
-        },
-      });
+      let response = await this.postRefresh();
+      // 받아 둔 CSRF 가 낡았다(다른 탭이 refresh 해 쿠키가 바뀌는 등) → 새로 받아 1회 재시도.
+      // 403 은 미들웨어에서 끊겨 refresh 핸들러에 닿지 않으므로, 여기서 포기하면 쿠키도 안 지워진다.
+      if (response.status === 403) {
+        this.csrfToken = null;
+        response = await this.postRefresh();
+      }
 
       const success = response.ok;
-      if (!success) {
-        this.csrfToken = null;
-      }
+      // 성공이면 refresh_token 이 바뀌었고, 실패면 서버가 쿠키를 지웠다 — 어느 쪽이든 CSRF 는 낡았다
+      this.csrfToken = null;
 
       // 큐에 대기 중인 모든 요청에 결과 전달
       this.processQueue(success);
@@ -187,6 +204,16 @@ class ApiClient {
     } finally {
       this.isRefreshing = false;
     }
+  }
+
+  private async postRefresh(): Promise<Response> {
+    return fetch(`${this.baseUrl}/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'x-csrf-token': await this.ensureCsrfToken(),
+      },
+    });
   }
 
   private processQueue(success: boolean) {

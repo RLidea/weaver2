@@ -67,6 +67,7 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
     expect(service.verifyPreAuthToken(token)).toEqual({
       userId: 'user-1',
       rememberMe: true,
+      issuedAtMs: expect.any(Number) as number,
     });
   });
 

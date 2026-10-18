@@ -1,0 +1,169 @@
+import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+
+/**
+ * 액세스 토큰이 만료된 탭 — 새로고침 없이 화면 안에서 움직일 때.
+ *
+ * 서버는 CSRF 토큰을 refresh_token 쿠키에 묶는다. 로그인이나 refresh 로 그 쿠키가 바뀐 뒤
+ * ApiClient 가 예전 CSRF 를 그대로 쓰면 refresh 가 403 으로 막히고, 403 은 refresh 핸들러에
+ * 닿지 않아 쿠키도 남는다 — 화면은 /login ↔ /dashboard 사이에서 스피너로 멈췄다.
+ * 새로고침하면 CSRF 를 새로 받아 멀쩡해지므로, 여기서는 **페이지를 다시 읽지 않고** 링크로 움직인다.
+ *
+ * 시드 관리자(admin@weaver.com)를 쓴다 — auth-login.spec.ts 와 같은 계정이다.
+ */
+
+const ADMIN_EMAIL = 'admin@weaver.com';
+const ADMIN_PASSWORD = 'secret!!';
+
+async function loginAsAdmin(page: Page) {
+  await page.goto('/login');
+  await page.getByLabel('이메일').fill(ADMIN_EMAIL);
+  await page.getByLabel('비밀번호').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: '로그인' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+/** 액세스 토큰이 만료된 것처럼 — refresh_token 은 그대로 둔다 */
+async function expireAccessToken(context: BrowserContext) {
+  await context.clearCookies({ name: 'access_token' });
+}
+
+/** 마지막 refresh 응답 — CSRF 403 뒤 재시도가 있으면 그 재시도의 것 */
+function waitForRefresh(page: Page) {
+  return page.waitForResponse(
+    (res) => res.url().endsWith('/v1/auth/refresh') && res.status() !== 403,
+  );
+}
+
+test.describe('세션 — 액세스 토큰 만료 뒤 refresh', () => {
+  test('액세스 토큰만 지워도 화면 안 이동이 연달아 동작한다', async ({ page, context }) => {
+    await loginAsAdmin(page);
+
+    // 제목은 데이터가 실패해도 그려지므로 refresh 응답 자체를 잰다.
+    // 처음 여는 화면으로만 간다 — 캐시에서 나오면 요청이 없어 refresh 도 안 일어난다.
+
+    // 첫 refresh — 로그인 직후라 받아 둔 CSRF 가 로그인 전 것이다
+    await expireAccessToken(context);
+    const first = waitForRefresh(page);
+    await page.locator('header a[href="/notifications"]').click();
+    expect((await first).ok()).toBe(true);
+    await expect(page.getByRole('heading', { name: '알림', level: 1 })).toBeVisible();
+
+    // 둘째 refresh — 첫 refresh 로 쿠키가 또 바뀌었다
+    await expireAccessToken(context);
+    const second = waitForRefresh(page);
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '보안 설정' }).click();
+    expect((await second).ok()).toBe(true);
+    await expect(page).toHaveURL(/\/settings\/security$/);
+    await expect(page.getByRole('heading', { name: '비밀번호 변경' })).toBeVisible();
+  });
+
+  test('서버가 세션을 거절하면 스피너가 아니라 로그인 화면에 닿는다', async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(page);
+
+    // refresh_token 을 서버가 모르는 값으로 바꾼다 — refresh 가 정말 실패해야 하는 경우
+    const refresh = (await context.cookies()).find((c) => c.name === 'refresh_token');
+    expect(refresh).toBeDefined();
+    // domain 을 주면 원래 것(host-only)과 다른 쿠키가 하나 더 생겨 서버가 지워도 남는다 — url 로 넣는다
+    await context.clearCookies({ name: 'access_token' });
+    await context.clearCookies({ name: 'refresh_token' });
+    await context.addCookies([
+      {
+        name: 'refresh_token',
+        value: 'not-a-real-refresh-token',
+        url: new URL(page.url()).origin,
+        httpOnly: refresh!.httpOnly,
+        sameSite: refresh!.sameSite,
+      },
+    ]);
+
+    await page.locator('header a[href="/notifications"]').click();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
+    expect((await context.cookies()).some((c) => c.name === 'refresh_token')).toBe(false);
+  });
+
+  test('쿠키를 못 지우면 보내지 않고 제자리에 머문다 — /dashboard 스피너로 끌려가지 않는다', async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(page);
+
+    // refresh 가 핸들러에 못 닿아 쿠키가 남고, sign-out 까지 실패하는 경우
+    await page.route('**/v1/auth/refresh', (route) => route.fulfill({ status: 503 }));
+    let signOutCalls = 0;
+    await page.route('**/v1/auth/sign-out', (route) => {
+      signOutCalls += 1;
+      return route.abort();
+    });
+
+    await context.clearCookies({ name: 'access_token' });
+    await page.locator('header a[href="/notifications"]').click();
+    await expect.poll(() => signOutCalls).toBeGreaterThan(0);
+
+    // 부재를 재는 시험이라 잠시 지켜본다 — 보냈다면 이 사이에 /login 을 거쳐 /dashboard 로 끌려간다
+    await page.waitForTimeout(3_000);
+    expect(signOutCalls).toBeLessThan(5);
+    await expect(page).toHaveURL(/\/notifications$/);
+    await expect(page.getByRole('heading', { name: '알림', level: 1 })).toBeVisible();
+  });
+
+  test('sign-out 이 실패한 뒤 401 이 이어져도 sign-out 을 거듭 두드리지 않는다', async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(page);
+
+    await page.route('**/v1/auth/refresh', (route) => route.fulfill({ status: 503 }));
+    let signOutCalls = 0;
+    await page.route('**/v1/auth/sign-out', (route) => {
+      signOutCalls += 1;
+      return route.abort();
+    });
+
+    await context.clearCookies({ name: 'access_token' });
+    await page.locator('header a[href="/notifications"]').click();
+    await expect.poll(() => signOutCalls).toBe(1);
+
+    // 처음 여는 화면으로 한 번 더 — 그 화면의 요청도 401 이다
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '보안 설정' }).click();
+    await expect(page).toHaveURL(/\/settings\/security$/);
+    await page.waitForTimeout(2_000);
+    expect(signOutCalls).toBe(1);
+  });
+});
+
+test.describe('세션 — 로그아웃', () => {
+  test('로그아웃하면 쿠키가 지워지고 로그인 화면에 닿는다', async ({ page, context }) => {
+    await loginAsAdmin(page);
+
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '로그아웃' }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
+    expect((await context.cookies()).some((c) => c.name === 'refresh_token')).toBe(false);
+  });
+
+  test('sign-out 이 실패하면 제자리에 머물고 알린다 — /dashboard 로 되돌려지지 않는다', async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await page.locator('header a[href="/notifications"]').click();
+    await expect(page.getByRole('heading', { name: '알림', level: 1 })).toBeVisible();
+
+    await page.route('**/v1/auth/sign-out', (route) => route.abort());
+    await page.locator('header button[aria-haspopup="menu"]').click();
+    await page.getByRole('menuitem', { name: '로그아웃' }).click();
+
+    // 예전에는 /login 으로 보냈고 쿠키가 남아 proxy 가 /dashboard 로 돌려 실패가 묻혔다
+    await expect(page.getByText('로그아웃하지 못했습니다')).toBeVisible();
+    await page.waitForTimeout(1_000);
+    await expect(page).toHaveURL(/\/notifications$/);
+  });
+});

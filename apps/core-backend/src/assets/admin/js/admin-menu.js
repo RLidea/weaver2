@@ -37,10 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
             logoutLink.addEventListener('click', async (event) => {
                 event.preventDefault();
                 try {
-                    const response = await fetch('/v1/auth/sign-out', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                    });
+                    // ApiClient 가 CSRF 토큰을 싣는다 — 맨 fetch 면 403 이다
+                    const response = await window.ApiClient.post('/v1/auth/sign-out');
                     if (response.ok) {
                         window.location.href = '/admin/login';
                     } else {

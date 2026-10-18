@@ -227,16 +227,18 @@ export class AdminPermissionApiService {
     }
 
     // 트랜잭션: 기존 권한 삭제 + 새 권한 추가
-    await this.prisma.$transaction([
-      this.prisma.permissionGroupPermission.deleteMany({
+    // `*:*` 를 가진 다른 그룹에서 그 권한을 빼면 마지막 슈퍼관리자가 사라질 수 있다
+    await this.permissionService.withSuperAdminGuard(async (tx) => {
+      await tx.permissionGroupPermission.deleteMany({
         where: { permissionGroupId: id },
-      }),
-      ...dto.permissions.map((permission) =>
-        this.prisma.permissionGroupPermission.create({
-          data: { permissionGroupId: id, permission },
-        }),
-      ),
-    ]);
+      });
+      await tx.permissionGroupPermission.createMany({
+        data: dto.permissions.map((permission) => ({
+          permissionGroupId: id,
+          permission,
+        })),
+      });
+    });
 
     // 캐시 무효화: 해당 그룹 소속 유저 전원
     await this.invalidateGroupUsersCache(id);
@@ -277,12 +279,14 @@ export class AdminPermissionApiService {
       );
     }
 
-    await this.prisma.permissionGroupPermission.deleteMany({
-      where: {
-        permissionGroupId: id,
-        permission: { in: dto.permissions },
-      },
-    });
+    await this.permissionService.withSuperAdminGuard((tx) =>
+      tx.permissionGroupPermission.deleteMany({
+        where: {
+          permissionGroupId: id,
+          permission: { in: dto.permissions },
+        },
+      }),
+    );
 
     // 캐시 무효화
     await this.invalidateGroupUsersCache(id);
@@ -423,14 +427,17 @@ export class AdminPermissionApiService {
       );
     }
 
-    await this.prisma.userPermissionGroup.delete({
-      where: {
-        userId_permissionGroupId: {
-          userId,
-          permissionGroupId: groupId,
+    // 마지막 슈퍼관리자를(자기 자신 포함) 슈퍼관리자 그룹에서 빼지 못한다
+    await this.permissionService.withSuperAdminGuard((tx) =>
+      tx.userPermissionGroup.delete({
+        where: {
+          userId_permissionGroupId: {
+            userId,
+            permissionGroupId: groupId,
+          },
         },
-      },
-    });
+      }),
+    );
 
     // 캐시 무효화
     this.permissionService.invalidateCache(userId);

@@ -41,6 +41,8 @@ const APP_NAME = 'Weaver2';
 interface PreAuthPayload {
   sub: string;
   rememberMe: boolean;
+  /** 발급 시각(ms) — 이 뒤에 로그인이 끝났으면(lastLoginAt) 이미 쓴 토큰이다 */
+  issuedAtMs?: number;
 }
 
 /**
@@ -63,7 +65,11 @@ export class TwoFactorService {
   // ─────────────────────────────────────────
 
   createPreAuthToken(userId: string, rememberMe = false): string {
-    const payload: PreAuthPayload = { sub: userId, rememberMe };
+    const payload: PreAuthPayload = {
+      sub: userId,
+      rememberMe,
+      issuedAtMs: Date.now(),
+    };
     // 종류는 aud 로 적는다 — 액세스 토큰 자리에 쓰이면 검증에서 거절된다
     return this.jwtService.sign(payload, {
       expiresIn: '5m',
@@ -71,14 +77,41 @@ export class TwoFactorService {
     });
   }
 
-  verifyPreAuthToken(token: string): { userId: string; rememberMe: boolean } {
+  verifyPreAuthToken(token: string): {
+    userId: string;
+    rememberMe: boolean;
+    issuedAtMs?: number;
+  } {
     try {
       // 액세스 토큰을 pre-auth 자리에 넣어도 aud 가 달라 거절된다
       const payload = this.jwtService.verify<PreAuthPayload>(token, {
         audience: TOKEN_AUDIENCE.PRE_AUTH,
       });
-      return { userId: payload.sub, rememberMe: payload.rememberMe ?? false };
+      return {
+        userId: payload.sub,
+        rememberMe: payload.rememberMe ?? false,
+        issuedAtMs: payload.issuedAtMs,
+      };
     } catch {
+      throw new UnauthorizedException('Invalid or expired pre-auth token');
+    }
+  }
+
+  /**
+   * pre-auth 토큰은 한 번 로그인을 끝내면 다시 쓰지 못한다. 2FA 를 통과하면 완료 서비스가 lastLoginAt 을
+   * 갱신하므로, 그보다 먼저 발급된 토큰은 이미 쓴 것이다 — 5분 안에 같은 토큰과 새 코드로 세션을 또
+   * 받는 길을 닫는다. 표가 따로 필요 없다. 발급 시각이 없는 옛 토큰(배포 전 발급)은 수명(5분) 안에서만 통한다.
+   */
+  async assertPreAuthUnused(
+    userId: string,
+    issuedAtMs: number | undefined,
+  ): Promise<void> {
+    if (issuedAtMs === undefined) return;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastLoginAt: true },
+    });
+    if (user?.lastLoginAt && user.lastLoginAt.getTime() >= issuedAtMs) {
       throw new UnauthorizedException('Invalid or expired pre-auth token');
     }
   }
@@ -215,7 +248,9 @@ export class TwoFactorService {
     method: 'totp' | 'email',
     code: string,
   ): Promise<{ userId: string; rememberMe: boolean }> {
-    const { userId, rememberMe } = this.verifyPreAuthToken(preAuthToken);
+    const { userId, rememberMe, issuedAtMs } =
+      this.verifyPreAuthToken(preAuthToken);
+    await this.assertPreAuthUnused(userId, issuedAtMs);
     const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
 
     // 2FA 시도는 SECOND_FACTOR 로 센다. IP 별 throttle 만으로는 IP 를 바꿔 가며 6자리

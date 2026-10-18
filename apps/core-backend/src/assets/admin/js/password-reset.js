@@ -1,6 +1,5 @@
 // Password Reset Page Script
 document.addEventListener('DOMContentLoaded', function() {
-    const API_BASE_URL = window.location.origin;
     const form = document.getElementById('reset-form');
     const passwordInput = document.getElementById('password');
     const passwordConfirmInput = document.getElementById('password-confirm');
@@ -69,21 +68,18 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/v1/auth/password/reset`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    token: token,
-                    password: passwordInput.value,
-                }),
+            // ApiClient 가 CSRF 토큰을 싣는다 — 맨 fetch 면 403 이다
+            const response = await window.ApiClient.post('/v1/auth/password/reset', {
+                token: token,
+                password: passwordInput.value,
             });
 
-            const result = await response.json();
+            const result = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(result.message || 'An unknown error occurred.');
+                // 오류 본문은 { error: { message } } 로 온다
+                const message = (result.error && result.error.message) || result.message;
+                throw new Error(message || 'An unknown error occurred.');
             }
 
             displayMessage('Password has been reset successfully!', 'success');
@@ -114,13 +110,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayMessage(message, type) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `${type}-message`;
+        // admin-login.css 의 .error-message 는 .show 가 있어야 보인다
+        messageDiv.className = `${type}-message show`;
         
-        if (type === 'success') {
-            messageDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-        } else {
-            messageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-        }
+        // 메시지는 서버에서 온다 — innerHTML 이 아니라 텍스트 노드로 붙인다
+        const icon = document.createElement('i');
+        icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+        messageDiv.append(icon, ` ${message}`);
         
         messageContainer.appendChild(messageDiv);
         

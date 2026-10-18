@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { ResolveRelatedReportsCommand } from '../repositories/update-report.command';
 import { DeletePostCommand } from '../../board/repositories/delete-post.command';
@@ -20,6 +24,9 @@ import { SuspendUserCommand } from '../../../core/user/repositories/suspend-user
 import { UnsuspendUserCommand } from '../../../core/user/repositories/unsuspend-user.command';
 import { SuspendUserDto } from '../dto/moderation-action.dto';
 import { PermissionService } from '../../../core/permission/services/permission.service';
+
+/** 영구 정지 — null 은 「정지 안 됨」이라 쓰지 않는다 */
+const PERMANENT_SUSPENSION = new Date('9999-12-31T23:59:59.999Z');
 
 @Injectable()
 export class ModerationService {
@@ -186,16 +193,22 @@ export class ModerationService {
     moderatorId: string,
     dto: SuspendUserDto,
   ): Promise<{ id: string; suspendedUntil: Date | null }> {
+    if (moderatorId === userId) {
+      throw new BadRequestException('자기 자신을 정지할 수 없습니다.');
+    }
     await this.permissionService.assertCovers(moderatorId, userId);
-    return this.prisma.$transaction(async (tx) => {
+    // 슈퍼관리자끼리 서로를 동시에 정지하면 0명이 될 수 있다 — 가드 안에서 한다
+    return this.permissionService.withSuperAdminGuard(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId, deletedAt: null },
       });
       if (!user) throw new NotFoundException(`User '${userId}' not found.`);
 
+      // 영구 정지는 먼 미래 시각으로 적는다. null 은 로그인·토큰 검사가 「정지 안 됨」으로 읽어,
+      // 예전에는 모더레이터의 영구 정지가 아무 효과가 없었다(관리자 정지와 같은 값을 쓴다)
       const suspendedUntil = dto.days
         ? new Date(Date.now() + dto.days * 86400_000)
-        : null; // null = 영구 정지
+        : PERMANENT_SUSPENSION;
 
       const updated = await SuspendUserCommand(tx, userId, suspendedUntil);
       await ResolveRelatedReportsCommand(

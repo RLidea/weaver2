@@ -97,40 +97,60 @@ export class UploadService {
         );
       }
 
-      const directory = this.directoryFor(new Date());
-
-      const { path: storageKey } = await this.storage.save(file, directory, {
-        ext: fileType.ext,
-        contentType: file.mimetype,
-        inline: fileType.inline,
-      });
-
-      let thumbnailKey: string | undefined;
+      // 썸네일을 먼저 만든다 — 저장한 뒤에 실패하면 500 과 함께 원본이 고아로 남았다.
+      // 시그니처는 맞아도 sharp 가 못 읽는 깨진 이미지는 여기서 400 으로 돌려보낸다
+      let thumbBuffer: Buffer | undefined;
       if (options.generateThumbnail && this.thumbnail.isImage(file.mimetype)) {
-        const thumbBuffer = await this.thumbnail.generate(
-          file.buffer,
-          options.thumbnailWidth,
-          options.thumbnailHeight,
-        );
-        // sharp 는 입력 형식을 그대로 내보낸다 — 확장자도 검증된 형식에서
-        const { path: thumbPath } = await this.storage.saveBuffer(
-          thumbBuffer,
-          `thumb${fileType.ext}`,
-          directory,
-        );
-        thumbnailKey = thumbPath;
+        try {
+          thumbBuffer = await this.thumbnail.generate(
+            file.buffer,
+            options.thumbnailWidth,
+            options.thumbnailHeight,
+          );
+        } catch {
+          throw new BadRequestException(
+            `이미지를 읽을 수 없습니다(손상된 파일): ${file.originalname}`,
+          );
+        }
       }
 
-      const record = await this.createFileCmd.execute({
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        storageKey,
-        thumbnailKey,
-        uploadedById,
-      });
+      const directory = this.directoryFor(new Date());
+      const stored: string[] = [];
+      try {
+        const { path: storageKey } = await this.storage.save(file, directory, {
+          ext: fileType.ext,
+          contentType: file.mimetype,
+          inline: fileType.inline,
+        });
+        stored.push(storageKey);
 
-      results.push(this.toDto(record));
+        let thumbnailKey: string | undefined;
+        if (thumbBuffer) {
+          // sharp 는 입력 형식을 그대로 내보낸다 — 확장자도 검증된 형식에서
+          const { path: thumbPath } = await this.storage.saveBuffer(
+            thumbBuffer,
+            `thumb${fileType.ext}`,
+            directory,
+          );
+          thumbnailKey = thumbPath;
+          stored.push(thumbPath);
+        }
+
+        const record = await this.createFileCmd.execute({
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          storageKey,
+          thumbnailKey,
+          uploadedById,
+        });
+        results.push(this.toDto(record));
+      } catch (err) {
+        // 행 없이 저장소에만 남은 객체는 정리 작업도 모른다 — 여기서 거둔다
+        // 정리 실패가 원래 오류를 가리지 않게 allSettled
+        await Promise.allSettled(stored.map((key) => this.storage.delete(key)));
+        throw err;
+      }
     }
 
     return results;

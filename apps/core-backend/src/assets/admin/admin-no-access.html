@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal - No Access</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/shared/styles/components.css" rel="stylesheet">
+    <link href="/admin/css/admin-common.css" rel="stylesheet">
+    <link href="/admin/css/admin-login.css" rel="stylesheet">
+</head>
+<body class="bg-pattern">
+<div class="login-container glass glow-border shine">
+    <div class="login-header">
+        <div class="login-icon icon icon-lg">
+            <i class="fas fa-user-lock"></i>
+        </div>
+        <h1 class="login-title text-primary text-shadow">No Access</h1>
+        <p class="login-subtitle text-secondary">This account is signed in but does not have permission to use the admin console.<br>Sign out to switch to another account.</p>
+    </div>
+
+    <div class="login-form">
+        <button type="button" id="signOutButton" class="login-button btn btn-primary">
+            <span class="loading-spinner"></span>
+            <i class="fas fa-sign-out-alt"></i> Sign out
+        </button>
+    </div>
+
+    <div id="errorMessage" class="error-message"></div>
+</div>
+
+<script src="/shared/utils/api-client.js"></script>
+<script src="/admin/js/admin-no-access.js"></script>
+</body>
+</html>

@@ -31,8 +31,10 @@
 #   백엔드 지정은 .env.local 의 API_URL 한 줄이면 된다. 다만 CORS 는 공짜가
 #   아니다 — 프론트가 next.config.ts 의 rewrites 로 프록시를 하더라도 브라우저의
 #   Origin 헤더는 백엔드까지 그대로 전달된다 (이웃 프로젝트 실측: 같은 URL 에 Origin 만 레인
-#   포트로 바꾸면 200 → 500). 그래서 레인용 포트 대역 3001~3009 를 공용 백엔드의
+#   포트로 바꾸면 200 → 500). 그래서 레인용 포트 대역(프론트 3010~3019, 그리고 백엔드가
+#   직접 서빙하는 관리자 뷰 /admin 의 Origin 이 되는 백엔드 4010~4019)을 공용 백엔드의
 #   ALLOWED_ORIGINS 에 미리 열어 둔다. 레인마다 고치는 게 아니라 한 번 열어 둔다.
+#   (3001~3009 는 이 맥의 이웃 프로젝트 대역이라 쓰지 않는다 — CLAUDE.md)
 #
 # ────────────────────────────────────────────────────────────────
 # 사용법
@@ -1107,12 +1109,14 @@ cmd_e2e() {
 
   printf '\n'
   local rc=0
-  # playwright 에 넘기는 것은 이 둘뿐이다 — weaver2 의 `playwright.config.ts` 가
-  # 읽는 것이 그 둘이기 때문이다 (이웃 프로젝트의 E2E_PORT·E2E_API_PORT 는 여기 없다).
+  # playwright 에 넘기는 것은 이 셋뿐이다 — weaver2 의 `playwright.config.ts` 와 스펙이
+  # 읽는 것이 그 셋이기 때문이다 (이웃 프로젝트의 E2E_PORT·E2E_API_PORT 는 여기 없다).
   #   E2E_NO_WEBSERVER : 서버를 직접 안 띄운다. 위에서 이미 켰다.
   #   E2E_BASE_URL     : 이 레인의 프론트를 본다. 안 주면 3000(런타임 레인)을 잰다.
+  #   E2E_API_URL      : 이 레인의 백엔드. 백엔드가 내주는 관리자 뷰(/admin/login)를 보는 스펙이 쓴다.
   ( cd "$wt" && E2E_NO_WEBSERVER=1 \
       E2E_BASE_URL="http://localhost:${fe}" \
+      E2E_API_URL="http://localhost:${be}" \
       pnpm --filter core-frontend exec playwright test "$@" ) || rc=$?
 
   local peak=""

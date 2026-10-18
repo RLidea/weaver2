@@ -96,9 +96,11 @@ export class TwoFactorController {
     summary: '로그인용 Email OTP 코드 발송 (pre_auth 쿠키 필요)',
   })
   async sendEmailOtp(@Req() req: Request) {
-    const { userId } = this.twoFactorService.verifyPreAuthToken(
+    const { userId, issuedAtMs } = this.twoFactorService.verifyPreAuthToken(
       readPreAuthCookie(req) ?? '',
     );
+    // 로그인을 끝낸 토큰으로 코드 메일을 더 보내지 못하게
+    await this.twoFactorService.assertPreAuthUnused(userId, issuedAtMs);
     await this.twoFactorService.sendEmailOtp(userId);
     return { message: 'Verification code sent' };
   }

@@ -132,7 +132,10 @@ export class UserAdminService {
       ? new Date(Date.now() + dto.days * 24 * 60 * 60 * 1000)
       : new Date('9999-12-31T23:59:59.999Z');
 
-    await SuspendUserCommand(this.prisma, targetId, suspendedUntil);
+    // 슈퍼관리자끼리 서로를 동시에 정지하면 0명이 될 수 있다 — 가드 안에서 한다
+    await this.permissionService.withSuperAdminGuard((tx) =>
+      SuspendUserCommand(tx, targetId, suspendedUntil),
+    );
 
     /*
       **정지는 「지금부터 못 쓴다」는 뜻이어야 한다.**
@@ -210,7 +213,7 @@ export class UserAdminService {
     if (user.deletedAt)
       throw new BadRequestException('이미 삭제된 사용자입니다.');
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.permissionService.withSuperAdminGuard(async (tx) => {
       await tx.refreshToken.deleteMany({ where: { userId: targetId } });
       await tx.oAuthAccount.deleteMany({ where: { userId: targetId } });
       await tx.localCredential.deleteMany({ where: { userId: targetId } });
