@@ -1631,6 +1631,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/posts/{postId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 게시글 판 목록 (관리자 전용)
+         * @description 게시판의 keepRevisions 가 켜져 있을 때 쌓인 판을 최신 순으로 돌려줍니다. 본문은 판 전문 경로에서 받습니다.
+         */
+        get: operations["PostAdminController_findRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/posts/{postId}/revisions/{revisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 게시글 판 전문 (관리자 전용) */
+        get: operations["PostAdminController_findRevision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{userId}/posts": {
         parameters: {
             query?: never;
@@ -3005,6 +3042,8 @@ export interface components {
             name: string;
             /** @description Board description */
             description: Record<string, never> | null;
+            /** @description 글을 만들고 고칠 때마다 판을 남기는지 */
+            keepRevisions: boolean;
             /**
              * Format: date-time
              * @description Creation timestamp
@@ -3103,6 +3142,8 @@ export interface components {
             name?: string;
             /** @description Board description */
             description?: string;
+            /** @description 켜면 글을 만들고 고칠 때마다 판을 남긴다 */
+            keepRevisions?: boolean;
         };
         CreatePostDto: {
             /** @description Board ID */
@@ -3195,6 +3236,60 @@ export interface components {
             categoryId?: Record<string, never> | null;
             /** @description 첨부 파일 id (순서대로). 내가 올렸고 아무 데도 안 붙은 파일만 붙는다 — 업로드는 POST /v1/files. 보내면 목록 전체를 이것으로 바꾼다(빠진 파일은 떼어져 보존 기간 뒤 정리), 안 보내면 그대로. */
             attachmentFileIds?: string[];
+        };
+        PostRevisionActorDto: {
+            /** @description User ID */
+            id: string;
+            /** @description Username */
+            username: string;
+            /** @description Display name */
+            displayName: string;
+        };
+        PostRevisionSummaryDto: {
+            /** @description Revision ID */
+            id: string;
+            /** @description Post ID */
+            postId: string;
+            /** @description 이 판의 제목 */
+            title: string;
+            /** @description 판을 남긴 사용자 ID (익명이거나 탈퇴했으면 null) */
+            actorUserId: string | null;
+            /**
+             * @description 판을 남긴 주체 — 로그인 세션 또는 범위 토큰
+             * @enum {string}
+             */
+            actorKind: "SESSION" | "TOKEN";
+            /** @description 판을 남긴 사용자 */
+            actorUser: components["schemas"]["PostRevisionActorDto"] | null;
+            /**
+             * Format: date-time
+             * @description 판을 남긴 시각
+             */
+            createdAt: string;
+        };
+        PostRevisionDto: {
+            /** @description Revision ID */
+            id: string;
+            /** @description Post ID */
+            postId: string;
+            /** @description 이 판의 제목 */
+            title: string;
+            /** @description 판을 남긴 사용자 ID (익명이거나 탈퇴했으면 null) */
+            actorUserId: string | null;
+            /**
+             * @description 판을 남긴 주체 — 로그인 세션 또는 범위 토큰
+             * @enum {string}
+             */
+            actorKind: "SESSION" | "TOKEN";
+            /** @description 판을 남긴 사용자 */
+            actorUser: components["schemas"]["PostRevisionActorDto"] | null;
+            /**
+             * Format: date-time
+             * @description 판을 남긴 시각
+             */
+            createdAt: string;
+            /** @description 이 판의 본문 */
+            content: string;
         };
         CreateCommentDto: {
             /** @description Post ID */
@@ -6595,6 +6690,87 @@ export interface operations {
                     "application/json": components["schemas"]["KeysetResponseDto"] & {
                         data?: components["schemas"]["PostDto"][];
                     };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    PostAdminController_findRevisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostRevisionSummaryDto"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    PostAdminController_findRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostRevisionDto"];
                 };
             };
             /** @description Unauthorized */
