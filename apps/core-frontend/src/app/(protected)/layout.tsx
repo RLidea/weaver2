@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { clearSessionCookies, useMe } from '@weaver2/auth';
+import { useClearSession, useMe } from '@weaver2/auth';
 import { useNotificationStream } from '@/core/notification/hooks/use-notification-stream';
 import { Spinner } from '@weaver2/ui';
 import { AppShell } from '@/shared/components/layout/app-shell';
@@ -11,6 +11,7 @@ import { SessionUnavailable } from '@/shared/components/session-unavailable';
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, isUnavailable, isFetching, refetch } = useMe();
   const router = useRouter();
+  const clearSession = useClearSession();
   const pathname = usePathname();
 
   // 인증된 사용자에 한해 SSE 알림 스트림 연결
@@ -21,12 +22,12 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     // 서버가 답을 못 준 경우엔 보내지 않는다 (자세한 이유는 (admin) 레이아웃 주석 참고).
     if (isUnavailable) return;
     if (!isAuthenticated) {
-      // 쿠키가 남아 있으면 proxy 가 /dashboard 로 되돌린다 — 서버가 먼저 지우게 한다
-      void clearSessionCookies().then(() =>
+      // 쿠키나 me 캐시가 남아 있으면 /dashboard 로 되돌려진다 — 먼저 지운다 (useClearSession)
+      void clearSession().then(() =>
         router.replace(`/login?redirect=${encodeURIComponent(pathname)}`),
       );
     }
-  }, [isAuthenticated, isLoading, isUnavailable, router, pathname]);
+  }, [isAuthenticated, isLoading, isUnavailable, router, pathname, clearSession]);
 
   if (isLoading) {
     return (

@@ -98,13 +98,3 @@ export const authApi = {
   disconnectOAuth: (provider: string) =>
     apiClient.delete<void>(`/v1/auth/oauth/connections/${provider}`),
 };
-
-/**
- * 로그인 화면으로 보내기 전에 서버가 인증 쿠키를 지우게 한다.
- *
- * 서버가 세션을 거절했는데 쿠키가 남은 채로 `/login` 에 가면, proxy 가 쿠키를 보고
- * `/dashboard` 로 되돌려 화면이 스피너에서 멈춘다. 실패해도 이동은 해야 하므로 삼킨다.
- */
-export async function clearSessionCookies(): Promise<void> {
-  await authApi.signOut().catch(() => undefined);
-}

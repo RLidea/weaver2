@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { hasPermission, PERMISSIONS } from '@weaver2/shared';
-import { clearSessionCookies, useMe } from '@weaver2/auth';
+import { useClearSession, useMe } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 import { AdminShell } from '@/shared/components/layout/admin-shell';
 import { SessionUnavailable } from '@/shared/components/session-unavailable';
@@ -12,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isLoading, isAuthenticated, isUnavailable, isFetching, refetch } =
     useMe();
   const router = useRouter();
+  const clearSession = useClearSession();
 
   const hasAdminAccess = user
     ? hasPermission(user.permissions, PERMISSIONS.ADMIN.ACCESS)
@@ -23,14 +24,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // 로그인으로 보내면 쿠키가 남아 있어 되돌려지고, 화면이 빈 채로 굳는다.
     if (isUnavailable) return;
     if (!isAuthenticated) {
-      // 쿠키가 남아 있으면 proxy 가 /dashboard 로 되돌린다 — 서버가 먼저 지우게 한다
-      void clearSessionCookies().then(() => router.replace('/login'));
+      // 쿠키나 me 캐시가 남아 있으면 /dashboard 로 되돌려진다 — 먼저 지운다 (useClearSession)
+      void clearSession().then(() => router.replace('/login'));
       return;
     }
     if (!hasAdminAccess) {
       router.replace('/dashboard');
     }
-  }, [isLoading, isUnavailable, isAuthenticated, hasAdminAccess, router]);
+  }, [isLoading, isUnavailable, isAuthenticated, hasAdminAccess, router, clearSession]);
 
   if (isLoading) {
     return (
