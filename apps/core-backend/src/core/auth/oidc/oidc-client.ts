@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as client from 'openid-client';
-import { createRemoteJWKSet, errors as joseErrors, jwtVerify } from 'jose';
+import {
+  createRemoteJWKSet,
+  decodeProtectedHeader,
+  errors as joseErrors,
+  jwtVerify,
+} from 'jose';
 import {
   AUTH_MODE_CONFIG,
   AuthModeConfig,
@@ -88,6 +93,8 @@ const REQUEST_TIMEOUT_SEC = 5;
 const CLOCK_TOLERANCE_SEC = 60;
 /** 안내판 캐시 */
 const DISCOVERY_TTL_MS = 60 * 60 * 1000;
+/** 안내판을 못 받았으면 이만큼은 다시 묻지 않고 같은 실패를 돌려준다 — 엉터리 요청이 발급자를 두드리지 못하게 */
+const DISCOVERY_FAILURE_TTL_MS = 30 * 1000;
 /** logout_token 용 JWKS — 모르는 kid 면 다시 받되 30초에 한 번, 10분 둔다 */
 const JWKS_COOLDOWN_MS = 30 * 1000;
 const JWKS_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -155,6 +162,7 @@ function toOidcError(stage: string, err: unknown): OidcError {
 export class OpenIdOidcClient implements OidcClient {
   private readonly sso: SsoConfig;
   private discovered?: { at: number; config: Promise<client.Configuration> };
+  private discoveryFailure?: { at: number; error: OidcError };
   private jwks?: { uri: string; get: ReturnType<typeof createRemoteJWKSet> };
 
   constructor(@Inject(AUTH_MODE_CONFIG) authMode: AuthModeConfig) {
@@ -174,6 +182,13 @@ export class OpenIdOidcClient implements OidcClient {
     if (this.discovered && now - this.discovered.at < DISCOVERY_TTL_MS) {
       return this.discovered.config;
     }
+    if (
+      this.discoveryFailure &&
+      now - this.discoveryFailure.at < DISCOVERY_FAILURE_TTL_MS
+    ) {
+      return Promise.reject(this.discoveryFailure.error);
+    }
+    this.discoveryFailure = undefined;
     const execute = [client.enableNonRepudiationChecks];
     // 평문 http 는 같은 기계의 발급자(시험 · e2e 의 가짜, 로컬 accounts)에만
     if (isLoopbackHttp(this.sso.issuer))
@@ -190,8 +205,12 @@ export class OpenIdOidcClient implements OidcClient {
         { timeout: REQUEST_TIMEOUT_SEC, execute },
       )
       .catch((err: unknown) => {
-        if (this.discovered?.config === config) this.discovered = undefined;
-        throw toOidcError('discovery', err);
+        const error = toOidcError('discovery', err);
+        if (this.discovered?.config === config) {
+          this.discovered = undefined;
+          this.discoveryFailure = { at: Date.now(), error };
+        }
+        throw error;
       });
     this.discovered = { at: now, config };
     return config;
@@ -289,6 +308,23 @@ export class OpenIdOidcClient implements OidcClient {
   }
 
   async verifyLogoutToken(token: string): Promise<LogoutTokenClaims> {
+    // 네트워크(안내판 · JWKS)에 가기 전에 머리만 싸게 본다 — 엉뚱한 토큰으로 발급자를 부르지 않는다
+    let header: { alg?: unknown; typ?: unknown };
+    try {
+      header = decodeProtectedHeader(token);
+    } catch {
+      throw new LogoutTokenError('not a JWS');
+    }
+    if (header.alg !== 'RS256') {
+      throw new LogoutTokenError('header alg is not RS256');
+    }
+    if (
+      typeof header.typ !== 'string' ||
+      header.typ.toLowerCase().replace(/^application\//, '') !==
+        LOGOUT_TOKEN_TYPE
+    ) {
+      throw new LogoutTokenError('header typ is not logout+jwt');
+    }
     const config = await this.configuration();
     const uri = config.serverMetadata().jwks_uri;
     if (!uri) {

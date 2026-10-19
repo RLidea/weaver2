@@ -90,9 +90,7 @@ describe('OpenIdOidcClient.verifyLogoutToken (가짜 발급자)', () => {
 
   describe('서명 · 머리 (§2.6 2, §2.4)', () => {
     it('HS256(client_secret 으로 서명) → 거절', async () => {
-      expect((await invalid({ signWith: 'HS256' })).message).toContain(
-        'ERR_JOSE_ALG_NOT_ALLOWED',
-      );
+      expect((await invalid({ signWith: 'HS256' })).message).toContain('alg');
     });
 
     it('alg none → 거절', async () => {
@@ -116,8 +114,26 @@ describe('OpenIdOidcClient.verifyLogoutToken (가짜 발급자)', () => {
 
     it('typ 이 없으면 거절', async () => {
       expect((await invalid({ header: { typ: undefined } })).message).toContain(
-        'claim=typ',
+        'typ',
       );
+    });
+
+    it('머리(alg · typ)가 틀리거나 JWS 가 아니면 발급자에 묻지 않고 거절한다', async () => {
+      for (const options of [
+        { signWith: 'HS256' as const },
+        { signWith: 'none' as const },
+        { header: { typ: 'JWT' } },
+        { header: { typ: undefined } },
+      ]) {
+        await invalid(options);
+      }
+      for (const junk of ['not-a-jwt', 'a.b.c', '']) {
+        expect(await rejection(oidc.verifyLogoutToken(junk))).toBeInstanceOf(
+          LogoutTokenError,
+        );
+      }
+      expect(issuer.hits.discovery).toBe(0);
+      expect(issuer.hits.jwks).toBe(0);
     });
 
     it('typ 이 logout+jwt 가 아니면 거절 — id_token(typ JWT)을 내밀 수 없다', async () => {

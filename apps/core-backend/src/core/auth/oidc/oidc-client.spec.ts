@@ -185,6 +185,26 @@ describe('OpenIdOidcClient (가짜 발급자)', () => {
     expect((await failureOf(login())).code).toBe('sso_failed');
   });
 
+  it('안내판을 못 받으면 30초 동안은 다시 묻지 않고 같은 실패 — 지나면 다시 묻는다', async () => {
+    issuer.knobs.discoveryIssuer = 'http://127.0.0.1:1/oidc';
+    expect((await failureOf(login())).code).toBe('sso_failed');
+    expect(issuer.hits.discovery).toBe(1);
+    issuer.knobs.discoveryIssuer = undefined;
+    expect((await failureOf(login())).code).toBe('sso_failed');
+    expect(issuer.hits.discovery).toBe(1);
+    const later = Date.now() + 31_000;
+    jest.spyOn(Date, 'now').mockReturnValue(later);
+    await expect(
+      oidc.authorizationUrl({
+        state: 's',
+        nonce: 'n',
+        codeChallenge: 'c',
+        lang: 'ko',
+      }),
+    ).resolves.toContain('/auth');
+    expect(issuer.hits.discovery).toBe(2);
+  });
+
   it('userinfo sub 가 id_token 과 다르면 거절', async () => {
     const { claims, accessToken } = await login();
     issuer.knobs.userinfoSub = '00000000-1111-4222-8333-444444444444';
