@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 사람이 아닌 호출자(스크립트 · 다른 에이전트)가 쿠키 세션 없이 **정해진 경로 몇 개만** 부를 수 있게 한다. 관리자가 사용자 한 명에게 묶인 토큰을 발급하고, 그 토큰은 파생 프로젝트가 `@ApiTokenScope('x')` 로 열어 둔 경로에서만 통한다. 주인의 권한은 따라가지 않는다.
+**Goal:** 사람이 아닌 호출자(스크립트 · 다른 에이전트)가 쿠키 세션 없이 **정해진 경로 몇 개만** 부를 수 있게 한다. 관리자가 사용자 한 명에게 묶인 토큰을 발급하고, 그 토큰은 파생 프로젝트가 `@ApiTokenScope('x')` 로 열어 둔 경로에서만 통한다. 주인의 권한은 `@RequirePermission` 을 결코 채우지 못한다 — 경로 자신의 범위만 그 자리에 선다.
 
-**Architecture:** 토큰은 앱이 발급한다(따로 있는 accounts SSO 가 아니다). 저장은 `ApiToken` 한 행 — 원문이 아니라 sha256 해시만 둔다. 인증은 이미 있는 전역 가드 `JwtAuthGuard` 의 **앞머리 한 갈래**다: `Authorization: Bearer` 에 API 토큰 모양이 실려 오면 토큰 갈래로, 아니면 지금 그대로 `JwtStrategy` 로 간다. 세션 쪽 코드는 한 줄도 바뀌지 않는다. `PermissionGuard` 는 토큰 주체를 만나면 언제나 403 이다. 발급 · 목록 · 끊기는 관리 경로 셋과 관리 화면 「API 토큰」이 맡는다.
+**Architecture:** 토큰은 앱이 발급한다(따로 있는 accounts SSO 가 아니다). 저장은 `ApiToken` 한 행 — 원문이 아니라 sha256 해시만 둔다. 인증은 이미 있는 전역 가드 `JwtAuthGuard` 의 **앞머리 한 갈래**다: `Authorization: Bearer` 에 API 토큰 모양이 실려 오면 토큰 갈래로, 아니면 지금 그대로 `JwtStrategy` 로 간다. 세션 쪽 코드는 한 줄도 바뀌지 않는다. `PermissionGuard` 는 토큰 주체를 만나면 권한을 조회하지 않는다 — 핸들러에 `@ApiTokenScope` 가 있으면 통과(범위는 이미 맞춰 봤다), 없으면 403. 발급 · 목록 · 끊기는 관리 경로 셋과 관리 화면 「API 토큰」이 맡는다.
 
 **Tech Stack:** Prisma 7(멀티 파일 스키마) · NestJS 전역 가드 · node `crypto`(`randomBytes` · `timingSafeEqual`) · jest(단위 · 통합) · React 19 · TanStack Query.
 
@@ -21,18 +21,18 @@
 
 | 조각 | 계약 |
 |---|---|
-| 스키마 | `ApiToken { id, userId, name, prefix, tokenHash, scopes String[], lastUsedAt?, expiresAt?, revokedAt?, createdAt }` (`api_tokens`). `prefix` · `tokenHash` 는 unique |
+| 스키마 | `ApiToken { id, userId, name, prefix, tokenHash, scopes String[], lastUsedAt?, expiresAt?, revokedAt?, issuedById?, revokedById?, createdAt }` (`api_tokens`). `prefix` · `tokenHash` 는 unique. `issuedById` · `revokedById` 는 users FK(`onDelete: SetNull`) — 보안 검토 M2 |
 | 원문 | `wvt_<12 hex>_<64 hex>`. 앞의 `wvt_<12 hex>` 가 `prefix` 다. 발급 응답에 **한 번만** 실린다 |
 | 헤더 | `Authorization: Bearer <원문>` |
-| 데코레이터 | `@ApiTokenScope('x')` — `apps/core-backend/src/core/auth/api-token/decorators/api-token-scope.decorator.ts`. 핸들러 · 클래스 어느 쪽에도 붙는다(핸들러가 이긴다) |
+| 데코레이터 | `@ApiTokenScope('x')` — `apps/core-backend/src/core/auth/api-token/decorators/api-token-scope.decorator.ts`. **핸들러에만** 붙는다(`MethodDecorator`, 가드도 핸들러만 본다). `@RequirePermission` 과 짝을 이루고, 세션을 누구에게나 열 때만 대신 `@AnySessionUser()`(같은 파일)를 붙인다 — `route-guard-coverage` 가 검사한다 |
 | 데코레이터 | `@Actor() actor: RequestActor` — `…/api-token/decorators/actor.decorator.ts`. `RequestActor = { userId: string \| null, kind: 'SESSION' \| 'TOKEN' }`. `PostRevisionService.record` 의 `actor` 에 그대로 넘긴다 |
 | 가드 1 | 토큰은 `@ApiTokenScope` 가 붙은 경로에서만 인증된다. 붙지 않은 경로(공개 경로 포함)에서는 **401**. 붙었지만 그 범위가 토큰에 없으면 **403** |
-| 가드 2 | 토큰 주체는 `@RequirePermission` 을 **통과하지 못한다**(403). 주인의 권한이 따라가지 않는다 |
+| 가드 2 | 주인의 권한은 `@RequirePermission` 을 **결코 채우지 못한다**. 경로 자신의 범위만 그 자리에 선다 — 범위 경로에서는 토큰이 통과하고, 범위 없는 경로의 `@RequirePermission` 은 토큰에 403. 세션은 지금처럼 그 권한이 있어야 한다 |
 | 가드 3 | 끊은 · 만료된 토큰, 주인이 탈퇴 · 정지된 토큰은 401. 인증에 성공할 때마다 `lastUsedAt` 을 갱신한다 |
 | CSRF | `isBearerOnly` 면제 — `Authorization: Bearer` 만 싣고 `access_token` 쿠키가 없는 요청 |
 | 범위 목록 | `libs/shared/src/api-token-scopes.ts` 의 `API_TOKEN_SCOPES: ApiTokenScopeOption[]` (weaver2 는 빈 배열). 관리 화면이 고르기 단추로 보인다. 서버는 형식만 본다 — 자유 문자열 |
 | 권한 | `PERMISSIONS.API_TOKEN.MANAGE` = `api-token:manage`. 시드는 어느 그룹에도 더하지 않는다 — `*:*`(SuperAdmin)만 가진다 |
-| API | `GET /v1/admin/api-tokens?userId=` 목록 · `POST /v1/admin/api-tokens` 발급(201, `{ token, apiToken }`) · `POST /v1/admin/api-tokens/:id/revoke` 끊기. 모두 `api-token:manage` |
+| API | `GET /v1/admin/api-tokens?userId=` 목록 · `POST /v1/admin/api-tokens` 발급(201, `{ token, apiToken }`) · `POST /v1/admin/api-tokens/:id/revoke` 끊기. 모두 `api-token:manage`. 발급 · 끊기는 `assertCovers(요청자, 주인)` 도 통과해야 한다 — 보안 검토 M1 |
 | UI | `/admin/api-tokens` 「API 토큰」 — 발급 · 목록 · 끊기. 사이드바 기본 메뉴에 든다 |
 
 ### 정한 것
@@ -44,8 +44,12 @@
 - **가드는 `JwtAuthGuard` 안에 한 갈래로 둔다.** 전역 가드를 하나 더 세우면 순서(토큰이 먼저 `req.user` 를 채우고, 그다음 JWT 가 쿠키를 보고 덮어쓰는지)가 모듈 등록 순서에 기대게 된다. 갈래 판정은 「헤더가 API 토큰 모양인가」 하나뿐이고, 아니면 `super.canActivate` 로 그대로 넘긴다
 - **헤더가 API 토큰 모양이면 쿠키보다 앞선다.** 쿠키와 함께 와도 토큰 갈래로 판정한다 — 세션으로 몰래 넘어가 권한을 얻는 길을 막는다. 그때는 `isBearerOnly` 가 면제하지 않으므로 CSRF 도 걸린다
 - **범위 밖은 401 · 범위 부족은 403.** 범위가 붙지 않은 경로에서 토큰은 「인증 수단이 아니다」(401). 범위가 붙은 경로에서 다른 범위의 토큰은 「인증됐지만 모자란다」(403, OAuth 의 `insufficient_scope` 와 같은 태도). 범위가 없는 경로에서는 DB 를 읽지 않는다
-- **`@RequirePermission` 과 `@ApiTokenScope` 를 함께 붙인 경로는 세션 전용이 된다**(토큰은 가드 2 로 403). 세션 관리자와 토큰이 같은 경로를 쓰게 하려면 `@RequirePermission` 대신 핸들러에서 `actor.kind` 로 가르거나 경로를 둘로 나눈다. 🔴 **`@ApiTokenScope` 만 붙이고 `@RequirePermission` 을 빼면 그 경로는 로그인한 모든 세션 사용자에게도 열린다** — 데코레이터 주석에 못 박는다
-- **가드 2 는 데코레이터만 막는다.** 범위 경로의 핸들러가 주인 권한을 다시 묻는 서비스(예: 게시판 권한을 보는 `PostService.createPost`)를 부르면 주인의 권한이 그 안에서는 쓰인다. 범위 경로는 그런 서비스를 거치지 않는 자기 쓰기 길을 두는 것을 권한다(PostRevisionService 처럼)
+- **범위가 `@RequirePermission` 을 대신한다 — 토큰에만.** 범위 경로에는 `@ApiTokenScope` 와 `@RequirePermission` 을 **함께** 붙이고, 둘은 각자 자기 호출자만 맡는다: 토큰은 범위로, 세션은 권한으로. 교집합(토큰도 주인의 권한까지)으로 하지 않는다 — 서비스 계정(RLidea R3 의 노엘)은 권한 그룹이 없다. 그래서 세션 관리자와 토큰이 같은 경로를 쓴다(보안 검토 H1)
+- **`@RequirePermission` 이 빠진 범위 경로는 실수로 본다.** 로그인한 모든 세션 사용자에게 열리기 때문이다. 뜻이라면 `@AnySessionUser()` 로 밝힌다(동작은 바꾸지 않는 표시). `route-guard-coverage` 가 짝 없는 범위 경로와 클래스에 붙은 범위를 잡는다
+- **범위는 핸들러에서만 읽는다**(`JwtAuthGuard` · `PermissionGuard` 모두). 클래스에 붙은 범위로 컨트롤러 전체가 토큰에 열리지 않게(보안 검토 L1)
+- **가드 2 는 데코레이터만 다룬다.** 범위 경로의 핸들러가 주인 권한을 다시 묻는 서비스(예: 게시판 권한을 보는 `PostService.createPost`)를 부르면 주인의 권한이 그 안에서는 쓰인다. 범위 경로는 그런 서비스를 거치지 않는 자기 쓰기 길을 두는 것을 권한다(PostRevisionService 처럼)
+- **발급 · 끊기는 상하 검사를 한다.** 토큰은 주인의 이름으로 쓰는 힘이라, 주인의 권한을 모두 가진 사람만 발급 · 끊기를 한다(`assertCovers`). 누가 했는지 `issuedById` · `revokedById` 와 로그(id · prefix · 주인 · 한 사람)에 남긴다. 원문은 로그에 쓰지 않는다
+- **확인은 prefix 가 없어도 해시 대조를 한 번 한다**(더미 해시). `lastUsedAt` 은 `updateMany` 로 써서 행이 사라졌어도 500 이 나지 않는다(L3 · L4)
 - **끊기는 되돌리지 않는다.** `revokedAt` 을 박고 끝 — 다시 살리기 경로는 없다. 이미 끊긴 토큰을 다시 끊으면 처음 시각을 그대로 두고 200
 - **만료는 선택이다.** 발급 화면은 30일 · 90일 · 1년 · 없음을 고른다. 서버는 미래 시각만 받는다
 - **`lastUsedAt` 은 매번 쓴다.** 토큰 경로는 드물게 불린다(초안 넣기 수준). 잦아지면 그때 「1분 안에 다시 쓰지 않음」으로 줄인다
@@ -70,9 +74,13 @@ model ApiToken {
   scopes     String[]
   lastUsedAt DateTime?
   expiresAt  DateTime?
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revokedAt   DateTime?
+  issuedById  String?
+  revokedById String?
+  createdAt   DateTime  @default(now())
+  user        User      @relation("ApiTokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy    User?     @relation("ApiTokenIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  revokedBy   User?     @relation("ApiTokenRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("api_tokens")
@@ -116,7 +124,7 @@ model ApiToken {
 - [ ] 범위 없는 보호 경로 · 공개 경로 + 토큰 → 401, DB 를 읽지 않는다
 - [ ] 끊김 · 만료(`verify` 가 `null`) → 401
 - [ ] 쿠키 세션 + 범위 경로 → 지금처럼 세션으로 통과, `@Actor()` 는 `SESSION`
-- [ ] `PermissionGuard`: `req.apiToken` 이 있으면 권한 조회 없이 403, 데코레이터가 없으면 지금처럼 통과
+- [ ] `PermissionGuard`: `req.apiToken` 이 있으면 권한을 조회하지 않는다 — 핸들러에 범위가 있으면 통과, 없으면 403. 데코레이터가 없으면 지금처럼 통과
 
 ### Task 4: CSRF Bearer 면제
 
@@ -134,14 +142,15 @@ model ApiToken {
 - Create: `libs/shared/src/api-token-scopes.ts`
 - Create: `apps/core-backend/test/integration/api-tokens.integration.spec.ts`
 
-통합 시험은 시험 전용 컨트롤러(`@ApiTokenScope('test:write')` 경로 하나, 범위 + `@RequirePermission` 경로 하나)를 얹은 앱으로 돈다:
+통합 시험은 시험 전용 컨트롤러(범위 + `@RequirePermission` 경로, 범위 + `@AnySessionUser` 경로, 클래스에 범위를 붙인 컨트롤러)를 얹은 앱으로 돈다:
 - [ ] 발급 응답에만 원문이 있고, DB 에는 `sha256(원문)` 만 있다 — 목록 응답에도 원문 · 해시가 없다
-- [ ] 가드 1: 범위 경로 200 · 범위 없는 보호 경로 401 · 공개 경로 401 · 다른 범위 403
-- [ ] 가드 2: 주인이 SuperAdmin 이어도 `@RequirePermission` 경로(관리 경로 전부 — 라우트 메타데이터에서 모은다)에 토큰으로는 하나도 닿지 못한다
+- [ ] 가드 1: 범위 없는 **모든** 경로(공개 · 권한 없음 · 관리 — 라우트 메타데이터에서 모은다)는 최고관리자 주인의 토큰에도 정확히 401 · 다른 범위 403 · 클래스 범위 401
+- [ ] 가드 2: 권한 없는 주인의 토큰이 범위 + `@RequirePermission` 경로 200 · 권한 없는 회원 세션 403 · 관리자 세션 200
+- [ ] 상하 검사: 발급 권한만 가진 관리자는 최고관리자 이름으로 발급 · 끊기 403, 권한 없는 주인으로는 발급 201 · `issuedById` · `revokedById` 가 남는다
 - [ ] 가드 3: 끊은 토큰 401 · 만료 토큰 401 · 주인 정지 401 · 성공하면 `lastUsedAt` 이 찍힌다
 - [ ] CSRF: 토큰 요청은 CSRF 헤더 없이 POST 가 된다
 - [ ] 관리 경로: `api-token:manage` 가 없는 Admin 은 403, 끊기는 되돌리지 않는다
-- [ ] `route-guard-coverage` 가 새 관리 경로까지 덮어 그대로 초록
+- [ ] `route-guard-coverage` 가 새 관리 경로까지 덮어 그대로 초록, 범위 경로의 모양(짝 · 핸들러 전용)도 검사
 
 ### Task 6: 관리 화면
 
@@ -166,8 +175,9 @@ model ApiToken {
 ## 파생 프로젝트가 upstream 을 merge 할 때
 
 - 마이그레이션 하나(`add_api_tokens`)가 들어온다. `pnpm db:deploy` · `pnpm db:generate`
-- `User` 모델에 역관계 `apiTokens` 가 생긴다
-- `security.middleware.ts` 의 `CSRF_EXEMPTIONS` 에 `isBearerOnly` 가 들어온다. 파생 쪽이 같은 이름의 함수를 이미 두었다면(RLidea) 충돌이 난다 — 한 벌만 남긴다. 본문은 같다
+- `User` 모델에 역관계 셋(`apiTokens` · `issuedApiTokens` · `revokedApiTokens`)이 생긴다
+- `security.middleware.ts` 는 두 덩어리(`isBearerOnly` 함수 · `CSRF_EXEMPTIONS` 목록)에서 충돌한다. **두 곳 모두 ours(RLidea)를 남긴다** — `isBearerOnly` 본문은 RLidea 와 한 글자도 다르지 않게 두었다
+- 범위 경로는 `@ApiTokenScope` + `@RequirePermission` 짝으로 쓴다. 토큰은 범위로, 세션은 권한으로 통과한다. `route-guard-coverage` 가 짝 없는 범위 경로를 잡는다
 - `JwtAuthGuard` 생성자에 `ApiTokenService` 가 늘었다. 파생 쪽에 이 가드를 손으로 세우는 시험이 있으면 목을 하나 더한다
 - 범위는 파생 쪽이 정한다: 경로에 `@ApiTokenScope('…')` 를 붙이고, 관리 화면에서 고를 수 있게 `API_TOKEN_SCOPES` 에 한 줄 더한다
 - 발급하려면 `api-token:manage` 가 있어야 한다. SuperAdmin 이 아닌 그룹에 주려면 관리 화면 「권한 관리」에서 더한다
