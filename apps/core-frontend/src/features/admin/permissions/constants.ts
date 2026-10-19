@@ -139,6 +139,14 @@ export const PERMISSION_SECTIONS: PermissionSection[] = [
     ],
   },
   {
+    key: 'api-token',
+    label: 'API 토큰',
+    permissions: [
+      { value: 'api-token:manage', label: '발급·끊기' },
+      { value: 'api-token:*', label: '전체 권한' },
+    ],
+  },
+  {
     key: 'super',
     label: '슈퍼 관리자',
     permissions: [{ value: '*:*', label: '전체 권한 (슈퍼 관리자)' }],

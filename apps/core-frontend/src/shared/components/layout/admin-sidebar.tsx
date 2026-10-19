@@ -4,7 +4,7 @@ import { useEffect, useRef, type ComponentType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { hasPermission, PERMISSIONS, type Permission } from '@weaver2/shared';
-import { BoardIcon, cn, FileTextIcon, FlagIcon, HomeIcon, MailIcon, SettingsIcon, ShieldIcon, UsersIcon, XIcon } from '@weaver2/ui';
+import { BoardIcon, cn, FileTextIcon, FlagIcon, HomeIcon, KeyIcon, MailIcon, SettingsIcon, ShieldIcon, UsersIcon, XIcon } from '@weaver2/ui';
 import { useMe } from '@weaver2/auth';
 import { useSidebar } from './sidebar-context';
 import { ADMIN_NAV_EXTRA } from './admin-nav.extra';
@@ -66,6 +66,13 @@ const BASE_NAV_ITEMS: AdminNavItem[] = [
     href: '/admin/email-templates',
     Icon: MailIcon,
     permission: PERMISSIONS.EMAIL.TEMPLATE_MANAGE,
+    exact: false,
+  },
+  {
+    label: 'API 토큰',
+    href: '/admin/api-tokens',
+    Icon: KeyIcon,
+    permission: PERMISSIONS.API_TOKEN.MANAGE,
     exact: false,
   },
   {
