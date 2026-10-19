@@ -46,7 +46,10 @@
 #                                  새 세션은 일을 시작하기 전에 이걸 먼저 돌린다.
 #
 #   pnpm lane:new  <이름> [--branch <브랜치>] [--with-frontend] [--with-backend] [--isolated]
-#   pnpm lane:e2e  <이름> [스펙…]  격리 레인에서 e2e 를 돌린다 — 켜고·재고·반드시 내린다
+#   pnpm lane:e2e  <이름> [--sso] [스펙…]  격리 레인에서 e2e 를 돌린다 — 켜고·재고·반드시 내린다
+#                  --sso 면 백엔드를 AUTH_MODE=sso 로 켜고 가짜 OIDC 발급자
+#                  (scripts/fake-oidc-issuer.ts, 포트 4280 + (백엔드 포트 − 4000))를 함께 켜고
+#                  함께 내린다. Playwright 는 `sso` 프로젝트만, 없으면 `chromium` 프로젝트만 돈다
 #
 #   --isolated  자기 DB(공용을 통째 복사)와 자기 포트를 갖는다. e2e 가 서로를
 #               안 밟으므로 여럿이 동시에 돌 수 있고, pnpm db:seed 도 마음껏 돌린다.
@@ -984,7 +987,7 @@ build_is_stale() {
             -print -quit 2>/dev/null)" ]
 }
 
-E2E_FE_PORT=""; E2E_BE_PORT=""; LANE_E2E_NAME=""
+E2E_FE_PORT=""; E2E_BE_PORT=""; E2E_ISSUER_PORT=""; LANE_E2E_NAME=""
 cleanup_e2e() {
   # set -e 를 끈다. 뒷정리에는 「이미 없어서 실패하는」 명령이 정상적으로 섞이는데,
   # trap 안에서 그 한 줄이 실패하면 set -e 가 스크립트를 죽이고 **e2e 가 통과했어도
@@ -992,7 +995,7 @@ cleanup_e2e() {
   set +e
   local p pid sig
   for sig in TERM KILL; do
-    for p in "${E2E_FE_PORT:-}" "${E2E_BE_PORT:-}"; do
+    for p in "${E2E_FE_PORT:-}" "${E2E_BE_PORT:-}" "${E2E_ISSUER_PORT:-}"; do
       [ -n "$p" ] || continue
       pid="$(lsof -nP -tiTCP:"$p" -sTCP:LISTEN 2>/dev/null | head -1)"
       [ -n "$pid" ] && kill "-$sig" "$pid" 2>/dev/null
@@ -1000,7 +1003,7 @@ cleanup_e2e() {
     sleep 1
   done
   local left=""
-  for p in "${E2E_FE_PORT:-}" "${E2E_BE_PORT:-}"; do
+  for p in "${E2E_FE_PORT:-}" "${E2E_BE_PORT:-}" "${E2E_ISSUER_PORT:-}"; do
     [ -n "$p" ] || continue
     lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1 && left="$left :$p"
   done
@@ -1013,7 +1016,7 @@ cleanup_e2e() {
 }
 
 cmd_e2e() {
-  local name=$1; shift
+  local name=$1 sso=$2; shift 2
   local wt; wt="$(lane_dir "$name")"
   [ -d "$wt" ] || die "레인이 없습니다: ${name}"
   local meta; meta="$(lane_meta "$name")"
@@ -1047,9 +1050,18 @@ cmd_e2e() {
   # 🔴 **trap 을 걸기 전에** 포트를 본다. 순서가 뒤집히면 안 된다 —
   # 남의 서버가 있는 채로 trap 이 걸리면, 여기서 멈춰도 뒷정리가 **남의 서버를 내린다.**
   #
+  # --sso: 가짜 발급자 포트는 백엔드 포트에서 뽑는다 — 런타임 4280, 격리 레인 4290~4299.
+  #        4180 대역을 쓰지 않는 이유: 4190 이 Fetch 표준의 「bad port」(ManageSieve)라 Node fetch 가
+  #        `TypeError: fetch failed (bad port)` 로 거절한다 (weaver2 실측 2026-10-19, 레인 4010 → 4190)
+  #        (4100 은 로컬 accounts 몫 — docs/handbook/11-sso.md)
+  local issuer_port=""
+  [ "$sso" = yes ] && issuer_port=$((4280 + be - 4000))
+  E2E_ISSUER_PORT="$issuer_port"
+
   LANE_E2E_NAME="$name"
   require_port_free "$fe" "프론트"
   require_port_free "$be" "백엔드"
+  [ -n "$issuer_port" ] && require_port_free "$issuer_port" "가짜 발급자"
 
   trap cleanup_e2e EXIT INT TERM
 
@@ -1072,7 +1084,26 @@ cmd_e2e() {
     ok "백엔드 빌드본이 최신입니다"
   fi
 
-  step "백엔드 :${be}"
+  local be_env=("PORT=$be")
+  if [ -n "$issuer_port" ]; then
+    step "가짜 OIDC 발급자 :${issuer_port}"
+    ( cd "$wt" && pnpm exec tsx scripts/fake-oidc-issuer.ts --port "$issuer_port" ) >/dev/null 2>&1 &
+    local j=0
+    until curl -s -o /dev/null --max-time 2 "http://127.0.0.1:${issuer_port}/oidc/.well-known/openid-configuration" 2>/dev/null; do
+      j=$((j+1)); [ "$j" -gt 30 ] && die "가짜 발급자가 안 떴습니다 (:${issuer_port})"; sleep 1
+    done
+    ok "가짜 발급자 준비"
+    # 콜백 · 로그아웃 뒤 돌아올 주소가 이 레인의 프론트여야 한다 — CLIENT_URL 에서 나온다
+    be_env+=(
+      "AUTH_MODE=sso"
+      "ACCOUNTS_OIDC_ISSUER=http://127.0.0.1:${issuer_port}/oidc"
+      "ACCOUNTS_OIDC_CLIENT_ID=local"
+      "ACCOUNTS_OIDC_CLIENT_SECRET=local"
+      "CLIENT_URL=http://localhost:${fe}"
+    )
+  fi
+
+  step "백엔드 :${be}${issuer_port:+ (AUTH_MODE=sso)}"
   #
   # 🔴 요청 제한(throttle)과 NODE_ENV — **여기가 이웃 프로젝트와 다른 자리다.**
   #
@@ -1091,7 +1122,7 @@ cmd_e2e() {
   #   반나절. 돌릴 때마다 다른 시험이 죽어 회귀처럼 보였다).
   #   레인이 초록인데 CI 가 붉으면 **먼저 429 를 의심한다.**
   #
-  ( cd "$wt" && PORT="$be" pnpm prod:core ) >/dev/null 2>&1 &
+  ( cd "$wt" && env "${be_env[@]}" pnpm prod:core ) >/dev/null 2>&1 &
   local i=0
   until curl -s -o /dev/null --max-time 2 "http://localhost:${be}/v1/health/ready" 2>/dev/null; do
     i=$((i+1)); [ "$i" -gt 120 ] && die "백엔드가 안 떴습니다 (:${be})"; sleep 1
@@ -1114,10 +1145,13 @@ cmd_e2e() {
   #   E2E_NO_WEBSERVER : 서버를 직접 안 띄운다. 위에서 이미 켰다.
   #   E2E_BASE_URL     : 이 레인의 프론트를 본다. 안 주면 3000(런타임 레인)을 잰다.
   #   E2E_API_URL      : 이 레인의 백엔드. 백엔드가 내주는 관리자 뷰(/admin/login)를 보는 스펙이 쓴다.
+  #   --project        : sso 백엔드면 `sso` 프로젝트만, 아니면 `chromium` 만 (playwright.config.ts)
+  local project=chromium
+  [ -n "$issuer_port" ] && project=sso
   ( cd "$wt" && E2E_NO_WEBSERVER=1 \
       E2E_BASE_URL="http://localhost:${fe}" \
       E2E_API_URL="http://localhost:${be}" \
-      pnpm --filter core-frontend exec playwright test "$@" ) || rc=$?
+      pnpm --filter core-frontend exec playwright test --project="$project" "$@" ) || rc=$?
 
   local peak=""
   local fe_listener; fe_listener="$(lsof -nP -tiTCP:"$fe" -sTCP:LISTEN 2>/dev/null | head -1 || true)"
@@ -1136,7 +1170,7 @@ usage() {
 [ $# -ge 1 ] || usage 1
 sub=$1; shift
 
-name=""; branch=""; want_fe=no; want_be=no; force=no; do_rm=no; want_iso=no
+name=""; branch=""; want_fe=no; want_be=no; force=no; do_rm=no; want_iso=no; want_sso=no
 rest=()   # 이름 뒤에 남는 것 — lane:e2e 가 playwright 에 그대로 넘긴다
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -1144,6 +1178,7 @@ while [ $# -gt 0 ]; do
     --with-frontend) want_fe=yes; shift ;;
     --with-backend)  want_be=yes; shift ;;
     --isolated)      want_iso=yes; shift ;;
+    --sso)           want_sso=yes; shift ;;
     --force|-f)      force=yes; shift ;;
     --rm)            do_rm=yes; shift ;;
     -h|--help)       usage ;;
@@ -1163,7 +1198,7 @@ case "$sub" in
         cmd_prep "$name" "$want_fe" "$want_be" "$want_iso" ;;
   ls|list) cmd_ls ;;
   e2e) [ -n "$name" ] || die "레인 이름이 필요합니다 — pnpm lane:e2e <이름> [스펙…]"
-        cmd_e2e "$name" "${rest[@]}" ;;
+        cmd_e2e "$name" "$want_sso" "${rest[@]}" ;;
   brief) cmd_brief ;;
   show) [ -n "$name" ] || die "레인 이름이 필요합니다 — pnpm lane:show <이름>"
         cmd_show "$name" ;;

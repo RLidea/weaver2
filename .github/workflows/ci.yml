@@ -276,7 +276,24 @@ jobs:
         run: pnpm --filter core-frontend exec playwright install --with-deps chromium
 
       - name: Run E2E
-        run: pnpm --filter core-frontend e2e
+        run: pnpm --filter core-frontend e2e --project=chromium
+
+      # 같은 빌드로 백엔드만 AUTH_MODE=sso 로 다시 켠다 — Playwright 가 webServer 로 켜고 내리므로
+      # 위 단계의 서버는 이미 내려가 있다. 가짜 발급자(4280 = 4280 + (4000 − 4000))는 이 단계가
+      # 켜고, 잡이 끝나면 러너가 거둔다. `sso` 프로젝트 **전체**(파생 프로젝트의 *sso*.spec.ts 포함)
+      - name: Run E2E (SSO)
+        env:
+          AUTH_MODE: sso
+          ACCOUNTS_OIDC_ISSUER: http://127.0.0.1:4280/oidc
+          ACCOUNTS_OIDC_CLIENT_ID: local
+          ACCOUNTS_OIDC_CLIENT_SECRET: local
+        run: |
+          pnpm exec tsx scripts/fake-oidc-issuer.ts --port 4280 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4280/oidc/.well-known/openid-configuration >/dev/null && break
+            sleep 1
+          done
+          pnpm --filter core-frontend e2e --project=sso
 
       - name: Upload Playwright report
         if: always()
