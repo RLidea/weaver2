@@ -28,9 +28,28 @@
 | Q11 | 로컬 로그인 코드는 언제 지우나 | (a) 운영 전환 30일 무사고 뒤, 따로 계획 (b) 안 지운다 | **(a)** |
 | Q12 | **RLidea 사람을 accounts 로 옮기나 · 이메일로 저절로 잇나** | (a) 옮기지 않는다. 자동 잇기 없음, 주인님 행만 CLI 로 한 번 (b) accounts 화면 명세의 옛 결정대로 rlidea.app 사람을 accounts DB 로 옮긴다 | **(a) — 주인님 답.** accounts 에 `centell@me.com` 이 이미 있다. 이 결정은 accounts 화면 명세 `:119`(「기존 rlidea.app 계정 — 옮겨 옴」)를 **대체한다**. accounts 는 명세를 c7d4c4a 에서 고쳤다(옮기지 않음 · 주인님 sub 한 번 · 자동 잇기 없음 · 겹치면 충돌) |
 
-## Q1 스파이크 결과
+## Q1 스파이크 결과 — (a) `openid-client@6` (2026-10-19, 레인 `sso`)
 
-(W3 첫 단계에서 채운다)
+`openid-client@6.8.8`(의존: `oauth4webapi@3.8.8` · `jose@6`)을 넣고, `import * as client from 'openid-client'` 를 부르는 provider 를 `AuthModule` 에 임시로 걸어 관문 다섯을 쟀다. **다섯 모두 통과 → (a).**
+
+| 관문 | 결과 |
+|---|---|
+| `pnpm test:core` (jest, `--experimental-vm-modules`) | 통과 — `require(esm)` 로 풀림. 플래그 없이 돌리면 「Must use import to load ES Module」로 깨지지만, 이 플래그는 NestJS 12(ESM 전용) 때문에 이미 `run-test.sh` · `test:core` · `ci.yml` 모두에 걸려 있다 |
+| `pnpm test:integration` (같은 플래그) | 통과 — CoreModule 이 openid-client 를 불러온 채 `password-reset-route` 2건 초록 |
+| `pnpm typecheck:core` (commonjs) | 통과 — `package.json` 의 `types` 로 타입이 풀린다 |
+| `nest build` (webpack, node-externals) | 통과 — 번들은 `require('openid-client')` 를 그대로 남긴다 |
+| Node 24 에서 `node dist/apps/core-backend/main.js` | 통과 (로컬 v24.17.0) — `require(esm)` 이 플래그 없이 풀려 provider 가 돌고 `/v1/auth/providers` 200 |
+
+라이브러리가 대신 해 주는 것과 우리가 더하는 것:
+
+- 안내판 `issuer` 대조(`discovery`) · authorize 응답의 `iss`(안내판이 `authorization_response_iss_parameter_supported` 면 필수) · state · PKCE · nonce · `aud`/`azp` · `exp`/`iat` · userinfo `sub` 대조(`fetchUserInfo(…, expectedSubject)`)는 openid-client 가 한다
+- **RS256 만**: 손님 메타데이터 `id_token_signed_response_alg: 'RS256'` — `none` · HS 는 거절
+- **서명 검증**: `enableNonRepudiationChecks` — 이것 없이는 TLS 로 받은 id_token 의 서명을 보지 않는다(oauth4webapi 기본)
+- **시계 허용 60초**: `[client.clockTolerance]: 60`
+- **5초 시간 제한**: `timeout: 5` — 모든 요청에 `AbortSignal.timeout(5000)`
+- **JWKS**: oauth4webapi 의 캐시가 **5분**(계획의 10분보다 짧다 — 더 자주 받을 뿐 안전 쪽), 모르는 kid 면 받은 지 **60초가 지났을 때만** 다시 받는다 — 계획의 「60초에 한 번」과 같은 규칙이 라이브러리에 이미 있다
+- **평문 http**: `allowInsecureRequests` 는 **발급자가 loopback(localhost · 127.0.0.1 · ::1) http 일 때만** 건다. 시험 · e2e 의 가짜 발급자와 로컬 accounts(`http://127.0.0.1:3100/oidc`)가 여기 든다. 운영 발급자는 https 라 걸 수 없고, http 비-loopback 발급자는 부팅이 멈춘다(`auth-mode.ts`)
+- `iss` 응답 매개변수는 안내판 값과 무관하게 **우리가 먼저 요구**한다(D4 ③)
 
 ## Global Constraints
 
