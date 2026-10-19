@@ -10,7 +10,6 @@ import {
 import { PrismaService } from '@weaver2/prisma';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { isReservedDisplayName } from '@weaver2/common/utility/reserved-names.util';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { FindUserByEmailQuery } from '../repositories/find-user-by-email.query';
 import { FindOAuthAccountQuery } from '../repositories/find-oauth-account.query';
@@ -27,9 +26,10 @@ import {
   AuthProviderExtra,
 } from './auth-provider-extras';
 import { AUTH_MODE_CONFIG, AuthModeConfig } from '../auth-mode';
-
-const OAUTH_DISPLAY_NAME_MAX = 30;
-const OAUTH_DISPLAY_NAME_TRIES = 5;
+import {
+  generateUniqueDisplayName,
+  generateUniqueUsername,
+} from '../utils/user-naming';
 
 @Injectable()
 export class OAuthService {
@@ -219,11 +219,13 @@ export class OAuthService {
     }
 
     // 3. 신규 사용자 생성
-    const username = await this.generateUniqueUsername(
+    const username = await generateUniqueUsername(
+      this.prisma,
       profile.provider,
       profile.providerId,
     );
-    const displayName = await this.generateUniqueDisplayName(
+    const displayName = await generateUniqueDisplayName(
+      this.prisma,
       profile.displayName,
     );
     return CreateOAuthUserCommand(this.prisma, {
@@ -234,52 +236,5 @@ export class OAuthService {
       provider: profile.provider,
       providerId: profile.providerId,
     });
-  }
-
-  /**
-   * provider 가 준 이름을 displayName(@unique)으로 쓸 수 있게 다듬는다.
-   * 겹치면 숫자를 붙인다 — 그대로 넣으면 흔한 이름의 첫 로그인이 P2002 로 실패하고,
-   * Apple 은 이름을 첫 승인 때 한 번만 주므로 그 실패는 되돌릴 수 없다.
-   */
-  private async generateUniqueDisplayName(raw: string): Promise<string> {
-    const cleaned = raw
-      .replace(/[\p{Cc}\p{Cf}]/gu, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, OAUTH_DISPLAY_NAME_MAX);
-    const base = cleaned && !isReservedDisplayName(cleaned) ? cleaned : 'user';
-
-    for (let n = 1; n <= OAUTH_DISPLAY_NAME_TRIES; n++) {
-      const candidate = n === 1 ? base : `${base}${n}`;
-      const taken = await this.prisma.user.findFirst({
-        where: { displayName: candidate },
-        select: { id: true },
-      });
-      if (!taken) return candidate;
-    }
-    return `${base}_${randomUUID().replace(/-/g, '').slice(0, 6)}`;
-  }
-
-  private async generateUniqueUsername(
-    provider: string,
-    providerId: string,
-  ): Promise<string> {
-    const base = `${provider}_${providerId.slice(0, 8)}`;
-    const existing = await this.prisma.user.findFirst({
-      where: { username: base },
-    });
-    if (!existing) return base;
-
-    const suffix = randomUUID().replace(/-/g, '').slice(0, 6);
-    const candidate = `${provider}_${suffix}`;
-    const conflict = await this.prisma.user.findFirst({
-      where: { username: candidate },
-    });
-    if (conflict) {
-      throw new BadRequestException(
-        'Username generation failed. Please try again.',
-      );
-    }
-    return candidate;
   }
 }
