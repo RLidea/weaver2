@@ -63,14 +63,22 @@
 
 ## back-channel 로그아웃 — 발급자가 서버로 알린다
 
-OpenID Connect Back-Channel Logout 1.0 의 손님 쪽. 사람이 발급자 쪽에서 로그아웃하면(어느 손님에서든 「RLidea 서비스 전부 로그아웃」 · accounts 계정 화면의 로그아웃 · 「연결된 서비스」에서 이 서비스 로그아웃 · 탈퇴) 발급자가 그 세션의 sid 를 실은 `logout_token` 을 서버에서 서버로 보내고, 이 앱은 그 sid 로 받은 세션(refresh 행)을 지운다. 비밀번호 변경 · 재설정 · 탈퇴에는 발급자가 **sid 없이 sub 만** 실어 보낸다 — 「이 사람의 세션을 전부 끊어라」는 뜻이고, 이 앱은 그 사람의 refresh 행을 모두 지운다.
+OpenID Connect Back-Channel Logout 1.0 의 손님 쪽. 사람이 발급자 쪽에서 로그아웃하면(어느 손님에서든 「RLidea 서비스 전부 로그아웃」 · accounts 계정 화면의 로그아웃 · 「연결된 서비스」에서 이 서비스 로그아웃 · 탈퇴) 발급자가 그 세션의 sid 를 실은 `logout_token` 을 서버에서 서버로 보내고, 이 앱은 그 sid 로 받은 세션(refresh 행)을 지운다. 발급자가 **sid 없이 sub 만** 실어 보내면 「이 사람의 세션을 전부 끊어라」는 뜻이고, 이 앱은 그 사람의 refresh 행을 모두(앱 · 기기 행까지) 지운다. accounts.rlidea.com 은 이렇게 가른다 (2026-10-20):
+
+| 발급자 쪽 동작 | 오는 신호 |
+|---|---|
+| 「RLidea 서비스 전부 로그아웃」(로그아웃 화면 · end_session) | 세션마다 sid — 앱은 남는다 |
+| 「다른 세션 모두 종료」 · 비밀번호 변경 | 「다른 기기 · 앱에서도 로그아웃」(기본 체크)을 켜면 sub 만, 끄면 다른 세션에만 sid |
+| 비밀번호 재설정 · 탈퇴 · 정지 | 늘 sub 만 |
+
+sub 만 오는 신호는 발급자 설정 `OIDC_BACKCHANNEL_SUB_ONLY_CLIENTS` 에 든 손님에게만 간다.
 
 **발급자에 등록할 것**
 
 | 칸 | 값 |
 |---|---|
 | `backchannel_logout_uri` | `${CLIENT_URL}/api/v1/auth/oidc/backchannel-logout` — `/api` 는 프런트 프록시가 떼는 머리다. 백엔드 경로는 `/v1/auth/oidc/backchannel-logout`. 백엔드에 직접 닿는 주소를 주어도 된다 |
-| `backchannel_logout_session_required` | **`true`** — id_token 에 sid 가 실린다. 그래도 발급자는 사람 단위의 끊기(비밀번호 · 탈퇴)에 sub 만 온 logout_token 을 보낼 수 있고, 이 앱은 그것을 받는다. 예전 `ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED` 는 2026-10-20 에 뺐다 — `.env` 에 남아 있으면 부팅 때 경고만 하고 읽지 않는다 |
+| `backchannel_logout_session_required` | **`true`** — id_token 에 sid 가 실린다. 그래도 발급자는 사람 단위의 끊기(위 표)에 sub 만 온 logout_token 을 보낼 수 있고, 이 앱은 그것을 받는다. 예전 `ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED` 는 2026-10-20 에 뺐다 — `.env` 에 남아 있으면 부팅 때 경고만 하고 읽지 않는다 |
 
 **받는 것과 답**
 
