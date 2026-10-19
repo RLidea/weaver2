@@ -128,7 +128,10 @@ describe('OpenIdOidcClient (가짜 발급자)', () => {
   });
 
   it('시계 허용 60초: 만료 61초 → 거절, 59초 → 통과', async () => {
-    const now = Math.floor(Date.now() / 1000);
+    // 시계를 멈춘다 — 경계에서 1초를 넘기면 59초가 60초가 되어 흔들린다
+    const frozen = Date.now();
+    jest.spyOn(Date, 'now').mockReturnValue(frozen);
+    const now = Math.floor(frozen / 1000);
     issuer.knobs.idTokenClaims = { exp: now - 61 };
     expect((await failureOf(login())).code).toBe('sso_failed');
     issuer.knobs.idTokenClaims = { exp: now - 59 };
