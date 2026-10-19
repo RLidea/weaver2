@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
@@ -29,6 +30,8 @@ export interface VerifiedApiToken {
  */
 @Injectable()
 export class ApiTokenService {
+  private readonly logger = new Logger(ApiTokenService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissionService: PermissionService,
@@ -64,7 +67,12 @@ export class ApiTokenService {
       tokenHash,
       scopes: [...new Set(input.scopes)],
       expiresAt,
+      issuedById: issuerId,
     });
+    // 원문은 남기지 않는다 — 알아볼 이름표는 prefix 다
+    this.logger.log(
+      `API token issued: id=${apiToken.id} prefix=${prefix} owner=${input.userId} by=${issuerId} scopes=${apiToken.scopes.join(',')}`,
+    );
     return { token: raw, apiToken };
   }
 
@@ -81,7 +89,17 @@ export class ApiTokenService {
     if (!existing) throw new NotFoundException('토큰을 찾을 수 없습니다.');
     await this.permissionService.assertCovers(revokerId, existing.user.id);
 
-    await RevokeApiTokenCommand(this.prisma, id, new Date());
+    const { count } = await RevokeApiTokenCommand(
+      this.prisma,
+      id,
+      new Date(),
+      revokerId,
+    );
+    if (count === 1) {
+      this.logger.log(
+        `API token revoked: id=${id} prefix=${existing.prefix} owner=${existing.user.id} by=${revokerId}`,
+      );
+    }
     const apiToken = await FindApiTokenByIdQuery(this.prisma, id);
     if (!apiToken) throw new NotFoundException('토큰을 찾을 수 없습니다.');
     return apiToken;

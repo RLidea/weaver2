@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
@@ -72,8 +73,27 @@ describe('ApiTokenService', () => {
         tokenHash: sha256(result.token),
         scopes: ['blog:draft'],
         expiresAt: null,
+        issuedById: 'issuer',
       });
       expect(JSON.stringify(data)).not.toContain(result.token);
+    });
+
+    it('발급을 로그에 남기되 원문은 남기지 않는다 — id · prefix · 주인 · 발급자', async () => {
+      const log = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+      const result = await service.issue(
+        { userId: 'owner', name: 'n', scopes: ['a'] },
+        'issuer',
+      );
+      const lines = log.mock.calls.map((call) => String(call[0]));
+      log.mockRestore();
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('id=t1');
+      expect(lines[0]).toContain(`prefix=${result.token.slice(0, 16)}`);
+      expect(lines[0]).toContain('owner=owner');
+      expect(lines[0]).toContain('by=issuer');
+      expect(lines[0]).not.toContain(result.token);
     });
 
     it('만료 시각을 그대로 저장한다', async () => {
@@ -198,6 +218,7 @@ describe('ApiTokenService', () => {
   describe('revoke', () => {
     const existing = (revokedAt: Date | null) => ({
       id: 't1',
+      prefix: 'wvt_0123456789ab',
       revokedAt,
       user: { id: 'owner' },
     });
@@ -213,7 +234,7 @@ describe('ApiTokenService', () => {
       expect(permissions.assertCovers).toHaveBeenCalledWith('revoker', 'owner');
       expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
         where: { id: 't1', revokedAt: null },
-        data: { revokedAt: NOW },
+        data: { revokedAt: NOW, revokedById: 'revoker' },
       });
     });
 

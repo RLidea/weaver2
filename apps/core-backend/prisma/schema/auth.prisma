@@ -21,7 +21,9 @@ model User {
   localCredential    LocalCredential?
   oauthAccounts      OAuthAccount[]
   refreshTokens      RefreshToken[]
-  apiTokens          ApiToken[]
+  apiTokens          ApiToken[]            @relation("ApiTokenOwner")
+  issuedApiTokens    ApiToken[]            @relation("ApiTokenIssuer")
+  revokedApiTokens   ApiToken[]            @relation("ApiTokenRevoker")
   twoFactorMethods   TwoFactorMethod[]
   oneTimeCodes       OneTimeCode[]
   authLockouts       AuthLockout[]
@@ -177,17 +179,21 @@ model RefreshToken {
 /// 사람이 아닌 호출자가 `@ApiTokenScope` 경로 몇 개만 부르는 토큰. 주인의 권한은 따라가지 않는다.
 /// 원문(`<prefix>_<random>`)은 발급 때 한 번만 보이고, 여기에는 sha256 해시만 둔다.
 model ApiToken {
-  id         String    @id @default(uuid())
-  userId     String
-  name       String
-  prefix     String    @unique // 원문의 앞부분 — 조회 열쇠이자 목록에서 알아보는 이름표
-  tokenHash  String    @unique // sha256(원문) hex
-  scopes     String[]
-  lastUsedAt DateTime?
-  expiresAt  DateTime?
-  revokedAt  DateTime? // 끊은 시각. 되살리지 않는다
-  createdAt  DateTime  @default(now())
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  prefix      String    @unique // 원문의 앞부분 — 조회 열쇠이자 목록에서 알아보는 이름표
+  tokenHash   String    @unique // sha256(원문) hex
+  scopes      String[]
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime? // 끊은 시각. 되살리지 않는다
+  issuedById  String? // 발급한 관리자 — 그 행이 지워져도 토큰은 남는다(SetNull)
+  revokedById String? // 끊은 관리자
+  createdAt   DateTime  @default(now())
+  user        User      @relation("ApiTokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy    User?     @relation("ApiTokenIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  revokedBy   User?     @relation("ApiTokenRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("api_tokens")

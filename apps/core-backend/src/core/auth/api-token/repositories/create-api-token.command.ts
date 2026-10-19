@@ -10,6 +10,7 @@ export async function CreateApiTokenCommand(
     tokenHash: string;
     scopes: string[];
     expiresAt: Date | null;
+    issuedById: string;
   },
 ) {
   return prisma.apiToken.create({ data, select: API_TOKEN_SELECT });

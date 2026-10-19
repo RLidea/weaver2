@@ -5,9 +5,10 @@ export async function RevokeApiTokenCommand(
   prisma: PrismaClient,
   id: string,
   now: Date,
+  revokedById: string,
 ) {
   return prisma.apiToken.updateMany({
     where: { id, revokedAt: null },
-    data: { revokedAt: now },
+    data: { revokedAt: now, revokedById },
   });
 }

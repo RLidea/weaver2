@@ -107,6 +107,7 @@ describe('API Tokens (Integration)', () => {
 
   let owner: { id: string };
   let superOwner: { id: string };
+  let superUser: { id: string };
   let superCookies: string;
   let adminCookies: string;
   let memberCookies: string;
@@ -191,7 +192,7 @@ describe('API Tokens (Integration)', () => {
     owner = await createUser('owner');
     // 최고관리자 주인 — 그래도 그 권한은 토큰에 따라가지 않아야 한다
     superOwner = await createUser('superowner', 'SuperAdmin');
-    await createUser('super', 'SuperAdmin');
+    superUser = await createUser('super', 'SuperAdmin');
     await createUser('admin', 'Admin');
     await createUser('member');
     superCookies = await cookiesOf('super');
@@ -410,6 +411,25 @@ describe('API Tokens (Integration)', () => {
         where: { id: apiToken.id },
       });
       expect(touched.lastUsedAt).toBeInstanceOf(Date);
+    });
+
+    it('발급자 · 끊은 사람이 행에 남는다', async () => {
+      const { apiToken } = await issue();
+      const issued = await prisma.apiToken.findUniqueOrThrow({
+        where: { id: apiToken.id },
+      });
+      expect(issued.issuedById).toBe(superUser.id);
+      expect(issued.revokedById).toBeNull();
+
+      const res = await adminPost(
+        `/v1/admin/api-tokens/${apiToken.id}/revoke`,
+        superCookies,
+      );
+      expect(res.status).toBe(200);
+      const revoked = await prisma.apiToken.findUniqueOrThrow({
+        where: { id: apiToken.id },
+      });
+      expect(revoked.revokedById).toBe(superUser.id);
     });
 
     it('끊은 토큰은 401 — 다시 끊어도 처음 시각이 남는다', async () => {
