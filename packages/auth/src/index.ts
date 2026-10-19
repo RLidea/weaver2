@@ -6,6 +6,7 @@ export * from './types';
 
 // API
 export * from './api/auth.api';
+export * from './sso';
 
 // 훅
 export * from './hooks/use-me';
@@ -18,6 +19,7 @@ export * from './hooks/use-sessions';
 export * from './hooks/use-two-factor';
 export * from './hooks/use-oauth-connections';
 export * from './hooks/use-verify-email';
+export * from './hooks/use-auth-providers';
 
 // 컴포넌트 (가입 폼은 약관 결합 때문에 앱 잔류 — core/sign-up)
 export * from './components/login-form';
@@ -27,3 +29,4 @@ export * from './components/verify-email-view';
 export * from './components/session-list';
 export * from './components/two-factor-settings';
 export * from './components/oauth-connections';
+export * from './components/sso-only-notice';

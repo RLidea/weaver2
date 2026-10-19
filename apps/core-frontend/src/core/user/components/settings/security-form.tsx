@@ -210,15 +210,55 @@ function ChangeEmailForm() {
 
 /* ── 통합 내보내기 ────────────────────────────────────────── */
 
-import { OAuthConnections, SessionList, TwoFactorSettings } from '@weaver2/auth';
+import {
+  OAuthConnections,
+  SessionList,
+  TwoFactorSettings,
+  useAuthProviders,
+} from '@weaver2/auth';
+import { Spinner } from '@weaver2/ui';
+
+/** AUTH_MODE=sso — 비밀번호 · 이메일 · 2FA · 소셜 연동은 계정 서버가 다룬다 */
+function AccountServerCard({ accountUrl }: { accountUrl?: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold text-text">계정 보안</h2>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 text-sm text-text-muted">
+        <p>비밀번호 · 이메일 · 2단계 인증은 통합 계정 서버에서 바꿉니다.</p>
+        {accountUrl && (
+          <a
+            href={accountUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary hover:opacity-80"
+          >
+            계정 서버에서 관리하기
+          </a>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function SecurityForm() {
+  const { providers, isSso, isLoading } = useAuthProviders();
+  if (isLoading) return <Spinner size="md" />;
+
+  // 세션 목록은 sso 에서도 이 앱의 세션이라 둔다
   return (
     <div className="space-y-6">
-      <ChangePasswordForm />
-      <ChangeEmailForm />
-      <TwoFactorSettings />
-      <OAuthConnections />
+      {isSso ? (
+        <AccountServerCard accountUrl={providers?.accountUrl} />
+      ) : (
+        <>
+          <ChangePasswordForm />
+          <ChangeEmailForm />
+          <TwoFactorSettings />
+          <OAuthConnections />
+        </>
+      )}
       <SessionList />
     </div>
   );
