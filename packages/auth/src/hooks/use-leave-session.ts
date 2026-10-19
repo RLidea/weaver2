@@ -37,7 +37,12 @@ function signOutOnce(): Promise<SignOutResult> {
     .then(
       (res) => {
         lastFailedAt = null;
-        return { cleared: true, endSessionUrl: res?.data?.endSessionUrl };
+        // http(s) 주소만 따른다 — 그 밖의 값(javascript: 등)으로 문서를 옮기지 않는다
+        const url = res?.data?.endSessionUrl;
+        return {
+          cleared: true,
+          endSessionUrl: url && /^https?:\/\//i.test(url) ? url : undefined,
+        };
       },
       () => {
         lastFailedAt = Date.now();

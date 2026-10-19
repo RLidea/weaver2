@@ -35,7 +35,7 @@
 | `ACCOUNTS_OIDC_CLIENT_SECRET` | ○ | | 로그 · 오류 메시지에 나오지 않는다 |
 | `ACCOUNTS_OIDC_REDIRECT_URI` | | `${CLIENT_URL}/api/v1/auth/oidc/callback` | 발급자에 등록한 값과 같아야 한다 |
 | `ACCOUNTS_OIDC_POST_LOGOUT_REDIRECT_URI` | | `${CLIENT_URL}/` | |
-| `ACCOUNTS_OIDC_ACCOUNT_URL` | | 없음 | 보안 설정 화면의 「계정 서버에서 관리하기」 링크 |
+| `ACCOUNTS_OIDC_ACCOUNT_URL` | | 없음 | 계정 서버의 계정 화면(예 `https://accounts.rlidea.com/account`). 보안 설정 화면은 `${accountUrl}/security` 를 **새 탭**으로 연다 — 계정 서버에는 돌아오는 단추가 없다 |
 | `ACCOUNTS_OIDC_LANGS` | | `ko` | start 의 `lang` 으로 받을 값. 첫 값이 기본 |
 | `ACCOUNTS_OIDC_FAILURE_URLS` | | `admin=/login` | 입구별 실패 주소(같은 출처의 경로, `{lang}` 가능). `입구=경로,…` 또는 JSON |
 | `ACCOUNTS_OIDC_DEFAULT_NEXT` | | `/dashboard` | `next` 가 없거나 다른 출처일 때 |
@@ -46,11 +46,11 @@
 
 - **경로**: `GET /v1/auth/oidc/start?entry=&next=&lang=` · `GET /v1/auth/oidc/callback` (둘 다 `@Public` · `@SsoOnly`, 스로틀 10/분 · 20/분)
 - **공급자 응답** `GET /v1/auth/providers`: `{ sso, password: !sso, google · kakao · naver · apple: !sso && …, accountUrl? }`
-- **로그아웃** `POST /v1/auth/sign-out`: refresh 행 · 쿠키를 먼저 지우고, sso 면 `{ endSessionUrl }` = `end_session?client_id&post_logout_redirect_uri&state` (id_token_hint 없음). 화면은 그리로 문서 이동한다(`useLogout`). 발급자에 닿지 못하면 칸만 빠지고 로그아웃은 성공이다
+- **로그아웃** `POST /v1/auth/sign-out`: refresh 행 · 쿠키를 먼저 지우고, sso 면 응답 `data.endSessionUrl` = `end_session?client_id&post_logout_redirect_uri&state` (id_token_hint 없음). 화면은 그리로 문서 이동한다(`useLogout`). 발급자에 닿지 못하면 칸만 빠지고 로그아웃은 성공이다
 - **실패 코드**(실패 주소의 `?error=`): `sso_failed` · `sso_cancelled` · `sso_unavailable` · `sso_email_unverified` · `sso_conflict` · `account_suspended` · `account_deleted`
 - **쿠키**: tx 는 운영 `__Host-oidc_tx`(Secure · `path=/` · Domain 없음), 개발 `oidc_tx`. httpOnly · `SameSite=Lax` · 10분. 세션 쿠키는 그대로(`rememberMe=false` → refresh 7일)
 - **닫히는 경로**(`@LocalAuthOnly`, sso 에서 404 `AUTH_MODE_SSO`): `auth/sign-in` · `auth/sign-up/email` · `auth/verify` · `auth/verify/resend` · `auth/password/*` · `auth/2fa/*` · `auth/oauth/*` · `users/me/password` · `users/me/email` · `users/me/email/confirm` · 관리 뷰 `admin/request-password-reset` · `admin/reset-password`. 가드(`AuthModeGuard`)는 인증 다음에 돈다 — 공개 경로는 404, 로그인이 필요한 경로(`users/me/password` 등)는 로그인 전 401 · 뒤 404, API 토큰은 범위 없는 경로에서 늘 401 그대로. 남는 것: `auth/refresh` · `auth/sign-out` · `auth/sessions` · `auth/providers` · `auth/csrf-token` · `users/me` GET · PATCH · DELETE
-- **훅** `OIDC_USER_HOOKS`: `{ names?(claims), afterSignIn?(userId, meta), onConflict?(userId, sub, meta), onLink?(userId, sub), onUnlink?(userId, sub) }`. 던져도 로그인 · 잇기는 실패하지 않는다. `meta` = `{ sub, created, lang, entry, ipAddress?, userAgent? }` — weaver2 `User` 에는 언어 칸이 없으므로 새 사람의 언어는 `afterSignIn` 의 `meta.created` · `meta.lang` 으로 파생 프로젝트가 정한다
+- **훅** `OIDC_USER_HOOKS`: `{ names?(claims), afterSignIn?(userId, meta), onConflict?(userId, sub, meta), onLink?(userId, sub), onUnlink?(userId, sub) }`. 던져도 로그인 · 잇기는 실패하지 않는다. `claims` = `{ sub, email?, email_verified, name?, preferred_username? }`(OIDC 클레임 이름 그대로), `meta` = `{ sub, created, lang, entry, ip?, country?, userAgent? }`(`country` 는 `cf-ipcountry` 헤더 — Cloudflare 뒤일 때만, 기록용) — weaver2 `User` 에는 언어 칸이 없으므로 새 사람의 언어는 `afterSignIn` 의 `meta.created` · `meta.lang` 으로 파생 프로젝트가 정한다
 - **허용 목록 확장** `PUBLIC_WRITE_ALLOWLIST_EXTRAS`: 문자열 배열(`'POST /v1/…'`, `:이름` 한 마디). `public-write-routes.integration.spec.ts` 가 앱의 모든 `@Public` 비-GET 경로를 「목록에 있거나 404」로 잰다
 - **세션**: `SignInCompletionService.completeExternal(userId, ctx, res)` — 로컬 2FA 를 묻지 않고 탈퇴 · 정지는 본다. 콜백 요청에 이미 refresh 쿠키가 있으면 그 행을 먼저 지운다
 
@@ -81,12 +81,22 @@ pnpm sso:unlink --email <주소> [--apply]                 # 신원을 새로 �
 | 길 | 언제 | 어떻게 |
 |---|---|---|
 | **가짜 발급자** (권장) | e2e · 레인에서 SSO 화면을 볼 때 | `pnpm lane:e2e <레인> --sso` 가 켜고 내린다. 손으로 보려면 `pnpm exec tsx scripts/fake-oidc-issuer.ts`(4280) + 백엔드 `.env` 에 `AUTH_MODE=sso` · `ACCOUNTS_OIDC_ISSUER=http://127.0.0.1:4280/oidc` · `ACCOUNTS_OIDC_CLIENT_ID=local` · `ACCOUNTS_OIDC_CLIENT_SECRET=local`. 가짜 로그인 화면은 이메일 칸 하나(+ 「email_verified 끄기」), sub 는 이메일에서 늘 같게 나온다 |
-| **로컬 accounts** | 진짜 oidc-provider 와 맞물리는지(end_session 확인 화면 · 약관 · 2FA) | accounts 를 프런트 3100 · 백엔드 4100 으로. issuer `http://127.0.0.1:3100/oidc`. accounts 의 `OIDC_CLIENTS` 에 이 앱의 redirect(`http://localhost:3000/api/v1/auth/oidc/callback` 과 레인 3010~3019)를 등록한다 |
+| **로컬 accounts** | 진짜 oidc-provider 와 맞물리는지(end_session 확인 화면 · 약관 · 2FA) | 아래 「로컬 accounts」 |
 
+- 가짜 발급자는 쿠키를 하나도 심지 않는다(세션 없이 폼 하나로 code 를 낸다) — 이 앱의 `access_token` · `refresh_token` 을 덮을 일이 없다
 - 가짜 발급자 포트는 `4280 + (백엔드 포트 − 4000)`: 런타임 레인 4280, 격리 레인 4290~4299. 4100 은 로컬 accounts 몫. 계획의 4180 대역은 쓰지 않는다 — 4190 이 Fetch 표준의 「bad port」라 Node fetch 가 `fetch failed (bad port)` 로 거절한다
 - Playwright 프로젝트가 둘이다 — `chromium`(local, `*sso*.spec.ts` 를 뺀다) · `sso`(`*sso*.spec.ts` 만). `lane:e2e` 는 `--project=chromium`, `lane:e2e --sso` 는 `--project=sso`. CI 는 `dev`→`main` PR 의 e2e 잡이 둘 다 돈다(「E2E (SSO)」 단계)
-- ⚠ 쿠키는 포트를 가르지 않는다. 로컬 accounts 와 이 앱이 둘 다 `localhost` 면 `access_token` 이 서로를 덮는다 → accounts 는 `127.0.0.1:3100`, 이 앱은 `localhost:3000`
+- ⚠ 쿠키는 포트를 가르지 않는다. 로컬 accounts 와 이 앱이 둘 다 `localhost` 면 `access_token` 이 서로를 덮는다 → accounts 는 `127.0.0.1:4100`, 이 앱은 `localhost` (아래 「로컬 accounts」)
 - ⚠ 개발에서는 tx 쿠키가 `__Host-` 가 아니다(Secure 가 아니라서). 운영 이름은 `oidc-transaction.spec.ts` 가 잰다
+
+### 로컬 accounts (실측 전)
+
+RLidea 의 accounts(accounts.rlidea) 는 로컬 손님 하나를 둔다 — 2026-10-19 accounts 답, **아직 이 조합으로 끝까지 돌려 보지 않았다.**
+
+- accounts 를 `PORT=4100` 으로, **`127.0.0.1:4100`** 으로 연다(그 쪽 `CLIENT_URL` 도 `http://127.0.0.1:4100`). 브라우저 쿠키는 포트를 가르지 않는다 — 둘 다 `localhost` 면 accounts 와 이 앱의 `access_token` · `refresh_token` 이 서로를 덮는다. 호스트(`127.0.0.1` 대 `localhost`)로 가른다
+- accounts 의 `OIDC_CLIENTS` 에 `rlidea-app-local`(비밀 `local-dev-secret`). 등록된 redirect 는 **백엔드 직접** `http://localhost:4000/v1/auth/oidc/callback` · `http://localhost:4010~4019/v1/auth/oidc/callback`, post_logout 은 `http://localhost:3000/` · `3010~3019`
+- 이 앱의 `.env`: `AUTH_MODE=sso` · `ACCOUNTS_OIDC_ISSUER=http://127.0.0.1:4100/oidc`(accounts 안내판의 issuer 와 글자까지 같게) · `ACCOUNTS_OIDC_CLIENT_ID=rlidea-app-local` · `ACCOUNTS_OIDC_CLIENT_SECRET=local-dev-secret` · `ACCOUNTS_OIDC_REDIRECT_URI=http://localhost:4000/v1/auth/oidc/callback`(백엔드 포트에 맞춰)
+- ⚠ 콜백이 백엔드 출처(`:4000`)로 오면 마지막 302 의 `next`(경로)도 백엔드 출처에서 풀린다 — `/admin` 이면 프런트가 아니라 백엔드의 정적 관리 뷰로 간다. 쿠키는 호스트(`localhost`)로 붙어 프런트에도 실리므로 세션은 산다. 프런트로 바로 돌아오려면 accounts 에 프런트 경유 redirect(`http://localhost:3000/api/v1/auth/oidc/callback` · `3010~3019`)를 더해 달라고 하고 `ACCOUNTS_OIDC_REDIRECT_URI` 를 비운다(기본값이 그것이다)
 
 ## 되돌리기 — 함정 하나
 

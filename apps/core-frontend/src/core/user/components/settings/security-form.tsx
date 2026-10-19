@@ -218,7 +218,10 @@ import {
 } from '@weaver2/auth';
 import { Spinner } from '@weaver2/ui';
 
-/** AUTH_MODE=sso — 비밀번호 · 이메일 · 2FA · 소셜 연동은 계정 서버가 다룬다 */
+/**
+ * AUTH_MODE=sso — 비밀번호 · 이메일 · 2FA · 소셜 연동은 계정 서버의 보안 화면(`${accountUrl}/security`)이
+ * 다룬다. 계정 서버에는 이 앱으로 돌아오는 단추가 없어 새 탭으로 연다.
+ */
 function AccountServerCard({ accountUrl }: { accountUrl?: string }) {
   return (
     <Card>
@@ -229,7 +232,7 @@ function AccountServerCard({ accountUrl }: { accountUrl?: string }) {
         <p>비밀번호 · 이메일 · 2단계 인증은 통합 계정 서버에서 바꿉니다.</p>
         {accountUrl && (
           <a
-            href={accountUrl}
+            href={`${accountUrl.replace(/\/+$/, '')}/security`}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-primary hover:opacity-80"

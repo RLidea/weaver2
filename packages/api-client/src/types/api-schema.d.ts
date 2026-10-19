@@ -2943,7 +2943,7 @@ export interface components {
             naver: boolean;
             /** @description Apple OAuth 사용 가능 여부 (APPLE_OAUTH_ENABLED=true 일 때만) */
             apple: boolean;
-            /** @description 계정 서버의 계정 화면 주소(ACCOUNTS_OIDC_ACCOUNT_URL). sso 이고 설정했을 때만 실린다 */
+            /** @description 계정 서버의 계정 화면 주소(ACCOUNTS_OIDC_ACCOUNT_URL, 예: https://accounts.rlidea.com/account). 보안 화면은 `${accountUrl}/security`. 새 탭으로 연다(돌아오는 단추가 없다). sso 이고 설정했을 때만 실린다 */
             accountUrl?: string;
         };
         ApiTokenOwnerDto: {

@@ -48,7 +48,7 @@
 - **시계 허용 60초**: `[client.clockTolerance]: 60`
 - **5초 시간 제한**: `timeout: 5` — 모든 요청에 `AbortSignal.timeout(5000)`
 - **JWKS**: oauth4webapi 의 캐시가 **5분**(계획의 10분보다 짧다 — 더 자주 받을 뿐 안전 쪽), 모르는 kid 면 받은 지 **60초가 지났을 때만** 다시 받는다 — 계획의 「60초에 한 번」과 같은 규칙이 라이브러리에 이미 있다
-- **평문 http**: `allowInsecureRequests` 는 **발급자가 loopback(localhost · 127.0.0.1 · ::1) http 일 때만** 건다. 시험 · e2e 의 가짜 발급자와 로컬 accounts(`http://127.0.0.1:3100/oidc`)가 여기 든다. 운영 발급자는 https 라 걸 수 없고, http 비-loopback 발급자는 부팅이 멈춘다(`auth-mode.ts`)
+- **평문 http**: `allowInsecureRequests` 는 **발급자가 loopback(localhost · 127.0.0.1 · ::1) http 일 때만** 건다. 시험 · e2e 의 가짜 발급자와 로컬 accounts(`http://127.0.0.1:4100/oidc`)가 여기 든다. 운영 발급자는 https 라 걸 수 없고, http 비-loopback 발급자는 부팅이 멈춘다(`auth-mode.ts`)
 - `iss` 응답 매개변수는 안내판 값과 무관하게 **우리가 먼저 요구**한다(D4 ③)
 
 ## 구현 기록 (2026-10-19, 레인 `sso`) — 계획과 다르게 간 곳
@@ -220,6 +220,8 @@ weaver2 의 **공급자** 쪽(accounts 가 쓰는 `oidc-provider`)이 이미 `OI
 - [ ] 받아들임: `pnpm test:web` · `pnpm lane:e2e <레인> --sso` 초록, `pnpm lane:e2e <레인>` 이 local 로 그대로 초록
 
 ## 로컬 개발 SSO — 개발자 · 레인이 로그인하는 길
+
+> **2026-10-19 accounts 답으로 바뀜:** 로컬 accounts 는 `127.0.0.1:4100` 하나(손님 `rlidea-app-local` · 비밀 `local-dev-secret` · redirect 는 백엔드 직접 `localhost:4000 · 4010~4019/v1/auth/oidc/callback`), 아래 표의 3100 · 프런트 경유 redirect 는 낡았다. 정본은 `docs/handbook/11-sso.md` 「로컬 accounts」. 계정 링크는 `ACCOUNTS_OIDC_ACCOUNT_URL`(예 `https://accounts.rlidea.com/account`), 보안 화면 `${accountUrl}/security` 를 새 탭으로.
 
 **기본은 그대로 `AUTH_MODE=local` 이다** — 개발 서버 · 편집 레인 · 격리 레인 · CI 모두. 운영 accounts 에는 localhost 손님이 없다. SSO 를 봐야 할 때만:
 
