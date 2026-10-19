@@ -124,6 +124,30 @@ describe('readAuthModeConfig', () => {
   });
 });
 
+describe('ACCOUNTS_OIDC_ACCOUNT_URL', () => {
+  it.each([
+    'javascript:alert(1)',
+    'http://accounts.example.com/account',
+    'not a url',
+    'ftp://accounts.example.com/',
+  ])('%s → 던진다', (url) => {
+    expect(() => read({ ...SSO, ACCOUNTS_OIDC_ACCOUNT_URL: url })).toThrow(
+      'ACCOUNTS_OIDC_ACCOUNT_URL',
+    );
+  });
+
+  it('https · localhost http 는 받는다', () => {
+    for (const url of [
+      'https://accounts.example.com/account',
+      'http://127.0.0.1:4100/account',
+    ]) {
+      expect(
+        read({ ...SSO, ACCOUNTS_OIDC_ACCOUNT_URL: url }).sso?.accountUrl,
+      ).toBe(url);
+    }
+  });
+});
+
 describe('normalizeSameOriginPath', () => {
   it('같은 출처의 경로는 풀린 꼴로 돌려준다', () => {
     expect(normalizeSameOriginPath('/admin/users?tab=a#x')).toBe(

@@ -35,7 +35,7 @@
 | `ACCOUNTS_OIDC_CLIENT_SECRET` | ○ | | 로그 · 오류 메시지에 나오지 않는다 |
 | `ACCOUNTS_OIDC_REDIRECT_URI` | | `${CLIENT_URL}/api/v1/auth/oidc/callback` | 발급자에 등록한 값과 같아야 한다 |
 | `ACCOUNTS_OIDC_POST_LOGOUT_REDIRECT_URI` | | `${CLIENT_URL}/` | |
-| `ACCOUNTS_OIDC_ACCOUNT_URL` | | 없음 | 계정 서버의 계정 화면(예 `https://accounts.rlidea.com/account`). 보안 설정 화면은 `${accountUrl}/security` 를 **새 탭**으로 연다 — 계정 서버에는 돌아오는 단추가 없다 |
+| `ACCOUNTS_OIDC_ACCOUNT_URL` | | 없음 | 계정 서버의 계정 화면(예 `https://accounts.rlidea.com/account`). https 만(평문 http 는 localhost 만 — 아니면 부팅이 멈춘다). 보안 설정 화면은 `${accountUrl}/security` 를 **새 탭**으로 연다 — 계정 서버에는 돌아오는 단추가 없다 |
 | `ACCOUNTS_OIDC_LANGS` | | `ko` | start 의 `lang` 으로 받을 값. 첫 값이 기본 |
 | `ACCOUNTS_OIDC_FAILURE_URLS` | | `admin=/login` | 입구별 실패 주소(같은 출처의 경로, `{lang}` 가능). `입구=경로,…` 또는 JSON |
 | `ACCOUNTS_OIDC_DEFAULT_NEXT` | | `/dashboard` | `next` 가 없거나 다른 출처일 때 |

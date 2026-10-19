@@ -190,6 +190,25 @@ export function readAuthModeConfig(
     throw new Error('ACCOUNTS_OIDC_LANGS must be a comma list like ko,en,ja');
   }
 
+  // 화면이 새 탭 링크로 그린다 — javascript: · 평문 http 원격 주소가 끼지 않게
+  const accountUrl = value('ACCOUNTS_OIDC_ACCOUNT_URL');
+  if (accountUrl) {
+    let parsed: URL | undefined;
+    try {
+      parsed = new URL(accountUrl);
+    } catch {
+      parsed = undefined;
+    }
+    if (
+      !parsed ||
+      (parsed.protocol !== 'https:' && !isLoopbackHttp(accountUrl))
+    ) {
+      throw new Error(
+        'ACCOUNTS_OIDC_ACCOUNT_URL must be https (plain http only for localhost)',
+      );
+    }
+  }
+
   const defaultNext = value('ACCOUNTS_OIDC_DEFAULT_NEXT') ?? '/dashboard';
   if (!isSameOriginPath(defaultNext)) {
     throw new Error('ACCOUNTS_OIDC_DEFAULT_NEXT must be a same-origin path');
@@ -203,7 +222,7 @@ export function readAuthModeConfig(
       clientSecret: value('ACCOUNTS_OIDC_CLIENT_SECRET')!,
       redirectUri,
       postLogoutRedirectUri,
-      accountUrl: value('ACCOUNTS_OIDC_ACCOUNT_URL'),
+      accountUrl,
       langs,
       failureUrls: parseFailureUrls(
         value('ACCOUNTS_OIDC_FAILURE_URLS') ?? 'admin=/login',
