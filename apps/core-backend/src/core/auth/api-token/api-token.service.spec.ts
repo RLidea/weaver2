@@ -8,6 +8,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { createHash } from 'crypto';
 import { PermissionService } from '../../permission/services/permission.service';
 import { ApiTokenService } from './api-token.service';
+import * as apiTokenCrypto from './api-token.crypto';
 import { generateApiToken } from './api-token.crypto';
 
 const NOW = new Date('2026-10-19T00:00:00.000Z');
@@ -24,7 +25,6 @@ describe('ApiTokenService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),
-      update: jest.fn(),
       updateMany: jest.fn(),
     },
   };
@@ -200,16 +200,26 @@ describe('ApiTokenService', () => {
       await expect(service.verify(issued)).resolves.not.toBeNull();
     });
 
+    it('prefix 에 맞는 행이 없어도 해시 대조를 한 번 한다 (응답 시간)', async () => {
+      const spy = jest.spyOn(apiTokenCrypto, 'matchesTokenHash');
+      prisma.apiToken.findUnique.mockResolvedValue(null);
+      await expect(service.verify(issued)).resolves.toBeNull();
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0][1]).toMatch(/^[0-9a-f]{64}$/);
+      spy.mockRestore();
+    });
+
     it('verify 는 lastUsedAt 을 쓰지 않는다 — 범위 판정 뒤 markUsed 가 쓴다', async () => {
       prisma.apiToken.findUnique.mockResolvedValue(row());
       await service.verify(issued);
-      expect(prisma.apiToken.update).not.toHaveBeenCalled();
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
     });
   });
 
-  it('markUsed 는 lastUsedAt 을 지금으로', async () => {
-    await service.markUsed('t1');
-    expect(prisma.apiToken.update).toHaveBeenCalledWith({
+  it('markUsed 는 lastUsedAt 을 지금으로 — 행이 없어도 던지지 않게 updateMany', async () => {
+    prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.markUsed('t1')).resolves.toBeUndefined();
+    expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
       where: { id: 't1' },
       data: { lastUsedAt: NOW },
     });

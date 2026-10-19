@@ -8,6 +8,13 @@ export interface RequestActor {
   kind: 'SESSION' | 'TOKEN';
 }
 
+/**
+ * - 토큰으로 인증된 요청: `{ userId: 주인, kind: 'TOKEN' }`
+ * - 로그인 세션: `{ userId: 사용자, kind: 'SESSION' }`
+ * - 비로그인(공개 경로): `{ userId: null, kind: 'SESSION' }` — 「토큰이 아니다」라는 뜻이다.
+ *   따로 ANON 을 두지 않는 것은 `PostRevisionActorKind`(SESSION · TOKEN)와 그대로 맞추기 위해서다.
+ *   익명인지는 `userId === null` 로 가른다
+ */
 export function getRequestActor(request: Request): RequestActor {
   // 세션은 JwtStrategy.validate, 토큰은 JwtAuthGuard 가 채운 모양 — 둘 다 { id, isLogin }
   const user: { id?: string; isLogin?: boolean } | undefined = request.user;
