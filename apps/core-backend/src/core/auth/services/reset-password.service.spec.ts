@@ -32,6 +32,7 @@ describe('ResetPasswordService', () => {
   const mockUpdate = UpdateLocalCredentialPasswordCommand as jest.Mock;
   const mockRevokeSessions = DeleteRefreshTokensByUserIdCommand as jest.Mock;
   const tx = {
+    $queryRaw: jest.fn(),
     user: { findUnique: jest.fn(), update: jest.fn() },
     userSetting: { updateMany: jest.fn() },
     oneTimeCode: { deleteMany: jest.fn() },

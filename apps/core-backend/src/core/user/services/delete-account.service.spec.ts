@@ -11,6 +11,7 @@ import { SoftDeleteUserCommand } from '../repositories/soft-delete-user.command'
 
 describe('DeleteAccountService — 탈퇴 정리 자리', () => {
   const tx = {
+    $queryRaw: jest.fn(),
     refreshToken: { deleteMany: jest.fn() },
     oAuthAccount: { deleteMany: jest.fn() },
     localCredential: { deleteMany: jest.fn() },
@@ -32,6 +33,17 @@ describe('DeleteAccountService — 탈퇴 정리 자리', () => {
     await service.execute('u1');
 
     expect(SoftDeleteUserCommand).toHaveBeenCalledWith(tx, 'u1');
+  });
+
+  it('users 를 먼저 잠그고 refresh 행을 지운다 — 회전 · back-channel 로그아웃과 같은 순서라 교착이 없다', async () => {
+    const service = new DeleteAccountService(prisma, permissionService);
+
+    await service.execute('u1');
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.refreshToken.deleteMany.mock.invocationCallOrder[0],
+    );
   });
 
   it('탈퇴 표시 뒤 같은 트랜잭션으로 정리 함수를 차례로 부른다', async () => {
