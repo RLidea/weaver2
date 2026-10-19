@@ -15,10 +15,10 @@ import { FindApiTokenByPrefixQuery } from './repositories/find-api-token-by-pref
 import { RevokeApiTokenCommand } from './repositories/revoke-api-token.command';
 import { TouchApiTokenCommand } from './repositories/touch-api-token.command';
 
-/** 인증에 성공한 토큰 — 가드가 `req.apiToken` · `req.user` 를 이것으로 채운다 */
 /** prefix 가 없을 때 대신 대조할 해시 — 있을 때와 같은 일을 해서 응답 시간 차이를 줄인다 */
 const DUMMY_TOKEN_HASH = generateApiToken().tokenHash;
 
+/** 인증에 성공한 토큰 — 가드가 `req.apiToken` · `req.user` 를 이것으로 채운다 */
 export interface VerifiedApiToken {
   id: string;
   scopes: string[];
