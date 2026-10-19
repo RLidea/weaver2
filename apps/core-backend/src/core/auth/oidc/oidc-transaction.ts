@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { CookieOptions, Request, Response } from 'express';
 import { hkdfSync } from 'crypto';
 import { TOKEN_AUDIENCE } from '../strategy/token-audience';
+import { AUTH_MODE_CONFIG, AuthModeConfig } from '../auth-mode';
 
 /** start 에서 정해 callback 까지 들고 가는 것 */
 export interface OidcTx {
@@ -34,33 +35,36 @@ export function deriveTxKey(jwtSecret: string): Buffer {
  * SSO 로그인 진행 쿠키. state · nonce · verifier · next · lang · entry 를 HS256 JWT(aud `oidc-tx`,
  * 10분)로 서명해 담는다 — 서버에 상태를 두지 않는다.
  *
- * 이름은 운영에서 `__Host-oidc_tx`(Secure · `path=/` · Domain 없음): 형제 서브도메인(staging)이
- * 같은 이름의 쿠키를 심어 섞을 틈을 막는다. 개발은 Secure 를 못 걸어 `oidc_tx` 다.
+ * 이름은 콜백(redirect URI)이 https 면 `__Host-oidc_tx`(Secure · `path=/` · Domain 없음): 형제
+ * 서브도메인(staging)이 같은 이름의 쿠키를 심어 섞을 틈을 막는다. http 콜백(개발 · e2e)은 Secure 를
+ * 못 걸어 `oidc_tx` 다. NODE_ENV 가 아니라 콜백의 scheme 을 본다 — NODE_ENV 를 잘못 둔 https
+ * 서버에서도 Secure 가 빠지지 않게(보안 검토 M1).
  * `SameSite=Lax` — 콜백은 발급자에서 오는 최상위 GET 이라 실린다.
  */
 @Injectable()
 export class OidcTransaction {
   private readonly key: Buffer;
+  private readonly secure: boolean;
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    configService: ConfigService,
+    @Inject(AUTH_MODE_CONFIG) authMode: AuthModeConfig,
   ) {
     this.key = deriveTxKey(configService.getOrThrow<string>('JWT_SECRET'));
-  }
-
-  private get isProduction(): boolean {
-    return this.configService.get('NODE_ENV') === 'production';
+    this.secure =
+      authMode.mode === 'sso' &&
+      new URL(authMode.sso.redirectUri).protocol === 'https:';
   }
 
   get cookieName(): string {
-    return this.isProduction ? '__Host-oidc_tx' : 'oidc_tx';
+    return this.secure ? '__Host-oidc_tx' : 'oidc_tx';
   }
 
   private get cookieOptions(): CookieOptions {
     return {
       httpOnly: true,
-      secure: this.isProduction,
+      secure: this.secure,
       sameSite: 'lax',
       path: '/',
     };

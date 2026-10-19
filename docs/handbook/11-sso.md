@@ -48,7 +48,7 @@
 - **공급자 응답** `GET /v1/auth/providers`: `{ sso, password: !sso, google · kakao · naver · apple: !sso && …, accountUrl? }`
 - **로그아웃** `POST /v1/auth/sign-out`: refresh 행 · 쿠키를 먼저 지우고, sso 면 응답 `data.endSessionUrl` = `end_session?client_id&post_logout_redirect_uri&state` (id_token_hint 없음). 화면은 그리로 문서 이동한다(`useLogout`). 발급자에 닿지 못하면 칸만 빠지고 로그아웃은 성공이다
 - **실패 코드**(실패 주소의 `?error=`): `sso_failed` · `sso_cancelled` · `sso_unavailable` · `sso_email_unverified` · `sso_conflict` · `account_suspended` · `account_deleted`
-- **쿠키**: tx 는 운영 `__Host-oidc_tx`(Secure · `path=/` · Domain 없음), 개발 `oidc_tx`. httpOnly · `SameSite=Lax` · 10분. 세션 쿠키는 그대로(`rememberMe=false` → refresh 7일)
+- **쿠키**: tx 는 콜백(redirect URI)이 https 면 `__Host-oidc_tx`(Secure · `path=/` · Domain 없음), http 면 `oidc_tx` — NODE_ENV 가 아니라 콜백의 scheme 으로 정한다. httpOnly · `SameSite=Lax` · 10분. 세션 쿠키는 그대로(`rememberMe=false` → refresh 7일)
 - **닫히는 경로**(`@LocalAuthOnly`, sso 에서 404 `AUTH_MODE_SSO`): `auth/sign-in` · `auth/sign-up/email` · `auth/verify` · `auth/verify/resend` · `auth/password/*` · `auth/2fa/*` · `auth/oauth/*` · `users/me/password` · `users/me/email` · `users/me/email/confirm` · 관리 뷰 `admin/request-password-reset` · `admin/reset-password`. 가드(`AuthModeGuard`)는 인증 다음에 돈다 — 공개 경로는 404, 로그인이 필요한 경로(`users/me/password` 등)는 로그인 전 401 · 뒤 404, API 토큰은 범위 없는 경로에서 늘 401 그대로. 남는 것: `auth/refresh` · `auth/sign-out` · `auth/sessions` · `auth/providers` · `auth/csrf-token` · `users/me` GET · PATCH · DELETE
 - **훅** `OIDC_USER_HOOKS`: `{ names?(claims), afterSignIn?(userId, meta), onConflict?(userId, sub, meta), onLink?(userId, sub), onUnlink?(userId, sub) }`. 던져도 로그인 · 잇기는 실패하지 않는다. `claims` = `{ sub, email?, email_verified, name?, preferred_username? }`(OIDC 클레임 이름 그대로), `meta` = `{ sub, created, lang, entry, ip?, country?, userAgent? }`(`country` 는 `cf-ipcountry` 헤더 — Cloudflare 뒤일 때만, 기록용) — weaver2 `User` 에는 언어 칸이 없으므로 새 사람의 언어는 `afterSignIn` 의 `meta.created` · `meta.lang` 으로 파생 프로젝트가 정한다
 - **허용 목록 확장** `PUBLIC_WRITE_ALLOWLIST_EXTRAS`: 문자열 배열(`'POST /v1/…'`, `:이름` 한 마디). `public-write-routes.integration.spec.ts` 가 앱의 모든 `@Public` 비-GET 경로를 「목록에 있거나 404」로 잰다
@@ -87,7 +87,7 @@ pnpm sso:unlink --email <주소> [--apply]                 # 신원을 새로 �
 - 가짜 발급자 포트는 `4280 + (백엔드 포트 − 4000)`: 런타임 레인 4280, 격리 레인 4290~4299. 4100 은 로컬 accounts 몫. 계획의 4180 대역은 쓰지 않는다 — 4190 이 Fetch 표준의 「bad port」라 Node fetch 가 `fetch failed (bad port)` 로 거절한다
 - Playwright 프로젝트가 둘이다 — `chromium`(local, `*sso*.spec.ts` 를 뺀다) · `sso`(`*sso*.spec.ts` 만). `lane:e2e` 는 `--project=chromium`, `lane:e2e --sso` 는 `--project=sso`. CI 는 `dev`→`main` PR 의 e2e 잡이 둘 다 돈다(「E2E (SSO)」 단계)
 - ⚠ 쿠키는 포트를 가르지 않는다. 로컬 accounts 와 이 앱이 둘 다 `localhost` 면 `access_token` 이 서로를 덮는다 → accounts 는 `127.0.0.1:4100`, 이 앱은 `localhost` (아래 「로컬 accounts」)
-- ⚠ 개발에서는 tx 쿠키가 `__Host-` 가 아니다(Secure 가 아니라서). 운영 이름은 `oidc-transaction.spec.ts` 가 잰다
+- ⚠ http 콜백(개발 · e2e)에서는 tx 쿠키가 `__Host-` 가 아니다(Secure 를 못 건다). https 이름은 `oidc-transaction.spec.ts` 가 잰다
 
 ### 로컬 accounts (실측 전)
 

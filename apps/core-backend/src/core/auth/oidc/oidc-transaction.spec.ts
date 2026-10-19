@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { OidcTransaction, OidcTx } from './oidc-transaction';
+import { AuthModeConfig } from '../auth-mode';
 
 const TX: OidcTx = {
   state: 's',
@@ -12,7 +13,10 @@ const TX: OidcTx = {
   entry: 'admin',
 };
 
-function make(env: Record<string, string>) {
+const HTTP_CALLBACK = 'http://localhost:3000/api/v1/auth/oidc/callback';
+const HTTPS_CALLBACK = 'https://app.example.com/api/v1/auth/oidc/callback';
+
+function make(env: Record<string, string>, redirectUri = HTTP_CALLBACK) {
   const config = {
     get: (k: string) => env[k],
     getOrThrow: (k: string) => env[k],
@@ -20,6 +24,7 @@ function make(env: Record<string, string>) {
   return new OidcTransaction(
     new JwtService({ secret: env.JWT_SECRET }),
     config as unknown as ConfigService,
+    { mode: 'sso', sso: { redirectUri } } as AuthModeConfig,
   );
 }
 
@@ -36,8 +41,11 @@ function fakeResponse() {
 }
 
 describe('OidcTransaction', () => {
-  it('운영: __Host-oidc_tx · Secure · path=/ · Domain 없음 · httpOnly · SameSite=Lax · 10분', () => {
-    const tx = make({ JWT_SECRET: 'x'.repeat(32), NODE_ENV: 'production' });
+  it('https 콜백: __Host-oidc_tx · Secure · path=/ · Domain 없음 · httpOnly · SameSite=Lax · 10분 — NODE_ENV 와 무관', () => {
+    const tx = make(
+      { JWT_SECRET: 'x'.repeat(32), NODE_ENV: 'development' },
+      HTTPS_CALLBACK,
+    );
     const { res, cookies } = fakeResponse();
     tx.write(res, TX);
     expect(cookies).toHaveLength(1);
@@ -51,8 +59,8 @@ describe('OidcTransaction', () => {
     });
   });
 
-  it('개발: oidc_tx, Secure 아님', () => {
-    const tx = make({ JWT_SECRET: 'x'.repeat(32), NODE_ENV: 'development' });
+  it('http 콜백: oidc_tx, Secure 아님 — NODE_ENV=production 이어도', () => {
+    const tx = make({ JWT_SECRET: 'x'.repeat(32), NODE_ENV: 'production' });
     const { res, cookies, cleared } = fakeResponse();
     tx.write(res, TX);
     tx.clear(res);
