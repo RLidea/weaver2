@@ -1,9 +1,13 @@
+import { Logger } from '@nestjs/common';
+
 /**
  * SSO 로그인 · 잇기에 파생 프로젝트가 덧붙이는 자리 (`AUTH_PROVIDER_EXTRAS` ·
  * `USER_WITHDRAWAL_HOOKS` 처럼 전역 모듈에서 이 토큰으로 내준다). 모든 칸은 고를 수 있다.
  *
  * **훅이 던져도 로그인 · 잇기는 실패하지 않는다** — 경고 로그만 남는다. 기록(인증 사건) ·
  * 권리 붙이기처럼 「되면 좋은」 일을 거는 곳이지, 로그인을 막는 문이 아니다.
+ * 훅마다 **`OIDC_HOOK_TIMEOUT_MS`(3초)** 까지만 기다린다 — 걸린 훅이 콜백을 붙잡지 못한다. 시간을
+ * 넘긴 훅은 뒤에서 계속 돌 수 있지만 로그인은 기다리지 않는다(`names` 는 기본 생성기로 넘어간다).
  *
  * @example
  * ```ts
@@ -24,6 +28,37 @@
  * ```
  */
 export const OIDC_USER_HOOKS = Symbol('OIDC_USER_HOOKS');
+
+/** 훅 하나를 기다리는 한도 */
+export const OIDC_HOOK_TIMEOUT_MS = 3_000;
+
+/**
+ * 훅을 부르고 한도까지만 기다린다. 던지거나 한도를 넘기면 경고 로그만 남기고 `undefined` —
+ * 부른 쪽(로그인 · 잇기)은 실패하지 않는다.
+ */
+export async function runOidcHook<T>(
+  logger: Pick<Logger, 'warn'>,
+  name: string,
+  fn: (() => T | Promise<T>) | undefined,
+  timeoutMs = OIDC_HOOK_TIMEOUT_MS,
+): Promise<T | undefined> {
+  if (!fn) return undefined;
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(fn), timeout]);
+  } catch (err) {
+    logger.warn(`OIDC_USER_HOOKS.${name} failed: ${(err as Error).message}`);
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** userinfo 에서 받은 것 (OIDC 클레임 이름 그대로) — 이메일은 로그에 남기지 않는다(추적은 sub 로) */
 export interface OidcUserClaims {
@@ -57,7 +92,11 @@ export interface OidcUserHooks {
     | { username: string; displayName: string };
   /** 세션을 준 뒤 */
   afterSignIn?(userId: string, meta: OidcSignInMeta): Promise<void> | void;
-  /** 모르는 sub 인데 같은 이메일의 행이 있어 멈췄다(`sso_conflict`). userId 는 그 행 */
+  /**
+   * 모르는 sub 인데 같은 이메일의 행이 있어 멈췄다(`sso_conflict`). userId 는 그 행.
+   * **기록 전용이다.** 여기서 `ssoSubject` 를 쓰거나 행을 이어서는 안 된다 — 그러면 이메일 자동 잇기
+   * (계정 탈취 경로, Q12)가 훅으로 되살아난다. 잇기는 사람이 대조한 뒤 `pnpm sso:link` 로만 한다.
+   */
   onConflict?(
     userId: string,
     sub: string,

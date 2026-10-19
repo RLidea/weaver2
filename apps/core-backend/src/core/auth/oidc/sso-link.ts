@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@weaver2/prisma';
 import { normalizeEmail } from '../utils/email.util';
-import { OidcUserHooks } from './oidc-user-hooks';
+import { OidcUserHooks, runOidcHook } from './oidc-user-hooks';
 
 /**
  * 운영자 손 — 이미 있는 행을 바깥 신원(sub)에 한 번 잇고(`pnpm sso:link`), 풀고(`pnpm sso:unlink`).
@@ -110,13 +110,8 @@ export function findLinkRows(
 
 const logger = new Logger('SsoLink');
 
-async function callHook(name: string, fn: (() => unknown) | undefined) {
-  if (!fn) return;
-  try {
-    await fn();
-  } catch (err) {
-    logger.warn(`OIDC_USER_HOOKS.${name} failed: ${(err as Error).message}`);
-  }
+function callHook(name: string, fn: (() => unknown) | undefined) {
+  return runOidcHook(logger, name, fn);
 }
 
 /** 잇는다 — 그사이 누가 먼저 이었으면(ssoSubject 가 null 이 아니면) 쓰지 않고 던진다 */

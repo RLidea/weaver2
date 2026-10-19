@@ -9,6 +9,7 @@ import {
 import { OidcError } from './oidc-client';
 import {
   OIDC_USER_HOOKS,
+  runOidcHook,
   OidcSignInMeta,
   OidcUserClaims,
   OidcUserHooks,
@@ -186,15 +187,12 @@ export class OidcSubjectService {
     claims: OidcUserClaims,
     email: string,
   ): Promise<{ username: string; displayName: string }> {
-    if (this.hooks.names) {
-      try {
-        return await this.hooks.names(claims);
-      } catch (err) {
-        this.logger.warn(
-          `OIDC_USER_HOOKS.names failed, using defaults: ${(err as Error).message}`,
-        );
-      }
-    }
+    const named = await runOidcHook(
+      this.logger,
+      'names',
+      this.hooks.names && (() => this.hooks.names!(claims)),
+    );
+    if (named) return named;
     return {
       username: await generateUniqueUsername(this.prisma, 'sso', claims.sub),
       displayName: await generateUniqueDisplayName(
@@ -205,12 +203,6 @@ export class OidcSubjectService {
   }
 
   private async callHook(name: string, fn: () => unknown) {
-    try {
-      await fn();
-    } catch (err) {
-      this.logger.warn(
-        `OIDC_USER_HOOKS.${name} failed: ${(err as Error).message}`,
-      );
-    }
+    await runOidcHook(this.logger, name, fn);
   }
 }
