@@ -121,7 +121,7 @@ function failurePath(
  * 전역 필터에 넘겨 다른 경로와 같은 429 를 준다
  */
 @Catch(ThrottlerException)
-class OidcBusyFilter implements ExceptionFilter {
+export class OidcBusyFilter implements ExceptionFilter {
   constructor(
     @Inject(AUTH_MODE_CONFIG) private readonly authMode: AuthModeConfig,
     private readonly transaction: OidcTransaction,
