@@ -69,6 +69,7 @@ W1~W5 를 이 계획대로 지었다. 다르게 간 곳과 그 이유:
 | 10 | 프런트 시험 vitest | `packages/auth/src/sso.ts`(순수 도우미)를 jest 로, 화면은 Playwright `sso` 프로젝트로 | weaver2 에 vitest 가 없다. 백엔드 jest 의 roots 에 `packages/auth/src` 를 더했다 |
 | 11 | Playwright `testMatch: /sso.*\.spec\.ts$/` | `/\/[^/]*sso[^/]*\.spec\.ts$/` | 정규식은 **절대 경로**에 맞춰진다 — 레인이 `.claude/worktrees/sso/…` 라 모든 스펙이 sso 로 잡혔다 |
 | 12 | tx 를 못 읽을 때 실패 주소 | 표의 `site` → `admin` → 첫 입구 (D4 그대로) | W4 시험 줄의 「admin 실패 주소」는 기본 표(`admin=/login`)일 때다. 통합 시험은 `site` 가 있는 표라 `/ko/account/sign-in/` 을 잰다 |
+| 13 | back-channel 로그아웃은 계획 밖 | **D16 으로 지음**(레인 `bcl`) | accounts 가 지었다(`oidc-backchannel.service.ts` — 실패하면 outbox 로 1 · 2 · 4 … 분, 하루, 매번 새로 서명). logout_token 검증은 jose(openid-client 가 쓰는 것과 같은 판, 직접 의존으로)의 `createRemoteJWKSet` · `jwtVerify` — openid-client 의 JWKS 캐시는 밖에서 쓸 수 없어 같은 주소로 하나 더 둔다(30초 쿨다운 · 10분) |
 
 검증(레인 DB `weaver2_sso`): `pnpm typecheck` · `pnpm lint:check`(오류 0) · `pnpm test:core` 66 묶음 552 · `pnpm test:integration` 18 묶음 194 · Playwright `sso` 6(빌드본 + 가짜 발급자, 백엔드 `AUTH_MODE=sso`) · `chromium` 29(local).
 
@@ -77,7 +78,8 @@ W1~W5 를 이 계획대로 지었다. 다르게 간 곳과 그 이유:
 - **H1** 점 마디 열린 리다이렉트(`/.//evil.com` · `/..//evil.com` · `/%2e//evil.com` · `/a/..//evil.com` · `/x/../\evil.com` · `/./\evil.com`) — 출처 비교 뒤 **풀린 경로**가 `//` · `/\` 로 시작하면 버린다. 백엔드 `normalizeSameOriginPath`(next · 설정의 실패 주소 · 기본 next), 프런트 `safeRedirectPath`(`packages/auth/src/redirect-path.ts`). 여섯 벡터를 단위 · 통합 시험에
 - **M1** `oidc_tx` 의 `__Host-` · Secure 는 redirect URI 가 https 인지로 정한다(NODE_ENV 아님)
 - **M2** 훅은 3초(`OIDC_HOOK_TIMEOUT_MS`)까지만 기다린다 · `onConflict` 는 기록 전용(`ssoSubject` 를 쓰면 안 됨, 잇기는 `sso:link` 만)
-- **L1** 요청 로그는 SSO · OAuth 콜백의 쿼리를 떼고 경로만 · **L2** `ACCOUNTS_OIDC_ACCOUNT_URL` 은 https(localhost 만 http) · **L3** 정지된 사람은 이메일 맞추기를 건너뜀 · **L5** 핸드북에 `TRUST_PROXY` · L4 는 건너뜀(code 1회용 + nonce)
+- **L1** 요청 로그는 SSO · OAuth 콜백의 쿼리를 떼고 경로만 · **L2** `ACCOUNTS_OIDC_ACCOUNT_URL` 은 https(localhost 만 http) · **L3** 정지된 사람은 이메일 맞추기를 건너뜀 · **L5** 핸드북에 `TRUST_PROXY` · L4 는 이때 건너뜀(code 1회용 + nonce)
+- **L4 (뒤에 고침, 레인 `bcl`)** 모르는 sub 의 미인증 이메일은 같은 이메일 행을 찾기 **전에** `sso_email_unverified` — 뒤에서 보면 남의 이메일을 미인증으로 적어 `sso_conflict` 로 계정이 있는지 캐낼 수 있었다
 
 ## Global Constraints
 
@@ -107,6 +109,7 @@ weaver2 의 **공급자** 쪽(accounts 가 쓰는 `oidc-provider`)이 이미 `OI
 | `ACCOUNTS_OIDC_LANGS` | | `ko` | `lang` 으로 받을 값 목록(RLidea `ko,en,ja`). weaver2 에 언어를 박지 않는다 |
 | `ACCOUNTS_OIDC_FAILURE_URLS` | | `admin=/login` | 입구별 실패 주소 JSON 또는 `입구=경로` 목록. RLidea: `admin=/login,site=/{lang}/account/sign-in/` |
 | `ACCOUNTS_OIDC_DEFAULT_NEXT` | | `/dashboard` | RLidea `/ko/account/` |
+| `ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED` | | `true` | accounts 등록의 `backchannel_logout_session_required` 와 같게(D16) |
 
 운영 · staging 서버에서 R5 가 더할 것은 **`AUTH_MODE=sso` 와 `ACCOUNTS_OIDC_LANGS` · `ACCOUNTS_OIDC_FAILURE_URLS` · `ACCOUNTS_OIDC_DEFAULT_NEXT` · `ACCOUNTS_OIDC_ACCOUNT_URL`** 뿐이다. redirect · post_logout 은 그 서버의 `CLIENT_URL` 에서 나온다.
 
@@ -121,7 +124,8 @@ weaver2 의 **공급자** 쪽(accounts 가 쓰는 `oidc-provider`)이 이미 `OI
 | D5 | id_token 검증 · 바깥 호출 | `○` `alg` 은 `RS256` 만(`none` · HS 거절), `kid` 로 키를 고름. `iss` · `aud`(여럿이면 `azp`) · `exp` · `iat` 는 **시계 허용 60초** · `nonce === tx.nonce`. JWKS 10분 캐시, **모르는 kid 면 한 번 다시 받기 — 60초에 한 번**. 안내판은 처음 쓸 때 받아 1시간 캐시하고 **`issuer` 가 `ACCOUNTS_OIDC_ISSUER` 와 다르면 쓰지 않는다**. accounts 로 가는 **모든 요청에 `AbortSignal.timeout(5000)`** — 시간이 넘거나 닿지 않으면 `sso_unavailable`. 안내판 실패는 로그인만 실패시키고 부팅은 막지 않는다. UA 는 정하지 않는다(Q7) |
 | D6 | 사람 찾기 · 만들기 — **자동 잇기 없음** (Q12) | `○` ① `ssoSubject = sub` 인 행 → 탈퇴면 `account_deleted`. `email_verified=true` 이고 이메일이 다르면 맞춘다(Q4) — `email` 과 함께 `emailVerifiedAt = now`. 다른 살아 있는 행이 그 주소를 쓰면 건너뛰고 경고(로그인은 됨) ② 모르는 `sub` 인데 `normalizeEmail(userinfo.email)` 과 같은 이메일의 행이 있으면(탈퇴 행은 이메일이 익명화돼 걸리지 않는다) → **`sso_conflict`**. 잇지 않는다. 파생 훅 `onConflict(userId, sub)` 를 부른다(RLidea: `AuthEvent SSO_CONFLICT`). 앱 로그에는 `sub` 와 그 행의 id 만(이메일 없음). 화면 문구: 「이 이메일로 된 rlidea.app 계정이 이미 있습니다. 운영자에게 연결을 요청하세요」 ③ 모르는 `sub` · 같은 이메일 없음 · `email_verified=false` → `sso_email_unverified`(Q2) ④ 그 밖 → 새로 만든다: `ssoSubject` · `email` · **`emailVerifiedAt = now`** · `locale = lang` · 이름(훅 `names`, 기본은 weaver2 이름 생성기를 `utils/user-naming.ts` 로 옮겨 씀). `LocalCredential` · 약관 행 없음. 만드는 중 **P2002**(`email` 이나 `ssoSubject` 경합)면 ①부터 **한 번만** 다시 찾는다 |
 | D7 | 세션 | `○` `SignInCompletionService.completeExternal(userId, ctx, res)` 를 더한다 — `decide(userId, { twoFactorPassed: true })` 와 같다. **로컬 2FA 를 묻지 않는다**(accounts 가 했다). 탈퇴 · 정지 검사는 그대로. provider `'oidc'`, **`rememberMe=false`(7일, `sign-in.service.ts:105`)**. 콜백에 들어온 요청에 이미 `refresh_token` 쿠키가 있으면 **그 행을 먼저 지운다**(다른 사람의 세션이 열린 브라우저에서 바뀐 사람으로 들어올 때 앞 세션 행을 남기지 않게. 같은 사람이어도 지우고 새로 준다 — 갈래를 두지 않는다). ⚠ accounts 는 `amr` 을 주지 않는다(accounts 명세 H3) — accounts 의 인증을 믿는다 |
-| D8 | 로그아웃 | `○` `POST /v1/auth/sign-out`(그대로 CSRF)은 refresh 행 · 쿠키를 **먼저** 지우고, sso 면 `{ endSessionUrl }` 을 돌려준다 = `end_session_endpoint?client_id=…&post_logout_redirect_uri=…&state=<무작위>`. **`id_token_hint` 는 보내지 않는다** — oidc-provider 9.12.2 는 `client_id` 만으로 손님을 찾고 `post_logout_redirect_uri` 를 그 손님의 등록값과 대조한다(`lib/actions/end_session.js:29, 62-63`). hint 를 보내면 만료를 무시하고 검증하므로(`lib/models/id_token.js:259` `ignoreExpiration: true`) 보내도 되지만, 그러려면 id_token 을 세션마다 쥐고 있어야 한다 — 그 값어치가 없다. 화면은 받은 주소로 문서 이동한다. **사람이 보는 순서**: rlidea.app 세션이 이미 끝남 → accounts 「RLidea 계정에서 로그아웃할까요?」 → 「로그아웃」이면 accounts 도 끝나고 `https://rlidea.app/` 로, 「RLidea 계정 로그인 유지」면 accounts 로그인만 남고 돌아온다. 어느 쪽이든 rlidea.app 은 이미 로그아웃이다. 다른 사이트 세션은 남는다(back-channel 없음) |
+| D8 | 로그아웃 | `○` `POST /v1/auth/sign-out`(그대로 CSRF)은 refresh 행 · 쿠키를 **먼저** 지우고, sso 면 `{ endSessionUrl }` 을 돌려준다 = `end_session_endpoint?client_id=…&post_logout_redirect_uri=…&state=<무작위>`. **`id_token_hint` 는 보내지 않는다** — oidc-provider 9.12.2 는 `client_id` 만으로 손님을 찾고 `post_logout_redirect_uri` 를 그 손님의 등록값과 대조한다(`lib/actions/end_session.js:29, 62-63`). hint 를 보내면 만료를 무시하고 검증하므로(`lib/models/id_token.js:259` `ignoreExpiration: true`) 보내도 되지만, 그러려면 id_token 을 세션마다 쥐고 있어야 한다 — 그 값어치가 없다. 화면은 받은 주소로 문서 이동한다. **사람이 보는 순서**(2026-10-19 accounts 개정): rlidea.app 세션이 이미 끝남 → accounts 「어디에서 로그아웃할까요?」 → 「RLidea 서비스 전부 로그아웃」(기본)이면 accounts 도 끝나고 그 브라우저로 로그인한 다른 손님에게 back-channel 로그아웃이 가며 `https://rlidea.app/` 로, 「{client_name}만 로그아웃」이면 accounts 로그인은 남고 돌아온다. 어느 쪽이든 rlidea.app 은 이미 로그아웃이다. **받는 쪽**: 다른 손님에서 「전부 로그아웃」하거나 accounts 에서 로그아웃 · 탈퇴하면 accounts 가 rlidea.app 에 back-channel 을 보내고 그 sid 의 세션이 지워진다(D16) |
+| D16 | back-channel 로그아웃 받기 | `○` `POST /v1/auth/oidc/backchannel-logout`(`@Public` · `@SsoOnly` · CSRF 면제 · 스로틀 120/분). `logout_token` 을 §2.6 대로 검증(RS256 · JWKS · `typ` `logout+jwt` · iss · aud · iat 60초 허용 · 10분 넘으면 거절 · exp · events · nonce 없음 · sid 필수(`ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED`, 기본 true) · jti 1회). 콜백에서 id_token 의 `sid` 를 refresh 행 `oidcSid` 에 남기고 회전이 옮긴다 — 그 sid 의 행을 모두 지운다. 200(없어도) · 400 `invalid_request` · 503. 훅 `onBackchannelLogout` 은 응답 뒤. accounts 에는 `backchannel_logout_session_required: true` 로 등록. rlidea.app SSO 세션(7일)이 accounts OIDC 세션(14일)보다 짧아 닿지 않는 세션이 없다. access JWT 는 만료까지 산다 |
 | D9 | 이메일 신뢰 · 결제 권리 | `○` `isEmailTrusted`(`features/account/utils/email-trust.ts:23-29`)에 첫 갈래: **`ssoSubject` 가 있으면 `emailVerifiedAt !== null` 만 본다.** `emailVerifiedAt` 은 D6 이 만들 때와 이메일을 맞출 때 `now` 로 쓴다. `EMAIL_TRUST_SELECT` 에 `ssoSubject`. 로그인 뒤 훅(D11)이 `claimIfTrusted(userId)` 를 부른다 |
 | D10 | `AUTH_MODE` | `○` 「설정 이름」 표. `sso` 인데 필수 셋이 비면 부팅을 멈춘다(조용히 local 로 넘어가지 않는다). `@LocalAuthOnly()` 는 sso 에서 `404 AUTH_MODE_SSO`, `@SsoOnly()`(start · callback)는 local 에서 404. 전역 가드(`AuthModeGuard`)가 메타데이터만 본다. 프런트는 `GET /v1/auth/providers` 의 `sso` 로 안다(빌드 변수 없음) |
 | D11 | 파생 훅 | `○` `OIDC_USER_HOOKS`(지금의 `AUTH_PROVIDER_EXTRAS` · `USER_WITHDRAWAL_HOOKS` 모양): `{ names?(claims), afterSignIn?(userId, meta), onConflict?(userId, sub, meta), onLink?(userId, sub) }`. 훅이 던져도 로그인은 실패하지 않는다(경고 로그). RLidea: `names` = `account-names.ts`, `afterSignIn` = `claimIfTrusted` + `AuthEvent LOGIN`, `onConflict` = `AuthEvent SSO_CONFLICT`, `onLink`(CLI 가 부름) = `AuthEvent SSO_LINK` |
@@ -256,6 +260,7 @@ weaver2 의 **공급자** 쪽(accounts 가 쓰는 `oidc-provider`)이 이미 `OI
 | 비밀 유출 | `.env`(mode 600)만 · 로그 금지 · token 응답 본문을 오류에 싣지 않음 |
 | 계정 탈취(이메일 잇기) | D6 — **자동 잇기 없음.** 겹치면 `sso_conflict` + 사건 기록, 잇기는 운영자 CLI 만 |
 | 앞사람 세션 | D7 — 콜백 때 들어온 refresh 행을 지움 · D15 전환 때 모두 지움 · Q6 로그아웃이 accounts 까지 |
+| accounts 에서 로그아웃했는데 이 앱 세션이 산다 | D16 — back-channel 로 그 sid 의 세션을 지움(access JWT 는 만료까지). 위조 · 재생은 RS256 서명 · `typ` · iss · aud · iat 10분 · jti 1회로 막는다. CSRF 면제는 그 경로 하나, 글자까지 |
 | 닫힌 경로가 열려 있음 | W1 · R4 — 공개 쓰기 경로 전수 시험 |
 | 2FA 우회 | D7 — accounts 의 2FA 를 믿는다(accounts 는 2FA 켠 사람을 2FA 화면에 거침) |
 
@@ -264,7 +269,7 @@ weaver2 의 **공급자** 쪽(accounts 가 쓰는 `oidc-provider`)이 이미 `OI
 - RLidea 몫(R1~R5) — 이메일 신뢰 · 약관 문 · 앱 직접 로그인 닫기 · 인증 사건 · 집 계정 화면 · 운영 전환. RLidea 계획을 본다
 - 로컬 로그인 코드 · 화면 · 메일 템플릿 · 약관 화면 지우기 (Q11)
 - DrawMark 를 accounts 의 네이티브 공개 손님으로(accounts 명세 △) — handoff 는 RLidea 에 남는다
-- back-channel logout 받기 — accounts 가 지으면 `sid` 를 세션에 남기는 일과 함께 정한다
+- ~~back-channel logout 받기~~ — D16 으로 지었다
 - accounts 탈퇴 알림 받기
 - 처리방침 · 이용약관 문구(Q3)
 - `prompt=login` · `max_age` 재인증(accounts H3)
