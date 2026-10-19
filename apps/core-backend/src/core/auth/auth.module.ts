@@ -28,10 +28,13 @@ import { SessionService } from './services/session.service';
 import { CsrfController } from './controllers/csrf.controller';
 import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
 import { ApiTokenModule } from './api-token/api-token.module';
+import { AuthModeModule } from './auth-mode.module';
+import { AuthModeGuard } from './guards/auth-mode.guard';
 
 @Module({
   imports: [
     PrismaModule,
+    AuthModeModule,
     UserModule,
     EmailModule,
     OAuthModule,
@@ -61,6 +64,11 @@ import { ApiTokenModule } from './api-token/api-token.module';
     TwoFactorService,
     SignInCompletionService,
     SessionService,
+    // 첫째 — 닫힌 경로(@LocalAuthOnly · @SsoOnly)는 로그인 여부와 무관하게 404 다
+    {
+      provide: APP_GUARD,
+      useClass: AuthModeGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

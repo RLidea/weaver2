@@ -14,8 +14,10 @@ import {
 } from '../utils/auth-cookie.util';
 import { ConfigService } from '@nestjs/config';
 import { SignInCompletionService } from '../services/sign-in-completion.service';
+import { LocalAuthOnly } from '../decorators/local-auth-only.decorator';
 
 @ApiTags('Auth - Two Factor')
+@LocalAuthOnly()
 @Controller({ path: 'auth/2fa', version: '1' })
 export class TwoFactorController {
   constructor(

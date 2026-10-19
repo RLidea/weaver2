@@ -6,8 +6,10 @@ import { SignUpService } from '../services/sign-up.service';
 import { Throttle } from '@nestjs/throttler';
 import { RequestPasswordResetDto } from '../dto/request-password-reset.dto';
 import { VerifyEmailDto } from '../dto/verify-email.dto';
+import { LocalAuthOnly } from '../decorators/local-auth-only.decorator';
 
 @ApiTags('Auth')
+@LocalAuthOnly()
 @Controller({
   path: 'auth',
   version: '1',

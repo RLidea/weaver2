@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
+import { LocalAuthOnly } from '../decorators/local-auth-only.decorator';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { SignInService } from '../services/sign-in.service';
@@ -42,6 +43,7 @@ export class SignInController {
     Sign In
    */
   @Public()
+  @LocalAuthOnly()
   @UseGuards(LocalAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('sign-in')

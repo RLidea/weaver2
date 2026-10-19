@@ -23,6 +23,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
+import { LocalAuthOnly } from '../../auth/decorators/local-auth-only.decorator';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { UserDto } from '../dto/user.dto';
 import { FindUserService } from '../services/find-user.service';
@@ -89,6 +90,8 @@ export class UserProfileController {
     );
   }
 
+  // 비밀번호 · 이메일은 sso 에서 accounts 가 다룬다
+  @LocalAuthOnly()
   @Patch('password')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('ACCESS-TOKEN')
@@ -107,6 +110,7 @@ export class UserProfileController {
     );
   }
 
+  @LocalAuthOnly()
   @Post('email')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
@@ -124,6 +128,7 @@ export class UserProfileController {
     );
   }
 
+  @LocalAuthOnly()
   @Post('email/confirm')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

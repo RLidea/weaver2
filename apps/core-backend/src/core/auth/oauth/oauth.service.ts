@@ -26,6 +26,7 @@ import {
   AUTH_PROVIDER_EXTRAS,
   AuthProviderExtra,
 } from './auth-provider-extras';
+import { AUTH_MODE_CONFIG, AuthModeConfig } from '../auth-mode';
 
 const OAUTH_DISPLAY_NAME_MAX = 30;
 const OAUTH_DISPLAY_NAME_TRIES = 5;
@@ -41,6 +42,9 @@ export class OAuthService {
     @Optional()
     @Inject(AUTH_PROVIDER_EXTRAS)
     private readonly providerExtras: AuthProviderExtra[] = [],
+    @Optional()
+    @Inject(AUTH_MODE_CONFIG)
+    private readonly authMode: AuthModeConfig = { mode: 'local' },
   ) {}
 
   getAuthorizationUrl(providerName: string): {
@@ -66,7 +70,8 @@ export class OAuthService {
     );
   }
 
-  getEnabledProviders(): AuthProvidersResponseDto & Record<string, boolean> {
+  getEnabledProviders(): AuthProvidersResponseDto &
+    Record<string, boolean | string | undefined> {
     const extras: Record<string, boolean> = {};
     for (const extra of this.providerExtras) {
       try {
@@ -78,14 +83,20 @@ export class OAuthService {
         );
       }
     }
-    // 파생 프로젝트의 칸은 더하기만 한다 — upstream 칸을 덮어쓰지 못하게 뒤에 펼친다
+    // 파생 프로젝트의 칸은 더하기만 한다 — upstream 칸을 덮어쓰지 못하게 뒤에 펼친다.
+    // sso 면 로컬 수단은 모두 닫혀 있다(@LocalAuthOnly) — 화면이 그 단추를 그리지 않게 false
+    const sso = this.authMode.mode === 'sso';
     return {
       ...extras,
-      password: true,
-      google: this.isProviderReady('google', 'GOOGLE_CLIENT_ID'),
-      kakao: this.isProviderReady('kakao', 'KAKAO_CLIENT_ID'),
-      naver: this.isProviderReady('naver', 'NAVER_CLIENT_ID'),
-      apple: this.isProviderReady('apple', 'APPLE_CLIENT_ID'),
+      sso,
+      password: !sso,
+      google: !sso && this.isProviderReady('google', 'GOOGLE_CLIENT_ID'),
+      kakao: !sso && this.isProviderReady('kakao', 'KAKAO_CLIENT_ID'),
+      naver: !sso && this.isProviderReady('naver', 'NAVER_CLIENT_ID'),
+      apple: !sso && this.isProviderReady('apple', 'APPLE_CLIENT_ID'),
+      ...(this.authMode.sso?.accountUrl
+        ? { accountUrl: this.authMode.sso.accountUrl }
+        : {}),
     };
   }
 
