@@ -125,7 +125,10 @@ export class BackchannelLogoutService {
         });
         if (!user) return { userId: null, deleted: 0 };
         await LockUsersCommand(tx, [user.id]);
-        // 이 시각보다 먼저 만든 행은 회전하지 못한다(IsRefreshSessionRevokedQuery)
+        // 이 시각보다 먼저 만든 행은 회전하지 못한다(IsRefreshSessionRevokedQuery).
+        // 시계는 refresh_tokens.createdAt 과 같은 앱 프로세스의 시계다 — Prisma 는 @default(now()) 를 DB 의
+        // DEFAULT 가 아니라 클라이언트에서 채워 INSERT 에 싣는다(2026-10-19 쿼리 로그로 확인). DB now() 로
+        // 찍으면 오히려 앱 · DB 시계가 어긋날 때 막 만든 로그인을 거절할 수 있다
         await tx.user.update({
           where: { id: user.id },
           data: { sessionsRevokedAt: new Date(now) },
