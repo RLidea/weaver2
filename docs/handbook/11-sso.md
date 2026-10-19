@@ -84,7 +84,7 @@ OpenID Connect Back-Channel Logout 1.0 의 손님 쪽. 사람이 발급자 쪽�
 
 **지우는 것**
 
-- `sid` → `refresh_tokens.oidcSid = sid` 인 행 전부(회전한 행 포함) — `sub` 도 왔으면 그 행 주인의 `ssoSubject = sub` 인 것만. `sid` 없이 `sub` 만 → `ssoSubject = sub` 인 사람의 refresh 행 **전부**(sid 없는 행 — 파생 프로젝트의 앱 · 기기 행까지), 그리고 `users.sessionsRevokedAt = 지금`(그보다 먼저 만든 행은 경합한 회전이 남겨도 회전하지 못한다)
+- `sid` → `refresh_tokens.oidcSid = sid` 인 행 전부(회전한 행 포함) — `sub` 도 왔으면 그 행 주인의 `ssoSubject = sub` 인 것만. `sid` 없이 `sub` 만 → `ssoSubject = sub` 인 사람의 refresh 행 **전부**(sid 없는 행 — 파생 프로젝트의 앱 · 기기 행까지), 그리고 `users.sessionsRevokedAt = 지금`(그보다 먼저 만든 행은 경합한 회전이 남겨도 회전하지 못한다). 이 끊기는 warn 로그로 남는다 — 평소 로그아웃마다 보이면 발급자 등록이 `backchannel_logout_session_required: false` 다
 - **회전과 줄 서기**: 로그아웃 트랜잭션은 세션 주인의 `users` 행을 잠그고(`SELECT … FOR UPDATE`), refresh 회전도 한 트랜잭션에서 같은 행을 잠근다 — 회전이 지우기 사이에 끼어 끝난 sid 로 새 행을 남기지 못한다. 둘째 문으로 sid 묘비(`oidc_revoked_sids`, 31일 = rememberMe 30일 + 회전의 올림 하루)를 남기고, 회전은 묘비에 걸린 행 · `sessionsRevokedAt` 보다 먼저 만든 행을 지우고 401 이다. 회전의 마킹은 `rotatedAt IS NULL` 일 때만이라 같은 쿠키로 동시에 두 번 refresh 해도 새 행은 하나다
 - 🔴 **잠금 순서는 `users` → `refresh_tokens`** — 한 트랜잭션에서 refresh 행을 지우거나 고치는 곳은 **첫 문장으로** `LockUsersCommand(tx, [userId])` 를 부른다(탈퇴 `delete-account.service.ts` · 관리자 삭제 `user-admin.service.ts` · 비밀번호 재설정 `reset-password.service.ts` 가 그렇게 한다). 거꾸로 하면 회전 · back-channel 로그아웃과 서로를 기다리며 교착한다. **파생 프로젝트의 탈퇴 훅(`USER_WITHDRAWAL_HOOKS`)** 은 탈퇴 트랜잭션 안에서 돌고 그 트랜잭션은 이미 `users` 를 잠갔다 — 훅이 다른 사람의 refresh 행을 지우려면 그 사람도 먼저 잠근다
 - `sessionsRevokedAt` 과 `refresh_tokens.createdAt` 은 같은 시계(앱 프로세스)다 — Prisma 는 `@default(now())` 를 클라이언트에서 채워 INSERT 에 싣는다. 백엔드를 여러 기계에 띄우면 NTP 로 시계를 맞춘다
@@ -98,7 +98,7 @@ sid 가 생기기 전(이 기능 전)에 만든 SSO 세션은 `oidcSid` 가 비�
 
 ## 프록시 뒤 — `TRUST_PROXY` 를 꼭 둔다
 
-start(30/분) · callback(30/분) 스로틀은 IP 마다 센다. 걸리면 429 JSON 이 아니라 실패 주소에 `?error=sso_busy` 로 302 다(문서 이동이라).
+start(30/분) · callback(30/분) 스로틀은 IP 마다 센다. 걸리면 429 JSON 이 아니라 실패 주소에 `?error=sso_busy` 로 302 다(문서 이동이라) — local 모드면 실패 주소가 없어 다른 경로와 같은 429 다.
 start 는 서명한 짧은 쿠키 하나만 쓰므로 사무실 NAT 를 생각해 넉넉히 두었고, callback 은 start 와 같게 두었다 — 낮으면 발급자에서 로그인을 마치고 돌아와서야 막힌다. callback 의 바깥 호출(code 교환 · userinfo)은 맞는 tx 가 있어야 나가고 tx 는 start 로만 생기므로 그 수는 start 의 한도가 묶는다. Cloudflare · nginx 뒤에서 `TRUST_PROXY` 를 두지 않으면 `req.ip` 가 늘 프록시 주소라 **사이트 전체가 한 통**이 된다 — 한 사람이 1분에 서른 번 누르면 모두의 로그인이 `sso_busy` 로 막힌다. 파생 프로젝트는 운영 `.env` 에 그 서버의 프록시 홉 수나 주소를 `TRUST_PROXY` 로 적는다(`libs/common/src/global/middleware/trust-proxy.ts`). 같은 이유로 훅 `meta.ip` 도 그래야 진짜 사람의 IP 다.
 
 **Cloudflare 뒤 nginx** 면 nginx 도 진짜 IP 를 받아야 한다 — Cloudflare 가 붙인 IP 를 `X-Forwarded-For` 에 실어 넘기려면:

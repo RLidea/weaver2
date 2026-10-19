@@ -157,9 +157,16 @@ export class BackchannelLogoutService {
         )?.id ?? null;
     }
 
-    this.logger.log(
-      `Back-channel logout (${claims.sid ? 'session' : 'subject'}): sub=${claims.sub ?? '-'} userId=${userId ?? '-'} sessions=${result.deleted}`,
-    );
+    const line = `Back-channel logout (${claims.sid ? 'session' : 'subject'}): sub=${claims.sub ?? '-'} userId=${userId ?? '-'} sessions=${result.deleted}`;
+    if (claims.sid) {
+      this.logger.log(line);
+    } else {
+      // 비밀번호 변경 · 재설정 · 탈퇴에서만 와야 한다. 평소 로그아웃마다 보이면 발급자 등록의
+      // backchannel_logout_session_required 가 false 다 — 모든 로그아웃이 그 사람 전부를 끊는다
+      this.logger.warn(
+        `${line} — every session of this user was revoked; if this shows on ordinary logouts, check the issuer registration has backchannel_logout_session_required: true`,
+      );
+    }
     return {
       userId,
       meta: {
