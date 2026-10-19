@@ -99,9 +99,9 @@ describe('OpenIdOidcClient (가짜 발급자)', () => {
     await expect(oidc.userinfo(accessToken, claims.sub)).resolves.toEqual({
       sub: USER.sub,
       email: USER.email,
-      emailVerified: true,
+      email_verified: true,
       name: 'Person',
-      preferredUsername: 'person',
+      preferred_username: 'person',
     });
   });
 

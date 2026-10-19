@@ -234,9 +234,9 @@ export class OpenIdOidcClient implements OidcClient {
       return {
         sub: info.sub,
         email: typeof info.email === 'string' ? info.email : undefined,
-        emailVerified: info.email_verified === true,
+        email_verified: info.email_verified === true,
         name: typeof info.name === 'string' ? info.name : undefined,
-        preferredUsername:
+        preferred_username:
           typeof info.preferred_username === 'string'
             ? info.preferred_username
             : undefined,

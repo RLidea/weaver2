@@ -25,13 +25,13 @@
  */
 export const OIDC_USER_HOOKS = Symbol('OIDC_USER_HOOKS');
 
-/** userinfo 에서 받은 것 — 이메일은 로그에 남기지 않는다(추적은 sub 로) */
+/** userinfo 에서 받은 것 (OIDC 클레임 이름 그대로) — 이메일은 로그에 남기지 않는다(추적은 sub 로) */
 export interface OidcUserClaims {
   sub: string;
   email?: string;
-  emailVerified: boolean;
+  email_verified: boolean;
   name?: string;
-  preferredUsername?: string;
+  preferred_username?: string;
 }
 
 export interface OidcSignInMeta {
@@ -42,7 +42,9 @@ export interface OidcSignInMeta {
   lang: string;
   /** start 의 `entry` (실패 주소 표의 열쇠) */
   entry: string;
-  ipAddress?: string;
+  ip?: string;
+  /** Cloudflare 뒤일 때만 — `cf-ipcountry` 헤더. 기록용(위조될 수 있다) */
+  country?: string;
   userAgent?: string;
 }
 

@@ -87,7 +87,7 @@ export class OidcSubjectService {
       if (linked.deletedAt) {
         throw new OidcError('account_deleted', 'SSO user is deleted');
       }
-      if (claims.emailVerified && email && email !== linked.email) {
+      if (claims.email_verified && email && email !== linked.email) {
         await this.syncEmail(linked.id, email, claims.sub);
       }
       return { userId: linked.id, created: false };
@@ -122,7 +122,7 @@ export class OidcSubjectService {
     }
 
     // ③ 미인증 이메일로는 만들지 않는다
-    if (!claims.emailVerified) {
+    if (!claims.email_verified) {
       throw new OidcError(
         'sso_email_unverified',
         `SSO email not verified: sub=${claims.sub}`,
@@ -199,7 +199,7 @@ export class OidcSubjectService {
       username: await generateUniqueUsername(this.prisma, 'sso', claims.sub),
       displayName: await generateUniqueDisplayName(
         this.prisma,
-        claims.name ?? claims.preferredUsername ?? email.split('@')[0],
+        claims.name ?? claims.preferred_username ?? email.split('@')[0],
       ),
     };
   }

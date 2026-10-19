@@ -40,6 +40,11 @@ function random32(): string {
   return randomBytes(32).toString('base64url');
 }
 
+function headerValue(req: Request, name: string): string | undefined {
+  const value = req.headers[name];
+  return typeof value === 'string' && value ? value : undefined;
+}
+
 function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
@@ -199,8 +204,9 @@ export class OidcController {
         sub: claims.sub,
         lang: tx.lang,
         entry: tx.entry,
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
+        ip: req.ip,
+        country: headerValue(req, 'cf-ipcountry'),
+        userAgent: headerValue(req, 'user-agent'),
       };
       const { userId, created } = await this.subjects.resolve(info, meta);
 

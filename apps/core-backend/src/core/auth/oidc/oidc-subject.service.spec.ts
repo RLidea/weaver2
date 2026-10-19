@@ -7,7 +7,7 @@ const META = { sub: 'sub-1', lang: 'ko', entry: 'admin' };
 const CLAIMS = {
   sub: 'sub-1',
   email: 'Person@Example.com',
-  emailVerified: true,
+  email_verified: true,
   name: 'Person',
 };
 
