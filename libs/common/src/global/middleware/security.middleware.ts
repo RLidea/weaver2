@@ -100,6 +100,20 @@ function isSwaggerRequest(req: Request): boolean {
 }
 
 /**
+ * Authorization: Bearer 만 싣고 온 요청인가 — 다른 사이트는 CORS 사전 요청 없이 이 헤더를
+ * 붙일 수 없고, 사전 요청은 ALLOWED_ORIGINS 가 막는다.
+ * 단 인증 쿠키(access_token)가 함께 오면 면제하지 않는다 — JWT 전략이 쿠키를 먼저 읽으므로,
+ * 실제로 쓰이는 자격 증명이 쿠키일 때는 CSRF 를 건다.
+ */
+function isBearerOnly(req: Request): boolean {
+  const cookies = req.cookies as Record<string, string> | undefined;
+  return (
+    /^Bearer\s+\S+/i.test(req.headers.authorization ?? '') &&
+    !cookies?.access_token
+  );
+}
+
+/**
  * CSRF 검사에서 빼는 요청 조건. 파생 프로젝트는 여기에 한 줄씩 더한다.
  */
 const CSRF_EXEMPTIONS: Array<(req: Request) => boolean> = [
@@ -107,6 +121,8 @@ const CSRF_EXEMPTIONS: Array<(req: Request) => boolean> = [
   isSwaggerRequest,
   // provider 가 form_post 로 보내는 OAuth 콜백 — state 대조로 막는다
   isCrossSiteCallback,
+  // 쿠키 없이 Bearer 로만 온 요청 — 범위 토큰(api-token) · 앱
+  isBearerOnly,
 ];
 
 export function setSecurityMiddleware(app: INestApplication): void {

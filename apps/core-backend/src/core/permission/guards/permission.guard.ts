@@ -28,8 +28,13 @@ export class PermissionGuard implements CanActivate {
 
     const request = context
       .switchToHttp()
-      .getRequest<{ user?: { id: string } }>();
+      .getRequest<{ user?: { id: string }; apiToken?: unknown }>();
     const user = request.user;
+
+    // 범위 토큰은 권한을 갖지 않는다 — 주인의 권한이 따라가지 않는다(범위 경로는 @ApiTokenScope 가 연다)
+    if (request.apiToken) {
+      throw new ForbiddenException('API 토큰으로는 이 작업을 할 수 없습니다.');
+    }
 
     // 로그인하지 않은 사용자
     if (!user?.id) {

@@ -27,6 +27,7 @@ import { SessionController } from './controllers/session.controller';
 import { SessionService } from './services/session.service';
 import { CsrfController } from './controllers/csrf.controller';
 import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
+import { ApiTokenModule } from './api-token/api-token.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
     EmailModule,
     OAuthModule,
     OneTimeCodeModule,
+    ApiTokenModule,
   ],
   controllers: [
     SignInController,

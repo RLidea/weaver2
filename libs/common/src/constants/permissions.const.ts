@@ -94,6 +94,10 @@ export const ALL_PERMISSIONS: { value: string; label: string }[] = [
   { value: 'moderation:user:warn', label: '유저 경고' },
   { value: 'moderation:*', label: '모더레이션 전체 권한' },
 
+  // API Token
+  { value: 'api-token:manage', label: 'API 토큰 발급·끊기' },
+  { value: 'api-token:*', label: 'API 토큰 전체 권한' },
+
   // Super
   { value: '*:*', label: '슈퍼 관리자 (전체 권한)' },
 ];

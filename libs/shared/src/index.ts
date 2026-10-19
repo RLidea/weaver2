@@ -128,6 +128,15 @@ export const PERMISSIONS = {
     ALL: 'moderation:*',
   },
 
+  /**
+   * 범위 토큰 발급 · 끊기. 토큰은 주인의 이름으로 쓰는 힘이라 `admin:*` 밖에 따로 둔다
+   * (시드는 어느 그룹에도 주지 않는다 — `*:*` 만 가진다)
+   */
+  API_TOKEN: {
+    MANAGE: 'api-token:manage',
+    ALL: 'api-token:*',
+  },
+
   /** 슈퍼 관리자 */
   SUPER: '*:*',
 } as const;
@@ -146,6 +155,7 @@ export type Permission =
   | (typeof PERMISSIONS.UPLOAD)[keyof typeof PERMISSIONS.UPLOAD]
   | (typeof PERMISSIONS.REPORT)[keyof typeof PERMISSIONS.REPORT]
   | (typeof PERMISSIONS.MODERATION)[keyof typeof PERMISSIONS.MODERATION]
+  | (typeof PERMISSIONS.API_TOKEN)[keyof typeof PERMISSIONS.API_TOKEN]
   | typeof PERMISSIONS.SUPER;
 
 /**
@@ -166,3 +176,5 @@ export function hasPermission(
       p === required.split(':')[0] + ':*',
   );
 }
+
+export { API_TOKEN_SCOPES, type ApiTokenScopeOption } from './api-token-scopes';

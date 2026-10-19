@@ -857,6 +857,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API 토큰 목록 (끊긴 것 포함, 최신 순) */
+        get: operations["AdminApiTokenController_findAll"];
+        put?: never;
+        /**
+         * API 토큰 발급
+         * @description 원문(`token`)은 이 응답에만 실린다. 저장소에는 해시만 남는다.
+         */
+        post: operations["AdminApiTokenController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/api-tokens/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * API 토큰 끊기
+         * @description 되살릴 수 없다. 이미 끊긴 토큰이면 처음 끊은 시각을 그대로 돌려준다.
+         */
+        post: operations["AdminApiTokenController_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/dashboard/summary": {
         parameters: {
             query?: never;
@@ -2857,6 +2898,72 @@ export interface components {
             naver: boolean;
             /** @description Apple OAuth 사용 가능 여부 (APPLE_OAUTH_ENABLED=true 일 때만) */
             apple: boolean;
+        };
+        ApiTokenOwnerDto: {
+            /** @description User ID */
+            id: string;
+            /** @description Username */
+            username: string;
+            /** @description Display name */
+            displayName: string;
+        };
+        ApiTokenDto: {
+            /** @description API token ID */
+            id: string;
+            /** @description 알아보기 위한 이름 */
+            name: string;
+            /** @description 원문의 앞부분 (wvt_xxxxxxxxxxxx) */
+            prefix: string;
+            /** @description 이 토큰이 닿는 범위 */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description 마지막으로 인증에 성공한 시각
+             */
+            lastUsedAt: string | null;
+            /**
+             * Format: date-time
+             * @description 만료 시각 (없으면 null)
+             */
+            expiresAt: string | null;
+            /**
+             * Format: date-time
+             * @description 끊은 시각 (살아 있으면 null)
+             */
+            revokedAt: string | null;
+            /**
+             * Format: date-time
+             * @description 발급 시각
+             */
+            createdAt: string;
+            /** @description 토큰의 주인 */
+            user: components["schemas"]["ApiTokenOwnerDto"];
+        };
+        CreateApiTokenDto: {
+            /**
+             * Format: uuid
+             * @description 토큰의 주인 (쓰기의 주체가 된다)
+             */
+            userId: string;
+            /** @description 알아보기 위한 이름 */
+            name: string;
+            /**
+             * @description 범위 — 파생 프로젝트가 `@ApiTokenScope` 로 연 이름
+             * @example [
+             *       "blog:draft"
+             *     ]
+             */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description 만료 시각 (ISO 8601). 없으면 끊을 때까지 산다
+             */
+            expiresAt?: string;
+        };
+        IssuedApiTokenDto: {
+            /** @description 원문. 다시 볼 수 없다 — `Authorization: Bearer <token>` */
+            token: string;
+            apiToken: components["schemas"]["ApiTokenDto"];
         };
         DailyViewsDto: {
             /** @example 2026-10-18 */
@@ -5128,6 +5235,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthProvidersResponseDto"];
+                };
+            };
+        };
+    };
+    AdminApiTokenController_findAll: {
+        parameters: {
+            query?: {
+                /** @description 이 사용자의 토큰만 */
+                userId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenDto"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    AdminApiTokenController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiTokenDto"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedApiTokenDto"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    AdminApiTokenController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenDto"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
                 };
             };
         };

@@ -194,4 +194,34 @@ describe('setSecurityMiddleware', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  describe('Bearer 면제 — 쿠키 없이 Authorization 만 싣고 온 요청', () => {
+    const server = () => app.getHttpServer() as Parameters<typeof request>[0];
+
+    it('Bearer 만 실렸으면 CSRF 토큰 없이도 통과한다 (범위 토큰 · 앱)', async () => {
+      const res = await request(server())
+        .post('/v1/other')
+        .set('Authorization', 'Bearer wvt_0123456789ab_' + 'a'.repeat(64));
+
+      expect(res.status).toBe(201);
+      expect(res.text).toBe('other');
+    });
+
+    it('인증 쿠키(access_token)가 함께 오면 면제하지 않는다', async () => {
+      const res = await request(server())
+        .post('/v1/other')
+        .set('Authorization', 'Bearer abc')
+        .set('Cookie', 'access_token=jwt');
+
+      expect(res.status).toBe(403);
+    });
+
+    it('Bearer 가 아닌 Authorization 은 면제하지 않는다', async () => {
+      const res = await request(server())
+        .post('/v1/other')
+        .set('Authorization', 'Basic abc');
+
+      expect(res.status).toBe(403);
+    });
+  });
 });

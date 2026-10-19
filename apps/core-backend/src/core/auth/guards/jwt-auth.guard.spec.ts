@@ -33,6 +33,10 @@ import { jwtModuleOptions } from '../strategy/jwt-module-options';
 import { TwoFactorService } from '../services/two-factor.service';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
+import { ApiTokenService } from '../api-token/api-token.service';
+import { generateApiToken } from '../api-token/api-token.crypto';
+import { ApiTokenScope } from '../api-token/decorators/api-token-scope.decorator';
+import { Actor, RequestActor } from '../api-token/decorators/actor.decorator';
 
 const SECRET = 'guard-spec-secret';
 const USER_ID = 'user-1';
@@ -49,6 +53,12 @@ class ProbeController {
   closed(@Req() req: Request) {
     return req.user;
   }
+
+  @ApiTokenScope('probe:write')
+  @Get('scoped')
+  scoped(@Actor() actor: RequestActor) {
+    return actor;
+  }
 }
 
 describe('JwtAuthGuard', () => {
@@ -56,6 +66,7 @@ describe('JwtAuthGuard', () => {
   let jwt: JwtService;
   let preAuth: TwoFactorService;
   const findFirst = jest.fn();
+  const apiTokens = { verify: jest.fn(), markUsed: jest.fn() };
 
   beforeAll(async () => {
     const config = new ConfigService({ JWT_SECRET: SECRET });
@@ -67,6 +78,7 @@ describe('JwtAuthGuard', () => {
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: ConfigService, useValue: config },
         { provide: PrismaService, useValue: { user: { findFirst } } },
+        { provide: ApiTokenService, useValue: apiTokens },
       ],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
@@ -85,6 +97,8 @@ describe('JwtAuthGuard', () => {
   afterAll(() => app.close());
 
   beforeEach(() => {
+    apiTokens.verify.mockReset();
+    apiTokens.markUsed.mockReset();
     findFirst.mockReset();
     findFirst.mockResolvedValue({
       id: USER_ID,
@@ -167,6 +181,77 @@ describe('JwtAuthGuard', () => {
     it('토큰이 없으면 401', async () => {
       const res = await request(server()).get('/probe/private');
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('범위 토큰', () => {
+    const issued = generateApiToken();
+    const withToken = (path: string, raw = issued.raw) =>
+      request(server()).get(path).set('Authorization', `Bearer ${raw}`);
+    const alive = (scopes: string[]) => ({
+      id: 'token-1',
+      scopes,
+      user: { id: USER_ID, username: 'bot' },
+    });
+
+    it('범위가 맞으면 통과 — 주체는 TOKEN, 주인 id, lastUsedAt 을 갱신한다', async () => {
+      apiTokens.verify.mockResolvedValue(alive(['probe:write']));
+      const res = await withToken('/probe/scoped');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ userId: USER_ID, kind: 'TOKEN' });
+      expect(apiTokens.verify).toHaveBeenCalledWith({
+        raw: issued.raw,
+        prefix: issued.prefix,
+      });
+      expect(apiTokens.markUsed).toHaveBeenCalledWith('token-1');
+    });
+
+    it('범위가 다르면 403 — lastUsedAt 을 갱신하지 않는다', async () => {
+      apiTokens.verify.mockResolvedValue(alive(['other:write']));
+      const res = await withToken('/probe/scoped');
+      expect(res.status).toBe(403);
+      expect(apiTokens.markUsed).not.toHaveBeenCalled();
+    });
+
+    it('끊겼거나 만료된 토큰(verify 가 null)은 401', async () => {
+      apiTokens.verify.mockResolvedValue(null);
+      const res = await withToken('/probe/scoped');
+      expect(res.status).toBe(401);
+      expect(apiTokens.markUsed).not.toHaveBeenCalled();
+    });
+
+    it.each(['/probe/private', '/probe/public'])(
+      '범위가 없는 경로(%s)에서는 401 — DB 를 읽지 않는다',
+      async (path) => {
+        apiTokens.verify.mockResolvedValue(alive(['probe:write']));
+        const res = await withToken(path);
+        expect(res.status).toBe(401);
+        expect(apiTokens.verify).not.toHaveBeenCalled();
+        expect(findFirst).not.toHaveBeenCalled();
+      },
+    );
+
+    it('쿠키 세션이 함께 와도 토큰 갈래로 판정한다 — 세션으로 넘어가지 않는다', async () => {
+      const res = await withToken('/probe/private').set(
+        'Cookie',
+        `access_token=${jwt.sign({ sub: USER_ID })}`,
+      );
+      expect(res.status).toBe(401);
+    });
+
+    it('세션은 범위 경로도 지금처럼 통과한다 — 주체는 SESSION', async () => {
+      const res = await withCookie('/probe/scoped', jwt.sign({ sub: USER_ID }));
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ userId: USER_ID, kind: 'SESSION' });
+      expect(apiTokens.verify).not.toHaveBeenCalled();
+    });
+
+    it('Bearer 에 실린 액세스 JWT 는 토큰 갈래로 가지 않는다', async () => {
+      const res = await request(server())
+        .get('/probe/private')
+        .set('Authorization', `Bearer ${jwt.sign({ sub: USER_ID })}`);
+      expect(res.status).toBe(200);
+      expect(apiTokens.verify).not.toHaveBeenCalled();
     });
   });
 });
