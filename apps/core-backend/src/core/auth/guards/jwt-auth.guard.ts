@@ -28,7 +28,8 @@ import { API_TOKEN_SCOPE_KEY } from '../api-token/decorators/api-token-scope.dec
  * 범위 토큰(`Authorization: Bearer wvt_…`)은 앞머리에서 따로 간다 — 세션 갈래는 그대로다.
  * - `@ApiTokenScope` 가 없는 경로(공개 경로 포함)에서는 401. DB 를 읽지 않는다
  * - 토큰이 죽었으면(없음 · 끊김 · 만료 · 주인 탈퇴 · 정지) 401, 범위가 모자라면 403
- * - 통과하면 `req.user` 는 주인, `req.apiToken` 이 붙는다. 권한은 따라가지 않는다(PermissionGuard)
+ * - 통과하면 `req.user` 는 주인, `req.apiToken` 이 붙는다. 주인의 권한은 쓰이지 않는다 —
+ *   PermissionGuard 에서 경로의 범위가 `@RequirePermission` 을 대신한다
  * 헤더가 토큰 모양이면 쿠키 세션보다 앞선다 — 세션으로 넘어가 권한을 얻는 길이 없게.
  */
 @Injectable()
@@ -47,9 +48,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return super.canActivate(context) as Promise<boolean>;
     }
 
-    const scope = this.reflector.getAllAndOverride<string | undefined>(
+    // 핸들러만 본다 — 클래스에 붙은 범위로 컨트롤러 전체가 토큰에 열리지 않게
+    const scope = this.reflector.get<string | undefined>(
       API_TOKEN_SCOPE_KEY,
-      [context.getHandler(), context.getClass()],
+      context.getHandler(),
     );
     if (!scope) throw new UnauthorizedException();
 

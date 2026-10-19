@@ -4,6 +4,7 @@
  * 앱에 등록된 **모든 라우트**를 메타데이터에서 찾아, 실제 요청으로 두 가지를 잰다.
  * 1. `@Public()` 이 아닌 라우트는 토큰 없이 부르면 401
  * 2. `@RequirePermission()` 이 걸린 라우트는 권한 없는 사용자로 부르면 403
+ * 3. `@ApiTokenScope` 경로는 `@RequirePermission`(또는 `@AnySessionUser()`)과 짝을 이루고, 핸들러에만 붙는다
  *
  * 인증·권한은 전역 가드(APP_GUARD — auth.module.ts)가 맡는다. 컨트롤러에 `@UseGuards` 를
  * 덧붙였는지와 무관하게 이 시험이 통과해야 하고, 새 라우트가 생겨도 손대지 않고 덮는다.
@@ -19,7 +20,11 @@ import {
   getTestingModule,
 } from './helpers/test-app.helper';
 import { loginAs } from './helpers/auth.helper';
-import { collectRoutes, Route } from './helpers/route-metadata.helper';
+import {
+  collectRoutes,
+  Route,
+  scopedRouteViolations,
+} from './helpers/route-metadata.helper';
 
 const TEST_PASSWORD = 'TestPass1234!';
 
@@ -137,5 +142,37 @@ describe('Route Guard Coverage (Integration)', () => {
       }
     }
     expect(mismatches).toEqual([]);
+  });
+
+  describe('범위 경로의 모양', () => {
+    const base: Route = {
+      method: 'post',
+      path: '/v1/x',
+      isPublic: false,
+      permissions: undefined,
+      apiTokenScope: undefined,
+      classApiTokenScope: undefined,
+      anySessionUser: false,
+    };
+
+    it('앱의 모든 @ApiTokenScope 경로가 @RequirePermission(또는 @AnySessionUser)과 짝이고, 클래스에 붙은 것이 없다', () => {
+      expect(scopedRouteViolations(routes)).toEqual([]);
+    });
+
+    it('검사기 자체: 권한 없는 범위 경로 · 클래스 범위를 잡고, 짝을 이룬 경로는 통과시킨다', () => {
+      expect(
+        scopedRouteViolations([{ ...base, apiTokenScope: 'a:b' }]),
+      ).toHaveLength(1);
+      expect(
+        scopedRouteViolations([{ ...base, classApiTokenScope: 'a:b' }]),
+      ).toHaveLength(1);
+      expect(
+        scopedRouteViolations([
+          { ...base, apiTokenScope: 'a:b', permissions: ['board:manage'] },
+          { ...base, apiTokenScope: 'a:b', anySessionUser: true },
+          base,
+        ]),
+      ).toEqual([]);
+    });
   });
 });

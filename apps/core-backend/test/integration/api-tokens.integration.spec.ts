@@ -2,8 +2,9 @@
  * API Tokens Integration Tests
  *
  * 범위 토큰의 가드 계약 셋을 실제 앱 · DB 로 잰다. 파생 프로젝트(RLidea R3 초안 경로)가 기댄다.
- * 1. 토큰은 `@ApiTokenScope` 가 붙은 경로에서만 인증된다 — 다른 경로는 401, 범위가 다르면 403
- * 2. 토큰 주체는 `@RequirePermission` 을 통과하지 못한다 — 주인이 최고관리자여도
+ * 1. 토큰은 `@ApiTokenScope` 가 붙은 경로에서만 인증된다 — 다른 경로는 (공개 경로까지) 401, 범위가 다르면 403
+ * 2. 주인의 권한은 `@RequirePermission` 을 결코 채우지 못한다 — 경로 자신의 범위만 그 자리에 선다.
+ *    세션은 지금처럼 그 권한이 있어야 한다
  * 3. 끊은 · 만료된 토큰은 401, 성공하면 `lastUsedAt` 을 갱신한다
  *
  * weaver2 는 범위 경로가 없으므로 시험 전용 컨트롤러를 얹은 앱으로 돈다.
@@ -13,6 +14,7 @@ import {
   Get,
   INestApplication,
   Post,
+  SetMetadata,
   VersioningType,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -26,7 +28,11 @@ import { Public } from '@weaver2/common/decorator/public.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { CoreModule } from '../../src/core.module';
 import { RequirePermission } from '../../src/core/permission/decorators/require-permission.decorator';
-import { ApiTokenScope } from '../../src/core/auth/api-token/decorators/api-token-scope.decorator';
+import {
+  AnySessionUser,
+  API_TOKEN_SCOPE_KEY,
+  ApiTokenScope,
+} from '../../src/core/auth/api-token/decorators/api-token-scope.decorator';
 import {
   Actor,
   RequestActor,
@@ -38,25 +44,28 @@ import { collectRoutes } from './helpers/route-metadata.helper';
 const TEST_PASSWORD = 'TestPass1234!';
 const SCOPE = 'test:write';
 
+/** 범위 경로의 모양 그대로 — 토큰은 범위로, 세션은 권한으로 */
 @Controller({ path: 'token-probe', version: '1' })
 class TokenProbeController {
   @ApiTokenScope(SCOPE)
+  @RequirePermission(PERMISSIONS.ADMIN.ACCESS)
   @Get('scoped')
   read(@Actor() actor: RequestActor) {
     return actor;
   }
 
   @ApiTokenScope(SCOPE)
+  @RequirePermission(PERMISSIONS.ADMIN.ACCESS)
   @Post('scoped')
   write(@Actor() actor: RequestActor) {
     return actor;
   }
 
   @ApiTokenScope(SCOPE)
-  @RequirePermission(PERMISSIONS.ADMIN.ACCESS)
-  @Get('scoped-admin')
-  scopedAdmin() {
-    return 'admin';
+  @AnySessionUser()
+  @Get('scoped-any-session')
+  anySession(@Actor() actor: RequestActor) {
+    return actor;
   }
 
   @Get('plain')
@@ -68,6 +77,16 @@ class TokenProbeController {
   @Get('open')
   open() {
     return 'open';
+  }
+}
+
+/** 실수로 클래스에 범위를 붙인 컨트롤러 — 가드는 핸들러만 보므로 토큰에 열리지 않는다 */
+@SetMetadata(API_TOKEN_SCOPE_KEY, SCOPE)
+@Controller({ path: 'token-probe-class', version: '1' })
+class ClassScopedProbeController {
+  @Get()
+  read() {
+    return 'class';
   }
 }
 
@@ -87,8 +106,10 @@ describe('API Tokens (Integration)', () => {
   const userIds: string[] = [];
 
   let owner: { id: string };
+  let superOwner: { id: string };
   let superCookies: string;
   let adminCookies: string;
+  let memberCookies: string;
 
   async function createUser(name: string, groupName?: string) {
     const user = await prisma.user.create({
@@ -153,7 +174,7 @@ describe('API Tokens (Integration)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [CoreModule],
-      controllers: [TokenProbeController],
+      controllers: [TokenProbeController, ClassScopedProbeController],
     }).compile();
     app = moduleRef.createNestApplication();
     app.use(cookieParser());
@@ -164,12 +185,16 @@ describe('API Tokens (Integration)', () => {
     prisma = moduleRef.get(PrismaService);
     await ensureSystemPermissionGroups(prisma);
 
-    // 주인은 최고관리자다 — 그래도 토큰에는 권한이 따라가지 않아야 한다
-    owner = await createUser('owner', 'SuperAdmin');
+    // 주인은 권한 그룹이 없다 — 서비스 계정의 모양(RLidea R3 의 노엘)
+    owner = await createUser('owner');
+    // 최고관리자 주인 — 그래도 그 권한은 토큰에 따라가지 않아야 한다
+    superOwner = await createUser('superowner', 'SuperAdmin');
     await createUser('super', 'SuperAdmin');
     await createUser('admin', 'Admin');
+    await createUser('member');
     superCookies = await cookiesOf('super');
     adminCookies = await cookiesOf('admin');
+    memberCookies = await cookiesOf('member');
   });
 
   afterAll(async () => {
@@ -240,7 +265,7 @@ describe('API Tokens (Integration)', () => {
       token = (await issue()).token;
     });
 
-    it('범위 경로는 통과하고, 주체는 TOKEN · 주인 id 다', async () => {
+    it('범위 경로는 통과하고, 주체는 TOKEN · 주인 id 다 (주인은 권한이 없다)', async () => {
       const res = await bearer('get', '/v1/token-probe/scoped', token);
       expect(res.status).toBe(200);
       expect((res.body as { data: RequestActor }).data).toEqual({
@@ -254,52 +279,19 @@ describe('API Tokens (Integration)', () => {
       expect(res.status).toBe(201);
     });
 
-    it.each(['/v1/token-probe/plain', '/v1/token-probe/open', '/v1/users/me'])(
-      '범위가 없는 경로(%s)는 401',
-      async (path) => {
-        const res = await bearer('get', path, token);
-        expect(res.status).toBe(401);
-      },
-    );
-
-    it('범위가 다른 토큰은 403', async () => {
-      const other = (await issue({ scopes: ['test:other'] })).token;
-      const res = await bearer('get', '/v1/token-probe/scoped', other);
-      expect(res.status).toBe(403);
-    });
-
-    it('세션은 범위 경로를 지금처럼 쓴다 — 주체는 SESSION', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/v1/token-probe/scoped')
-        .set('Cookie', adminCookies);
-      expect(res.status).toBe(200);
-      expect((res.body as { data: RequestActor }).data.kind).toBe('SESSION');
-    });
-  });
-
-  describe('가드 2 — 권한은 따라가지 않는다', () => {
-    let token: string;
-
-    beforeAll(async () => {
-      token = (await issue()).token;
-    });
-
-    it('범위 + @RequirePermission 경로도 토큰으로는 403 (주인은 최고관리자)', async () => {
-      const res = await bearer('get', '/v1/token-probe/scoped-admin', token);
-      expect(res.status).toBe(403);
-    });
-
-    it('@RequirePermission 이 걸린 어떤 경로에도 토큰으로는 닿지 못한다 (관리 경로 전부)', async () => {
-      const guarded = collectRoutes(app).filter(
-        (route) => !route.isPublic && route.permissions?.length,
+    it('범위가 없는 모든 경로는 정확히 401 — 공개 경로 · 권한 없는 경로 · 관리 경로 모두 (주인이 최고관리자여도)', async () => {
+      const superToken = (await issue({ userId: superOwner.id })).token;
+      const unscoped = collectRoutes(app).filter(
+        (route) => !route.apiTokenScope,
       );
-      expect(guarded.length).toBeGreaterThan(10);
+      expect(unscoped.some((route) => route.isPublic)).toBe(true);
+      expect(unscoped.some((route) => !route.permissions?.length)).toBe(true);
       expect(
-        guarded.some((route) => route.path === '/v1/admin/api-tokens'),
+        unscoped.some((route) => route.path === '/v1/admin/api-tokens'),
       ).toBe(true);
 
-      const reached: string[] = [];
-      for (const route of guarded) {
+      const mismatches: string[] = [];
+      for (const route of unscoped) {
         const res = await (
           request(app.getHttpServer()) as unknown as Record<
             string,
@@ -307,14 +299,69 @@ describe('API Tokens (Integration)', () => {
           >
         )
           [route.method](route.path)
-          .set('Authorization', `Bearer ${token}`);
-        if (res.status !== 401 && res.status !== 403) {
-          reached.push(
+          .set('Authorization', `Bearer ${superToken}`);
+        if (res.status !== 401) {
+          mismatches.push(
             `${route.method.toUpperCase()} ${route.path} → ${res.status}`,
           );
         }
       }
-      expect(reached).toEqual([]);
+      expect(mismatches).toEqual([]);
+    });
+
+    it('클래스에 붙은 범위로는 열리지 않는다 — 가드는 핸들러만 본다', async () => {
+      const res = await bearer('get', '/v1/token-probe-class', token);
+      expect(res.status).toBe(401);
+    });
+
+    it('범위가 다른 토큰은 403', async () => {
+      const other = (await issue({ scopes: ['test:other'] })).token;
+      const res = await bearer('get', '/v1/token-probe/scoped', other);
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe('가드 2 — 토큰은 범위로, 세션은 권한으로', () => {
+    let token: string;
+
+    beforeAll(async () => {
+      token = (await issue()).token;
+    });
+
+    it('범위를 가진 토큰은 @RequirePermission 경로를 통과한다 — 주인에게 그 권한이 없어도', async () => {
+      const permissions = await prisma.userPermissionGroup.count({
+        where: { userId: owner.id },
+      });
+      expect(permissions).toBe(0);
+      const res = await bearer('get', '/v1/token-probe/scoped', token);
+      expect(res.status).toBe(200);
+    });
+
+    it('권한 없는 회원 세션은 같은 경로에서 403', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/token-probe/scoped')
+        .set('Cookie', memberCookies);
+      expect(res.status).toBe(403);
+    });
+
+    it('권한 있는 관리자 세션은 200 — 주체는 SESSION', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/token-probe/scoped')
+        .set('Cookie', adminCookies);
+      expect(res.status).toBe(200);
+      expect((res.body as { data: RequestActor }).data.kind).toBe('SESSION');
+    });
+
+    it('@AnySessionUser 경로는 회원 세션 · 토큰 모두 통과', async () => {
+      const session = await request(app.getHttpServer())
+        .get('/v1/token-probe/scoped-any-session')
+        .set('Cookie', memberCookies);
+      const viaToken = await bearer(
+        'get',
+        '/v1/token-probe/scoped-any-session',
+        token,
+      );
+      expect([session.status, viaToken.status]).toEqual([200, 200]);
     });
 
     it('토큰으로 토큰을 발급할 수 없다', async () => {

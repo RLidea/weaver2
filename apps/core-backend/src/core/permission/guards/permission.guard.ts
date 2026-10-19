@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator';
 import { PermissionService } from '../services/permission.service';
+import { API_TOKEN_SCOPE_KEY } from '../../auth/api-token/decorators/api-token-scope.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -31,8 +32,17 @@ export class PermissionGuard implements CanActivate {
       .getRequest<{ user?: { id: string }; apiToken?: unknown }>();
     const user = request.user;
 
-    // 범위 토큰은 권한을 갖지 않는다 — 주인의 권한이 따라가지 않는다(범위 경로는 @ApiTokenScope 가 연다)
+    /*
+      범위 토큰: 주인의 권한은 @RequirePermission 을 결코 채우지 못한다 — 경로 자신의 범위만 그 자리에 선다.
+      범위는 JwtAuthGuard 가 이미 맞춰 봤다. 권한을 조회하지 않는다(서비스 계정은 권한 그룹이 없다).
+      핸들러만 본다 — JwtAuthGuard 와 같은 자리.
+    */
     if (request.apiToken) {
+      if (
+        this.reflector.get<string>(API_TOKEN_SCOPE_KEY, context.getHandler())
+      ) {
+        return true;
+      }
       throw new ForbiddenException('API 토큰으로는 이 작업을 할 수 없습니다.');
     }
 
