@@ -1,0 +1,48 @@
+/**
+ * AUTH_MODE=local(기본)에서 SSO 경로는 닫혀 있고, 로그아웃 응답에 endSessionUrl 이 없다.
+ */
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { createTestApp, closeTestApp } from './helpers/test-app.helper';
+import { getCsrfToken } from './helpers/auth.helper';
+
+describe('SSO routes in AUTH_MODE=local (Integration)', () => {
+  let app: INestApplication;
+  let saved: string | undefined;
+
+  beforeAll(async () => {
+    saved = process.env.AUTH_MODE;
+    process.env.AUTH_MODE = 'local';
+    app = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await closeTestApp();
+    if (saved === undefined) delete process.env.AUTH_MODE;
+    else process.env.AUTH_MODE = saved;
+  });
+
+  it.each(['/v1/auth/oidc/start', '/v1/auth/oidc/callback?state=x&code=y'])(
+    '%s → 404 AUTH_MODE_LOCAL',
+    async (path) => {
+      const res = await request(app.getHttpServer()).get(path);
+      expect(res.status).toBe(404);
+      expect(JSON.stringify(res.body)).toContain('AUTH_MODE_LOCAL');
+    },
+  );
+
+  it('로그아웃 응답에 endSessionUrl 이 없다', async () => {
+    const { token, cookies } = await getCsrfToken(app);
+    const res = await request(app.getHttpServer())
+      .post('/v1/auth/sign-out')
+      .set('Cookie', cookies)
+      .set('x-csrf-token', token);
+    expect(res.status).toBe(201);
+    expect(res.body.data).not.toHaveProperty('endSessionUrl');
+  });
+
+  it('공급자 응답은 sso: false, password: true', async () => {
+    const res = await request(app.getHttpServer()).get('/v1/auth/providers');
+    expect(res.body.data).toMatchObject({ sso: false, password: true });
+  });
+});

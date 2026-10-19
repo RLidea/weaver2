@@ -15,4 +15,6 @@
 export const TOKEN_AUDIENCE = {
   ACCESS: 'access',
   PRE_AUTH: 'pre-auth',
+  /** SSO 로그인 진행 쿠키(oidc_tx) — 키도 JWT_SECRET 에서 따로 뽑는다 (oidc-transaction.ts) */
+  OIDC_TX: 'oidc-tx',
 } as const;

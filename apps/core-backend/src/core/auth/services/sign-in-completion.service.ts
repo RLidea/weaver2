@@ -91,6 +91,18 @@ export class SignInCompletionService {
     await this.run(userId, context, res, { twoFactorPassed: true });
   }
 
+  /**
+   * 바깥 계정 서버(AUTH_MODE=sso)가 신원을 확인한 뒤 — 로컬 2FA 를 묻지 않는다(그 서버가 했다).
+   * 탈퇴 · 정지 검사는 그대로다. `decide(userId, { twoFactorPassed: true })` 와 같다.
+   */
+  async completeExternal(
+    userId: string,
+    context: SignInContext,
+    res: Response,
+  ): Promise<void> {
+    await this.run(userId, context, res, { twoFactorPassed: true });
+  }
+
   /** pre-auth 상태에서 고를 수 있는 2FA 수단 — 2FA 화면이 묻는다 */
   async availableMethods(userId: string): Promise<AvailableTwoFactorMethods> {
     const methods = await this.prisma.twoFactorMethod.findMany({

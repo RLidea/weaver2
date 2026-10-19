@@ -498,7 +498,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 로그아웃 및 인증 쿠키 삭제 */
+        /**
+         * 로그아웃 및 인증 쿠키 삭제
+         * @description AUTH_MODE=sso 면 응답에 endSessionUrl(발급자의 end_session)을 싣는다 — 화면이 그리로 문서 이동한다
+         */
         post: operations["SignOutController_signOut"];
         delete?: never;
         options?: never;
@@ -849,6 +852,46 @@ export interface paths {
          * @description 로그인 화면이 버튼을 서버 설정에 맞춰 그리도록 쓴다. OAuth 는 서버에 등록된 provider 만 true.
          */
         get: operations["AuthProvidersController_getProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SSO 로그인 시작 — 발급자의 authorize 로 302
+         * @description AUTH_MODE=sso 에서만. 문서 이동으로 부른다(API 호출 아님). 실패하면 입구의 실패 주소로 ?error=
+         */
+        get: operations["OidcController_start"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SSO 콜백 — 검증 뒤 세션 쿠키를 주고 next 로 302
+         * @description 발급자가 보내는 최상위 GET 이라 CSRF 미들웨어 밖이다. tx 쿠키의 state 대조로 막는다
+         */
+        get: operations["OidcController_callback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5240,6 +5283,47 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AuthProvidersResponseDto"];
                 };
+            };
+        };
+    };
+    OidcController_start: {
+        parameters: {
+            query?: {
+                /** @description ACCOUNTS_OIDC_LANGS 중 하나 */
+                lang?: unknown;
+                /** @description 로그인 뒤 갈 같은 출처의 경로 */
+                next?: unknown;
+                /** @description 실패 주소 표의 열쇠 (기본 admin) */
+                entry?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OidcController_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

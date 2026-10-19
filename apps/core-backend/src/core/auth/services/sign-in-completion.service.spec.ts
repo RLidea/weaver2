@@ -163,6 +163,46 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  describe('completeExternal — 바깥 계정 서버(SSO)가 신원을 확인한 뒤', () => {
+    const external = { ...context, provider: 'oidc', rememberMe: false };
+
+    it('2FA 를 켠 사람도 pre_auth 없이 세션을 준다 (rememberMe=false)', async () => {
+      prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+      await service.completeExternal(
+        'u1',
+        external,
+        res as unknown as Response,
+      );
+      expect(twoFactor.createPreAuthToken).not.toHaveBeenCalled();
+      expect(signIn.login).toHaveBeenCalledWith(
+        'u1',
+        'oidc',
+        false,
+        '1.2.3.4',
+        'ua',
+      );
+      expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
+    });
+
+    it('탈퇴 · 정지 검사는 그대로다', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        deletedAt: new Date(),
+        suspendedUntil: null,
+      });
+      await expect(
+        service.completeExternal('u1', external, res as unknown as Response),
+      ).rejects.toThrow('ACCOUNT_DELETED');
+      prisma.user.findUnique.mockResolvedValue({
+        deletedAt: null,
+        suspendedUntil: new Date(Date.now() + 60_000),
+      });
+      await expect(
+        service.completeExternal('u1', external, res as unknown as Response),
+      ).rejects.toBeInstanceOf(AccountSuspendedException);
+      expect(signIn.login).not.toHaveBeenCalled();
+    });
+  });
+
   describe('decide — 전달 방식에 묶이지 않는 결정', () => {
     const suspended = {
       deletedAt: null,

@@ -30,6 +30,8 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
 import { ApiTokenModule } from './api-token/api-token.module';
 import { AuthModeModule } from './auth-mode.module';
 import { AuthModeGuard } from './guards/auth-mode.guard';
+import { OidcModule } from './oidc/oidc.module';
+import { OidcController } from './oidc/oidc.controller';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { AuthModeGuard } from './guards/auth-mode.guard';
     OAuthModule,
     OneTimeCodeModule,
     ApiTokenModule,
+    OidcModule,
   ],
   controllers: [
     SignInController,
@@ -51,6 +54,7 @@ import { AuthModeGuard } from './guards/auth-mode.guard';
     SessionController,
     CsrfController,
     AuthProvidersController,
+    OidcController,
   ],
   providers: [
     SignInService,
