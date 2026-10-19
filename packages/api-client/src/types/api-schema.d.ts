@@ -900,6 +900,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/oidc/backchannel-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * OIDC back-channel 로그아웃 — 발급자가 서버에서 보낸다
+         * @description AUTH_MODE=sso 에서만. application/x-www-form-urlencoded 의 logout_token(§2.6 검증). 쿠키가 없는 서버 간 요청이라 CSRF 밖이다. 그 sid 의 세션을 지우고 200(지울 것이 없어도). 받을 수 없으면 400 {error:"invalid_request"}, 발급자 JWKS 에 닿지 못하면 503
+         */
+        post: operations["OidcController_backchannelLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/api-tokens": {
         parameters: {
             query?: never;
@@ -5320,6 +5340,37 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OidcController_backchannelLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    logout_token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 세션을 지웠다(없었어도) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description { "error": "invalid_request" } */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -31,6 +31,15 @@ describe('SSO routes in AUTH_MODE=local (Integration)', () => {
     },
   );
 
+  it('back-channel 로그아웃 POST(쿠키 · CSRF 토큰 없음) → CSRF 403 이 아니라 404 AUTH_MODE_LOCAL', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/v1/auth/oidc/backchannel-logout')
+      .type('form')
+      .send({ logout_token: 'x.y.z' });
+    expect(res.status).toBe(404);
+    expect(JSON.stringify(res.body)).toContain('AUTH_MODE_LOCAL');
+  });
+
   it('로그아웃 응답에 endSessionUrl 이 없다', async () => {
     const { token, cookies } = await getCsrfToken(app);
     const res = await request(app.getHttpServer())

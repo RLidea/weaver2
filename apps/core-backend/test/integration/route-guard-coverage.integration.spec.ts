@@ -5,6 +5,8 @@
  * 1. `@Public()` 이 아닌 라우트는 토큰 없이 부르면 401
  * 2. `@RequirePermission()` 이 걸린 라우트는 권한 없는 사용자로 부르면 403
  * 3. `@ApiTokenScope` 경로는 `@RequirePermission`(또는 `@AnySessionUser()`)과 짝을 이루고, 핸들러에만 붙는다
+ * 4. `@SsoOnly()` 경로는 local(기본)에서 CSRF 토큰이 없어도 404 `AUTH_MODE_LOCAL` — 서버 간 면제 경로
+ *    (back-channel 로그아웃)가 local 에서 열려 있지 않다
  *
  * 인증·권한은 전역 가드(APP_GUARD — auth.module.ts)가 맡는다. 컨트롤러에 `@UseGuards` 를
  * 덧붙였는지와 무관하게 이 시험이 통과해야 하고, 새 라우트가 생겨도 손대지 않고 덮는다.
@@ -144,6 +146,30 @@ describe('Route Guard Coverage (Integration)', () => {
     expect(mismatches).toEqual([]);
   });
 
+  it('@SsoOnly 경로는 모두 local 에서 404 AUTH_MODE_LOCAL — CSRF 토큰 없이 불러도', async () => {
+    const ssoOnly = routes.filter((r) => r.authModeOnly === 'sso');
+    // start · callback · back-channel 로그아웃
+    expect(ssoOnly.length).toBeGreaterThanOrEqual(3);
+    const mismatches: string[] = [];
+    for (const route of ssoOnly) {
+      const res = await (
+        request(app.getHttpServer()) as unknown as Record<
+          string,
+          (path: string) => request.Test
+        >
+      )[route.method](route.path);
+      if (
+        res.status !== 404 ||
+        !JSON.stringify(res.body).includes('AUTH_MODE_LOCAL')
+      ) {
+        mismatches.push(
+          `${route.method.toUpperCase()} ${route.path} → ${res.status}`,
+        );
+      }
+    }
+    expect(mismatches).toEqual([]);
+  });
+
   describe('범위 경로의 모양', () => {
     const base: Route = {
       method: 'post',
@@ -153,6 +179,7 @@ describe('Route Guard Coverage (Integration)', () => {
       apiTokenScope: undefined,
       classApiTokenScope: undefined,
       anySessionUser: false,
+      authModeOnly: undefined,
     };
 
     it('앱의 모든 @ApiTokenScope 경로가 @RequirePermission(또는 @AnySessionUser)과 짝이고, 클래스에 붙은 것이 없다', () => {

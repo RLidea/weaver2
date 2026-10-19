@@ -86,6 +86,7 @@ export class SignInService {
     rememberMe = false,
     ipAddress?: string,
     userAgent?: string,
+    oidcSid?: string,
   ) {
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
@@ -109,6 +110,7 @@ export class SignInService {
       expiryDays,
       ipAddress,
       userAgent,
+      oidcSid,
     );
     return {
       accessToken: this.jwtService.sign(payload),
@@ -122,6 +124,7 @@ export class SignInService {
     expiryDays: number,
     ipAddress?: string,
     userAgent?: string,
+    oidcSid?: string,
   ) {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
@@ -133,6 +136,7 @@ export class SignInService {
       expires,
       ipAddress,
       userAgent,
+      oidcSid,
     );
 
     return token;
@@ -177,11 +181,13 @@ export class SignInService {
       1,
       Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
     );
+    // SSO 세션의 sid 를 새 행으로 옮긴다 — 안 옮기면 한 번 회전한 세션은 back-channel 로그아웃에 닿지 않는다
     const newRefreshToken = await this.generateRefreshToken(
       stored.user.id,
       remainingDays,
       ipAddress,
       userAgent,
+      stored.oidcSid ?? undefined,
     );
 
     return {

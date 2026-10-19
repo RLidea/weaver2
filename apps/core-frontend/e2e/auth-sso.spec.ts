@@ -17,6 +17,16 @@ import { fakeSubFor } from '../../core-backend/test/helpers/fake-oidc-issuer';
 const ADMIN_EMAIL = 'admin@weaver.com';
 const REPO_ROOT = resolve(__dirname, '../../..');
 
+/**
+ * 가짜 발급자 주소 — CI 는 ACCOUNTS_OIDC_ISSUER 를 env 로 준다. lane:e2e 는 백엔드에만 주므로
+ * 백엔드 포트에서 같은 셈(4280 + (API 포트 − 4000))으로 뽑는다
+ */
+function fakeIssuer(): string {
+  if (process.env.ACCOUNTS_OIDC_ISSUER) return process.env.ACCOUNTS_OIDC_ISSUER;
+  const apiPort = Number(new URL(process.env.E2E_API_URL ?? 'http://localhost:4000').port || 80);
+  return `http://127.0.0.1:${4280 + apiPort - 4000}/oidc`;
+}
+
 async function ssoLogin(page: import('@playwright/test').Page, email: string) {
   await page.getByRole('button', { name: 'SSO 로 로그인' }).click();
   // 가짜 발급자의 로그인 화면
@@ -57,6 +67,36 @@ test.describe('SSO 로그인', () => {
     expect((await context.cookies()).some((c) => c.name === 'refresh_token')).toBe(false);
     await page.goto('/admin');
     await expect(page).toHaveURL(/\/login\?redirect=%2Fadmin$/);
+  });
+
+  test('발급자가 back-channel 로그아웃을 보내면 이 세션은 더 갱신되지 않는다', async ({
+    page,
+    request,
+  }) => {
+    const email = `sso-bcl-${Date.now()}@example.com`;
+    await page.goto('/login?redirect=/settings/security');
+    await ssoLogin(page, email);
+    await expect(page).toHaveURL(/\/settings\/security$/);
+
+    // 브라우저의 쿠키로 refresh — CSRF 토큰은 refresh 쿠키에 묶이므로 먼저 받는다
+    const refresh = async () => {
+      const csrf = await page.request.get('/api/v1/auth/csrf-token');
+      const token = ((await csrf.json()) as { data: { csrfToken: string } }).data.csrfToken;
+      const res = await page.request.post('/api/v1/auth/refresh', {
+        headers: { 'x-csrf-token': token },
+      });
+      return res.status();
+    };
+    // 한 번 돌려 둔다 — 회전한 새 세션도 sid 를 이어받아야 아래에서 지워진다
+    expect(await refresh()).toBe(201);
+
+    // 가짜 발급자가 진짜처럼 서명한 logout_token 을 백엔드에 서버로 보낸다(쿠키 · CSRF 없음)
+    const emitted = await request.post(`${fakeIssuer()}/test/backchannel-logout`, {
+      form: { email },
+    });
+    expect(await emitted.json()).toEqual({ status: 200 });
+
+    expect(await refresh()).toBe(401);
   });
 
   test('새 사람은 계정이 생기고, 보안 설정에는 비밀번호 · 2FA 칸이 없다', async ({ page }) => {

@@ -102,6 +102,7 @@
     "csrf-csrf": "^4.0.3",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
+    "jose": "6.2.12",
     "multer": "^2.4.0",
     "nest-winston": "^2.0.0",
     "nodemailer": "^10.0.16",

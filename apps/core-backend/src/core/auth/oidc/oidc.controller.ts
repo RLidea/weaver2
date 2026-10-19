@@ -1,14 +1,23 @@
 import {
   Controller,
   Get,
+  HttpCode,
   Inject,
   Logger,
+  Post,
   Query,
   Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
@@ -36,6 +45,11 @@ import {
 } from './oidc-client';
 import { OidcTransaction, OidcTx } from './oidc-transaction';
 import { OidcSubjectService } from './oidc-subject.service';
+import {
+  BackchannelLogoutResult,
+  BackchannelLogoutService,
+} from './backchannel-logout.service';
+import { LogoutTokenError } from './oidc-logout-token';
 
 const FAKE_ORIGIN = 'http://same-origin.invalid';
 /** next 가 이보다 길면 쿠키를 키우지 않고 기본값으로 */
@@ -87,6 +101,7 @@ export class OidcController {
     @Inject(OIDC_CLIENT) private readonly oidc: OidcClient,
     private readonly transaction: OidcTransaction,
     private readonly subjects: OidcSubjectService,
+    private readonly backchannel: BackchannelLogoutService,
     private readonly signInCompletion: SignInCompletionService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -224,15 +239,74 @@ export class OidcController {
           rememberMe: false,
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
+          oidcSid: claims.sid,
         },
         res,
       );
+      if (!claims.sid && this.sso.backchannelSessionRequired) {
+        // 이 세션은 back-channel 로그아웃이 찾지 못한다 — 발급자 등록(session_required)을 본다
+        this.logger.warn(`SSO id_token has no sid: sub=${claims.sub}`);
+      }
       await this.subjects.afterSignIn(userId, { ...meta, created });
       this.logger.log(`SSO sign-in: userId=${userId} sub=${claims.sub}`);
       res.redirect(tx.next);
     } catch (err) {
       this.fail(res, tx, err);
     }
+  }
+
+  @Public()
+  // 발급자 한 곳이 모든 사람의 로그아웃을 한 IP 로 보낸다 — 넉넉히 두되 끝은 있다.
+  // 넘쳐도 발급자는 1 · 2 · 4 … 분 뒤 새 토큰으로 다시 보낸다
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  @Post('backchannel-logout')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'OIDC back-channel 로그아웃 — 발급자가 서버에서 보낸다',
+    description:
+      'AUTH_MODE=sso 에서만. application/x-www-form-urlencoded 의 logout_token(§2.6 검증). 쿠키가 없는 서버 간 요청이라 CSRF 밖이다. 그 sid 의 세션을 지우고 200(지울 것이 없어도). 받을 수 없으면 400 {error:"invalid_request"}, 발급자 JWKS 에 닿지 못하면 503',
+  })
+  @ApiConsumes('application/x-www-form-urlencoded')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['logout_token'],
+      properties: { logout_token: { type: 'string' } },
+    },
+  })
+  @ApiResponse({ status: 200, description: '세션을 지웠다(없었어도)' })
+  @ApiResponse({ status: 400, description: '{ "error": "invalid_request" }' })
+  async backchannelLogout(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    res.setHeader('Cache-Control', 'no-store');
+    const token = (req.body as Record<string, unknown> | undefined)
+      ?.logout_token;
+    if (typeof token !== 'string' || !token) {
+      this.logger.warn('Back-channel logout rejected: no logout_token');
+      res.status(400).json({ error: 'invalid_request' });
+      return;
+    }
+    let result: BackchannelLogoutResult;
+    try {
+      result = await this.backchannel.logout(token);
+    } catch (err) {
+      if (err instanceof LogoutTokenError) {
+        // 토큰은 남기지 않는다 — 어느 규칙에 걸렸는지만
+        this.logger.warn(`Back-channel logout rejected: ${err.message}`);
+        res.status(400).json({ error: 'invalid_request' });
+        return;
+      }
+      if (err instanceof OidcError) {
+        this.logger.warn(`Back-channel logout unavailable: ${err.message}`);
+        res.status(503).json({ error: 'temporarily_unavailable' });
+        return;
+      }
+      throw err;
+    }
+    res.status(200).end();
+    await this.backchannel.afterLogout(result);
   }
 
   private get isProduction(): boolean {

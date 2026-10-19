@@ -26,6 +26,11 @@ export interface SsoConfig {
   failureUrls: [string, string][];
   /** `next` 가 없거나 다른 출처일 때 갈 곳 */
   defaultNext: string;
+  /**
+   * 발급자에 `backchannel_logout_session_required: true` 로 등록했나. 그러면 sid 없는 logout_token 은
+   * 거절한다. false 면 sid 없이 sub 만 온 토큰으로 그 사람의 모든 세션을 지운다
+   */
+  backchannelSessionRequired: boolean;
 }
 
 export type AuthModeConfig =
@@ -214,6 +219,14 @@ export function readAuthModeConfig(
     throw new Error('ACCOUNTS_OIDC_DEFAULT_NEXT must be a same-origin path');
   }
 
+  const sessionRequired =
+    value('ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED') ?? 'true';
+  if (sessionRequired !== 'true' && sessionRequired !== 'false') {
+    throw new Error(
+      'ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED must be "true" or "false"',
+    );
+  }
+
   return {
     mode: 'sso',
     sso: {
@@ -228,6 +241,7 @@ export function readAuthModeConfig(
         value('ACCOUNTS_OIDC_FAILURE_URLS') ?? 'admin=/login',
       ),
       defaultNext,
+      backchannelSessionRequired: sessionRequired === 'true',
     },
   };
 }

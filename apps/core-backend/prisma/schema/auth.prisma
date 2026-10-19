@@ -171,12 +171,25 @@ model RefreshToken {
   userId    String
   ipAddress String?
   userAgent String?
+  // SSO(AUTH_MODE=sso) 로 받은 세션이면 id_token 의 sid. 회전해도 새 행으로 옮긴다.
+  // back-channel 로그아웃이 이 값으로 세션을 찾아 지운다
+  oidcSid   String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([oidcSid])
   @@map("refresh_tokens")
+}
+
+/// 받은 back-channel logout_token 의 jti — 같은 토큰을 두 번 받지 않는다. 받아 주는 기간이 끝나면 지운다
+model OidcLogoutJti {
+  jti       String   @id
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("oidc_logout_jtis")
 }
 
 /// 사람이 아닌 호출자가 `@ApiTokenScope` 경로 몇 개만 부르는 토큰. 주인의 권한은 따라가지 않는다.

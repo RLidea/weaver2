@@ -24,6 +24,9 @@ import { Logger } from '@nestjs/common';
  *       afterSignIn: (userId, meta) => events.record(userId, 'LOGIN', meta),
  *       onConflict: (userId, sub) => events.record(userId, 'SSO_CONFLICT', { sub }),
  *       onLink: (userId, sub) => events.record(userId, 'SSO_LINK', { sub }),
+ *       onBackchannelLogout: async (userId, { sid }) => {
+ *         if (userId) await events.record(userId, 'SSO_BACKCHANNEL_LOGOUT', { sid });
+ *       },
  *     }),
  *     inject: [AuthEventService],
  *   }],
@@ -88,6 +91,12 @@ export interface OidcSignInMeta {
   userAgent?: string;
 }
 
+/** back-channel 로그아웃에 실려 온 것 — sid · sub 중 하나 이상 */
+export interface OidcBackchannelLogoutMeta {
+  sid?: string;
+  sub?: string;
+}
+
 export interface OidcUserHooks {
   /** 새 사람의 username · displayName. 없거나 던지면 weaver2 기본 생성기를 쓴다 */
   names?(
@@ -111,4 +120,13 @@ export interface OidcUserHooks {
   onLink?(userId: string, sub: string): Promise<void> | void;
   /** 운영자가 `pnpm sso:unlink --apply` 로 풀었다 */
   onUnlink?(userId: string, sub: string): Promise<void> | void;
+  /**
+   * 발급자가 back-channel 로그아웃을 보냈고 세션을 지웠다. 응답(200)을 보낸 **뒤에** 불린다.
+   * userId 는 지운 세션의 주인 — 없으면 sub 로 찾은 사람, 그것도 없으면 null(지울 것이 없었다).
+   * 같은 로그아웃이 다시 오지는 않지만(jti) 같은 사람의 다른 sid 로는 여러 번 올 수 있다
+   */
+  onBackchannelLogout?(
+    userId: string | null,
+    logout: OidcBackchannelLogoutMeta,
+  ): Promise<void> | void;
 }

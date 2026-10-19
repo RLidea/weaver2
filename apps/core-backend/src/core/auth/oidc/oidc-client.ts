@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as client from 'openid-client';
+import { createRemoteJWKSet, errors as joseErrors, jwtVerify } from 'jose';
 import {
   AUTH_MODE_CONFIG,
   AuthModeConfig,
@@ -7,6 +8,13 @@ import {
   isLoopbackHttp,
 } from '../auth-mode';
 import { OidcUserClaims } from './oidc-user-hooks';
+import {
+  LOGOUT_TOKEN_MAX_AGE_SEC,
+  LOGOUT_TOKEN_TYPE,
+  LogoutTokenClaims,
+  LogoutTokenError,
+  checkLogoutClaims,
+} from './oidc-logout-token';
 
 /**
  * 실패 종류 — 콜백이 실패 주소의 `?error=` 로 싣는 값 그대로다(D13).
@@ -63,6 +71,13 @@ export interface OidcClient {
   userinfo(accessToken: string, expectedSub: string): Promise<OidcUserClaims>;
   /** 발급자의 end_session 주소 — `client_id` · `post_logout_redirect_uri` · `state`, id_token_hint 없음 */
   endSessionUrl(params: { state: string }): Promise<string>;
+  /**
+   * back-channel logout_token 검증(§2.6) — RS256 만, 발급자 JWKS(kid), 머리 `typ` = `logout+jwt`,
+   * iss · aud(client_id) · iat(시계 허용 60초, `LOGOUT_TOKEN_MAX_AGE_SEC` 안) · exp(있으면), 그리고
+   * `checkLogoutClaims`. 받을 수 없으면 `LogoutTokenError`, 발급자에 닿지 못하면 `OidcError`.
+   * jti 재사용은 보지 않는다(DB 의 몫 — BackchannelLogoutService)
+   */
+  verifyLogoutToken(token: string): Promise<LogoutTokenClaims>;
 }
 
 export const OIDC_CLIENT = Symbol('OIDC_CLIENT');
@@ -73,6 +88,16 @@ const REQUEST_TIMEOUT_SEC = 5;
 const CLOCK_TOLERANCE_SEC = 60;
 /** 안내판 캐시 */
 const DISCOVERY_TTL_MS = 60 * 60 * 1000;
+/** logout_token 용 JWKS — 모르는 kid 면 다시 받되 30초에 한 번, 10분 둔다 */
+const JWKS_COOLDOWN_MS = 30 * 1000;
+const JWKS_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+
+/** 발급자의 JWKS 에 닿지 못한 jose 오류 — 토큰 탓이 아니다 */
+const JWKS_UNAVAILABLE_CODES = new Set([
+  'ERR_JWKS_TIMEOUT',
+  'ERR_JWKS_INVALID',
+  'ERR_JOSE_GENERIC',
+]);
 
 const NETWORK_ERROR_CODES = new Set([
   'ECONNREFUSED',
@@ -130,6 +155,7 @@ function toOidcError(stage: string, err: unknown): OidcError {
 export class OpenIdOidcClient implements OidcClient {
   private readonly sso: SsoConfig;
   private discovered?: { at: number; config: Promise<client.Configuration> };
+  private jwks?: { uri: string; get: ReturnType<typeof createRemoteJWKSet> };
 
   constructor(@Inject(AUTH_MODE_CONFIG) authMode: AuthModeConfig) {
     if (authMode.mode !== 'sso') {
@@ -260,5 +286,56 @@ export class OpenIdOidcClient implements OidcClient {
     } catch (err) {
       throw toOidcError('end_session', err);
     }
+  }
+
+  async verifyLogoutToken(token: string): Promise<LogoutTokenClaims> {
+    const config = await this.configuration();
+    const uri = config.serverMetadata().jwks_uri;
+    if (!uri) {
+      throw new OidcError('sso_unavailable', 'OIDC discovery has no jwks_uri');
+    }
+    // openid-client 의 JWKS 캐시는 밖에서 쓸 수 없다 — 같은 주소로 jose 의 것을 하나 둔다
+    if (this.jwks?.uri !== uri) {
+      this.jwks = {
+        uri,
+        get: createRemoteJWKSet(new URL(uri), {
+          timeoutDuration: REQUEST_TIMEOUT_SEC * 1000,
+          cooldownDuration: JWKS_COOLDOWN_MS,
+          cacheMaxAge: JWKS_CACHE_MAX_AGE_MS,
+        }),
+      };
+    }
+    let payload: Record<string, unknown>;
+    try {
+      ({ payload } = await jwtVerify(token, this.jwks.get, {
+        algorithms: ['RS256'],
+        typ: LOGOUT_TOKEN_TYPE,
+        issuer: this.sso.issuer,
+        audience: this.sso.clientId,
+        clockTolerance: CLOCK_TOLERANCE_SEC,
+        maxTokenAge: LOGOUT_TOKEN_MAX_AGE_SEC,
+      }));
+    } catch (err) {
+      if (
+        isUnavailable(err) ||
+        (err instanceof joseErrors.JOSEError &&
+          JWKS_UNAVAILABLE_CODES.has(err.code))
+      ) {
+        throw toOidcError('logout_token jwks', err);
+      }
+      // jose 오류의 코드 · 칸 이름만 — 메시지에 클레임 값이 실릴 수 있다
+      const e = err as { code?: unknown; claim?: unknown };
+      throw new LogoutTokenError(
+        [
+          typeof e.code === 'string' ? e.code : (err as Error)?.name,
+          typeof e.claim === 'string' ? `claim=${e.claim}` : undefined,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+    }
+    return checkLogoutClaims(payload, {
+      sessionRequired: this.sso.backchannelSessionRequired,
+    });
   }
 }

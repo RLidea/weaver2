@@ -4,6 +4,7 @@ import { AUTH_MODE_CONFIG, AuthModeConfig } from '../auth-mode';
 import { OIDC_CLIENT, OpenIdOidcClient } from './oidc-client';
 import { OidcTransaction } from './oidc-transaction';
 import { OidcSubjectService } from './oidc-subject.service';
+import { BackchannelLogoutService } from './backchannel-logout.service';
 
 /**
  * SSO(OIDC 손님) 부품. 컨트롤러는 세션을 주는 `SignInCompletionService` 가 있는 AuthModule 에
@@ -21,7 +22,13 @@ import { OidcSubjectService } from './oidc-subject.service';
     },
     OidcTransaction,
     OidcSubjectService,
+    BackchannelLogoutService,
   ],
-  exports: [OIDC_CLIENT, OidcTransaction, OidcSubjectService],
+  exports: [
+    OIDC_CLIENT,
+    OidcTransaction,
+    OidcSubjectService,
+    BackchannelLogoutService,
+  ],
 })
 export class OidcModule {}

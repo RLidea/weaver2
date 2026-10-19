@@ -60,6 +60,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       true,
       '1.2.3.4',
       'ua',
+      undefined,
     );
     expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
   });
@@ -164,9 +165,14 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
   });
 
   describe('completeExternal — 바깥 계정 서버(SSO)가 신원을 확인한 뒤', () => {
-    const external = { ...context, provider: 'oidc', rememberMe: false };
+    const external = {
+      ...context,
+      provider: 'oidc',
+      rememberMe: false,
+      oidcSid: 'sid-1',
+    };
 
-    it('2FA 를 켠 사람도 pre_auth 없이 세션을 준다 (rememberMe=false)', async () => {
+    it('2FA 를 켠 사람도 pre_auth 없이 세션을 준다 (rememberMe=false) — id_token 의 sid 를 세션에 남긴다', async () => {
       prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
       await service.completeExternal(
         'u1',
@@ -180,6 +186,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
         false,
         '1.2.3.4',
         'ua',
+        'sid-1',
       );
       expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
     });

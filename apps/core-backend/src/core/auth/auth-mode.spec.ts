@@ -50,7 +50,18 @@ describe('readAuthModeConfig', () => {
       failureUrls: [['admin', '/login']],
       defaultNext: '/dashboard',
       accountUrl: undefined,
+      backchannelSessionRequired: true,
     });
+  });
+
+  it('back-channel session_required 는 true · false 만 받는다', () => {
+    expect(
+      read({ ...SSO, ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: 'false' }).sso
+        ?.backchannelSessionRequired,
+    ).toBe(false);
+    expect(() =>
+      read({ ...SSO, ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: 'no' }),
+    ).toThrow('ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED');
   });
 
   it('설정한 redirect · post_logout · 언어 · 실패 주소 · 기본 next 를 그대로 쓴다', () => {

@@ -14,6 +14,8 @@ export const PUBLIC_WRITE_ALLOWLIST: readonly string[] = [
   // 세션 갱신 · 로그아웃 — SSO 로 받은 세션도 같은 쿠키다
   'POST /v1/auth/refresh',
   'POST /v1/auth/sign-out',
+  // OIDC back-channel 로그아웃 — 발급자가 서명한 logout_token 으로만 세션을 지운다(@SsoOnly)
+  'POST /v1/auth/oidc/backchannel-logout',
   // 게시판 쓰기 — 익명 허용 여부는 게시판 권한이 판정한다
   'POST /v1/posts',
   'POST /v1/comments',

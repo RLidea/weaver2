@@ -253,4 +253,48 @@ describe('SignInService.refresh', () => {
     );
     expect(revokeSpy).not.toHaveBeenCalled();
   });
+
+  it('회전한 새 행은 옛 행의 oidcSid 를 이어받는다 — back-channel 로그아웃이 회전한 세션에도 닿게', async () => {
+    const findMod = await import('../repositories/find-refresh-token.query');
+    const markMod =
+      await import('../repositories/mark-refresh-token-rotated.command');
+    const purgeMod =
+      await import('../repositories/purge-stale-refresh-tokens.command');
+    const createMod =
+      await import('../repositories/create-refresh-token.command');
+    jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
+      id: 'rt1',
+      userId: 'u1',
+      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      rotatedAt: null,
+      oidcSid: 'sid-1',
+      user: { id: 'u1', deletedAt: null },
+    } as any);
+    jest
+      .spyOn(markMod, 'MarkRefreshTokenRotatedCommand')
+      .mockResolvedValueOnce({ count: 1 });
+    jest
+      .spyOn(purgeMod, 'PurgeStaleRefreshTokensCommand')
+      .mockResolvedValueOnce({ count: 0 });
+    const createSpy = jest
+      .spyOn(createMod, 'CreateRefreshTokenCommand')
+      .mockResolvedValueOnce({} as any);
+    service = new SignInService(
+      prisma as PrismaService,
+      {
+        sign: () => 'jwt',
+      } as unknown as JwtService,
+    );
+
+    await service.refresh('tok', '1.2.3.4', 'ua');
+    expect(createSpy).toHaveBeenCalledWith(
+      prisma,
+      'u1',
+      expect.any(String),
+      expect.any(Date),
+      '1.2.3.4',
+      'ua',
+      'sid-1',
+    );
+  });
 });

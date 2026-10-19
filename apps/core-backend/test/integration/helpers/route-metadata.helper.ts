@@ -6,6 +6,7 @@ import {
   ANY_SESSION_USER_KEY,
   API_TOKEN_SCOPE_KEY,
 } from '../../../src/core/auth/api-token/decorators/api-token-scope.decorator';
+import { AUTH_MODE_ONLY_KEY } from '../../../src/core/auth/decorators/local-auth-only.decorator';
 
 // 경로 변수 자리. 가드는 파이프(검증)보다 먼저 돌므로 값의 형식은 결과에 영향이 없다.
 const PARAM_PLACEHOLDER = '00000000-0000-4000-8000-000000000000';
@@ -25,6 +26,8 @@ export interface Route {
   /** 클래스에 붙은 `@ApiTokenScope` — 가드가 보지 않으므로 있으면 실수다 */
   classApiTokenScope: string | undefined;
   anySessionUser: boolean;
+  /** `@LocalAuthOnly()` · `@SsoOnly()` — 가드와 같이 핸들러가 클래스를 덮는다 */
+  authModeOnly: 'local' | 'sso' | undefined;
 }
 
 /**
@@ -88,6 +91,10 @@ export function collectRoutes(app: INestApplication): Route[] {
         string[] | undefined;
       const ctrlScope = Reflect.getMetadata(API_TOKEN_SCOPE_KEY, controller) as
         string | undefined;
+      const ctrlModeOnly = Reflect.getMetadata(
+        AUTH_MODE_ONLY_KEY,
+        controller,
+      ) as 'local' | 'sso' | undefined;
 
       const proto = controller.prototype as Record<string, unknown>;
       for (const name of Object.getOwnPropertyNames(proto)) {
@@ -115,6 +122,10 @@ export function collectRoutes(app: INestApplication): Route[] {
         ) as string | undefined;
         const anySessionUser =
           Reflect.getMetadata(ANY_SESSION_USER_KEY, handler) === true;
+        const handlerModeOnly = Reflect.getMetadata(
+          AUTH_MODE_ONLY_KEY,
+          handler,
+        ) as 'local' | 'sso' | undefined;
 
         for (const ctrlPath of ctrlPaths) {
           for (const mPath of ([] as string[]).concat(methodPath)) {
@@ -131,6 +142,7 @@ export function collectRoutes(app: INestApplication): Route[] {
               apiTokenScope: handlerScope,
               classApiTokenScope: ctrlScope,
               anySessionUser,
+              authModeOnly: handlerModeOnly ?? ctrlModeOnly,
             });
           }
         }

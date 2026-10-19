@@ -6,10 +6,12 @@
  * ESM 의존이 없다.
  *
  * 경로(발급자 주소 `http://127.0.0.1:<port>/oidc` 아래): 안내판 · `/jwks` · `/auth`(e2e 용 폼) ·
- * `/token`(Basic · S256 · redirect_uri, code 1회용) · `/me`(Bearer) · `/session/end`.
+ * `/token`(Basic · S256 · redirect_uri, code 1회용) · `/me`(Bearer) · `/session/end` ·
+ * `/test/backchannel-logout`(e2e 용 — 서명한 logout_token 을 손님에게 POST 한다).
  *
  * 시험은 `knobs` 로 틀린 값을 끼운다 — 틀린 iss · aud · nonce · 만료 · `alg none`/HS256 · 모르는
  * kid · 키 회전 · 안내판 issuer 다름 · userinfo sub 다름 · token 오류 · 응답 지연.
+ * back-channel 로그아웃은 `logoutToken()` 으로 서명한 토큰을 만들고, 틀린 값은 인자로 끼운다.
  */
 import {
   KeyObject,
@@ -50,6 +52,15 @@ export interface FakeOidcKnobs {
   userinfoSub?: string;
   /** token 끝점이 이 오류로 답한다 */
   tokenError?: { status: number; body: Record<string, unknown> };
+}
+
+/** `logoutToken()` 의 인자 — 클레임 · 머리를 덮는다(undefined 면 그 칸을 뺀다) */
+export interface FakeLogoutTokenOptions {
+  sid?: string;
+  sub?: string;
+  claims?: Record<string, unknown>;
+  header?: Record<string, unknown>;
+  signWith?: 'RS256' | 'none' | 'HS256';
 }
 
 interface SigningKey {
@@ -116,13 +127,51 @@ export class FakeOidcIssuer {
   private keys: SigningKey[] = [newKey()];
   private readonly codes = new Map<string, PendingCode>();
   private readonly accessTokens = new Map<string, FakeOidcUser>();
+  /** sub → 낸 id_token 의 sid 들(나중 것이 뒤) — back-channel 로그아웃이 고른다 */
+  private readonly sids = new Map<string, string[]>();
+  private readonly backchannelLogoutUri?: string;
 
   constructor(
-    options: { clientId?: string; clientSecret?: string; path?: string } = {},
+    options: {
+      clientId?: string;
+      clientSecret?: string;
+      path?: string;
+      /** `/test/backchannel-logout` 이 logout_token 을 보낼 손님 주소 */
+      backchannelLogoutUri?: string;
+    } = {},
   ) {
     this.clientId = options.clientId ?? 'test-client';
     this.clientSecret = options.clientSecret ?? 'test-secret';
     this.path = options.path ?? '/oidc';
+    this.backchannelLogoutUri = options.backchannelLogoutUri;
+  }
+
+  /** 그 sub 에게 마지막으로 낸 id_token 의 sid */
+  lastSid(sub: string): string | undefined {
+    return this.sids.get(sub)?.at(-1);
+  }
+
+  /**
+   * back-channel logout_token — 기본은 진짜 발급자와 같은 모양(RS256 · `typ: logout+jwt` · iss · aud ·
+   * iat · exp · jti · events, `sid` · `sub` 는 준 것만). 틀린 값은 `claims` · `header` · `signWith` 로.
+   */
+  logoutToken(options: FakeLogoutTokenOptions = {}): string {
+    const now = Math.floor(Date.now() / 1000);
+    const claims: Record<string, unknown> = {
+      iss: this.issuer,
+      aud: this.clientId,
+      iat: now,
+      exp: now + 120,
+      jti: randomUUID(),
+      events: { 'http://schemas.openid.net/event/backchannel-logout': {} },
+      ...(options.sub !== undefined && { sub: options.sub }),
+      ...(options.sid !== undefined && { sid: options.sid }),
+    };
+    return this.sign(claims, {
+      header: { typ: 'logout+jwt', ...options.header },
+      overrides: options.claims,
+      signWith: options.signWith,
+    });
   }
 
   /** `http://127.0.0.1:<port>/oidc` */
@@ -250,6 +299,8 @@ export class FakeOidcIssuer {
         return this.userinfo(req, res);
       case 'GET /session/end':
         return this.endSession(url, res);
+      case 'POST /test/backchannel-logout':
+        return this.emitBackchannelLogout(req, res);
       default:
         return this.json(res, 404, { error: 'not_found' });
     }
@@ -367,13 +418,40 @@ export class FakeOidcIssuer {
       if (v === undefined) delete claims[k];
       else claims[k] = v;
     }
-    const alg = this.knobs.signWith ?? 'RS256';
-    const header = {
+    if (typeof claims.sid === 'string') {
+      this.sids.set(pending.user.sub, [
+        ...(this.sids.get(pending.user.sub) ?? []),
+        claims.sid,
+      ]);
+    }
+    return this.sign(claims, {
+      header: { typ: 'JWT', ...this.knobs.idTokenHeader },
+      signWith: this.knobs.signWith,
+    });
+  }
+
+  /** JWS 세 조각. `overrides` 의 undefined 는 그 클레임을 뺀다 */
+  private sign(
+    claims: Record<string, unknown>,
+    options: {
+      header?: Record<string, unknown>;
+      overrides?: Record<string, unknown>;
+      signWith?: 'RS256' | 'none' | 'HS256';
+    },
+  ): string {
+    for (const [k, v] of Object.entries(options.overrides ?? {})) {
+      if (v === undefined) delete claims[k];
+      else claims[k] = v;
+    }
+    const alg = options.signWith ?? 'RS256';
+    const header: Record<string, unknown> = {
       alg,
-      typ: 'JWT',
       ...(alg === 'RS256' ? { kid: this.keys[0].kid } : {}),
-      ...this.knobs.idTokenHeader,
+      ...options.header,
     };
+    for (const [k, v] of Object.entries(header)) {
+      if (v === undefined) delete header[k];
+    }
     const input = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claims))}`;
     const signature =
       alg === 'none'
@@ -403,7 +481,40 @@ export class FakeOidcIssuer {
     });
   }
 
-  /** 진짜 accounts 는 「로그아웃할까요?」를 묻지만, 가짜는 바로 돌려보낸다 */
+  /**
+   * e2e 용 — 폼의 `email`(또는 `sub`) 사람에게 마지막으로 낸 sid(`sid` 를 주면 그것)로 logout_token 을
+   * 서명해 `backchannelLogoutUri` 에 진짜 발급자처럼 form POST 한다. 손님의 응답 코드를 돌려준다
+   */
+  private async emitBackchannelLogout(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ) {
+    if (!this.backchannelLogoutUri) {
+      return this.json(res, 404, { error: 'no_backchannel_logout_uri' });
+    }
+    const form = await this.readForm(req);
+    const email = form.get('email');
+    const sub = form.get('sub') ?? (email ? fakeSubFor(email) : '');
+    const sid = form.get('sid') ?? this.lastSid(sub);
+    if (!sub || !sid) return this.json(res, 400, { error: 'unknown_session' });
+    const delivered = await fetch(this.backchannelLogoutUri, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'user-agent': 'RLidea-Accounts/1 (fake)',
+      },
+      body: new URLSearchParams({
+        logout_token: this.logoutToken({ sub, sid }),
+      }),
+      signal: AbortSignal.timeout(2_500),
+    });
+    return this.json(res, 200, { status: delivered.status });
+  }
+
+  /**
+   * 진짜 accounts 는 「어디에서 로그아웃할까요?」(「RLidea 서비스 전부 로그아웃」 · 「{client_name}만
+   * 로그아웃」)를 묻지만, 가짜는 바로 돌려보낸다 — e2e 는 그 문구에 기대지 않는다
+   */
   private endSession(url: URL, res: ServerResponse) {
     const target = url.searchParams.get('post_logout_redirect_uri');
     if (url.searchParams.get('client_id') !== this.clientId || !target) {

@@ -50,6 +50,17 @@ function isCrossSiteCallback(req: Request): boolean {
   return CROSS_SITE_CALLBACK_PATHS.includes(req.path);
 }
 
+/**
+ * 다른 서버가 서버에서 바로 POST 하는 경로 — 브라우저를 거치지 않아 쿠키가 없고, 그래서 CSRF 가
+ * 성립하지 않는다(위조할 세션이 없다). OIDC back-channel 로그아웃은 발급자가 서명한 logout_token 을
+ * 싣고 오며 그 서명 검증이 막는다(oidc.controller.ts). 방법(POST)과 경로가 글자까지 같을 때만.
+ */
+const SERVER_TO_SERVER_PATHS = ['/v1/auth/oidc/backchannel-logout'];
+
+function isServerToServer(req: Request): boolean {
+  return req.method === 'POST' && SERVER_TO_SERVER_PATHS.includes(req.path);
+}
+
 function parseUrl(value: string | undefined): URL | null {
   if (!value) return null;
   try {
@@ -123,6 +134,8 @@ const CSRF_EXEMPTIONS: Array<(req: Request) => boolean> = [
   isCrossSiteCallback,
   // 쿠키 없이 Bearer 로만 온 요청 — 범위 토큰(api-token) · 앱
   isBearerOnly,
+  // 발급자가 서버에서 보내는 OIDC back-channel 로그아웃 — logout_token 서명으로 막는다
+  isServerToServer,
 ];
 
 export function setSecurityMiddleware(app: INestApplication): void {

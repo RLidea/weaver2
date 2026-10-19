@@ -16,6 +16,8 @@ export interface SignInContext {
   rememberMe: boolean;
   ipAddress?: string;
   userAgent?: string;
+  /** SSO 로 받은 세션이면 id_token 의 sid — refresh 행에 남겨 back-channel 로그아웃이 찾는다 */
+  oidcSid?: string;
 }
 
 export interface AvailableTwoFactorMethods {
@@ -177,6 +179,7 @@ export class SignInCompletionService {
       context.rememberMe,
       context.ipAddress,
       context.userAgent,
+      context.oidcSid,
     );
     setAuthCookies(res, tokens, this.isProduction);
     clearPreAuthCookie(res, this.isProduction);
