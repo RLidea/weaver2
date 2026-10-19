@@ -436,6 +436,25 @@ describe('SSO login (Integration, AUTH_MODE=sso)', () => {
       );
     });
 
+    it('정지된 사람은 이메일을 맞추지 않는다 — 거절 전에 쓰지 않는다', async () => {
+      const user = person();
+      await prisma.user.create({
+        data: {
+          email: user.email,
+          username: `x_${user.sub.slice(0, 8)}`,
+          displayName: `x ${user.sub.slice(0, 8)}`,
+          ssoSubject: user.sub,
+          suspendedUntil: new Date(Date.now() + 3_600_000),
+        },
+      });
+      const res = await login({ ...user, email: `moved_${user.email}` });
+      expect(res.headers.location).toBe('/login?error=account_suspended');
+      const row = await prisma.user.findUnique({
+        where: { ssoSubject: user.sub },
+      });
+      expect(row!.email).toBe(user.email);
+    });
+
     it('TOTP 를 켠 사람 → pre_auth 없이 세션', async () => {
       const user = person();
       const row = await prisma.user.create({

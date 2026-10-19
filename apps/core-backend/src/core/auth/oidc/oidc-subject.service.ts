@@ -25,7 +25,8 @@ function isUniqueViolation(err: unknown): boolean {
  * 바깥 신원(sub)으로 사람을 찾거나 만든다 (D6). **이메일로 저절로 잇지 않는다**(Q12).
  *
  * ① `ssoSubject = sub` 인 행 → 그 사람. 탈퇴면 `account_deleted`. 발급자가 인증한 이메일이
- *    바뀌었으면 맞춘다(`emailVerifiedAt = now`) — 다른 살아 있는 행이 쓰면 건너뛰고 로그인은 된다
+ *    바뀌었으면 맞춘다(`emailVerifiedAt = now`) — 다른 살아 있는 행이 쓰면 건너뛰고 로그인은 된다.
+ *    정지된 사람은 맞추지 않는다(곧 `account_suspended` 로 거절된다)
  * ② 모르는 sub 인데 같은 이메일의 살아 있는 행 → `sso_conflict`. 잇지 않는다(`onConflict` 훅)
  * ③ 모르는 sub · 같은 이메일 없음 · 이메일 미인증 → `sso_email_unverified`
  * ④ 그 이메일을 탈퇴한 행이 아직 쥐고 있음 → `account_deleted` (weaver2 는 탈퇴 때 이메일을
@@ -82,13 +83,21 @@ export class OidcSubjectService {
     // ① sub 로만 찾는다
     const linked = await this.prisma.user.findUnique({
       where: { ssoSubject: claims.sub },
-      select: { id: true, email: true, deletedAt: true },
+      select: { id: true, email: true, deletedAt: true, suspendedUntil: true },
     });
     if (linked) {
       if (linked.deletedAt) {
         throw new OidcError('account_deleted', 'SSO user is deleted');
       }
-      if (claims.email_verified && email && email !== linked.email) {
+      // 정지된 사람은 곧 completeExternal 이 거절한다 — 그 전에 이메일을 바꾸지 않는다
+      const suspended =
+        !!linked.suspendedUntil && linked.suspendedUntil > new Date();
+      if (
+        !suspended &&
+        claims.email_verified &&
+        email &&
+        email !== linked.email
+      ) {
         await this.syncEmail(linked.id, email, claims.sub);
       }
       return { userId: linked.id, created: false };
