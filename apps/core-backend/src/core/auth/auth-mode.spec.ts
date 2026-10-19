@@ -1,4 +1,8 @@
-import { isLoopbackHttp, readAuthModeConfig } from './auth-mode';
+import {
+  isLoopbackHttp,
+  normalizeSameOriginPath,
+  readAuthModeConfig,
+} from './auth-mode';
 
 const SSO = {
   AUTH_MODE: 'sso',
@@ -117,6 +121,42 @@ describe('readAuthModeConfig', () => {
     expect(
       read({ ...SSO, ACCOUNTS_OIDC_ISSUER: 'http://127.0.0.1:3100/oidc' }).mode,
     ).toBe('sso');
+  });
+});
+
+describe('normalizeSameOriginPath', () => {
+  it('같은 출처의 경로는 풀린 꼴로 돌려준다', () => {
+    expect(normalizeSameOriginPath('/admin/users?tab=a#x')).toBe(
+      '/admin/users?tab=a#x',
+    );
+    expect(normalizeSameOriginPath('/a/../b')).toBe('/b');
+    // 탭은 URL 파서가 지운다 — 같은 출처의 경로라 위험하지 않다
+    expect(normalizeSameOriginPath('/\tevil.com')).toBe('/evil.com');
+  });
+
+  it.each([
+    '//evil.com',
+    'https://evil.com',
+    '/\t/evil.com',
+    '\\\\evil.com',
+    '/\\evil.com',
+    '/.//evil.com',
+    '/..//evil.com',
+    '/%2e//evil.com',
+    '/a/..//evil.com',
+    '/x/../\\evil.com',
+    '/./\\evil.com',
+  ])('%j → null (다른 출처 · 점 마디를 풀면 //)', (value) => {
+    expect(normalizeSameOriginPath(value)).toBeNull();
+  });
+
+  it('설정의 실패 주소 · 기본 next 도 같은 규칙으로 거른다', () => {
+    expect(() =>
+      read({ ...SSO, ACCOUNTS_OIDC_FAILURE_URLS: 'admin=/.//evil.com' }),
+    ).toThrow('ACCOUNTS_OIDC_FAILURE_URLS');
+    expect(() =>
+      read({ ...SSO, ACCOUNTS_OIDC_DEFAULT_NEXT: '/a/..//evil.com' }),
+    ).toThrow('ACCOUNTS_OIDC_DEFAULT_NEXT');
   });
 });
 

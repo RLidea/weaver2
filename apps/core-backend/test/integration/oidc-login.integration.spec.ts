@@ -208,6 +208,13 @@ describe('SSO login (Integration, AUTH_MODE=sso)', () => {
       '/\t/evil.com',
       '\\\\evil.com',
       '/\\evil.com',
+      // 출처는 같지만 점 마디를 풀면 //evil.com 이 된다 (보안 검토 H1)
+      '/.//evil.com',
+      '/..//evil.com',
+      '/%2e//evil.com',
+      '/a/..//evil.com',
+      '/x/../\\evil.com',
+      '/./\\evil.com',
     ])('next=%j → 기본 next', async (next) => {
       const res = await login(person(), {
         query: `entry=admin&next=${encodeURIComponent(next)}`,

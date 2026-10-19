@@ -7,6 +7,7 @@ export * from './types';
 // API
 export * from './api/auth.api';
 export * from './sso';
+export * from './redirect-path';
 
 // 훅
 export * from './hooks/use-me';

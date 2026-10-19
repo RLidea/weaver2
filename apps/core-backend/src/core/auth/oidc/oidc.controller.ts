@@ -15,7 +15,12 @@ import { Request, Response } from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { PrismaService } from '@weaver2/prisma';
-import { AUTH_MODE_CONFIG, AuthModeConfig, SsoConfig } from '../auth-mode';
+import {
+  AUTH_MODE_CONFIG,
+  AuthModeConfig,
+  SsoConfig,
+  normalizeSameOriginPath,
+} from '../auth-mode';
 import { SsoOnly } from '../decorators/sso-only.decorator';
 import {
   AccountSuspendedException,
@@ -52,21 +57,14 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * 같은 출처의 경로만 받는다 — 로그인 화면(`safeRedirectPath`)과 같은 「가짜 출처」 방법.
- * 접두어가 아니라 URL 로 풀어 출처를 비교하므로 `//evil` · `/\tevil` · `\evil` 이 다른 출처가 된다.
+ * 같은 출처의 경로만 받는다 — 로그인 화면(`safeRedirectPath`)과 같은 「가짜 출처」 방법에 더해, 점 마디를
+ * 푼 결과가 `//` 로 시작하지 않는지까지 본다(`normalizeSameOriginPath`).
  */
 export function safeNextPath(value: unknown, fallback: string): string {
   if (typeof value !== 'string' || !value || value.length > NEXT_MAX_LENGTH) {
     return fallback;
   }
-  try {
-    const url = new URL(value, FAKE_ORIGIN);
-    return url.origin === FAKE_ORIGIN
-      ? `${url.pathname}${url.search}${url.hash}`
-      : fallback;
-  } catch {
-    return fallback;
-  }
+  return normalizeSameOriginPath(value) ?? fallback;
 }
 
 /**

@@ -51,14 +51,34 @@ export function isLoopbackHttp(url: string): boolean {
   return parsed.protocol === 'http:' && LOOPBACK_HOSTS.has(parsed.hostname);
 }
 
-/** 같은 출처의 경로인가 — `//evil` · `/\evil` 은 URL 로 풀면 다른 출처라 떨어진다 */
-function isSameOriginPath(value: string): boolean {
+/**
+ * 같은 출처의 경로로 풀어 돌려준다. 아니면 null.
+ *
+ * 「가짜 출처」로 풀어 출처를 비교한다 — `//evil` · `/\evil` · `/\t/evil` 은 다른 출처라 떨어진다.
+ * 그것만으로는 모자라다: `/.//evil.com` · `/a/..//evil.com` · `/%2e//evil.com` 은 출처는 같지만
+ * **점 마디를 풀고 나면** pathname 이 `//evil.com` 이 되고, 그 값을 Location 에 실으면 브라우저는
+ * 프로토콜 상대 주소(다른 사이트)로 읽는다. 그래서 풀린 결과가 `/` 로 시작하되 `//` · `/\` 로
+ * 시작하지 않는지 한 번 더 본다.
+ */
+export function normalizeSameOriginPath(value: string): string | null {
   const base = 'http://same-origin.invalid';
   try {
-    return value.startsWith('/') && new URL(value, base).origin === base;
+    const url = new URL(value, base);
+    if (url.origin !== base) return null;
+    const out = `${url.pathname}${url.search}${url.hash}`;
+    return out.startsWith('/') &&
+      !out.startsWith('//') &&
+      !out.startsWith('/\\')
+      ? out
+      : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** 설정값이 같은 출처의 경로인가 — `/` 로 시작하고, 풀어도 같은 출처의 경로다 */
+function isSameOriginPath(value: string): boolean {
+  return value.startsWith('/') && normalizeSameOriginPath(value) !== null;
 }
 
 /** `{"admin":"/login"}` 또는 `admin=/login,site=/{lang}/account/sign-in/` */
