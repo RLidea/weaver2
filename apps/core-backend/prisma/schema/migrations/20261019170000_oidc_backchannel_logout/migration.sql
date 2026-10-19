@@ -14,3 +14,18 @@ CREATE TABLE "oidc_logout_jtis" (
 
 -- CreateIndex
 CREATE INDEX "oidc_logout_jtis_expiresAt_idx" ON "oidc_logout_jtis"("expiresAt");
+
+-- AlterTable: sub 로 모든 세션을 끝낸 시각
+ALTER TABLE "users" ADD COLUMN "sessionsRevokedAt" TIMESTAMP(3);
+
+-- CreateTable: back-channel 로 끝낸 sid (회전 경합 막기)
+CREATE TABLE "oidc_revoked_sids" (
+    "sid" TEXT NOT NULL,
+    "sub" TEXT,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "oidc_revoked_sids_pkey" PRIMARY KEY ("sid")
+);
+
+-- CreateIndex
+CREATE INDEX "oidc_revoked_sids_expiresAt_idx" ON "oidc_revoked_sids"("expiresAt");

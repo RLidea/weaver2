@@ -20,6 +20,7 @@ import {
   FakeOidcUser,
 } from '../helpers/fake-oidc-issuer';
 import { BackchannelLogoutService } from '../../src/core/auth/oidc/backchannel-logout.service';
+import { CreateRefreshTokenCommand } from '../../src/core/auth/repositories/create-refresh-token.command';
 
 const DOMAIN = '@sso-bcl-it.local';
 const CALLBACK_PREFIX = 'http://localhost:3000/api';
@@ -120,8 +121,11 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     return { cookie: jar(setCookies(res)), sid: issuer.lastSid(user.sub)! };
   }
 
-  /** refresh — CSRF 세션 식별자가 refresh 쿠키라 그 쿠키로 토큰을 받는다 */
-  async function refresh(cookie: string) {
+  /**
+   * refresh 를 보낼 채비 — CSRF 세션 식별자가 refresh 쿠키라 그 쿠키로 토큰을 먼저 받는다.
+   * 보내기를 따로 두어 경합 시험이 같은 순간에 여러 번 쏠 수 있게 한다
+   */
+  async function prepareRefresh(cookie: string) {
     const server = app.getHttpServer();
     const csrf = await request(server)
       .get('/v1/auth/csrf-token')
@@ -129,11 +133,17 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     const token =
       (csrf.body as { data?: { csrfToken?: string } }).data?.csrfToken ?? '';
     const merged = jar(asSetCookie(cookie), setCookies(csrf));
-    const res = await request(server)
-      .post('/v1/auth/refresh')
-      .set('Cookie', merged)
-      .set('x-csrf-token', token);
-    return { res, cookie: jar(asSetCookie(merged), setCookies(res)) };
+    return async () => {
+      const res = await request(server)
+        .post('/v1/auth/refresh')
+        .set('Cookie', merged)
+        .set('x-csrf-token', token);
+      return { res, cookie: jar(asSetCookie(merged), setCookies(res)) };
+    };
+  }
+
+  async function refresh(cookie: string) {
+    return (await prepareRefresh(cookie))();
   }
 
   /** 발급자처럼 — 쿠키 · Origin · CSRF 토큰 없이 form POST */
@@ -253,5 +263,97 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
       .send({ logout_token: tokenFor(user, s.sid) });
     expect(res.status).toBe(403);
     expect(await rowsOf(s.sid)).toBe(1);
+  });
+
+  describe('회전과 경합 (보안 검토 M1)', () => {
+    it('지우기와 경합한 회전이 끝난 sid 로 새 행을 남겨도(묘비) 그 행은 회전하지 못하고 지워진다', async () => {
+      const user = person();
+      const s = await login(user);
+      expect((await backchannel(tokenFor(user, s.sid))).status).toBe(200);
+
+      // 회전의 「새 행 만들기」가 로그아웃의 지우기 뒤에 떨어진 것처럼 — 같은 sid 의 행을 직접 남긴다
+      const row = await prisma.user.findUnique({
+        where: { ssoSubject: user.sub },
+      });
+      const raced = randomUUID();
+      await CreateRefreshTokenCommand(
+        prisma,
+        row!.id,
+        raced,
+        new Date(Date.now() + 86_400_000),
+        undefined,
+        undefined,
+        s.sid,
+      );
+      const res = await refresh(`refresh_token=${raced}`);
+      expect(res.res.status).toBe(401);
+      expect(await rowsOf(s.sid)).toBe(0);
+      expect(await prisma.oidcRevokedSid.count({ where: { sid: s.sid } })).toBe(
+        1,
+      );
+    });
+
+    it('묘비의 sub 가 행 주인과 다르면 막지 않는다 (sid 가 겹친 남의 세션)', async () => {
+      const user = person();
+      const s = await login(user);
+      await prisma.oidcRevokedSid.create({
+        data: {
+          sid: s.sid,
+          sub: randomUUID(),
+          expiresAt: new Date(Date.now() + 86_400_000),
+        },
+      });
+      expect((await refresh(s.cookie)).res.status).toBe(201);
+    });
+
+    it('sid 와 sub 가 둘 다 오면 둘 다 맞는 행만 지운다 (보안 검토 L4)', async () => {
+      const user = person();
+      const s = await login(user);
+      const res = await backchannel(
+        issuer.logoutToken({ sub: randomUUID(), sid: s.sid }),
+      );
+      expect(res.status).toBe(200);
+      expect(await rowsOf(s.sid)).toBe(1);
+    });
+
+    it('sub 로 모든 세션을 끝낸 시각(sessionsRevokedAt)보다 먼저 만든 행은 회전하지 못한다', async () => {
+      const user = person();
+      const s = await login(user);
+      await prisma.user.update({
+        where: { ssoSubject: user.sub },
+        data: { sessionsRevokedAt: new Date() },
+      });
+      expect((await refresh(s.cookie)).res.status).toBe(401);
+      expect(await rowsOf(s.sid)).toBe(0);
+      // 그 뒤의 새 로그인은 산다
+      const again = await login(user);
+      expect((await refresh(again.cookie)).res.status).toBe(201);
+    });
+
+    it('같은 refresh 쿠키를 동시에 두 번 → 하나만 회전한다(새 행 하나)', async () => {
+      const user = person();
+      const s = await login(user);
+      const send = await prepareRefresh(s.cookie);
+      const results = await Promise.all([send(), send()]);
+      expect(results.map((r) => r.res.status).sort()).toEqual([201, 401]);
+      // 옛 행(회전 표시) + 새 행 하나
+      expect(await rowsOf(s.sid)).toBe(2);
+    });
+
+    it('refresh 와 back-channel 로그아웃을 같은 순간에 → 어느 쪽이 먼저든 그 sid 의 세션은 남지 않는다', async () => {
+      for (let i = 0; i < 5; i++) {
+        const user = person();
+        const s = await login(user);
+        const send = await prepareRefresh(s.cookie);
+        const [rotated, logout] = await Promise.all([
+          send(),
+          backchannel(tokenFor(user, s.sid)),
+        ]);
+        expect(logout.status).toBe(200);
+        expect([201, 401]).toContain(rotated.res.status);
+        expect(await rowsOf(s.sid)).toBe(0);
+        expect((await refresh(rotated.cookie)).res.status).toBe(401);
+      }
+    });
   });
 });

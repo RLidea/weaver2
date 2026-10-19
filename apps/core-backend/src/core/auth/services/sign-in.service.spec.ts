@@ -254,47 +254,89 @@ describe('SignInService.refresh', () => {
     expect(revokeSpy).not.toHaveBeenCalled();
   });
 
-  it('회전한 새 행은 옛 행의 oidcSid 를 이어받는다 — back-channel 로그아웃이 회전한 세션에도 닿게', async () => {
-    const findMod = await import('../repositories/find-refresh-token.query');
-    const markMod =
-      await import('../repositories/mark-refresh-token-rotated.command');
-    const purgeMod =
-      await import('../repositories/purge-stale-refresh-tokens.command');
-    const createMod =
-      await import('../repositories/create-refresh-token.command');
-    jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
-      id: 'rt1',
-      userId: 'u1',
-      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      rotatedAt: null,
-      oidcSid: 'sid-1',
-      user: { id: 'u1', deletedAt: null },
-    } as any);
-    jest
-      .spyOn(markMod, 'MarkRefreshTokenRotatedCommand')
-      .mockResolvedValueOnce({ count: 1 });
-    jest
-      .spyOn(purgeMod, 'PurgeStaleRefreshTokensCommand')
-      .mockResolvedValueOnce({ count: 0 });
-    const createSpy = jest
-      .spyOn(createMod, 'CreateRefreshTokenCommand')
-      .mockResolvedValueOnce({} as any);
-    service = new SignInService(
-      prisma as PrismaService,
-      {
-        sign: () => 'jwt',
-      } as unknown as JwtService,
-    );
+  describe('회전 — 한 트랜잭션, 그 사람의 users 행을 잠그고', () => {
+    let tx: any;
+    let markSpy: jest.SpyInstance;
+    let createSpy: jest.SpyInstance;
+    let revokedSpy: jest.SpyInstance;
 
-    await service.refresh('tok', '1.2.3.4', 'ua');
-    expect(createSpy).toHaveBeenCalledWith(
-      prisma,
-      'u1',
-      expect.any(String),
-      expect.any(Date),
-      '1.2.3.4',
-      'ua',
-      'sid-1',
-    );
+    beforeEach(async () => {
+      const findMod = await import('../repositories/find-refresh-token.query');
+      const markMod =
+        await import('../repositories/mark-refresh-token-rotated.command');
+      const purgeMod =
+        await import('../repositories/purge-stale-refresh-tokens.command');
+      const createMod =
+        await import('../repositories/create-refresh-token.command');
+      const revokedMod =
+        await import('../repositories/is-refresh-session-revoked.query');
+      jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
+        id: 'rt1',
+        userId: 'u1',
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        rotatedAt: null,
+        oidcSid: 'sid-1',
+        createdAt: new Date(),
+        user: { id: 'u1', deletedAt: null },
+      } as any);
+      markSpy = jest
+        .spyOn(markMod, 'MarkRefreshTokenRotatedCommand')
+        .mockResolvedValue({ count: 1 });
+      jest
+        .spyOn(purgeMod, 'PurgeStaleRefreshTokensCommand')
+        .mockResolvedValue({ count: 0 });
+      createSpy = jest
+        .spyOn(createMod, 'CreateRefreshTokenCommand')
+        .mockResolvedValue({} as any);
+      revokedSpy = jest
+        .spyOn(revokedMod, 'IsRefreshSessionRevokedQuery')
+        .mockResolvedValue(false);
+      tx = {
+        $queryRaw: jest.fn(),
+        refreshToken: { deleteMany: jest.fn() },
+      };
+      prisma.$transaction = jest.fn((fn: (t: unknown) => unknown) => fn(tx));
+      service = new SignInService(
+        prisma as PrismaService,
+        { sign: () => 'jwt' } as unknown as JwtService,
+      );
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('새 행은 옛 행의 oidcSid 를 이어받는다 — back-channel 로그아웃이 회전한 세션에도 닿게', async () => {
+      await service.refresh('tok', '1.2.3.4', 'ua');
+      expect(tx.$queryRaw).toHaveBeenCalled();
+      expect(markSpy).toHaveBeenCalledWith(tx, 'tok', expect.any(Date));
+      expect(createSpy).toHaveBeenCalledWith(
+        tx,
+        'u1',
+        expect.any(String),
+        expect.any(Date),
+        '1.2.3.4',
+        'ua',
+        'sid-1',
+      );
+    });
+
+    it('back-channel 로그아웃이 끝낸 세션(묘비 · sessionsRevokedAt)이면 그 행을 지우고 401 — 새 행은 없다', async () => {
+      revokedSpy.mockResolvedValue(true);
+      await expect(service.refresh('tok')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'rt1' },
+      });
+      expect(markSpy).not.toHaveBeenCalled();
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('마킹이 0 건이면(동시 refresh 가 먼저 회전 · 행이 지워짐) 401 — 새 행을 두 번 만들지 않는다', async () => {
+      markSpy.mockResolvedValue({ count: 0 });
+      await expect(service.refresh('tok')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(createSpy).not.toHaveBeenCalled();
+    });
   });
 });

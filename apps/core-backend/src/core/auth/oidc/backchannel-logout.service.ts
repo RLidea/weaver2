@@ -11,9 +11,17 @@ import {
   OidcUserHooks,
   runOidcHook,
 } from './oidc-user-hooks';
+import { LockUsersCommand } from '../repositories/lock-users.command';
 
 /** 시계 허용(초) — 포트의 iat 검사와 같은 값. jti 를 그만큼 더 쥔다 */
 const CLOCK_TOLERANCE_SEC = 60;
+/** jti 를 받아 주는 기간 끝에서 더 쥐는 여유(초) */
+const JTI_MARGIN_SEC = 60;
+/**
+ * sid 묘비를 두는 기간 — refresh 행 하나가 가장 오래 사는 기간보다 길게. rememberMe 30일
+ * (`SignInService.login`)에 회전의 올림(`Math.ceil` 로 하루까지)을 더해 31일
+ */
+export const REVOKED_SID_TTL_MS = 31 * 24 * 60 * 60 * 1000;
 
 /** 끝낸 로그아웃 — 훅에 넘긴다 */
 export interface BackchannelLogoutResult {
@@ -39,6 +47,9 @@ function isUniqueViolation(err: unknown): boolean {
  * - 지울 것이 없어도 성공이다(이미 로그아웃했거나 만료됨)
  *
  * jti 기록과 지우기는 **한 트랜잭션**이다 — 지우기가 실패하면 jti 도 남지 않아 발급자의 재시도가 닿는다.
+ * 그 트랜잭션은 세션 주인의 `users` 행을 잠근다 — refresh 회전도 같은 행을 잠그므로, 회전이 지우기 사이에 끼어
+ * 끝난 sid 로 새 행을 남기지 못한다. 그래도 남는 행에 대비해 sid 묘비(`oidc_revoked_sids`) · sub 의
+ * `users.sessionsRevokedAt` 을 남기고, 회전은 그것을 보면 거절한다(IsRefreshSessionRevokedQuery).
  * access 토큰(JWT)은 지우지 못한다 — 만료(`JWT_EXPIRES_IN`)까지 살고, 그 뒤 refresh 가 401 이다.
  */
 @Injectable()
@@ -58,11 +69,18 @@ export class BackchannelLogoutService {
     const claims = await this.oidc.verifyLogoutToken(token);
     const now = Date.now();
     const expiresAt = new Date(
-      (claims.iat + LOGOUT_TOKEN_MAX_AGE_SEC + CLOCK_TOLERANCE_SEC) * 1000,
+      (claims.iat +
+        LOGOUT_TOKEN_MAX_AGE_SEC +
+        CLOCK_TOLERANCE_SEC +
+        JTI_MARGIN_SEC) *
+        1000,
     );
 
-    // 받아 주는 기간이 지난 jti 는 버린다 — 그 토큰은 이제 iat 검사에서 떨어진다
+    // 받아 주는 기간이 지난 jti · 묘비는 버린다 — 그 토큰은 이제 iat 검사에서, 그 sid 의 행은 만료로 떨어진다
     await this.prisma.oidcLogoutJti.deleteMany({
+      where: { expiresAt: { lt: new Date(now) } },
+    });
+    await this.prisma.oidcRevokedSid.deleteMany({
       where: { expiresAt: { lt: new Date(now) } },
     });
 
@@ -73,14 +91,32 @@ export class BackchannelLogoutService {
           data: { jti: claims.jti, expiresAt },
         });
         if (claims.sid) {
+          // sub 도 왔으면 그 사람의 행만 — sid 가 엉뚱한 사람의 세션과 겹쳐도 지우지 않는다
+          const where: Prisma.RefreshTokenWhereInput = {
+            oidcSid: claims.sid,
+            ...(claims.sub && { user: { ssoSubject: claims.sub } }),
+          };
           const rows = await tx.refreshToken.findMany({
-            where: { oidcSid: claims.sid },
+            where,
             select: { userId: true },
             distinct: ['userId'],
           });
-          const { count } = await tx.refreshToken.deleteMany({
-            where: { oidcSid: claims.sid },
+          // 회전(SignInService.refresh)과 줄을 선다 — 진행 중인 회전이 끝난 뒤 지우므로 그 새 행도 지워진다
+          await LockUsersCommand(
+            tx,
+            rows.map((r) => r.userId),
+          );
+          // 묘비 — 그래도 남은 행이 있으면 다음 회전이 막힌다
+          await tx.oidcRevokedSid.upsert({
+            where: { sid: claims.sid },
+            create: {
+              sid: claims.sid,
+              sub: claims.sub ?? null,
+              expiresAt: new Date(now + REVOKED_SID_TTL_MS),
+            },
+            update: { expiresAt: new Date(now + REVOKED_SID_TTL_MS) },
           });
+          const { count } = await tx.refreshToken.deleteMany({ where });
           return { userId: rows[0]?.userId ?? null, deleted: count };
         }
         const user = await tx.user.findUnique({
@@ -88,6 +124,12 @@ export class BackchannelLogoutService {
           select: { id: true },
         });
         if (!user) return { userId: null, deleted: 0 };
+        await LockUsersCommand(tx, [user.id]);
+        // 이 시각보다 먼저 만든 행은 회전하지 못한다(IsRefreshSessionRevokedQuery)
+        await tx.user.update({
+          where: { id: user.id },
+          data: { sessionsRevokedAt: new Date(now) },
+        });
         const { count } = await tx.refreshToken.deleteMany({
           where: { userId: user.id },
         });

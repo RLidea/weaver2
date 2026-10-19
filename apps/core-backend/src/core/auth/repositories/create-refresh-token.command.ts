@@ -1,4 +1,4 @@
-import { PrismaClient } from '@weaver2/prisma';
+import { Prisma, PrismaClient } from '@weaver2/prisma';
 import { hashToken } from '../utils/auth-crypto.util';
 
 /**
@@ -6,7 +6,7 @@ import { hashToken } from '../utils/auth-crypto.util';
  * `oidcSid` 는 SSO 세션의 id_token sid — back-channel 로그아웃이 이 값으로 지운다.
  */
 export async function CreateRefreshTokenCommand(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   userId: string,
   token: string,
   expires: Date,

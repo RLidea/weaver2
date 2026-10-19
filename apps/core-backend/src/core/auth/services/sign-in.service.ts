@@ -9,6 +9,8 @@ import { FindRefreshTokenQuery } from '../repositories/find-refresh-token.query'
 import { MarkRefreshTokenRotatedCommand } from '../repositories/mark-refresh-token-rotated.command';
 import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refresh-tokens.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
+import { IsRefreshSessionRevokedQuery } from '../repositories/is-refresh-session-revoked.query';
+import { LockUsersCommand } from '../repositories/lock-users.command';
 import {
   ACCOUNT_LOCKED_MESSAGE,
   ReserveAuthAttemptCommand,
@@ -171,24 +173,51 @@ export class SignInService {
       throw new UnauthorizedException('User account no longer exists');
     }
 
-    // Rotation: 삭제 대신 rotatedAt 마킹(재사용 감지용) + 만료·오래된 회전 토큰 정리
     const now = new Date();
-    await MarkRefreshTokenRotatedCommand(this.prisma, refreshToken, now);
-    await PurgeStaleRefreshTokensCommand(this.prisma, stored.user.id, now);
-
     const remainingMs = stored.expires.getTime() - Date.now();
     const remainingDays = Math.max(
       1,
       Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
     );
-    // SSO 세션의 sid 를 새 행으로 옮긴다 — 안 옮기면 한 번 회전한 세션은 back-channel 로그아웃에 닿지 않는다
-    const newRefreshToken = await this.generateRefreshToken(
-      stored.user.id,
-      remainingDays,
-      ipAddress,
-      userAgent,
-      stored.oidcSid ?? undefined,
-    );
+    const newRefreshToken = randomUUID();
+
+    // Rotation 은 한 트랜잭션에서, 그 사람의 users 행을 잠그고 — back-channel 로그아웃도 같은 행을 잠그므로
+    // 둘이 줄을 선다. 로그아웃이 먼저면 아래 마킹이 0 건(행이 지워짐)이거나 묘비에 걸린다
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      await LockUsersCommand(tx, [stored.userId]);
+      if (await IsRefreshSessionRevokedQuery(tx, stored, now)) {
+        await tx.refreshToken.deleteMany({ where: { id: stored.id } });
+        return 'revoked' as const;
+      }
+      // 삭제 대신 rotatedAt 마킹(재사용 감지용). 다른 요청이 먼저 회전했으면 0 건
+      const { count } = await MarkRefreshTokenRotatedCommand(
+        tx,
+        refreshToken,
+        now,
+      );
+      if (count !== 1) return 'lost' as const;
+      // SSO 세션의 sid 를 새 행으로 옮긴다 — 안 옮기면 한 번 회전한 세션은 back-channel 로그아웃에 닿지 않는다
+      await CreateRefreshTokenCommand(
+        tx,
+        stored.userId,
+        newRefreshToken,
+        new Date(Date.now() + 1000 * 60 * 60 * 24 * remainingDays),
+        ipAddress,
+        userAgent,
+        stored.oidcSid ?? undefined,
+      );
+      return 'rotated' as const;
+    });
+    if (outcome !== 'rotated') {
+      if (outcome === 'revoked') {
+        this.logger.warn(
+          `Refresh refused: session ended by back-channel logout (user ${stored.userId})`,
+        );
+      }
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+    // 만료·오래된 회전 토큰 정리
+    await PurgeStaleRefreshTokensCommand(this.prisma, stored.user.id, now);
 
     return {
       accessToken: this.jwtService.sign({ sub: stored.user.id }),

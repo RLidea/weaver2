@@ -123,7 +123,8 @@ export interface OidcUserHooks {
   /**
    * 발급자가 back-channel 로그아웃을 보냈고 세션을 지웠다. 응답(200)을 보낸 **뒤에** 불린다.
    * userId 는 지운 세션의 주인 — 없으면 sub 로 찾은 사람, 그것도 없으면 null(지울 것이 없었다).
-   * 같은 로그아웃이 다시 오지는 않지만(jti) 같은 사람의 다른 sid 로는 여러 번 올 수 있다
+   * **멱등이어야 한다** — 같은 로그아웃이 두 번 올 수 있다. 발급자는 다시 보낼 때마다 새로 서명하므로(새 jti)
+   * 첫 응답이 늦어 다시 보낸 것은 jti 로 걸러지지 않는다. 같은 사람의 다른 sid 로도 여러 번 온다
    */
   onBackchannelLogout?(
     userId: string | null,

@@ -1,5 +1,8 @@
 import { Prisma, PrismaService } from '@weaver2/prisma';
-import { BackchannelLogoutService } from './backchannel-logout.service';
+import {
+  BackchannelLogoutService,
+  REVOKED_SID_TTL_MS,
+} from './backchannel-logout.service';
 import { OidcClient } from './oidc-client';
 import {
   LOGOUT_TOKEN_MAX_AGE_SEC,
@@ -19,12 +22,15 @@ function p2002() {
 
 describe('BackchannelLogoutService', () => {
   let tx: {
+    $queryRaw: jest.Mock;
     oidcLogoutJti: { create: jest.Mock };
+    oidcRevokedSid: { upsert: jest.Mock };
     refreshToken: { findMany: jest.Mock; deleteMany: jest.Mock };
-    user: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock; update: jest.Mock };
   };
   let prisma: {
     oidcLogoutJti: { deleteMany: jest.Mock };
+    oidcRevokedSid: { deleteMany: jest.Mock };
     user: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -32,15 +38,21 @@ describe('BackchannelLogoutService', () => {
 
   beforeEach(() => {
     tx = {
+      $queryRaw: jest.fn(),
       oidcLogoutJti: { create: jest.fn() },
+      oidcRevokedSid: { upsert: jest.fn() },
       refreshToken: {
         findMany: jest.fn().mockResolvedValue([{ userId: 'u1' }]),
         deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
       },
-      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn(),
+      },
     };
     prisma = {
       oidcLogoutJti: { deleteMany: jest.fn() },
+      oidcRevokedSid: { deleteMany: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
@@ -59,18 +71,21 @@ describe('BackchannelLogoutService', () => {
       hooks,
     );
 
-  it('sid 로 그 세션 행을 모두 지우고, jti 를 받아 주는 기간 끝까지 남긴다', async () => {
+  it('sid(+sub) 의 세션 행을 지우고, jti 를 받아 주는 기간 끝 + 여유까지 남긴다', async () => {
     const result = await make().logout('token');
     expect(verify).toHaveBeenCalledWith('token');
     expect(tx.oidcLogoutJti.create).toHaveBeenCalledWith({
       data: {
         jti: 'j1',
-        expiresAt: new Date((IAT + LOGOUT_TOKEN_MAX_AGE_SEC + 60) * 1000),
+        expiresAt: new Date((IAT + LOGOUT_TOKEN_MAX_AGE_SEC + 60 + 60) * 1000),
       },
     });
-    expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({
-      where: { oidcSid: 'sid-1' },
-    });
+    // sid 와 sub 가 둘 다 오면 둘 다 맞는 행만 (L4)
+    const where = { oidcSid: 'sid-1', user: { ssoSubject: 'sub-1' } };
+    expect(tx.refreshToken.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where }) as object,
+    );
+    expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({ where });
     expect(result).toEqual({
       userId: 'u1',
       meta: { sid: 'sid-1', sub: 'sub-1' },
@@ -78,10 +93,40 @@ describe('BackchannelLogoutService', () => {
     });
   });
 
-  it('기간이 지난 jti 는 지운다', async () => {
+  it('기간이 지난 jti · 묘비는 지운다', async () => {
     await make().logout('token');
-    expect(prisma.oidcLogoutJti.deleteMany).toHaveBeenCalledWith({
-      where: { expiresAt: { lt: expect.any(Date) as Date } },
+    const expired = { where: { expiresAt: { lt: expect.any(Date) as Date } } };
+    expect(prisma.oidcLogoutJti.deleteMany).toHaveBeenCalledWith(expired);
+    expect(prisma.oidcRevokedSid.deleteMany).toHaveBeenCalledWith(expired);
+  });
+
+  it('지우기 전에 세션 주인을 잠그고 sid 묘비를 31일 남긴다 — 경합한 회전이 남긴 행을 막는다', async () => {
+    const before = Date.now();
+    await make().logout('token');
+    expect(tx.$queryRaw).toHaveBeenCalled();
+    const upsert = tx.oidcRevokedSid.upsert.mock.calls[0][0] as {
+      where: { sid: string };
+      create: { sid: string; sub: string; expiresAt: Date };
+    };
+    expect(upsert.where).toEqual({ sid: 'sid-1' });
+    expect(upsert.create).toMatchObject({ sid: 'sid-1', sub: 'sub-1' });
+    expect(upsert.create.expiresAt.getTime()).toBeGreaterThanOrEqual(
+      before + REVOKED_SID_TTL_MS,
+    );
+    // 잠금 → 묘비 → 지우기 순서
+    const order = [
+      tx.$queryRaw.mock.invocationCallOrder[0],
+      tx.oidcRevokedSid.upsert.mock.invocationCallOrder[0],
+      tx.refreshToken.deleteMany.mock.invocationCallOrder[0],
+    ];
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('sid 만 오면 sid 로만 지운다', async () => {
+    verify.mockResolvedValue({ jti: 'j3', iat: IAT, sid: 'sid-3' });
+    await make().logout('token');
+    expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({
+      where: { oidcSid: 'sid-3' },
     });
   });
 
@@ -144,6 +189,11 @@ describe('BackchannelLogoutService', () => {
     });
     expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'u2' },
+    });
+    // 그 시각보다 먼저 만든 행은 회전하지 못한다
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: 'u2' },
+      data: { sessionsRevokedAt: expect.any(Date) as Date },
     });
   });
 
