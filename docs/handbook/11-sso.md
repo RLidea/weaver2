@@ -54,6 +54,10 @@
 - **허용 목록 확장** `PUBLIC_WRITE_ALLOWLIST_EXTRAS`: 문자열 배열(`'POST /v1/…'`, `:이름` 한 마디). `public-write-routes.integration.spec.ts` 가 앱의 모든 `@Public` 비-GET 경로를 「목록에 있거나 404」로 잰다
 - **세션**: `SignInCompletionService.completeExternal(userId, ctx, res)` — 로컬 2FA 를 묻지 않고 탈퇴 · 정지는 본다. 콜백 요청에 이미 refresh 쿠키가 있으면 그 행을 먼저 지운다
 
+## 프록시 뒤 — `TRUST_PROXY` 를 꼭 둔다
+
+start(10/분) · callback(20/분) 스로틀은 IP 마다 센다. Cloudflare · nginx 뒤에서 `TRUST_PROXY` 를 두지 않으면 `req.ip` 가 늘 프록시 주소라 **사이트 전체가 한 통**이 된다 — 한 사람이 1분에 열 번 누르면 모두의 로그인이 429 로 막힌다. 파생 프로젝트는 운영 `.env` 에 그 서버의 프록시 홉 수나 주소를 `TRUST_PROXY` 로 적는다(`libs/common/src/global/middleware/trust-proxy.ts`). 같은 이유로 훅 `meta.ip` 도 그래야 진짜 사람의 IP 다.
+
 ## 사람 — sub 로만 찾는다
 
 - `User.ssoSubject`(unique)로만 찾는다. **이메일로 저절로 잇지 않는다** — 모르는 sub 인데 같은 이메일의 살아 있는 행이 있으면 `sso_conflict`(`onConflict` 훅, 로그에는 sub 와 행 id 만)
