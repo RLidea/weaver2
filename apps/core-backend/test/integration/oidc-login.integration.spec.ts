@@ -590,4 +590,46 @@ describe('SSO login (Integration, AUTH_MODE=sso)', () => {
       expect(url.searchParams.has('id_token_hint')).toBe(false);
     });
   });
+
+  describe('스로틀 (문서 이동이라 429 JSON 을 보이지 않는다)', () => {
+    let throttle: string | undefined;
+    beforeEach(() => {
+      throttle = process.env.THROTTLE_DISABLED;
+      process.env.THROTTLE_DISABLED = 'false';
+    });
+    afterEach(() => {
+      process.env.THROTTLE_DISABLED = throttle;
+    });
+
+    it('start 30/분을 넘으면 302 로 실패 주소에 sso_busy — tx 쿠키가 없으면 기본 입구', async () => {
+      const server = app.getHttpServer();
+      for (let i = 0; i < 30; i++) {
+        const ok = await request(server).get('/v1/auth/oidc/start?entry=site');
+        expect(ok.headers.location).toMatch(/^http:/);
+      }
+      const busy = await request(server).get(
+        '/v1/auth/oidc/start?entry=site&lang=en',
+      );
+      expect(busy.status).toBe(302);
+      expect(busy.headers.location).toBe('/ko/account/sign-in/?error=sso_busy');
+    });
+
+    it('callback 30/분을 넘으면 302 로 tx 쿠키의 입구 · 언어의 실패 주소에 sso_busy', async () => {
+      process.env.THROTTLE_DISABLED = 'true';
+      const s = await start('entry=site&lang=en');
+      process.env.THROTTLE_DISABLED = 'false';
+      const server = app.getHttpServer();
+      for (let i = 0; i < 30; i++) {
+        const failed = await request(server).get('/v1/auth/oidc/callback');
+        expect(failed.headers.location).toBe(
+          '/ko/account/sign-in/?error=sso_failed',
+        );
+      }
+      const busy = await request(server)
+        .get('/v1/auth/oidc/callback?state=x')
+        .set('Cookie', s.cookie);
+      expect(busy.status).toBe(302);
+      expect(busy.headers.location).toBe('/en/account/sign-in/?error=sso_busy');
+    });
+  });
 });

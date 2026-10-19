@@ -29,6 +29,8 @@ export type OidcFailureCode =
   | 'sso_failed'
   | 'sso_cancelled'
   | 'sso_unavailable'
+  /** start · callback 이 스로틀에 걸렸다(잠시 뒤 다시) */
+  | 'sso_busy'
   | 'sso_email_unverified'
   | 'sso_conflict'
   | 'account_suspended'

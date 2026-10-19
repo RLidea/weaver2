@@ -1,5 +1,8 @@
 import {
+  ArgumentsHost,
+  Catch,
   Controller,
+  ExceptionFilter,
   Get,
   HttpCode,
   Inject,
@@ -9,6 +12,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseFilters,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -18,7 +22,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, ThrottlerException } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
@@ -82,6 +86,54 @@ export function safeNextPath(value: unknown, fallback: string): string {
 }
 
 /**
+ * 실패 주소 — tx 의 입구와 언어로 고른다. tx 를 못 읽으면 표의 `site` → 없으면 `admin` →
+ * 없으면 첫 입구, 언어는 첫 값.
+ */
+function failurePath(
+  sso: SsoConfig,
+  tx: OidcTx | null,
+  code: OidcFailureCode,
+): string {
+  const table = new Map(sso.failureUrls);
+  const entry =
+    tx && table.has(tx.entry)
+      ? tx.entry
+      : table.has('site')
+        ? 'site'
+        : table.has('admin')
+          ? 'admin'
+          : sso.failureUrls[0][0];
+  const lang = tx?.lang ?? sso.langs[0];
+  const url = new URL(
+    table.get(entry)!.replaceAll('{lang}', encodeURIComponent(lang)),
+    FAKE_ORIGIN,
+  );
+  url.searchParams.set('error', code);
+  return `${url.pathname}${url.search}`;
+}
+
+/**
+ * start · callback 이 스로틀에 걸렸을 때 — 둘 다 문서 이동이라 Nest 의 429 JSON 을 화면에 그대로
+ * 보이게 된다. 가드는 핸들러보다 먼저 던지므로 여기서 받아 실패 주소에 `sso_busy` 로 보낸다.
+ * tx 쿠키가 읽히면 그 입구 · 언어로(콜백), 아니면 기본 입구로(start 는 대개 쿠키가 없다)
+ */
+@Catch(ThrottlerException)
+class OidcBusyFilter implements ExceptionFilter {
+  constructor(
+    @Inject(AUTH_MODE_CONFIG) private readonly authMode: AuthModeConfig,
+    private readonly transaction: OidcTransaction,
+  ) {}
+
+  catch(_exception: ThrottlerException, host: ArgumentsHost) {
+    const http = host.switchToHttp();
+    const tx = this.transaction.read(http.getRequest<Request>());
+    http
+      .getResponse<Response>()
+      .redirect(failurePath(this.authMode.sso!, tx, 'sso_busy'));
+  }
+}
+
+/**
  * SSO 로그인 — 발급자(accounts)로 보내고, 돌아온 콜백에서 **지금과 같은 세션 쿠키**를 준다.
  *
  * 콜백 검사 순서(D4): ① tx 쿠키 서명 · 만료 ② state 대조(맞을 때만 tx 를 지운다 — 남이 엉터리
@@ -113,7 +165,9 @@ export class OidcController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  // start 는 서명한 짧은 쿠키 하나만 쓴다 — 사무실 NAT 하나 뒤의 여럿이 한 IP 로 오므로 넉넉히
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @UseFilters(OidcBusyFilter)
   @Get('start')
   @ApiOperation({
     summary: 'SSO 로그인 시작 — 발급자의 authorize 로 302',
@@ -170,7 +224,11 @@ export class OidcController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  // start 와 같게 — 낮으면 같은 NAT 에서 start 는 지났는데 발급자에서 로그인을 마치고 돌아와 sso_busy 를
+  // 본다(가장 나쁜 자리에서 실패). 바깥 호출(code 교환 · userinfo)은 맞는 tx 가 있어야 나가고 tx 는
+  // start 로만 생기므로, 그 수는 이미 start 의 한도가 묶는다
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @UseFilters(OidcBusyFilter)
   @Get('callback')
   @ApiOperation({
     summary: 'SSO 콜백 — 검증 뒤 세션 쿠키를 주고 next 로 302',
@@ -339,30 +397,11 @@ export class OidcController {
     this.redirectFailure(res, tx, code);
   }
 
-  /**
-   * 실패 주소 — tx 의 입구와 언어로 고른다. tx 를 못 읽으면 표의 `site` → 없으면 `admin` →
-   * 없으면 첫 입구, 언어는 첫 값.
-   */
   private redirectFailure(
     res: Response,
     tx: OidcTx | null,
     code: OidcFailureCode,
   ) {
-    const table = new Map(this.sso.failureUrls);
-    const entry =
-      tx && table.has(tx.entry)
-        ? tx.entry
-        : table.has('site')
-          ? 'site'
-          : table.has('admin')
-            ? 'admin'
-            : this.sso.failureUrls[0][0];
-    const lang = tx?.lang ?? this.sso.langs[0];
-    const url = new URL(
-      table.get(entry)!.replaceAll('{lang}', encodeURIComponent(lang)),
-      FAKE_ORIGIN,
-    );
-    url.searchParams.set('error', code);
-    res.redirect(`${url.pathname}${url.search}`);
+    res.redirect(failurePath(this.sso, tx, code));
   }
 }

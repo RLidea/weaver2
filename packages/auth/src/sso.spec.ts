@@ -4,13 +4,15 @@ describe('ssoStartUrl', () => {
   it('API 기준 주소 아래 start 로, entry · next · lang 을 싣는다', () => {
     expect(
       ssoStartUrl({ next: '/admin?tab=a', lang: 'ja', apiBase: '/api/' }),
-    ).toBe('/api/v1/auth/oidc/start?entry=admin&next=%2Fadmin%3Ftab%3Da&lang=ja');
+    ).toBe(
+      '/api/v1/auth/oidc/start?entry=admin&next=%2Fadmin%3Ftab%3Da&lang=ja',
+    );
   });
 
   it('next · lang 이 없으면 싣지 않는다', () => {
-    expect(ssoStartUrl({ entry: 'site', apiBase: 'https://api.example.com' })).toBe(
-      'https://api.example.com/v1/auth/oidc/start?entry=site',
-    );
+    expect(
+      ssoStartUrl({ entry: 'site', apiBase: 'https://api.example.com' }),
+    ).toBe('https://api.example.com/v1/auth/oidc/start?entry=site');
   });
 });
 
@@ -19,6 +21,7 @@ describe('ssoErrorMessage', () => {
     'sso_failed',
     'sso_cancelled',
     'sso_unavailable',
+    'sso_busy',
     'sso_email_unverified',
     'sso_conflict',
     'account_suspended',

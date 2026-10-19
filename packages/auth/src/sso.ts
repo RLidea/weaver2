@@ -33,6 +33,8 @@ export function ssoErrorMessage(code: string | null): string | null {
       return '로그인을 취소했습니다.';
     case 'sso_unavailable':
       return '계정 서버에 닿지 못했습니다. 잠시 뒤 다시 시도해주세요.';
+    case 'sso_busy':
+      return '로그인 요청이 많습니다. 잠시 뒤 다시 시도해주세요.';
     case 'sso_email_unverified':
       return '계정 서버에서 이메일 인증을 마친 뒤 다시 로그인해주세요.';
     case 'sso_conflict':
