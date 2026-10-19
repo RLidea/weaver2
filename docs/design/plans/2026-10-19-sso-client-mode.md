@@ -51,6 +51,27 @@
 - **평문 http**: `allowInsecureRequests` 는 **발급자가 loopback(localhost · 127.0.0.1 · ::1) http 일 때만** 건다. 시험 · e2e 의 가짜 발급자와 로컬 accounts(`http://127.0.0.1:3100/oidc`)가 여기 든다. 운영 발급자는 https 라 걸 수 없고, http 비-loopback 발급자는 부팅이 멈춘다(`auth-mode.ts`)
 - `iss` 응답 매개변수는 안내판 값과 무관하게 **우리가 먼저 요구**한다(D4 ③)
 
+## 구현 기록 (2026-10-19, 레인 `sso`) — 계획과 다르게 간 곳
+
+W1~W5 를 이 계획대로 지었다. 다르게 간 곳과 그 이유:
+
+| # | 계획 | 실제 | 이유 |
+|---|---|---|---|
+| 1 | 가짜 발급자 포트 `4180 + (API − 4000)`(런타임 4180, 격리 4190~4199) | **`4280 + (API − 4000)`**(런타임 4280, 격리 4290~4299) | 4190 은 Fetch 표준의 「bad port」(ManageSieve)라 Node fetch 가 `TypeError: fetch failed (bad port)` 로 거절한다 — 레인 4010 → 4190 에서 실측. 4100(로컬 accounts)은 그대로 비워 둔다 |
+| 2 | 포트 `OidcClient` 에 `verifyIdToken` 따로 | `exchange` 안에서 검증 | openid-client 의 `authorizationCodeGrant` 가 교환과 id_token 검증을 한 번에 한다. 검증 항목(RS256 · 서명 · iss · aud/azp · exp/iat 60초 · nonce)은 그대로이고 `oidc-client.spec.ts` 가 잰다 |
+| 3 | JWKS 10분 캐시 | oauth4webapi 의 **5분** 캐시, 모르는 kid 는 받은 지 60초가 지났을 때만 다시 받음 | 라이브러리 규칙이 계획의 「60초에 한 번」과 같고 캐시는 더 짧다(안전 쪽) |
+| 4 | next 시험 값 `/\tevil.com` · `\evil.com` | `/\t/evil.com` · `\\evil.com` · `/\evil.com` | 앞의 둘은 URL 파서가 `/evil.com`(같은 출처의 경로)으로 읽어 위험하지 않다. 실제로 `//evil.com` 이 되는 값으로 잰다 |
+| 5 | 탈퇴 → 같은 sub 가 다시 오면 새 행 | weaver2 에서는 **`account_deleted`** | weaver2 는 탈퇴 때 이메일을 익명화하지 않아 탈퇴 행이 이메일을 쥔다(유일 제약). 파생 프로젝트가 `USER_WITHDRAWAL_HOOKS` 로 익명화하면 새 행이 된다 — RLidea 는 이미 익명화한다 |
+| 6 | 새 사람 `locale = lang` | weaver2 `User` 에 언어 칸이 없어 쓰지 않음. `afterSignIn` 의 `meta.lang` · `meta.created` 로 넘긴다 | 파생 프로젝트(RLidea)가 훅에서 정한다 |
+| 7 | 훅 `names · afterSignIn · onConflict · onLink` | + **`onUnlink`** | `sso:unlink` 도 기록이 남게 |
+| 8 | `AuthModeGuard` 가 인증보다 먼저 | **인증 다음** | API 토큰 계약(「범위 없는 경로는 늘 401」, `api-tokens.integration.spec.ts`)을 지킨다. 공개 경로는 여전히 404, 로그인이 필요한 닫힌 경로는 로그인 전 401 · 뒤 404 |
+| 9 | 운영자 손을 `build-seed.cjs` 처럼 릴리스에 묶고 `node dist/scripts/sso-link.js` | `pnpm sso:link`(ts-node, 앱 모듈을 띄워 훅까지 부름) | weaver2 에는 시드 번들 틀이 없다. 파생 프로젝트의 배포 틀이 dev 의존성을 빼면 그 틀에서 묶는다(핸드북 11장) |
+| 10 | 프런트 시험 vitest | `packages/auth/src/sso.ts`(순수 도우미)를 jest 로, 화면은 Playwright `sso` 프로젝트로 | weaver2 에 vitest 가 없다. 백엔드 jest 의 roots 에 `packages/auth/src` 를 더했다 |
+| 11 | Playwright `testMatch: /sso.*\.spec\.ts$/` | `/\/[^/]*sso[^/]*\.spec\.ts$/` | 정규식은 **절대 경로**에 맞춰진다 — 레인이 `.claude/worktrees/sso/…` 라 모든 스펙이 sso 로 잡혔다 |
+| 12 | tx 를 못 읽을 때 실패 주소 | 표의 `site` → `admin` → 첫 입구 (D4 그대로) | W4 시험 줄의 「admin 실패 주소」는 기본 표(`admin=/login`)일 때다. 통합 시험은 `site` 가 있는 표라 `/ko/account/sign-in/` 을 잰다 |
+
+검증(레인 DB `weaver2_sso`): `pnpm typecheck` · `pnpm lint:check`(오류 0) · `pnpm test:core` 66 묶음 552 · `pnpm test:integration` 18 묶음 194 · Playwright `sso` 6(빌드본 + 가짜 발급자, 백엔드 `AUTH_MODE=sso`) · `chromium` 29(local).
+
 ## Global Constraints
 
 - **스키마를 바꾸는 레인은 격리 레인이다.** `pnpm lane:new sso --isolated`. W2(`ssoSubject`)가 스키마를 바꾼다. `--with-backend` 는 공용 DB 를 바꾼다
