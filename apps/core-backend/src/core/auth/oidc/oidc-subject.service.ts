@@ -27,8 +27,9 @@ function isUniqueViolation(err: unknown): boolean {
  * ① `ssoSubject = sub` 인 행 → 그 사람. 탈퇴면 `account_deleted`. 발급자가 인증한 이메일이
  *    바뀌었으면 맞춘다(`emailVerifiedAt = now`) — 다른 살아 있는 행이 쓰면 건너뛰고 로그인은 된다.
  *    정지된 사람은 맞추지 않는다(곧 `account_suspended` 로 거절된다)
- * ② 모르는 sub 인데 같은 이메일의 살아 있는 행 → `sso_conflict`. 잇지 않는다(`onConflict` 훅)
- * ③ 모르는 sub · 같은 이메일 없음 · 이메일 미인증 → `sso_email_unverified`
+ * ② 모르는 sub · 이메일 미인증 → `sso_email_unverified`. 같은 이메일의 행을 찾기 **전에** 본다 — 뒤에서
+ *    보면 남의 이메일을 미인증으로 적어 넣어 `sso_conflict` 로 그 주소의 계정이 있는지 캐낼 수 있다
+ * ③ 모르는 sub 인데 같은 이메일의 살아 있는 행 → `sso_conflict`. 잇지 않는다(`onConflict` 훅)
  * ④ 그 이메일을 탈퇴한 행이 아직 쥐고 있음 → `account_deleted` (weaver2 는 탈퇴 때 이메일을
  *    익명화하지 않는다 — 파생 프로젝트가 탈퇴 훅에서 익명화하면 이 갈래는 오지 않는다)
  * ⑤ 그 밖 → 새로 만든다. `LocalCredential` · 약관 행 없음, `emailVerifiedAt = now`
@@ -110,7 +111,15 @@ export class OidcSubjectService {
       );
     }
 
-    // ② 같은 이메일의 살아 있는 행 — 잇지 않는다
+    // ② 미인증 이메일로는 만들지도, 같은 이메일의 행을 찾지도 않는다
+    if (!claims.email_verified) {
+      throw new OidcError(
+        'sso_email_unverified',
+        `SSO email not verified: sub=${claims.sub}`,
+      );
+    }
+
+    // ③ 같은 이메일의 살아 있는 행 — 잇지 않는다
     const sameEmail = await this.prisma.user.findFirst({
       where: { email, deletedAt: null },
       select: { id: true },
@@ -128,14 +137,6 @@ export class OidcSubjectService {
       throw new OidcError(
         'sso_conflict',
         'SSO email belongs to an existing user',
-      );
-    }
-
-    // ③ 미인증 이메일로는 만들지 않는다
-    if (!claims.email_verified) {
-      throw new OidcError(
-        'sso_email_unverified',
-        `SSO email not verified: sub=${claims.sub}`,
       );
     }
 

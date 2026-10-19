@@ -61,6 +61,17 @@ describe('OidcSubjectService', () => {
     });
   });
 
+  it('모르는 sub + 미인증 이메일이면 같은 이메일의 행을 찾지 않고 sso_email_unverified — 계정이 있는지 새지 않는다', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'existing' });
+    const onConflict = jest.fn();
+    const err = await make({ onConflict })
+      .resolve({ ...CLAIMS, email_verified: false }, META)
+      .catch((e: unknown) => e);
+    expect((err as OidcError).code).toBe('sso_email_unverified');
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(onConflict).not.toHaveBeenCalled();
+  });
+
   it('names 훅이 있으면 그 이름으로 만든다', async () => {
     const names = jest
       .fn()
