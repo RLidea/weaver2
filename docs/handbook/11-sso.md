@@ -76,19 +76,20 @@ OpenID Connect Back-Channel Logout 1.0 의 손님 쪽. 사람이 발급자 쪽�
 **받는 것과 답**
 
 - 몸통: `application/x-www-form-urlencoded` 의 `logout_token`. 쿠키 · Origin · CSRF 토큰 없음
-- 검증(§2.6): RS256 만 · 발급자 JWKS(kid, 모르는 kid 면 다시 받되 30초에 한 번) · 머리 `typ` = `logout+jwt` · `iss` = 설정한 발급자 · `aud` 에 client_id · `iat` 있음(시계 허용 60초, 10분보다 오래면 거절) · `exp` 있으면 지나지 않음 · `events` 에 `http://schemas.openid.net/event/backchannel-logout`(값은 객체) · `nonce` 없음 · `sid` 나 `sub`(session_required 면 `sid` 필수) · `jti` 한 번만
+- 검증(§2.6): 먼저 **네트워크 없이** 머리만 본다 — JWS 가 아니거나 `alg` ≠ RS256 · `typ` ≠ `logout+jwt` 면 발급자에 묻지 않고 400. 그다음 RS256 만 · 발급자 JWKS(kid, 모르는 kid 면 다시 받되 30초에 한 번) · 머리 `typ` = `logout+jwt` · `iss` = 설정한 발급자 · `aud` 에 client_id · `iat` 있음(시계 허용 60초, 10분보다 오래면 거절) · `exp` 있으면 지나지 않음 · `events` 에 `http://schemas.openid.net/event/backchannel-logout`(값은 객체) · `nonce` 없음 · `sid` 나 `sub`(session_required 면 `sid` 필수) · `jti` 한 번만
 - `200`(몸통 없음, `Cache-Control: no-store`) — 지울 세션이 없어도(이미 로그아웃 · 만료 · 모르는 sid)
 - `400 {"error":"invalid_request"}` — 위 검증에 걸림 · 같은 jti 다시 옴 · `logout_token` 없음. 로그에는 걸린 규칙만 남고 토큰은 남지 않는다
-- `503 {"error":"temporarily_unavailable"}` — 발급자의 안내판 · JWKS 에 닿지 못함(토큰 탓이 아니다)
+- `503 {"error":"temporarily_unavailable"}` — 발급자의 안내판 · JWKS 에 닿지 못함(토큰 탓이 아니다). 안내판을 못 받으면 30초 동안은 다시 묻지 않고 같은 실패를 돌려준다(로그인 start 도 같다)
 - 발급자는 2.5초 안의 200 · 204 만 성공으로 보고, 그 밖은 1 · 2 · 4 … 분 뒤 **새로 서명한 토큰**으로 하루 동안 다시 보낸다 — 그래서 400 · 503 · 429 도 결국 닿는다
 - 스로틀 120/분(IP) — 발급자 한 곳이 모든 사람의 로그아웃을 한 IP 로 보내므로 넉넉하게. 프록시 뒤면 `TRUST_PROXY` (아래)
 
 **지우는 것**
 
-- `sid` → `refresh_tokens.oidcSid = sid` 인 행 전부(회전한 행 포함). `sub` 만(session_required=false) → `ssoSubject = sub` 인 사람의 행 전부
-- jti 는 `oidc_logout_jtis` 에 iat + 10분 + 60초까지 두고, 다음 요청 때 지난 것을 지운다. jti 기록과 세션 지우기는 한 트랜잭션이다 — 지우기가 실패하면 jti 도 남지 않아 재시도가 닿는다
+- `sid` → `refresh_tokens.oidcSid = sid` 인 행 전부(회전한 행 포함) — `sub` 도 왔으면 그 행 주인의 `ssoSubject = sub` 인 것만. `sub` 만(session_required=false) → `ssoSubject = sub` 인 사람의 행 전부, 그리고 `users.sessionsRevokedAt = 지금`
+- **회전과 줄 서기**: 로그아웃 트랜잭션은 세션 주인의 `users` 행을 잠그고(`SELECT … FOR UPDATE`), refresh 회전도 한 트랜잭션에서 같은 행을 잠근다 — 회전이 지우기 사이에 끼어 끝난 sid 로 새 행을 남기지 못한다. 둘째 문으로 sid 묘비(`oidc_revoked_sids`, 31일 = rememberMe 30일 + 회전의 올림 하루)를 남기고, 회전은 묘비에 걸린 행 · `sessionsRevokedAt` 보다 먼저 만든 행을 지우고 401 이다. 회전의 마킹은 `rotatedAt IS NULL` 일 때만이라 같은 쿠키로 동시에 두 번 refresh 해도 새 행은 하나다
+- jti 는 `oidc_logout_jtis` 에 iat + 10분 + 60초 + 60초까지 두고, 다음 요청 때 지난 jti · 묘비를 지운다. jti 기록 · 묘비 · 세션 지우기는 한 트랜잭션이다 — 지우기가 실패하면 jti 도 남지 않아 재시도가 닿는다
 - ⚠ **access 토큰은 지우지 못한다** — 이미 내 준 JWT 는 만료(`JWT_EXPIRES_IN`, 기본 1시간)까지 산다. 그 뒤 refresh 가 401 이고 화면은 로그인으로 간다
-- 훅 `onBackchannelLogout(userId | null, { sid, sub })` 는 200 을 보낸 **뒤에** 불린다 — 발급자의 2.5초를 쓰지 않는다. 시간 한도 · 멱등 규칙은 다른 훅과 같다. userId 는 지운 세션의 주인, 없으면 sub 로 찾은 사람, 그것도 없으면 null
+- 훅 `onBackchannelLogout(userId | null, { sid, sub })` 는 200 을 보낸 **뒤에** 불린다 — 발급자의 2.5초를 쓰지 않는다. 시간 한도 · 멱등 규칙은 다른 훅과 같다 — **같은 로그아웃이 두 번 올 수 있다**(첫 응답이 늦으면 발급자가 새 jti 로 다시 보낸다). userId 는 지운 세션의 주인, 없으면 sub 로 찾은 사람, 그것도 없으면 null
 
 **닿지 않는 세션은 없다** — 이 앱의 SSO 세션은 7일(`rememberMe=false`)이고 발급자의 OIDC 세션은 14일이다. 발급자는 자기가 아는 OIDC 세션의 sid 로 보내므로, 이 앱 세션이 발급자 세션보다 오래 살면 그 세션은 신호를 받지 못한다 — 지금은 늘 짧다. 이 앱 세션을 늘리려면(예 `rememberMe`) 발급자 세션보다 짧게 둔다.
 
@@ -97,6 +98,17 @@ sid 가 생기기 전(이 기능 전)에 만든 SSO 세션은 `oidcSid` 가 비�
 ## 프록시 뒤 — `TRUST_PROXY` 를 꼭 둔다
 
 start(10/분) · callback(20/분) 스로틀은 IP 마다 센다. Cloudflare · nginx 뒤에서 `TRUST_PROXY` 를 두지 않으면 `req.ip` 가 늘 프록시 주소라 **사이트 전체가 한 통**이 된다 — 한 사람이 1분에 열 번 누르면 모두의 로그인이 429 로 막힌다. 파생 프로젝트는 운영 `.env` 에 그 서버의 프록시 홉 수나 주소를 `TRUST_PROXY` 로 적는다(`libs/common/src/global/middleware/trust-proxy.ts`). 같은 이유로 훅 `meta.ip` 도 그래야 진짜 사람의 IP 다.
+
+**Cloudflare 뒤 nginx** 면 nginx 도 진짜 IP 를 받아야 한다 — Cloudflare 가 붙인 IP 를 `X-Forwarded-For` 에 실어 넘기려면:
+
+```nginx
+# Cloudflare 의 IP 대역 전부 (https://www.cloudflare.com/ips/ — 바뀌면 따라 고친다)
+set_real_ip_from 173.245.48.0/20;
+# … 나머지 IPv4 · IPv6 대역 …
+real_ip_header CF-Connecting-IP;
+```
+
+이것이 없으면 nginx 의 `$remote_addr` 가 Cloudflare 의 가장자리 주소라 백엔드에는 그 주소만 오고, **모든 요청이 스로틀 한 통을 나눠 쓴다**(back-channel 120/분도). RLidea 운영 nginx 는 이미 이렇게 한다.
 
 ## 사람 — sub 로만 찾는다
 
