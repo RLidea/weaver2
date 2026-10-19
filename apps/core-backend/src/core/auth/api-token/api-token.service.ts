@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
+import { PermissionService } from '../../permission/services/permission.service';
 import { FindUserByIdQuery } from '../../user/repositories/find-user-by-id.query';
 import { generateApiToken, matchesTokenHash } from './api-token.crypto';
 import { CreateApiTokenCommand } from './repositories/create-api-token.command';
@@ -28,14 +29,24 @@ export interface VerifiedApiToken {
  */
 @Injectable()
 export class ApiTokenService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionService: PermissionService,
+  ) {}
 
-  async issue(input: {
-    userId: string;
-    name: string;
-    scopes: string[];
-    expiresAt?: Date | null;
-  }) {
+  /**
+   * `issuerId` 는 발급하는 관리자. 주인의 권한을 모두 가진 사람만 그 이름으로 토큰을 만든다 —
+   * 자기보다 넓은 사람의 이름으로 쓰는 길을 막는다(남의 계정을 건드리는 다른 관리 동작과 같은 상하 검사).
+   */
+  async issue(
+    input: {
+      userId: string;
+      name: string;
+      scopes: string[];
+      expiresAt?: Date | null;
+    },
+    issuerId: string,
+  ) {
     const expiresAt = input.expiresAt ?? null;
     if (expiresAt && expiresAt <= new Date()) {
       throw new BadRequestException('만료 시각은 지금보다 뒤여야 합니다.');
@@ -43,6 +54,7 @@ export class ApiTokenService {
     if (!(await FindUserByIdQuery(this.prisma, input.userId))) {
       throw new NotFoundException('토큰의 주인을 찾을 수 없습니다.');
     }
+    await this.permissionService.assertCovers(issuerId, input.userId);
 
     const { raw, prefix, tokenHash } = generateApiToken();
     const apiToken = await CreateApiTokenCommand(this.prisma, {
@@ -60,8 +72,15 @@ export class ApiTokenService {
     return FindApiTokensQuery(this.prisma, filter);
   }
 
-  /** 되살리지 않는다. 이미 끊긴 토큰이면 처음 시각을 그대로 돌려준다 */
-  async revoke(id: string) {
+  /**
+   * 되살리지 않는다. 이미 끊긴 토큰이면 처음 시각을 그대로 돌려준다.
+   * 끊기도 발급과 같은 상하 검사를 한다 — 주인의 권한을 모두 가진 사람만.
+   */
+  async revoke(id: string, revokerId: string) {
+    const existing = await FindApiTokenByIdQuery(this.prisma, id);
+    if (!existing) throw new NotFoundException('토큰을 찾을 수 없습니다.');
+    await this.permissionService.assertCovers(revokerId, existing.user.id);
+
     await RevokeApiTokenCommand(this.prisma, id, new Date());
     const apiToken = await FindApiTokenByIdQuery(this.prisma, id);
     if (!apiToken) throw new NotFoundException('토큰을 찾을 수 없습니다.');

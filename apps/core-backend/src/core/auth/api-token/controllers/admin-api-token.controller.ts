@@ -10,6 +10,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
+import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
 import { ApiStandardResponses } from '@weaver2/common/decorator/swagger/api-standard-responses.decorator';
 import { PERMISSIONS } from '@weaver2/common/constants/permissions.const';
 import { RequirePermission } from '../../../permission/decorators/require-permission.decorator';
@@ -41,13 +43,19 @@ export class AdminApiTokenController {
       '원문(`token`)은 이 응답에만 실린다. 저장소에는 해시만 남는다.',
   })
   @ApiStandardResponses({ type: IssuedApiTokenDto, status: HttpStatus.CREATED })
-  issue(@Body() dto: CreateApiTokenDto): Promise<IssuedApiTokenDto> {
-    return this.apiTokenService.issue({
-      userId: dto.userId,
-      name: dto.name,
-      scopes: dto.scopes,
-      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
-    });
+  issue(
+    @Body() dto: CreateApiTokenDto,
+    @AuthUser() authUser: CommonAuthUserDto,
+  ): Promise<IssuedApiTokenDto> {
+    return this.apiTokenService.issue(
+      {
+        userId: dto.userId,
+        name: dto.name,
+        scopes: dto.scopes,
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+      },
+      authUser.id,
+    );
   }
 
   @Post(':id/revoke')
@@ -58,7 +66,10 @@ export class AdminApiTokenController {
       '되살릴 수 없다. 이미 끊긴 토큰이면 처음 끊은 시각을 그대로 돌려준다.',
   })
   @ApiStandardResponses({ type: ApiTokenDto })
-  revoke(@Param('id', ParseUUIDPipe) id: string): Promise<ApiTokenDto> {
-    return this.apiTokenService.revoke(id);
+  revoke(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() authUser: CommonAuthUserDto,
+  ): Promise<ApiTokenDto> {
+    return this.apiTokenService.revoke(id, authUser.id);
   }
 }

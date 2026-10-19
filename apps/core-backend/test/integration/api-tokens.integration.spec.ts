@@ -110,6 +110,8 @@ describe('API Tokens (Integration)', () => {
   let superCookies: string;
   let adminCookies: string;
   let memberCookies: string;
+  let limitedCookies: string;
+  let limitedGroupId: string;
 
   async function createUser(name: string, groupName?: string) {
     const user = await prisma.user.create({
@@ -195,10 +197,28 @@ describe('API Tokens (Integration)', () => {
     superCookies = await cookiesOf('super');
     adminCookies = await cookiesOf('admin');
     memberCookies = await cookiesOf('member');
+
+    // 토큰 발급 권한만 가진 관리자 — 자기보다 넓은 사람의 이름으로는 발급 · 끊기를 못 해야 한다
+    const limitedGroup = await prisma.permissionGroup.create({
+      data: {
+        name: `${tag}_token_issuer`,
+        description: '시험: 토큰 발급만',
+        permissions: {
+          create: [{ permission: PERMISSIONS.API_TOKEN.MANAGE }],
+        },
+      },
+    });
+    limitedGroupId = limitedGroup.id;
+    const limited = await createUser('limited');
+    await prisma.userPermissionGroup.create({
+      data: { userId: limited.id, permissionGroupId: limitedGroupId },
+    });
+    limitedCookies = await cookiesOf('limited');
   });
 
   afterAll(async () => {
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    await prisma.permissionGroup.deleteMany({ where: { id: limitedGroupId } });
     await app?.close();
   });
 
@@ -467,6 +487,45 @@ describe('API Tokens (Integration)', () => {
       expect([list.status, created.status, revoked.status]).toEqual([
         403, 403, 403,
       ]);
+    });
+  });
+
+  describe('발급 · 끊기의 상하 검사', () => {
+    it('자기보다 넓은 주인(최고관리자)의 이름으로는 발급할 수 없다 — 403', async () => {
+      const res = await adminPost('/v1/admin/api-tokens', limitedCookies, {
+        userId: superOwner.id,
+        name: 'n',
+        scopes: [SCOPE],
+      });
+      expect(res.status).toBe(403);
+      expect(
+        await prisma.apiToken.count({
+          where: { userId: superOwner.id, name: 'n' },
+        }),
+      ).toBe(0);
+    });
+
+    it('권한 없는 주인(서비스 계정)의 이름으로는 발급할 수 있다', async () => {
+      const res = await adminPost('/v1/admin/api-tokens', limitedCookies, {
+        userId: owner.id,
+        name: 'limited-issued',
+        scopes: [SCOPE],
+      });
+      expect(res.status).toBe(201);
+    });
+
+    it('자기보다 넓은 주인의 토큰은 끊을 수 없다 — 403, 그대로 살아 있다', async () => {
+      const { token, apiToken } = await issue({ userId: superOwner.id });
+      const res = await adminPost(
+        `/v1/admin/api-tokens/${apiToken.id}/revoke`,
+        limitedCookies,
+      );
+      expect(res.status).toBe(403);
+      const row = await prisma.apiToken.findUniqueOrThrow({
+        where: { id: apiToken.id },
+      });
+      expect(row.revokedAt).toBeNull();
+      await bearer('get', '/v1/token-probe/scoped', token).expect(200);
     });
   });
 });

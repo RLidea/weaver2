@@ -1,6 +1,11 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@weaver2/prisma';
 import { createHash } from 'crypto';
+import { PermissionService } from '../../permission/services/permission.service';
 import { ApiTokenService } from './api-token.service';
 import { generateApiToken } from './api-token.crypto';
 
@@ -22,7 +27,11 @@ describe('ApiTokenService', () => {
       updateMany: jest.fn(),
     },
   };
-  const service = new ApiTokenService(prisma as unknown as PrismaService);
+  const permissions = { assertCovers: jest.fn() };
+  const service = new ApiTokenService(
+    prisma as unknown as PrismaService,
+    permissions as unknown as PermissionService,
+  );
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -43,11 +52,14 @@ describe('ApiTokenService', () => {
     });
 
     it('원문은 응답에만 있고, 저장소에는 sha256 해시만 넘긴다', async () => {
-      const result = await service.issue({
-        userId: 'owner',
-        name: '초안 봇',
-        scopes: ['blog:draft'],
-      });
+      const result = await service.issue(
+        {
+          userId: 'owner',
+          name: '초안 봇',
+          scopes: ['blog:draft'],
+        },
+        'issuer',
+      );
 
       expect(result.token).toMatch(/^wvt_[0-9a-f]{12}_[0-9a-f]{64}$/);
       const [[{ data }]] = prisma.apiToken.create.mock.calls as [
@@ -65,12 +77,15 @@ describe('ApiTokenService', () => {
     });
 
     it('만료 시각을 그대로 저장한다', async () => {
-      await service.issue({
-        userId: 'owner',
-        name: 'n',
-        scopes: ['a'],
-        expiresAt: LATER,
-      });
+      await service.issue(
+        {
+          userId: 'owner',
+          name: 'n',
+          scopes: ['a'],
+          expiresAt: LATER,
+        },
+        'issuer',
+      );
       expect(prisma.apiToken.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ expiresAt: LATER }) as unknown,
@@ -81,20 +96,32 @@ describe('ApiTokenService', () => {
     it('주인이 없거나 탈퇴했으면 404', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
       await expect(
-        service.issue({ userId: 'gone', name: 'n', scopes: ['a'] }),
+        service.issue({ userId: 'gone', name: 'n', scopes: ['a'] }, 'issuer'),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.apiToken.create).not.toHaveBeenCalled();
     });
 
     it('지난 만료 시각이면 400', async () => {
       await expect(
-        service.issue({
-          userId: 'owner',
-          name: 'n',
-          scopes: ['a'],
-          expiresAt: EARLIER,
-        }),
+        service.issue(
+          {
+            userId: 'owner',
+            name: 'n',
+            scopes: ['a'],
+            expiresAt: EARLIER,
+          },
+          'issuer',
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('발급자가 주인의 권한을 모두 갖지 않으면 403 — 저장하지 않는다', async () => {
+      permissions.assertCovers.mockRejectedValue(new ForbiddenException());
+      await expect(
+        service.issue({ userId: 'owner', name: 'n', scopes: ['a'] }, 'issuer'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(permissions.assertCovers).toHaveBeenCalledWith('issuer', 'owner');
+      expect(prisma.apiToken.create).not.toHaveBeenCalled();
     });
   });
 
@@ -169,16 +196,21 @@ describe('ApiTokenService', () => {
   });
 
   describe('revoke', () => {
+    const existing = (revokedAt: Date | null) => ({
+      id: 't1',
+      revokedAt,
+      user: { id: 'owner' },
+    });
+
     it('살아 있을 때만 revokedAt 을 박고, 행을 돌려준다', async () => {
+      prisma.apiToken.findUnique
+        .mockResolvedValueOnce(existing(null))
+        .mockResolvedValueOnce(existing(NOW));
       prisma.apiToken.updateMany.mockResolvedValue({ count: 1 });
-      prisma.apiToken.findUnique.mockResolvedValue({
-        id: 't1',
-        revokedAt: NOW,
-      });
-      await expect(service.revoke('t1')).resolves.toEqual({
-        id: 't1',
-        revokedAt: NOW,
-      });
+      await expect(service.revoke('t1', 'revoker')).resolves.toEqual(
+        existing(NOW),
+      );
+      expect(permissions.assertCovers).toHaveBeenCalledWith('revoker', 'owner');
       expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
         where: { id: 't1', revokedAt: null },
         data: { revokedAt: NOW },
@@ -186,23 +218,28 @@ describe('ApiTokenService', () => {
     });
 
     it('이미 끊긴 토큰은 처음 시각 그대로 돌려준다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(existing(EARLIER));
       prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
-      prisma.apiToken.findUnique.mockResolvedValue({
-        id: 't1',
-        revokedAt: EARLIER,
-      });
-      await expect(service.revoke('t1')).resolves.toEqual({
-        id: 't1',
-        revokedAt: EARLIER,
-      });
+      await expect(service.revoke('t1', 'revoker')).resolves.toEqual(
+        existing(EARLIER),
+      );
+    });
+
+    it('끊는 사람이 주인의 권한을 모두 갖지 않으면 403 — 끊지 않는다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(existing(null));
+      permissions.assertCovers.mockRejectedValue(new ForbiddenException());
+      await expect(service.revoke('t1', 'revoker')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
     });
 
     it('없는 id 면 404', async () => {
-      prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
       prisma.apiToken.findUnique.mockResolvedValue(null);
-      await expect(service.revoke('nope')).rejects.toBeInstanceOf(
+      await expect(service.revoke('nope', 'revoker')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
     });
   });
 });
