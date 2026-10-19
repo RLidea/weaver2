@@ -370,8 +370,6 @@ export class OpenIdOidcClient implements OidcClient {
           .join(' '),
       );
     }
-    return checkLogoutClaims(payload, {
-      sessionRequired: this.sso.backchannelSessionRequired,
-    });
+    return checkLogoutClaims(payload);
   }
 }

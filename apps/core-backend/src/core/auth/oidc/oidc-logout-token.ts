@@ -55,12 +55,12 @@ function optionalId(
  *
  * - `events` 는 객체이고 `BACKCHANNEL_LOGOUT_EVENT` 열쇠의 값도 객체다
  * - `nonce` 가 없다 — id_token 을 logout_token 으로 내미는 것을 막는다
- * - `sid` 나 `sub` 가 있다. `sessionRequired` 면 `sid` 가 있어야 한다
+ * - `sid` 나 `sub` 가 있다. `sid` 면 그 세션 하나, `sub` 만이면 그 사람의 세션 전부를 지우라는 뜻이다
+ *   (발급자는 비밀번호 변경 · 재설정 · 탈퇴에 sub 만 보낸다)
  * - `jti` 가 있다(재사용 거절에 쓴다)
  */
 export function checkLogoutClaims(
   payload: Record<string, unknown>,
-  { sessionRequired }: { sessionRequired: boolean },
 ): LogoutTokenClaims {
   const events = payload.events;
   if (
@@ -84,9 +84,6 @@ export function checkLogoutClaims(
   const sub = optionalId(payload, 'sub');
   if (!sid && !sub) {
     throw new LogoutTokenError('neither "sid" nor "sub"');
-  }
-  if (sessionRequired && !sid) {
-    throw new LogoutTokenError('"sid" is required (session_required)');
   }
   if (typeof payload.iat !== 'number') {
     throw new LogoutTokenError('"iat" is missing');

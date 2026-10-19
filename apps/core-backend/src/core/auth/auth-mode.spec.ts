@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   isLoopbackHttp,
   normalizeSameOriginPath,
@@ -50,18 +51,27 @@ describe('readAuthModeConfig', () => {
       failureUrls: [['admin', '/login']],
       defaultNext: '/dashboard',
       accountUrl: undefined,
-      backchannelSessionRequired: true,
     });
   });
 
-  it('back-channel session_required 는 true · false 만 받는다', () => {
-    expect(
-      read({ ...SSO, ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: 'false' }).sso
-        ?.backchannelSessionRequired,
-    ).toBe(false);
-    expect(() =>
-      read({ ...SSO, ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: 'no' }),
-    ).toThrow('ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED');
+  it('뺀 ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED 가 남아 있으면 경고만 하고 부팅한다', () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    for (const leftover of ['true', 'false', 'no']) {
+      expect(
+        read({ ...SSO, ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: leftover })
+          .mode,
+      ).toBe('sso');
+    }
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(warn.mock.calls[0][0]).toContain(
+      'ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED',
+    );
+    warn.mockClear();
+    read(SSO);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('설정한 redirect · post_logout · 언어 · 실패 주소 · 기본 next 를 그대로 쓴다', () => {

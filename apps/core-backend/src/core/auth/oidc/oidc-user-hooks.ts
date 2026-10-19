@@ -24,8 +24,8 @@ import { Logger } from '@nestjs/common';
  *       afterSignIn: (userId, meta) => events.record(userId, 'LOGIN', meta),
  *       onConflict: (userId, sub) => events.record(userId, 'SSO_CONFLICT', { sub }),
  *       onLink: (userId, sub) => events.record(userId, 'SSO_LINK', { sub }),
- *       onBackchannelLogout: async (userId, { sid }) => {
- *         if (userId) await events.record(userId, 'SSO_BACKCHANNEL_LOGOUT', { sid });
+ *       onBackchannelLogout: async (userId, { sid, scope }) => {
+ *         if (userId) await events.record(userId, 'SSO_BACKCHANNEL_LOGOUT', { sid, scope });
  *       },
  *     }),
  *     inject: [AuthEventService],
@@ -95,6 +95,12 @@ export interface OidcSignInMeta {
 export interface OidcBackchannelLogoutMeta {
   sid?: string;
   sub?: string;
+  /**
+   * `session` — sid 가 왔다. 그 세션 하나를 끝냈다(발급자의 로그아웃 · 「모든 기기에서 로그아웃」).
+   * `subject` — sid 없이 sub 만 왔다. 그 사람의 세션을 **전부** 지우고 `sessionsRevokedAt` 을 찍었다
+   * (발급자의 비밀번호 변경 · 재설정 · 탈퇴)
+   */
+  scope: 'session' | 'subject';
 }
 
 export interface OidcUserHooks {

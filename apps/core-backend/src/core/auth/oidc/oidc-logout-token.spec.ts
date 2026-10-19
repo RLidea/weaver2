@@ -14,7 +14,7 @@ import {
 const SUB = '3f2b8c1e-9d4a-4e7b-8a6c-1b2d3e4f5a6b';
 const SID = 'b0d7e1a2-sid';
 
-function clientFor(issuer: string, sessionRequired = true) {
+function clientFor(issuer: string) {
   return new OpenIdOidcClient(
     readAuthModeConfig(
       (key) =>
@@ -24,7 +24,6 @@ function clientFor(issuer: string, sessionRequired = true) {
           ACCOUNTS_OIDC_CLIENT_ID: 'test-client',
           ACCOUNTS_OIDC_CLIENT_SECRET: 'test-secret',
           CLIENT_URL: 'http://localhost:3000',
-          ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED: String(sessionRequired),
         })[key],
     ),
   );
@@ -217,16 +216,21 @@ describe('OpenIdOidcClient.verifyLogoutToken (가짜 발급자)', () => {
       await invalid({ sid: undefined, sub: undefined });
     });
 
-    it('session_required(기본)인데 sid 가 없으면 거절', async () => {
-      expect((await invalid({ sid: undefined })).message).toContain('sid');
-    });
-
-    it('session_required=false 면 sub 만으로 받는다', async () => {
-      const relaxed = clientFor(issuer.issuer, false);
+    it('sid 없이 sub 만 → 받는다 (그 사람의 세션 전부)', async () => {
       await expect(
-        relaxed.verifyLogoutToken(issuer.logoutToken({ sub: SUB })),
+        oidc.verifyLogoutToken(issuer.logoutToken({ sub: SUB })),
       ).resolves.toEqual(
         expect.objectContaining({ sub: SUB, sid: undefined }) as object,
+      );
+    });
+
+    it('sub 없이 sid 만 → 받는다 (그 세션 하나)', async () => {
+      await expect(
+        oidc.verifyLogoutToken(
+          issuer.logoutToken({ sid: SID, sub: undefined }),
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({ sid: SID, sub: undefined }) as object,
       );
     });
 
@@ -262,21 +266,41 @@ describe('checkLogoutClaims', () => {
     events: { [BACKCHANNEL_LOGOUT_EVENT]: {} },
   };
 
+  it('sub 만 → 받는다 (sid 없음 = 그 사람 전부)', () => {
+    expect(checkLogoutClaims({ ...base, sid: undefined, sub: 'u' })).toEqual({
+      jti: 'j',
+      iat: 1,
+      sid: undefined,
+      sub: 'u',
+    });
+  });
+
+  it('sid 만 · sid 와 sub → 받는다', () => {
+    expect(checkLogoutClaims(base)).toMatchObject({ sid: 's' });
+    expect(checkLogoutClaims({ ...base, sub: 'u' })).toMatchObject({
+      sid: 's',
+      sub: 'u',
+    });
+  });
+
+  it('sid 도 sub 도 없으면 거절', () => {
+    expect(() => checkLogoutClaims({ ...base, sid: undefined })).toThrow(
+      'neither "sid" nor "sub"',
+    );
+  });
+
   it('events 의 값이 객체가 아니면 거절', () => {
     expect(() =>
-      checkLogoutClaims(
-        { ...base, events: { [BACKCHANNEL_LOGOUT_EVENT]: 'yes' } },
-        { sessionRequired: true },
-      ),
+      checkLogoutClaims({
+        ...base,
+        events: { [BACKCHANNEL_LOGOUT_EVENT]: 'yes' },
+      }),
     ).toThrow(LogoutTokenError);
   });
 
   it('events 가 배열이면 거절', () => {
     expect(() =>
-      checkLogoutClaims(
-        { ...base, events: [BACKCHANNEL_LOGOUT_EVENT] },
-        { sessionRequired: true },
-      ),
+      checkLogoutClaims({ ...base, events: [BACKCHANNEL_LOGOUT_EVENT] }),
     ).toThrow(LogoutTokenError);
   });
 
@@ -285,10 +309,7 @@ describe('checkLogoutClaims', () => {
     (name) => {
       for (const bad of ['', 42, 'x'.repeat(256)]) {
         expect(() =>
-          checkLogoutClaims(
-            { ...base, sub: 'u', [name]: bad },
-            { sessionRequired: false },
-          ),
+          checkLogoutClaims({ ...base, sub: 'u', [name]: bad }),
         ).toThrow(LogoutTokenError);
       }
     },

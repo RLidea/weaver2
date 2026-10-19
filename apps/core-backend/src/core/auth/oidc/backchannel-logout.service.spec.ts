@@ -88,7 +88,7 @@ describe('BackchannelLogoutService', () => {
     expect(tx.refreshToken.deleteMany).toHaveBeenCalledWith({ where });
     expect(result).toEqual({
       userId: 'u1',
-      meta: { sid: 'sid-1', sub: 'sub-1' },
+      meta: { sid: 'sid-1', sub: 'sub-1', scope: 'session' },
       deleted: 2,
     });
   });
@@ -174,13 +174,13 @@ describe('BackchannelLogoutService', () => {
     });
   });
 
-  it('sid 없이 sub 만이면(session_required=false) 그 사람의 세션을 모두 지운다', async () => {
+  it('sid 없이 sub 만이면 그 사람의 세션을 모두 지운다 (scope subject)', async () => {
     verify.mockResolvedValue({ jti: 'j2', iat: IAT, sub: 'sub-2' });
     tx.user.findUnique.mockResolvedValue({ id: 'u2' });
     tx.refreshToken.deleteMany.mockResolvedValue({ count: 3 });
     await expect(make().logout('token')).resolves.toEqual({
       userId: 'u2',
-      meta: { sid: undefined, sub: 'sub-2' },
+      meta: { sid: undefined, sub: 'sub-2', scope: 'subject' },
       deleted: 3,
     });
     expect(tx.user.findUnique).toHaveBeenCalledWith({
@@ -197,7 +197,7 @@ describe('BackchannelLogoutService', () => {
     });
   });
 
-  it('afterLogout 은 onBackchannelLogout(userId, { sid, sub }) 을 부르고, 훅이 던져도 삼킨다', async () => {
+  it('afterLogout 은 onBackchannelLogout(userId, { sid, sub, scope }) 을 부르고, 훅이 던져도 삼킨다', async () => {
     const onBackchannelLogout = jest.fn().mockRejectedValue(new Error('boom'));
     const service = make({ onBackchannelLogout });
     const result = await service.logout('token');
@@ -205,6 +205,7 @@ describe('BackchannelLogoutService', () => {
     expect(onBackchannelLogout).toHaveBeenCalledWith('u1', {
       sid: 'sid-1',
       sub: 'sub-1',
+      scope: 'session',
     });
   });
 

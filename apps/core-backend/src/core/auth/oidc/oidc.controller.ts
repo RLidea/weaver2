@@ -243,8 +243,8 @@ export class OidcController {
         },
         res,
       );
-      if (!claims.sid && this.sso.backchannelSessionRequired) {
-        // 이 세션은 back-channel 로그아웃이 찾지 못한다 — 발급자 등록(session_required)을 본다
+      if (!claims.sid) {
+        // 이 세션은 sid 로그아웃이 찾지 못한다(sub 만 온 로그아웃만 닿는다) — 발급자 등록(session_required)을 본다
         this.logger.warn(`SSO id_token has no sid: sub=${claims.sub}`);
       }
       await this.subjects.afterSignIn(userId, { ...meta, created });

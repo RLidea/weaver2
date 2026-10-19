@@ -41,9 +41,9 @@ function isUniqueViolation(err: unknown): boolean {
 /**
  * back-channel 로그아웃 — 검증한 logout_token 으로 이 앱의 세션(refresh 행)을 지운다.
  *
- * - `sid` 가 있으면 그 sid 로 받은 세션 행을 모두(회전으로 생긴 행 포함 — 회전이 sid 를 옮긴다)
- * - `sid` 없이 `sub` 만이면(`ACCOUNTS_OIDC_BACKCHANNEL_SESSION_REQUIRED=false` 일 때만 여기 온다)
- *   `ssoSubject = sub` 인 사람의 세션을 모두
+ * - `sid` 가 있으면 그 sid 로 받은 세션 행을 모두(회전으로 생긴 행 포함 — 회전이 sid 를 옮긴다) — `scope: 'session'`
+ * - `sid` 없이 `sub` 만이면 `ssoSubject = sub` 인 사람의 refresh 행을 **모두**(sid 없는 행 · 앱 · 기기 행까지) —
+ *   `scope: 'subject'`. 발급자는 비밀번호 변경 · 재설정 · 탈퇴에 이것을 보낸다(일부러 「전부 끊기」다)
  * - 지울 것이 없어도 성공이다(이미 로그아웃했거나 만료됨)
  *
  * jti 기록과 지우기는 **한 트랜잭션**이다 — 지우기가 실패하면 jti 도 남지 않아 발급자의 재시도가 닿는다.
@@ -158,11 +158,15 @@ export class BackchannelLogoutService {
     }
 
     this.logger.log(
-      `Back-channel logout: sub=${claims.sub ?? '-'} userId=${userId ?? '-'} sessions=${result.deleted}`,
+      `Back-channel logout (${claims.sid ? 'session' : 'subject'}): sub=${claims.sub ?? '-'} userId=${userId ?? '-'} sessions=${result.deleted}`,
     );
     return {
       userId,
-      meta: { sid: claims.sid, sub: claims.sub },
+      meta: {
+        sid: claims.sid,
+        sub: claims.sub,
+        scope: claims.sid ? 'session' : 'subject',
+      },
       deleted: result.deleted,
     };
   }

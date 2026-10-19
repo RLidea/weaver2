@@ -3,6 +3,7 @@
  *
  * 가짜 발급자로 SSO 로그인 → 그 세션의 sid 로 서명한 logout_token 을 발급자처럼 form POST
  * (쿠키 · CSRF 토큰 없음) → 그 세션 행만 지워지고 refresh 가 401. 다른 세션은 산다. 같은 토큰은 400.
+ * sid 없이 sub 만 온 토큰(발급자의 비밀번호 변경 · 재설정 · 탈퇴)은 그 사람의 refresh 행을 모두 지운다.
  * local 모드 404 는 oidc-local-mode.integration.spec.ts 가 본다.
  */
 import { INestApplication } from '@nestjs/common';
@@ -191,7 +192,10 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     const row = await prisma.user.findUnique({
       where: { ssoSubject: user.sub },
     });
-    expect(hookCalls).toEqual([[row!.id, { sid: a.sid, sub: user.sub }]]);
+    expect(row!.sessionsRevokedAt).toBeNull();
+    expect(hookCalls).toEqual([
+      [row!.id, { sid: a.sid, sub: user.sub, scope: 'session' }],
+    ]);
   });
 
   it('회전한 세션도 지운다 — 새 refresh 행이 sid 를 이어받는다', async () => {
@@ -205,6 +209,60 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     expect((await backchannel(tokenFor(user, s.sid))).status).toBe(200);
     expect(await rowsOf(s.sid)).toBe(0);
     expect((await refresh(rotated.cookie)).res.status).toBe(401);
+  });
+
+  it('sid 없이 sub 만 → 그 사람의 refresh 행을 모두 지운다(sid 없는 앱 · 기기 행까지) — 남은 토큰은 회전 401, 남은 산다', async () => {
+    const user = person();
+    const other = person();
+    const a = await login(user);
+    const b = await login(user);
+    const c = await login(other);
+    const row = await prisma.user.findUnique({
+      where: { ssoSubject: user.sub },
+    });
+    // 웹 로그인이 아닌 행 — 파생 프로젝트의 앱 · 기기(deviceKey) 행처럼 sid 가 없다
+    const devices = [randomUUID(), randomUUID()];
+    for (const token of devices) {
+      await CreateRefreshTokenCommand(
+        prisma,
+        row!.id,
+        token,
+        new Date(Date.now() + 86_400_000),
+      );
+    }
+    expect(
+      await prisma.refreshToken.count({ where: { userId: row!.id } }),
+    ).toBe(4);
+
+    const res = await backchannel(issuer.logoutToken({ sub: user.sub }));
+    expect(res.status).toBe(200);
+
+    expect(
+      await prisma.refreshToken.count({ where: { userId: row!.id } }),
+    ).toBe(0);
+    expect(
+      (await prisma.user.findUnique({ where: { id: row!.id } }))!
+        .sessionsRevokedAt,
+    ).not.toBeNull();
+    for (const cookie of [
+      a.cookie,
+      b.cookie,
+      ...devices.map((t) => `refresh_token=${t}`),
+    ]) {
+      expect((await refresh(cookie)).res.status).toBe(401);
+    }
+    expect((await refresh(c.cookie)).res.status).toBe(201);
+    expect(hookCalls).toEqual([
+      [row!.id, { sid: undefined, sub: user.sub, scope: 'subject' }],
+    ]);
+  });
+
+  it('sub 만 왔는데 모르는 사람이면 지울 것 없이 200', async () => {
+    const res = await backchannel(issuer.logoutToken({ sub: randomUUID() }));
+    expect(res.status).toBe(200);
+    expect(hookCalls).toEqual([
+      [null, expect.objectContaining({ scope: 'subject' })],
+    ]);
   });
 
   it('같은 logout_token 을 다시 보내면 400 invalid_request (jti)', async () => {
@@ -230,7 +288,7 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     ['typ 없음', { header: { typ: undefined } }],
     ['nonce 있음', { claims: { nonce: 'n' } }],
     ['HS256', { signWith: 'HS256' }],
-    ['sid 없음(session_required)', { sid: undefined }],
+    ['sid · sub 둘 다 없음', { sid: undefined, sub: undefined }],
   ])(
     '받을 수 없는 토큰(%s) → 400 invalid_request, 세션은 그대로',
     async (_name, over) => {
