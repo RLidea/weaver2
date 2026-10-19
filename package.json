@@ -61,6 +61,8 @@
     "db:core:reset": "prisma migrate reset && prisma generate && prisma db seed",
     "db:core:seed": "prisma db seed",
     "---------------------------OPENAPI---------------------------": "",
+    "sso:link": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/sso-link.ts link",
+    "sso:unlink": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/sso-link.ts unlink",
     "auth:encrypt-legacy-totp": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/encrypt-legacy-totp.ts",
     "files:prepare-profile-import": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/prepare-profile-image-import.ts",
     "openapi:metadata": "ts-node -r tsconfig-paths/register --transpile-only apps/core-backend/scripts/generate-metadata.ts",

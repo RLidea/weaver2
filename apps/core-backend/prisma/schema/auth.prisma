@@ -18,6 +18,9 @@ model User {
   lastLoginAt        DateTime?
   // 지금의 email 주인임이 증명된 시각. email 이 바뀌면 다시 정해진다
   emailVerifiedAt    DateTime?
+  // 바깥 계정 서버(AUTH_MODE=sso)의 sub. 이 칸으로만 찾는다 — 이메일로 저절로 잇지 않는다.
+  // 이미 있는 행은 운영자가 `pnpm sso:link` 로 잇는다. 탈퇴하면 비운다
+  ssoSubject         String?               @unique
   localCredential    LocalCredential?
   oauthAccounts      OAuthAccount[]
   refreshTokens      RefreshToken[]
