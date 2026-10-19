@@ -87,6 +87,8 @@ OpenID Connect Back-Channel Logout 1.0 의 손님 쪽. 사람이 발급자 쪽�
 
 - `sid` → `refresh_tokens.oidcSid = sid` 인 행 전부(회전한 행 포함) — `sub` 도 왔으면 그 행 주인의 `ssoSubject = sub` 인 것만. `sub` 만(session_required=false) → `ssoSubject = sub` 인 사람의 행 전부, 그리고 `users.sessionsRevokedAt = 지금`
 - **회전과 줄 서기**: 로그아웃 트랜잭션은 세션 주인의 `users` 행을 잠그고(`SELECT … FOR UPDATE`), refresh 회전도 한 트랜잭션에서 같은 행을 잠근다 — 회전이 지우기 사이에 끼어 끝난 sid 로 새 행을 남기지 못한다. 둘째 문으로 sid 묘비(`oidc_revoked_sids`, 31일 = rememberMe 30일 + 회전의 올림 하루)를 남기고, 회전은 묘비에 걸린 행 · `sessionsRevokedAt` 보다 먼저 만든 행을 지우고 401 이다. 회전의 마킹은 `rotatedAt IS NULL` 일 때만이라 같은 쿠키로 동시에 두 번 refresh 해도 새 행은 하나다
+- 🔴 **잠금 순서는 `users` → `refresh_tokens`** — 한 트랜잭션에서 refresh 행을 지우거나 고치는 곳은 **첫 문장으로** `LockUsersCommand(tx, [userId])` 를 부른다(탈퇴 `delete-account.service.ts` · 관리자 삭제 `user-admin.service.ts` · 비밀번호 재설정 `reset-password.service.ts` 가 그렇게 한다). 거꾸로 하면 회전 · back-channel 로그아웃과 서로를 기다리며 교착한다. **파생 프로젝트의 탈퇴 훅(`USER_WITHDRAWAL_HOOKS`)** 은 탈퇴 트랜잭션 안에서 돌고 그 트랜잭션은 이미 `users` 를 잠갔다 — 훅이 다른 사람의 refresh 행을 지우려면 그 사람도 먼저 잠근다
+- `sessionsRevokedAt` 과 `refresh_tokens.createdAt` 은 같은 시계(앱 프로세스)다 — Prisma 는 `@default(now())` 를 클라이언트에서 채워 INSERT 에 싣는다. 백엔드를 여러 기계에 띄우면 NTP 로 시계를 맞춘다
 - jti 는 `oidc_logout_jtis` 에 iat + 10분 + 60초 + 60초까지 두고, 다음 요청 때 지난 jti · 묘비를 지운다. jti 기록 · 묘비 · 세션 지우기는 한 트랜잭션이다 — 지우기가 실패하면 jti 도 남지 않아 재시도가 닿는다
 - ⚠ **access 토큰은 지우지 못한다** — 이미 내 준 JWT 는 만료(`JWT_EXPIRES_IN`, 기본 1시간)까지 산다. 그 뒤 refresh 가 401 이고 화면은 로그인으로 간다
 - 훅 `onBackchannelLogout(userId | null, { sid, sub })` 는 200 을 보낸 **뒤에** 불린다 — 발급자의 2.5초를 쓰지 않는다. 시간 한도 · 멱등 규칙은 다른 훅과 같다 — **같은 로그아웃이 두 번 올 수 있다**(첫 응답이 늦으면 발급자가 새 jti 로 다시 보낸다). userId 는 지운 세션의 주인, 없으면 sub 로 찾은 사람, 그것도 없으면 null
