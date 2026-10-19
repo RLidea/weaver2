@@ -27,6 +27,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { Public } from '@weaver2/common/decorator/public.decorator';
+import { HttpExceptionFilter } from '@weaver2/common/global/exception-filter/http-exception.filter';
 import { PrismaService } from '@weaver2/prisma';
 import {
   AUTH_MODE_CONFIG,
@@ -115,7 +116,9 @@ function failurePath(
 /**
  * start · callback 이 스로틀에 걸렸을 때 — 둘 다 문서 이동이라 Nest 의 429 JSON 을 화면에 그대로
  * 보이게 된다. 가드는 핸들러보다 먼저 던지므로 여기서 받아 실패 주소에 `sso_busy` 로 보낸다.
- * tx 쿠키가 읽히면 그 입구 · 언어로(콜백), 아니면 기본 입구로(start 는 대개 쿠키가 없다)
+ * tx 쿠키가 읽히면 그 입구 · 언어로(콜백), 아니면 기본 입구로(start 는 대개 쿠키가 없다).
+ * local 모드면 스로틀(전역 가드)이 `AuthModeGuard` 의 404 보다 먼저 걸린다 — 실패 주소가 없으므로
+ * 전역 필터에 넘겨 다른 경로와 같은 429 를 준다
  */
 @Catch(ThrottlerException)
 class OidcBusyFilter implements ExceptionFilter {
@@ -124,12 +127,16 @@ class OidcBusyFilter implements ExceptionFilter {
     private readonly transaction: OidcTransaction,
   ) {}
 
-  catch(_exception: ThrottlerException, host: ArgumentsHost) {
+  catch(exception: ThrottlerException, host: ArgumentsHost) {
+    if (this.authMode.mode !== 'sso') {
+      new HttpExceptionFilter().catch(exception, host);
+      return;
+    }
     const http = host.switchToHttp();
     const tx = this.transaction.read(http.getRequest<Request>());
     http
       .getResponse<Response>()
-      .redirect(failurePath(this.authMode.sso!, tx, 'sso_busy'));
+      .redirect(failurePath(this.authMode.sso, tx, 'sso_busy'));
   }
 }
 

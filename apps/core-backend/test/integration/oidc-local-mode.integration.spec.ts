@@ -31,6 +31,28 @@ describe('SSO routes in AUTH_MODE=local (Integration)', () => {
     },
   );
 
+  it.each(['/v1/auth/oidc/start', '/v1/auth/oidc/callback'])(
+    '스로틀이 켜져도 %s 의 31번째는 500 이 아니라 429 (실패 주소가 없다)',
+    async (path) => {
+      const throttle = process.env.THROTTLE_DISABLED;
+      process.env.THROTTLE_DISABLED = 'false';
+      try {
+        const server = app.getHttpServer();
+        for (let i = 0; i < 30; i++) {
+          expect((await request(server).get(path)).status).toBe(404);
+        }
+        const res = await request(server).get(path);
+        expect(res.status).toBe(429);
+        expect(res.body).toMatchObject({
+          success: false,
+          error: { code: 429 },
+        });
+      } finally {
+        process.env.THROTTLE_DISABLED = throttle;
+      }
+    },
+  );
+
   it('back-channel 로그아웃 POST(쿠키 · CSRF 토큰 없음) → CSRF 403 이 아니라 404 AUTH_MODE_LOCAL', async () => {
     const res = await request(app.getHttpServer())
       .post('/v1/auth/oidc/backchannel-logout')
