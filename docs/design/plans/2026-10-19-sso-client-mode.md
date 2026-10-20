@@ -76,6 +76,8 @@ W1~W5 를 이 계획대로 지었다. 다르게 간 곳과 그 이유:
 
 검증(레인 DB `weaver2_sso`): `pnpm typecheck` · `pnpm lint:check`(오류 0) · `pnpm test:core` 66 묶음 552 · `pnpm test:integration` 18 묶음 194 · Playwright `sso` 6(빌드본 + 가짜 발급자, 백엔드 `AUTH_MODE=sso`) · `chromium` 29(local).
 
+구현 기록 16 검증(레인 `revoke-access`, 공용 DB · 시드 없음): `pnpm typecheck` · `pnpm lint:check`(오류 0) · `pnpm test:core` 72 묶음 665 · 통합 `oidc-backchannel-logout` 21/21(sid · sub 끊기 뒤 남은 access token 401, 새 로그인 200) · `oidc-login` 40/40.
+
 ### 보안 검토 반영 (2026-10-19, REQUEST CHANGES → 고침)
 
 - **H1** 점 마디 열린 리다이렉트(`/.//evil.com` · `/..//evil.com` · `/%2e//evil.com` · `/a/..//evil.com` · `/x/../\evil.com` · `/./\evil.com`) — 출처 비교 뒤 **풀린 경로**가 `//` · `/\` 로 시작하면 버린다. 백엔드 `normalizeSameOriginPath`(next · 설정의 실패 주소 · 기본 next), 프런트 `safeRedirectPath`(`packages/auth/src/redirect-path.ts`). 여섯 벡터를 단위 · 통합 시험에

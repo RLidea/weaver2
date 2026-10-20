@@ -164,6 +164,10 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     over: FakeLogoutTokenOptions = {},
   ) => issuer.logoutToken({ sub: user.sub, sid, ...over });
 
+  /** 이 세션의 access token 이 아직 통하나 — 보호 경로 하나 */
+  const me = (cookie: string) =>
+    request(app.getHttpServer()).get('/v1/users/me').set('Cookie', cookie);
+
   const rowsOf = (sid: string) =>
     prisma.refreshToken.count({ where: { oidcSid: sid } });
 
@@ -217,8 +221,6 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     const b = await login(user);
     const rotated = await refresh(a.cookie);
     expect(rotated.res.status).toBe(201);
-    const me = (cookie: string) =>
-      request(app.getHttpServer()).get('/v1/users/me').set('Cookie', cookie);
     for (const cookie of [a.cookie, rotated.cookie, b.cookie]) {
       expect((await me(cookie)).status).toBe(200);
     }
@@ -253,6 +255,9 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
       await prisma.refreshToken.count({ where: { userId: row!.id } }),
     ).toBe(4);
 
+    // 끊기를 다음 초로 미룬다 — 같은 초에 받은 access token 은 통과하는 창(JwtStrategy)이 있어서, 그대로면
+    // 위 로그인과 끊기가 같은 초에 떨어져 아래 401 이 들쭉날쭉해진다
+    await new Promise((r) => setTimeout(r, 1000 - (Date.now() % 1000) + 10));
     const res = await backchannel(issuer.logoutToken({ sub: user.sub }));
     expect(res.status).toBe(200);
 
@@ -271,6 +276,11 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
       expect((await refresh(cookie)).res.status).toBe(401);
     }
     expect((await refresh(c.cookie)).res.status).toBe(201);
+    // 이미 내 준 access token 도 다음 요청에서 401 — 끊은 뒤 새로 로그인한 것은 산다
+    for (const cookie of [a.cookie, b.cookie]) {
+      expect((await me(cookie)).status).toBe(401);
+    }
+    expect((await me((await login(user)).cookie)).status).toBe(200);
     expect(hookCalls).toEqual([
       [row!.id, { sid: undefined, sub: user.sub, scope: 'subject' }],
     ]);
