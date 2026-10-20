@@ -1,4 +1,5 @@
 import { Prisma } from '@weaver2/prisma';
+import { IsOidcSidRevokedQuery } from './is-oidc-sid-revoked.query';
 
 /**
  * back-channel 로그아웃이 이 세션을 끝냈나 — 지우기와 경합한 회전이 남긴 행을 막는 둘째 문이다.
@@ -21,12 +22,5 @@ export async function IsRefreshSessionRevokedQuery(
     return true;
   }
   if (!row.oidcSid) return false;
-  const tombstone = await tx.oidcRevokedSid.findUnique({
-    where: { sid: row.oidcSid },
-  });
-  return (
-    !!tombstone &&
-    tombstone.expiresAt > now &&
-    (!tombstone.sub || tombstone.sub === user?.ssoSubject)
-  );
+  return IsOidcSidRevokedQuery(tx, row.oidcSid, user?.ssoSubject, now);
 }

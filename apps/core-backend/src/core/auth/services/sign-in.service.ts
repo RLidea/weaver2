@@ -11,6 +11,7 @@ import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refr
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 import { IsRefreshSessionRevokedQuery } from '../repositories/is-refresh-session-revoked.query';
 import { LockUsersCommand } from '../repositories/lock-users.command';
+import { JwtPayload } from '../strategy/jwt-payload.interface';
 import {
   ACCOUNT_LOCKED_MESSAGE,
   ReserveAuthAttemptCommand,
@@ -100,7 +101,12 @@ export class SignInService {
       data: { lastLoginAt: new Date() },
     });
 
-    const payload = { sub: userId };
+    // SSO 로그인이면 sid 를 싣는다 — back-channel 로그아웃이 이 access token 도 다음 요청에서 막게(JwtStrategy).
+    // 없으면 키 자체를 넣지 않는다
+    const payload: JwtPayload = {
+      sub: userId,
+      ...(oidcSid ? { sid: oidcSid } : {}),
+    };
     this.logger.debug(`SignInService.login: Signing JWT for userId=${userId}`);
 
     // Remember me에 따라 토큰 만료 기간 설정
@@ -220,7 +226,11 @@ export class SignInService {
     await PurgeStaleRefreshTokensCommand(this.prisma, stored.user.id, now);
 
     return {
-      accessToken: this.jwtService.sign({ sub: stored.user.id }),
+      // 회전한 세션도 sid 를 이어 싣는다 — 새 refresh 행과 같은 sid 다
+      accessToken: this.jwtService.sign({
+        sub: stored.user.id,
+        ...(stored.oidcSid ? { sid: stored.oidcSid } : {}),
+      } satisfies JwtPayload),
       refreshToken: newRefreshToken,
       tokenExpiry: remainingMs,
     };

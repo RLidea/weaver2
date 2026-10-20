@@ -50,7 +50,8 @@ function isUniqueViolation(err: unknown): boolean {
  * 그 트랜잭션은 세션 주인의 `users` 행을 잠근다 — refresh 회전도 같은 행을 잠그므로, 회전이 지우기 사이에 끼어
  * 끝난 sid 로 새 행을 남기지 못한다. 그래도 남는 행에 대비해 sid 묘비(`oidc_revoked_sids`) · sub 의
  * `users.sessionsRevokedAt` 을 남기고, 회전은 그것을 보면 거절한다(IsRefreshSessionRevokedQuery).
- * access 토큰(JWT)은 지우지 못한다 — 만료(`JWT_EXPIRES_IN`)까지 살고, 그 뒤 refresh 가 401 이다.
+ * access 토큰(JWT)은 지우지 못하지만 같은 묘비 · `sessionsRevokedAt` 을 `JwtStrategy` 가 보고 다음 요청에서 거절한다
+ * (sid 끊기는 토큰에 sid 클레임이 있을 때 — SSO 로그인 · 회전이 싣는다).
  */
 @Injectable()
 export class BackchannelLogoutService {

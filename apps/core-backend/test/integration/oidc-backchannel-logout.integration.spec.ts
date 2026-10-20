@@ -211,6 +211,25 @@ describe('OIDC back-channel logout (Integration, AUTH_MODE=sso)', () => {
     expect((await refresh(rotated.cookie)).res.status).toBe(401);
   });
 
+  it('이미 내 준 access token 도 다음 요청에서 401 — 그 sid 의 것만(회전으로 받은 것 포함), 다른 세션은 산다', async () => {
+    const user = person();
+    const a = await login(user);
+    const b = await login(user);
+    const rotated = await refresh(a.cookie);
+    expect(rotated.res.status).toBe(201);
+    const me = (cookie: string) =>
+      request(app.getHttpServer()).get('/v1/users/me').set('Cookie', cookie);
+    for (const cookie of [a.cookie, rotated.cookie, b.cookie]) {
+      expect((await me(cookie)).status).toBe(200);
+    }
+
+    expect((await backchannel(tokenFor(user, a.sid))).status).toBe(200);
+
+    expect((await me(a.cookie)).status).toBe(401);
+    expect((await me(rotated.cookie)).status).toBe(401);
+    expect((await me(b.cookie)).status).toBe(200);
+  });
+
   it('sid 없이 sub 만 → 그 사람의 refresh 행을 모두 지운다(sid 없는 앱 · 기기 행까지) — 남은 토큰은 회전 401, 남은 산다', async () => {
     const user = person();
     const other = person();

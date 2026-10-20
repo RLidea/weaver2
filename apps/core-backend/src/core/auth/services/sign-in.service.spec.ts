@@ -259,6 +259,8 @@ describe('SignInService.refresh', () => {
     let markSpy: jest.SpyInstance;
     let createSpy: jest.SpyInstance;
     let revokedSpy: jest.SpyInstance;
+    let findSpy: jest.SpyInstance;
+    let sign: jest.Mock<string, [Record<string, unknown>]>;
 
     beforeEach(async () => {
       const findMod = await import('../repositories/find-refresh-token.query');
@@ -270,7 +272,8 @@ describe('SignInService.refresh', () => {
         await import('../repositories/create-refresh-token.command');
       const revokedMod =
         await import('../repositories/is-refresh-session-revoked.query');
-      jest.spyOn(findMod, 'FindRefreshTokenQuery').mockResolvedValueOnce({
+      findSpy = jest.spyOn(findMod, 'FindRefreshTokenQuery');
+      findSpy.mockResolvedValueOnce({
         id: 'rt1',
         userId: 'u1',
         expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
@@ -296,13 +299,35 @@ describe('SignInService.refresh', () => {
         refreshToken: { deleteMany: jest.fn() },
       };
       prisma.$transaction = jest.fn((fn: (t: unknown) => unknown) => fn(tx));
+      sign = jest.fn<string, [Record<string, unknown>]>(() => 'jwt');
       service = new SignInService(
         prisma as PrismaService,
-        { sign: () => 'jwt' } as unknown as JwtService,
+        { sign } as unknown as JwtService,
       );
     });
 
     afterEach(() => jest.restoreAllMocks());
+
+    it('새 access token 도 sid 를 이어 싣는다 — 회전한 세션도 back-channel 로그아웃에 바로 막히게', async () => {
+      await service.refresh('tok');
+      expect(sign).toHaveBeenCalledWith({ sub: 'u1', sid: 'sid-1' });
+    });
+
+    it('sid 없는 세션의 회전은 sid 클레임을 싣지 않는다(키도 없다)', async () => {
+      findSpy.mockReset().mockResolvedValueOnce({
+        id: 'rt1',
+        userId: 'u1',
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        rotatedAt: null,
+        oidcSid: null,
+        createdAt: new Date(),
+        user: { id: 'u1', deletedAt: null },
+      } as any);
+      await service.refresh('tok');
+      const payload = sign.mock.calls[0][0];
+      expect(payload).toEqual({ sub: 'u1' });
+      expect('sid' in payload).toBe(false);
+    });
 
     it('새 행은 옛 행의 oidcSid 를 이어받는다 — back-channel 로그아웃이 회전한 세션에도 닿게', async () => {
       await service.refresh('tok', '1.2.3.4', 'ua');
@@ -338,5 +363,37 @@ describe('SignInService.refresh', () => {
       );
       expect(createSpy).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('SignInService.login — access token 의 sid 클레임', () => {
+  let service: SignInService;
+  let sign: jest.Mock<string, [Record<string, unknown>]>;
+
+  beforeEach(async () => {
+    const createMod =
+      await import('../repositories/create-refresh-token.command');
+    jest
+      .spyOn(createMod, 'CreateRefreshTokenCommand')
+      .mockResolvedValue({} as never);
+    sign = jest.fn<string, [Record<string, unknown>]>(() => 'jwt');
+    service = new SignInService(
+      { user: { update: jest.fn() } } as unknown as PrismaService,
+      { sign } as unknown as JwtService,
+    );
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('SSO 로그인(oidcSid 있음) → sid 를 싣는다', async () => {
+    await service.login('u1', 'oidc', false, '1.2.3.4', 'ua', 'sid-1');
+    expect(sign).toHaveBeenCalledWith({ sub: 'u1', sid: 'sid-1' });
+  });
+
+  it('그 밖의 로그인 → sid 키를 넣지 않는다', async () => {
+    await service.login('u1', 'local');
+    const payload = sign.mock.calls[0][0];
+    expect(payload).toEqual({ sub: 'u1' });
+    expect('sid' in payload).toBe(false);
   });
 });
