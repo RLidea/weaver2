@@ -6,9 +6,11 @@ import { RequestPasswordResetService } from '../services/request-password-reset.
 import { ResetPasswordService } from '../services/reset-password.service';
 import { Public } from '@weaver2/common/decorator/public.decorator';
 import { Throttle } from '@nestjs/throttler';
+import { LocalAuthOnly } from '../decorators/local-auth-only.decorator';
 
 @ApiTags('Auth - Password')
 // 다른 auth 컨트롤러처럼 v1 에 둔다 — 빠져 있어 /auth/password/* 로만 열려 화면(/v1/…)이 404 였다
+@LocalAuthOnly()
 @Controller({ path: 'auth/password', version: '1' })
 export class PasswordResetController {
   constructor(

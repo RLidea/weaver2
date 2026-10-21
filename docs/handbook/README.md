@@ -19,6 +19,7 @@
 | 08 | [프론트엔드 아키텍처](08-frontend.md) | App Router 지도, features 슬라이스, ApiClient, 스킨 시스템, URL 상태 관리 |
 | 09 | [테스트](09-testing.md) | 유닛/통합/e2e 3층 구조, 실행법, 테스트 픽스처 |
 | 10 | [새 기능 만들기](10-new-feature.md) | 새 엔티티(CRUD)를 얹는 전체 워크스루 + 체크리스트 |
+| 11 | [SSO 손님 모드](11-sso.md) | `AUTH_MODE=sso` — 바깥 OIDC 발급자 로그인, 닫히는 경로, 훅, `sso:link`, 로컬 · e2e, 되돌리기 함정 |
 
 ## 추천 읽기 순서
 

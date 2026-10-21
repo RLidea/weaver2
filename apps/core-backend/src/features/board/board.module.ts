@@ -16,6 +16,7 @@ import { EmojiService } from './services/emoji.service';
 import { ReactionService } from './services/reaction.service';
 import { BoardService } from './services/board.service';
 import { PostService } from './services/post.service';
+import { PostRevisionService } from './services/post-revision.service';
 import { CommentService } from './services/comment.service';
 import { BoardPermissionService } from './services/board-permission.service';
 import { PostReadPolicy } from './services/post-read-policy.service';
@@ -43,6 +44,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
   providers: [
     BoardService,
     PostService,
+    PostRevisionService,
     CommentService,
     BoardPermissionService,
     PostReadPolicy,
@@ -56,6 +58,7 @@ import { ContentPurgeScheduler } from './schedulers/content-purge.scheduler';
   exports: [
     BoardService,
     PostService,
+    PostRevisionService,
     CommentService,
     BoardPermissionService,
     PostReadPolicy,

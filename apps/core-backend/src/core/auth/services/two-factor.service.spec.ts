@@ -36,6 +36,7 @@ import { PrismaService } from '@weaver2/prisma';
 import { EmailBusinessService } from '../../../infrastructure/email/services/email-business.service';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { jwtModuleOptions } from '../strategy/jwt-module-options';
+import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import { encryptSecret } from '../utils/auth-crypto.util';
 import * as otplib from 'otplib';
 import { FindTwoFactorMethodsQuery } from '../repositories/find-two-factor-methods.query';
@@ -63,17 +64,42 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
   });
 
   it('발급한 pre-auth 토큰 → userId/rememberMe 반환', () => {
-    const token = service.createPreAuthToken('user-1', true);
+    const token = service.createPreAuthToken('user-1', true, null);
     expect(service.verifyPreAuthToken(token)).toEqual({
       userId: 'user-1',
       rememberMe: true,
       issuedAtMs: expect.any(Number) as number,
+      proof: null,
     });
   });
 
-  it('rememberMe 미지정 시 false', () => {
-    const token = service.createPreAuthToken('user-1');
-    expect(service.verifyPreAuthToken(token).rememberMe).toBe(false);
+  it.each([
+    [
+      '비밀번호',
+      {
+        kind: 'password' as const,
+        changedAtMs: 1234,
+        hashFingerprint: 'fp',
+      },
+    ],
+    ['OAuth', { kind: 'oauth' as const, provider: 'google' }],
+  ])(
+    '첫 요소의 확인(%s)을 싣고 돌려준다 — 2FA 를 통과한 뒤 잠금 아래에서 견주게',
+    (_label, proof) => {
+      const token = service.createPreAuthToken('user-1', false, proof);
+      expect(service.verifyPreAuthToken(token).proof).toEqual(proof);
+    },
+  );
+
+  it('확인을 싣지 않은 토큰(배포 전 발급)은 null 로 돌려준다 — 견주지 않는다', () => {
+    const legacy = jwt.sign(
+      { sub: 'user-1', issuedAtMs: Date.now() },
+      { audience: TOKEN_AUDIENCE.PRE_AUTH },
+    );
+    expect(service.verifyPreAuthToken(legacy)).toMatchObject({
+      proof: null,
+      rememberMe: false,
+    });
   });
 
   it('액세스 토큰을 pre-auth 자리에 넣으면 거절 (종류는 aud 로 가른다)', () => {
@@ -84,7 +110,7 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
   });
 
   it('pre-auth 토큰은 기본 검증(액세스)을 통과하지 못한다', () => {
-    const token = service.createPreAuthToken('user-1');
+    const token = service.createPreAuthToken('user-1', false, null);
     expect(() => jwt.verify(token)).toThrow(/audience/);
   });
 

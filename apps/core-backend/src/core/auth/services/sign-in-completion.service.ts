@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { PrismaService } from '@weaver2/prisma';
-import { SignInService } from './sign-in.service';
+import { SignInProof, SignInService } from './sign-in.service';
 import { TwoFactorService } from './two-factor.service';
 import {
   clearPreAuthCookie,
@@ -16,6 +16,13 @@ export interface SignInContext {
   rememberMe: boolean;
   ipAddress?: string;
   userAgent?: string;
+  /** SSO 로 받은 세션이면 id_token 의 sid — refresh 행에 남겨 back-channel 로그아웃이 찾는다 */
+  oidcSid?: string;
+  /**
+   * 첫 요소가 무엇으로 신원을 확인했는가 — 세션을 줄 때 잠금 아래에서 그것이 지금도 그대로인지 견준다
+   * (SignInService.login). 2FA 를 거치면 pre-auth 토큰이 싣고 간다. `null` 은 견줄 것이 없는 옛 pre-auth 토큰뿐이다
+   */
+  proof: SignInProof | null;
 }
 
 export interface AvailableTwoFactorMethods {
@@ -54,6 +61,9 @@ export type SignInCompletion = SignInDecision;
  * 토큰을 쿠키가 아닌 응답 본문으로 주는 파생 프로젝트(모바일 등)는 `decide` 를 부른 뒤
  * `signInService.login` 을 직접 부른다. `twoFactorRequired` 일 때 pre-auth 토큰
  * (`twoFactorService.createPreAuthToken`)도 직접 만들어 줘야 한다.
+ * 첫 요소의 확인(`SignInProof`)을 `login` 의 마지막 인자와 `createPreAuthToken` 의 세 번째 인자로 넘긴다 —
+ * 둘 다 필수 인자라 빼면 컴파일이 막는다. 확인을 넘기지 않으면 비밀번호 변경 · 재설정 · 연동 해제와 겹친
+ * 로그인이 세션을 남긴다.
  *
  * 경로마다 검사를 복사하면 경로가 늘 때마다 하나씩 빠진다 — 전에는 OAuth 가 정지·2FA 를,
  * 2FA 통과가 탈퇴·정지를 보지 않았다.
@@ -77,7 +87,10 @@ export class SignInCompletionService {
     context: SignInContext,
     res: Response,
   ): Promise<SignInDecision> {
-    return this.run(userId, context, res, { twoFactorPassed: false });
+    return this.run(userId, context, res, {
+      twoFactorPassed: false,
+      afterTwoFactor: false,
+    });
   }
 
   /**
@@ -88,7 +101,25 @@ export class SignInCompletionService {
     context: SignInContext,
     res: Response,
   ): Promise<void> {
-    await this.run(userId, context, res, { twoFactorPassed: true });
+    await this.run(userId, context, res, {
+      twoFactorPassed: true,
+      afterTwoFactor: true,
+    });
+  }
+
+  /**
+   * 바깥 계정 서버(AUTH_MODE=sso)가 신원을 확인한 뒤 — 로컬 2FA 를 묻지 않는다(그 서버가 했다).
+   * 탈퇴 · 정지 검사는 그대로다. `decide(userId, { twoFactorPassed: true })` 와 같다.
+   */
+  async completeExternal(
+    userId: string,
+    context: SignInContext,
+    res: Response,
+  ): Promise<void> {
+    await this.run(userId, context, res, {
+      twoFactorPassed: true,
+      afterTwoFactor: false,
+    });
   }
 
   /** pre-auth 상태에서 고를 수 있는 2FA 수단 — 2FA 화면이 묻는다 */
@@ -114,6 +145,8 @@ export class SignInCompletionService {
    *   를 **다시** 부른다 — pre-auth 5분 사이에 탈퇴·정지가 끼어들 수 있다.
    * - `twoFactorRequired` 면 `login` 을 부르지 않는다. `twoFactorService.createPreAuthToken` 으로
    *   pre-auth 토큰을 내준다.
+   * - `login` 에는 첫 요소의 확인을 `afterTwoFactor` 와 함께, `createPreAuthToken` 에는 확인만 넘긴다
+   *   (2FA 를 통과한 뒤에는 `authenticate` 가 돌려준 값을 `afterTwoFactor: true` 로).
    * - 이 서비스를 쓰는 파생 모듈은 AuthModule 을 import 하되, AuthModule 이 그 모듈을
    *   import 해서는 안 된다(순환).
    */
@@ -147,13 +180,20 @@ export class SignInCompletionService {
     userId: string,
     context: SignInContext,
     res: Response,
-    { twoFactorPassed }: { twoFactorPassed: boolean },
+    {
+      twoFactorPassed,
+      afterTwoFactor,
+    }: { twoFactorPassed: boolean; afterTwoFactor: boolean },
   ): Promise<SignInDecision> {
     const decision = await this.decide(userId, { twoFactorPassed });
     if (decision.twoFactorRequired) {
       setPreAuthCookie(
         res,
-        this.twoFactorService.createPreAuthToken(userId, context.rememberMe),
+        this.twoFactorService.createPreAuthToken(
+          userId,
+          context.rememberMe,
+          context.proof,
+        ),
         this.isProduction,
       );
       return decision;
@@ -165,6 +205,11 @@ export class SignInCompletionService {
       context.rememberMe,
       context.ipAddress,
       context.userAgent,
+      context.oidcSid,
+      context.proof && {
+        ...context.proof,
+        afterTwoFactor,
+      },
     );
     setAuthCookies(res, tokens, this.isProduction);
     clearPreAuthCookie(res, this.isProduction);

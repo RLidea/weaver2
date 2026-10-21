@@ -29,6 +29,7 @@ import {
   USER_WITHDRAWAL_HOOKS,
   UserWithdrawalHook,
 } from '../user-withdrawal-hooks';
+import { LockUsersCommand } from '../../auth/repositories/lock-users.command';
 
 @Injectable()
 export class UserAdminService {
@@ -224,6 +225,8 @@ export class UserAdminService {
       throw new BadRequestException('이미 삭제된 사용자입니다.');
 
     await this.permissionService.withSuperAdminGuard(async (tx) => {
+      // users 를 먼저 잠근다 — refresh 회전 · back-channel 로그아웃과 같은 순서(users → refresh_tokens)라 교착이 없다
+      await LockUsersCommand(tx, [targetId]);
       await tx.refreshToken.deleteMany({ where: { userId: targetId } });
       await tx.oAuthAccount.deleteMany({ where: { userId: targetId } });
       await tx.localCredential.deleteMany({ where: { userId: targetId } });

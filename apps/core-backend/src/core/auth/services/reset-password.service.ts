@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@weaver2/prisma';
 import { UpdateLocalCredentialPasswordCommand } from '../repositories/update-local-credential-password.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
+import { LockUsersCommand } from '../repositories/lock-users.command';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { ResetAuthAttemptsCommand } from '../repositories/reset-auth-attempts.command';
 
@@ -29,6 +30,8 @@ export class ResetPasswordService {
         tx,
       );
       if (!userId) throw new BadRequestException(INVALID_TOKEN);
+      // users 를 먼저 잠근다 — 아래에서 refresh_tokens 를 지운다. 회전 · back-channel 로그아웃과 같은 순서
+      await LockUsersCommand(tx, [userId]);
 
       const user = await tx.user.findUnique({
         where: { id: userId },

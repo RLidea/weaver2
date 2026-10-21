@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env.CI;
 
+/** 파일 이름에 sso 가 든 스펙 — auth-sso.spec.ts · 파생 프로젝트의 account-sso.rlidea.spec.ts */
+const SSO_SPEC = /\/[^/]*sso[^/]*\.spec\.ts$/;
+
 /**
  * Playwright e2e config for weaver2.
  *
@@ -35,7 +38,24 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // 두 프로젝트로 가른다 — 런타임 test.skip 으로 SSO 스펙을 거르지 않는다.
+  //   chromium : AUTH_MODE=local(기본) 백엔드. *sso*.spec.ts 는 뺀다
+  //   sso      : AUTH_MODE=sso 백엔드 + 가짜 발급자(scripts/fake-oidc-issuer.ts).
+  //              `pnpm lane:e2e <레인> --sso` · ci.yml 「E2E (SSO)」 가 이 프로젝트만 돌린다
+  // ⚠ 정규식은 **절대 경로**에 맞춰진다 — 레인은 `.claude/worktrees/sso/…` 아래라 경로 어딘가의
+  //   `sso` 에 걸리지 않게 파일 이름(마지막 / 뒤)에만 맞춘다
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: SSO_SPEC,
+    },
+    {
+      name: 'sso',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: SSO_SPEC,
+    },
+  ],
 
   webServer: process.env.E2E_NO_WEBSERVER
     ? undefined

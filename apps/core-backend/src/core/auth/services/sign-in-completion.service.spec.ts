@@ -5,6 +5,7 @@ import { PrismaService } from '@weaver2/prisma';
 import {
   AccountSuspendedException,
   SignInCompletionService,
+  SignInContext,
 } from './sign-in-completion.service';
 import { SignInService } from './sign-in.service';
 import { TwoFactorService } from './two-factor.service';
@@ -19,11 +20,17 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
   let twoFactor: { createPreAuthToken: jest.Mock };
   let res: { cookie: jest.Mock; clearCookie: jest.Mock };
   let service: SignInCompletionService;
-  const context = {
+  const context: SignInContext = {
     provider: 'email',
     rememberMe: true,
     ipAddress: '1.2.3.4',
     userAgent: 'ua',
+    proof: null,
+  };
+  const password = {
+    kind: 'password' as const,
+    changedAtMs: 1234,
+    hashFingerprint: 'fp',
   };
 
   beforeEach(() => {
@@ -60,8 +67,56 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       true,
       '1.2.3.4',
       'ua',
+      undefined,
+      null,
     );
     expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
+  });
+
+  it('첫 요소의 확인을 login 에 넘긴다 — 잠금 아래에서 견주게', async () => {
+    await service.complete(
+      'u1',
+      { ...context, proof: password },
+      res as unknown as Response,
+    );
+    expect(signIn.login).toHaveBeenCalledWith(
+      'u1',
+      'email',
+      true,
+      '1.2.3.4',
+      'ua',
+      undefined,
+      { ...password, afterTwoFactor: false },
+    );
+  });
+
+  it('2FA 가 필요하면 확인을 pre-auth 토큰에 싣고, 통과한 뒤에는 afterTwoFactor 로 넘긴다', async () => {
+    prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+    await service.complete(
+      'u1',
+      { ...context, proof: password },
+      res as unknown as Response,
+    );
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith(
+      'u1',
+      true,
+      password,
+    );
+
+    await service.completeAfterTwoFactor(
+      'u1',
+      { ...context, proof: password },
+      res as unknown as Response,
+    );
+    expect(signIn.login).toHaveBeenCalledWith(
+      'u1',
+      'email',
+      true,
+      '1.2.3.4',
+      'ua',
+      undefined,
+      { ...password, afterTwoFactor: true },
+    );
   });
 
   it('확인된 2FA 가 있으면 pre_auth 쿠키만 주고 세션은 주지 않는다', async () => {
@@ -74,7 +129,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       availableMethods: { totp: false, email: true },
     });
 
-    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true);
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true, null);
     expect(cookieNames()).toEqual(['pre_auth']);
     expect(signIn.login).not.toHaveBeenCalled();
   });
@@ -161,6 +216,54 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
     await expect(
       service.complete('u1', context, res as unknown as Response),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  describe('completeExternal — 바깥 계정 서버(SSO)가 신원을 확인한 뒤', () => {
+    const external = {
+      ...context,
+      provider: 'oidc',
+      rememberMe: false,
+      oidcSid: 'sid-1',
+      proof: { kind: 'sso' as const, sub: 'sub-1' },
+    };
+
+    it('2FA 를 켠 사람도 pre_auth 없이 세션을 준다 (rememberMe=false) — id_token 의 sid 를 세션에 남긴다', async () => {
+      prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+      await service.completeExternal(
+        'u1',
+        external,
+        res as unknown as Response,
+      );
+      expect(twoFactor.createPreAuthToken).not.toHaveBeenCalled();
+      expect(signIn.login).toHaveBeenCalledWith(
+        'u1',
+        'oidc',
+        false,
+        '1.2.3.4',
+        'ua',
+        'sid-1',
+        { kind: 'sso', sub: 'sub-1', afterTwoFactor: false },
+      );
+      expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
+    });
+
+    it('탈퇴 · 정지 검사는 그대로다', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        deletedAt: new Date(),
+        suspendedUntil: null,
+      });
+      await expect(
+        service.completeExternal('u1', external, res as unknown as Response),
+      ).rejects.toThrow('ACCOUNT_DELETED');
+      prisma.user.findUnique.mockResolvedValue({
+        deletedAt: null,
+        suspendedUntil: new Date(Date.now() + 60_000),
+      });
+      await expect(
+        service.completeExternal('u1', external, res as unknown as Response),
+      ).rejects.toBeInstanceOf(AccountSuspendedException);
+      expect(signIn.login).not.toHaveBeenCalled();
+    });
   });
 
   describe('decide — 전달 방식에 묶이지 않는 결정', () => {

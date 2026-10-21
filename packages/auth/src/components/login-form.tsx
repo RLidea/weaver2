@@ -23,29 +23,63 @@ import {
   CardFooter,
   CardHeader,
   Input,
+  Spinner,
 } from '@weaver2/ui';
 import { authApi } from '../api/auth.api';
-
-/**
- * 로그인 뒤 갈 곳. 같은 출처의 경로만 받는다 — `?redirect=https://…`·`//…` 를 그대로 넘기면
- * 로그인 화면이 남의 사이트로 보내는 오픈 리다이렉트가 된다.
- * 접두어 검사가 아니라 **URL 로 파싱해 출처를 비교**한다. URL 파서는 탭·줄바꿈을 지우므로
- * `/\t/evil.com` 같은 값은 문자열로는 경로처럼 보여도 실제로는 `//evil.com` 이 된다.
- */
-function safeRedirectPath(value: string | null): string {
-  if (!value) return '/dashboard';
-  const base = 'http://same-origin.invalid';
-  try {
-    const url = new URL(value, base);
-    return url.origin === base
-      ? `${url.pathname}${url.search}${url.hash}`
-      : '/dashboard';
-  } catch {
-    return '/dashboard';
-  }
-}
+import { useAuthProviders } from '../hooks/use-auth-providers';
+import { ssoErrorMessage, ssoStartUrl } from '../sso';
+import { safeRedirectPath } from '../redirect-path';
 
 export function LoginForm() {
+  const searchParams = useSearchParams();
+  const { isSso, isLoading } = useAuthProviders();
+
+  // 수단을 알기 전에는 비밀번호 칸을 그리지 않는다 — sso 에서 잠깐 보였다 사라지지 않게
+  if (isLoading) return <Spinner size="md" />;
+  if (isSso) {
+    return (
+      <SsoLoginCard
+        next={safeRedirectPath(searchParams.get('redirect'))}
+        error={searchParams.get('error')}
+      />
+    );
+  }
+  return <LocalLoginForm />;
+}
+
+/**
+ * AUTH_MODE=sso 의 로그인 — 단추 하나와 오류 문구(Q5). 열자마자 발급자로 보내지 않는다:
+ * 콜백이 실패하면 이 화면 → 발급자 → 실패의 고리가 생긴다.
+ * 단추는 API 호출이 아니라 문서 이동이다(`/api/v1/auth/oidc/start`).
+ */
+function SsoLoginCard({ next, error }: { next: string; error: string | null }) {
+  const message = ssoErrorMessage(error);
+  return (
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <h1 className="text-center text-2xl font-semibold text-text">로그인</h1>
+        {message && (
+          <p
+            role="alert"
+            className="mt-2 rounded-md bg-error/10 px-3 py-2 text-center text-sm text-error"
+          >
+            {message}
+          </p>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Button
+          className="w-full"
+          onClick={() => window.location.assign(ssoStartUrl({ entry: 'admin', next }))}
+        >
+          SSO 로 로그인
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LocalLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { mutate: login, isPending, error } = useLogin();

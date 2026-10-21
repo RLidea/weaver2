@@ -11,6 +11,7 @@ import {
   USER_WITHDRAWAL_HOOKS,
   UserWithdrawalHook,
 } from '../user-withdrawal-hooks';
+import { LockUsersCommand } from '../../auth/repositories/lock-users.command';
 
 @Injectable()
 export class DeleteAccountService {
@@ -32,6 +33,8 @@ export class DeleteAccountService {
 
     // 마지막 슈퍼관리자는 탈퇴하지 못한다 — 아무도 권한을 되돌려 줄 수 없게 된다
     await this.permissionService.withSuperAdminGuard(async (tx) => {
+      // users 를 먼저 잠근다 — refresh 회전 · back-channel 로그아웃과 같은 순서(users → refresh_tokens)라 교착이 없다
+      await LockUsersCommand(tx, [userId]);
       // ON DELETE CASCADE fires only on hard DELETE, not on soft-delete (UPDATE).
       // Explicitly hard-delete auth-related records before soft-deleting the User.
       await tx.refreshToken.deleteMany({ where: { userId } });

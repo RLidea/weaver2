@@ -10,6 +10,9 @@ export class BoardDto {
   @ApiProperty({ description: 'Board description', nullable: true })
   description: string | null;
 
+  @ApiProperty({ description: '글을 만들고 고칠 때마다 판을 남기는지' })
+  keepRevisions: boolean;
+
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 

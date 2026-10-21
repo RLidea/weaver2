@@ -11,8 +11,14 @@ const AUTOMATIC_RETRY_COOLDOWN_MS = 30_000;
 /** 떠난 화면에 이만큼 넘게 머물렀으면 이동이 막힌 것이다 — 그 뒤의 401 은 다시 떠나게 한다 */
 const LEAVING_GRACE_MS = 5_000;
 
+interface SignOutResult {
+  cleared: boolean;
+  /** sso 면 발급자의 로그아웃 주소 (D8) */
+  endSessionUrl?: string;
+}
+
 // AuthProvider 와 레이아웃이 같은 순간에 부른다 — 진행 중인 sign-out 하나를 같이 쓴다
-let inFlight: Promise<boolean> | null = null;
+let inFlight: Promise<SignOutResult> | null = null;
 // 실패는 누가 불렀든(버튼이든 401 이든) 센다 — 어느 쪽이든 지금 서버가 sign-out 을 못 받는다는 뜻이다
 let lastFailedAt: number | null = null;
 // 방금 세션을 내려놓고 떠나는 중인 화면. me 를 비우면 그 화면의 레이아웃이 「로그인 안 됨」을 보고
@@ -25,17 +31,22 @@ function stillLeavingFrom(pathname: string): boolean {
   return leavingFrom === pathname && Date.now() - leftAt < LEAVING_GRACE_MS;
 }
 
-function signOutOnce(): Promise<boolean> {
+function signOutOnce(): Promise<SignOutResult> {
   inFlight ??= authApi
     .signOut()
     .then(
-      () => {
+      (res) => {
         lastFailedAt = null;
-        return true;
+        // http(s) 주소만 따른다 — 그 밖의 값(javascript: 등)으로 문서를 옮기지 않는다
+        const url = res?.data?.endSessionUrl;
+        return {
+          cleared: true,
+          endSessionUrl: url && /^https?:\/\//i.test(url) ? url : undefined,
+        };
       },
       () => {
         lastFailedAt = Date.now();
-        return false;
+        return { cleared: false };
       },
     )
     .finally(() => {
@@ -61,6 +72,12 @@ interface LeaveOptions {
    * 화면을 옮길 때마다 나가 스로틀에 걸린다. 「다시 시도」 버튼은 이 옵션 없이 부른다.
    */
   automatic?: boolean;
+  /**
+   * 사람이 누른 로그아웃. 서버가 발급자의 로그아웃 주소(`endSessionUrl`, AUTH_MODE=sso)를 주면
+   * `href` 대신 그리로 **문서 이동**한다 — 이 앱의 세션은 이미 지워졌고, 발급자가 자기 세션을
+   * 끝낼지 묻는다. 401 이 부른 자동 떠나기는 발급자로 보내지 않는다.
+   */
+  endSession?: boolean;
 }
 
 /**
@@ -81,20 +98,27 @@ export function useLeaveSession() {
   const [isLeaving, setIsLeaving] = useState(false);
 
   const leave = useCallback(
-    async (href: string, { automatic = false }: LeaveOptions = {}): Promise<boolean> => {
+    async (
+      href: string,
+      { automatic = false, endSession = false }: LeaveOptions = {},
+    ): Promise<boolean> => {
       if (automatic && stillLeavingFrom(pathname)) return true;
       if (automatic && failedRecently()) {
         setFailed(true);
         return false;
       }
       setIsLeaving(true);
-      const cleared = await signOutOnce();
+      const { cleared, endSessionUrl } = await signOutOnce();
       setIsLeaving(false);
       setFailed(!cleared);
       if (!cleared) return false;
       leavingFrom = pathname;
       leftAt = Date.now();
       queryClient.setQueryData(authKeys.me, null);
+      if (endSession && endSessionUrl) {
+        window.location.assign(endSessionUrl);
+        return true;
+      }
       router.replace(href);
       return true;
     },

@@ -1,0 +1,276 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '@weaver2/prisma';
+import { createHash } from 'crypto';
+import { PermissionService } from '../../permission/services/permission.service';
+import { ApiTokenService } from './api-token.service';
+import * as apiTokenCrypto from './api-token.crypto';
+import { generateApiToken } from './api-token.crypto';
+
+const NOW = new Date('2026-10-19T00:00:00.000Z');
+const LATER = new Date('2026-11-19T00:00:00.000Z');
+const EARLIER = new Date('2026-09-19T00:00:00.000Z');
+
+const sha256 = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
+
+describe('ApiTokenService', () => {
+  const prisma = {
+    user: { findFirst: jest.fn() },
+    apiToken: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+    },
+  };
+  const permissions = { assertCovers: jest.fn() };
+  const service = new ApiTokenService(
+    prisma as unknown as PrismaService,
+    permissions as unknown as PermissionService,
+  );
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.useFakeTimers({ now: NOW });
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  describe('issue', () => {
+    beforeEach(() => {
+      prisma.user.findFirst.mockResolvedValue({ id: 'owner' });
+      prisma.apiToken.create.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({
+          id: 't1',
+          ...data,
+        }),
+      );
+    });
+
+    it('원문은 응답에만 있고, 저장소에는 sha256 해시만 넘긴다', async () => {
+      const result = await service.issue(
+        {
+          userId: 'owner',
+          name: '초안 봇',
+          scopes: ['blog:draft'],
+        },
+        'issuer',
+      );
+
+      expect(result.token).toMatch(/^wvt_[0-9a-f]{12}_[0-9a-f]{64}$/);
+      const [[{ data }]] = prisma.apiToken.create.mock.calls as [
+        [{ data: Record<string, unknown> }],
+      ];
+      expect(data).toEqual({
+        userId: 'owner',
+        name: '초안 봇',
+        prefix: result.token.slice(0, 16),
+        tokenHash: sha256(result.token),
+        scopes: ['blog:draft'],
+        expiresAt: null,
+        issuedById: 'issuer',
+      });
+      expect(JSON.stringify(data)).not.toContain(result.token);
+    });
+
+    it('발급을 로그에 남기되 원문은 남기지 않는다 — id · prefix · 주인 · 발급자', async () => {
+      const log = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+      const result = await service.issue(
+        { userId: 'owner', name: 'n', scopes: ['a'] },
+        'issuer',
+      );
+      const lines = log.mock.calls.map((call) => String(call[0]));
+      log.mockRestore();
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('id=t1');
+      expect(lines[0]).toContain(`prefix=${result.token.slice(0, 16)}`);
+      expect(lines[0]).toContain('owner=owner');
+      expect(lines[0]).toContain('by=issuer');
+      expect(lines[0]).not.toContain(result.token);
+    });
+
+    it('만료 시각을 그대로 저장한다', async () => {
+      await service.issue(
+        {
+          userId: 'owner',
+          name: 'n',
+          scopes: ['a'],
+          expiresAt: LATER,
+        },
+        'issuer',
+      );
+      expect(prisma.apiToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ expiresAt: LATER }) as unknown,
+        }),
+      );
+    });
+
+    it('주인이 없거나 탈퇴했으면 404', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+      await expect(
+        service.issue({ userId: 'gone', name: 'n', scopes: ['a'] }, 'issuer'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.apiToken.create).not.toHaveBeenCalled();
+    });
+
+    it('지난 만료 시각이면 400', async () => {
+      await expect(
+        service.issue(
+          {
+            userId: 'owner',
+            name: 'n',
+            scopes: ['a'],
+            expiresAt: EARLIER,
+          },
+          'issuer',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('발급자가 주인의 권한을 모두 갖지 않으면 403 — 저장하지 않는다', async () => {
+      permissions.assertCovers.mockRejectedValue(new ForbiddenException());
+      await expect(
+        service.issue({ userId: 'owner', name: 'n', scopes: ['a'] }, 'issuer'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(permissions.assertCovers).toHaveBeenCalledWith('issuer', 'owner');
+      expect(prisma.apiToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verify', () => {
+    const issued = generateApiToken();
+    const row = (overrides: Record<string, unknown> = {}) => ({
+      id: 't1',
+      tokenHash: issued.tokenHash,
+      scopes: ['blog:draft'],
+      expiresAt: null,
+      revokedAt: null,
+      user: {
+        id: 'owner',
+        username: 'bot',
+        deletedAt: null,
+        suspendedUntil: null,
+      },
+      ...overrides,
+    });
+
+    it('맞는 토큰이면 토큰 id · 범위 · 주인을 준다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(row());
+      await expect(service.verify(issued)).resolves.toEqual({
+        id: 't1',
+        scopes: ['blog:draft'],
+        user: { id: 'owner', username: 'bot' },
+      });
+      expect(prisma.apiToken.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { prefix: issued.prefix } }),
+      );
+    });
+
+    it.each([
+      ['prefix 에 맞는 행이 없다', null],
+      ['해시가 다르다', row({ tokenHash: sha256('other') })],
+      ['끊겼다', row({ revokedAt: EARLIER })],
+      ['만료됐다', row({ expiresAt: EARLIER })],
+      ['만료 시각이 바로 지금이다', row({ expiresAt: NOW })],
+      ['주인이 탈퇴했다', row({ user: { ...row().user, deletedAt: EARLIER } })],
+      [
+        '주인이 정지됐다',
+        row({ user: { ...row().user, suspendedUntil: LATER } }),
+      ],
+    ])('%s → null', async (_, found) => {
+      prisma.apiToken.findUnique.mockResolvedValue(found);
+      await expect(service.verify(issued)).resolves.toBeNull();
+    });
+
+    it('만료 전 · 정지가 풀린 주인이면 통과', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(
+        row({
+          expiresAt: LATER,
+          user: { ...row().user, suspendedUntil: EARLIER },
+        }),
+      );
+      await expect(service.verify(issued)).resolves.not.toBeNull();
+    });
+
+    it('prefix 에 맞는 행이 없어도 해시 대조를 한 번 한다 (응답 시간)', async () => {
+      const spy = jest.spyOn(apiTokenCrypto, 'matchesTokenHash');
+      prisma.apiToken.findUnique.mockResolvedValue(null);
+      await expect(service.verify(issued)).resolves.toBeNull();
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0][1]).toMatch(/^[0-9a-f]{64}$/);
+      spy.mockRestore();
+    });
+
+    it('verify 는 lastUsedAt 을 쓰지 않는다 — 범위 판정 뒤 markUsed 가 쓴다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(row());
+      await service.verify(issued);
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  it('markUsed 는 lastUsedAt 을 지금으로 — 행이 없어도 던지지 않게 updateMany', async () => {
+    prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.markUsed('t1')).resolves.toBeUndefined();
+    expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 't1' },
+      data: { lastUsedAt: NOW },
+    });
+  });
+
+  describe('revoke', () => {
+    const existing = (revokedAt: Date | null) => ({
+      id: 't1',
+      prefix: 'wvt_0123456789ab',
+      revokedAt,
+      user: { id: 'owner' },
+    });
+
+    it('살아 있을 때만 revokedAt 을 박고, 행을 돌려준다', async () => {
+      prisma.apiToken.findUnique
+        .mockResolvedValueOnce(existing(null))
+        .mockResolvedValueOnce(existing(NOW));
+      prisma.apiToken.updateMany.mockResolvedValue({ count: 1 });
+      await expect(service.revoke('t1', 'revoker')).resolves.toEqual(
+        existing(NOW),
+      );
+      expect(permissions.assertCovers).toHaveBeenCalledWith('revoker', 'owner');
+      expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 't1', revokedAt: null },
+        data: { revokedAt: NOW, revokedById: 'revoker' },
+      });
+    });
+
+    it('이미 끊긴 토큰은 처음 시각 그대로 돌려준다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(existing(EARLIER));
+      prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.revoke('t1', 'revoker')).resolves.toEqual(
+        existing(EARLIER),
+      );
+    });
+
+    it('끊는 사람이 주인의 권한을 모두 갖지 않으면 403 — 끊지 않는다', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(existing(null));
+      permissions.assertCovers.mockRejectedValue(new ForbiddenException());
+      await expect(service.revoke('t1', 'revoker')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('없는 id 면 404', async () => {
+      prisma.apiToken.findUnique.mockResolvedValue(null);
+      await expect(service.revoke('nope', 'revoker')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
+    });
+  });
+});

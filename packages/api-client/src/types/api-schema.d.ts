@@ -498,7 +498,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 로그아웃 및 인증 쿠키 삭제 */
+        /**
+         * 로그아웃 및 인증 쿠키 삭제
+         * @description AUTH_MODE=sso 면 응답에 endSessionUrl(발급자의 end_session)을 싣는다 — 화면이 그리로 문서 이동한다
+         */
         post: operations["SignOutController_signOut"];
         delete?: never;
         options?: never;
@@ -851,6 +854,107 @@ export interface paths {
         get: operations["AuthProvidersController_getProviders"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SSO 로그인 시작 — 발급자의 authorize 로 302
+         * @description AUTH_MODE=sso 에서만. 문서 이동으로 부른다(API 호출 아님). 실패하면 입구의 실패 주소로 ?error=
+         */
+        get: operations["OidcController_start"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SSO 콜백 — 검증 뒤 세션 쿠키를 주고 next 로 302
+         * @description 발급자가 보내는 최상위 GET 이라 CSRF 미들웨어 밖이다. tx 쿠키의 state 대조로 막는다
+         */
+        get: operations["OidcController_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/backchannel-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * OIDC back-channel 로그아웃 — 발급자가 서버에서 보낸다
+         * @description AUTH_MODE=sso 에서만. application/x-www-form-urlencoded 의 logout_token(§2.6 검증). 쿠키가 없는 서버 간 요청이라 CSRF 밖이다. 그 sid 의 세션을 지우고 200(지울 것이 없어도). 받을 수 없으면 400 {error:"invalid_request"}, 발급자 JWKS 에 닿지 못하면 503
+         */
+        post: operations["OidcController_backchannelLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API 토큰 목록 (끊긴 것 포함, 최신 순) */
+        get: operations["AdminApiTokenController_findAll"];
+        put?: never;
+        /**
+         * API 토큰 발급
+         * @description 원문(`token`)은 이 응답에만 실린다. 저장소에는 해시만 남는다.
+         */
+        post: operations["AdminApiTokenController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/api-tokens/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * API 토큰 끊기
+         * @description 되살릴 수 없다. 이미 끊긴 토큰이면 처음 끊은 시각을 그대로 돌려준다.
+         */
+        post: operations["AdminApiTokenController_revoke"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1623,6 +1727,43 @@ export interface paths {
          * @description 모든 게시판의 게시글을 조회합니다. boardId, authorId, status 필터 및 소프트 삭제 포함 여부를 지정할 수 있습니다.
          */
         get: operations["PostAdminController_findAllPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/posts/{postId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 게시글 판 목록 (관리자 전용)
+         * @description 게시판의 keepRevisions 가 켜져 있을 때 쌓인 판을 최신 순으로 돌려줍니다. 본문은 판 전문 경로에서 받습니다.
+         */
+        get: operations["PostAdminController_findRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/posts/{postId}/revisions/{revisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 게시글 판 전문 (관리자 전용) */
+        get: operations["PostAdminController_findRevision"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2810,7 +2951,9 @@ export interface components {
             code: string;
         };
         AuthProvidersResponseDto: {
-            /** @description 이메일·비밀번호 로그인 (항상 켜짐) */
+            /** @description SSO(OIDC 손님) 모드. true 면 로그인은 `/v1/auth/oidc/start` 하나뿐이고 로컬 수단은 모두 false */
+            sso: boolean;
+            /** @description 이메일·비밀번호 로그인 (AUTH_MODE=local 이면 켜짐) */
             password: boolean;
             /** @description Google OAuth 사용 가능 여부 */
             google: boolean;
@@ -2820,6 +2963,74 @@ export interface components {
             naver: boolean;
             /** @description Apple OAuth 사용 가능 여부 (APPLE_OAUTH_ENABLED=true 일 때만) */
             apple: boolean;
+            /** @description 계정 서버의 계정 화면 주소(ACCOUNTS_OIDC_ACCOUNT_URL, 예: https://accounts.rlidea.com/account). 보안 화면은 `${accountUrl}/security`. 새 탭으로 연다(돌아오는 단추가 없다). sso 이고 설정했을 때만 실린다 */
+            accountUrl?: string;
+        };
+        ApiTokenOwnerDto: {
+            /** @description User ID */
+            id: string;
+            /** @description Username */
+            username: string;
+            /** @description Display name */
+            displayName: string;
+        };
+        ApiTokenDto: {
+            /** @description API token ID */
+            id: string;
+            /** @description 알아보기 위한 이름 */
+            name: string;
+            /** @description 원문의 앞부분 (wvt_xxxxxxxxxxxx) */
+            prefix: string;
+            /** @description 이 토큰이 닿는 범위 */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description 마지막으로 인증에 성공한 시각
+             */
+            lastUsedAt: string | null;
+            /**
+             * Format: date-time
+             * @description 만료 시각 (없으면 null)
+             */
+            expiresAt: string | null;
+            /**
+             * Format: date-time
+             * @description 끊은 시각 (살아 있으면 null)
+             */
+            revokedAt: string | null;
+            /**
+             * Format: date-time
+             * @description 발급 시각
+             */
+            createdAt: string;
+            /** @description 토큰의 주인 */
+            user: components["schemas"]["ApiTokenOwnerDto"];
+        };
+        CreateApiTokenDto: {
+            /**
+             * Format: uuid
+             * @description 토큰의 주인 (쓰기의 주체가 된다)
+             */
+            userId: string;
+            /** @description 알아보기 위한 이름 */
+            name: string;
+            /**
+             * @description 범위 — 파생 프로젝트가 `@ApiTokenScope` 로 연 이름
+             * @example [
+             *       "blog:draft"
+             *     ]
+             */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description 만료 시각 (ISO 8601). 없으면 끊을 때까지 산다
+             */
+            expiresAt?: string;
+        };
+        IssuedApiTokenDto: {
+            /** @description 원문. 다시 볼 수 없다 — `Authorization: Bearer <token>` */
+            token: string;
+            apiToken: components["schemas"]["ApiTokenDto"];
         };
         DailyViewsDto: {
             /** @example 2026-10-18 */
@@ -3005,6 +3216,8 @@ export interface components {
             name: string;
             /** @description Board description */
             description: Record<string, never> | null;
+            /** @description 글을 만들고 고칠 때마다 판을 남기는지 */
+            keepRevisions: boolean;
             /**
              * Format: date-time
              * @description Creation timestamp
@@ -3103,6 +3316,8 @@ export interface components {
             name?: string;
             /** @description Board description */
             description?: string;
+            /** @description 켜면 글을 만들고 고칠 때마다 판을 남긴다 */
+            keepRevisions?: boolean;
         };
         CreatePostDto: {
             /** @description Board ID */
@@ -3195,6 +3410,60 @@ export interface components {
             categoryId?: Record<string, never> | null;
             /** @description 첨부 파일 id (순서대로). 내가 올렸고 아무 데도 안 붙은 파일만 붙는다 — 업로드는 POST /v1/files. 보내면 목록 전체를 이것으로 바꾼다(빠진 파일은 떼어져 보존 기간 뒤 정리), 안 보내면 그대로. */
             attachmentFileIds?: string[];
+        };
+        PostRevisionActorDto: {
+            /** @description User ID */
+            id: string;
+            /** @description Username */
+            username: string;
+            /** @description Display name */
+            displayName: string;
+        };
+        PostRevisionSummaryDto: {
+            /** @description Revision ID */
+            id: string;
+            /** @description Post ID */
+            postId: string;
+            /** @description 이 판의 제목 */
+            title: string;
+            /** @description 판을 남긴 사용자 ID (익명이거나 탈퇴했으면 null) */
+            actorUserId: string | null;
+            /**
+             * @description 판을 남긴 주체 — 로그인 세션 또는 범위 토큰
+             * @enum {string}
+             */
+            actorKind: "SESSION" | "TOKEN";
+            /** @description 판을 남긴 사용자 */
+            actorUser: components["schemas"]["PostRevisionActorDto"] | null;
+            /**
+             * Format: date-time
+             * @description 판을 남긴 시각
+             */
+            createdAt: string;
+        };
+        PostRevisionDto: {
+            /** @description Revision ID */
+            id: string;
+            /** @description Post ID */
+            postId: string;
+            /** @description 이 판의 제목 */
+            title: string;
+            /** @description 판을 남긴 사용자 ID (익명이거나 탈퇴했으면 null) */
+            actorUserId: string | null;
+            /**
+             * @description 판을 남긴 주체 — 로그인 세션 또는 범위 토큰
+             * @enum {string}
+             */
+            actorKind: "SESSION" | "TOKEN";
+            /** @description 판을 남긴 사용자 */
+            actorUser: components["schemas"]["PostRevisionActorDto"] | null;
+            /**
+             * Format: date-time
+             * @description 판을 남긴 시각
+             */
+            createdAt: string;
+            /** @description 이 판의 본문 */
+            content: string;
         };
         CreateCommentDto: {
             /** @description Post ID */
@@ -5037,6 +5306,201 @@ export interface operations {
             };
         };
     };
+    OidcController_start: {
+        parameters: {
+            query?: {
+                /** @description ACCOUNTS_OIDC_LANGS 중 하나 */
+                lang?: unknown;
+                /** @description 로그인 뒤 갈 같은 출처의 경로 */
+                next?: unknown;
+                /** @description 실패 주소 표의 열쇠 (기본 admin) */
+                entry?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OidcController_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OidcController_backchannelLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    logout_token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 세션을 지웠다(없었어도) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description { "error": "invalid_request" } */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminApiTokenController_findAll: {
+        parameters: {
+            query?: {
+                /** @description 이 사용자의 토큰만 */
+                userId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenDto"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    AdminApiTokenController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiTokenDto"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedApiTokenDto"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    AdminApiTokenController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenDto"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
     AdminDashboardApiController_getSummary: {
         parameters: {
             query?: never;
@@ -6595,6 +7059,87 @@ export interface operations {
                     "application/json": components["schemas"]["KeysetResponseDto"] & {
                         data?: components["schemas"]["PostDto"][];
                     };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    PostAdminController_findRevisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostRevisionSummaryDto"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedResponseDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponseDto"];
+                };
+            };
+        };
+    };
+    PostAdminController_findRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostRevisionDto"];
                 };
             };
             /** @description Unauthorized */

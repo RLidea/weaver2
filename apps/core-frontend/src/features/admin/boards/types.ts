@@ -2,6 +2,7 @@ export interface AdminBoard {
   id: string;
   name: string;
   description: string | null;
+  keepRevisions: boolean;
   createdAt: string;
   stats: {
     totalPosts: number;
@@ -31,6 +32,7 @@ export interface CreateBoardRequest {
 export interface UpdateBoardRequest {
   name?: string;
   description?: string;
+  keepRevisions?: boolean;
 }
 
 export const BOARD_ACTIONS = [

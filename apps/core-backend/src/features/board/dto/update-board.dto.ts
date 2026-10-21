@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class UpdateBoardDto {
   @ApiPropertyOptional({ description: 'Board name (must be unique)' })
@@ -12,4 +12,11 @@ export class UpdateBoardDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiPropertyOptional({
+    description: '켜면 글을 만들고 고칠 때마다 판을 남긴다',
+  })
+  @IsBoolean()
+  @IsOptional()
+  keepRevisions?: boolean;
 }

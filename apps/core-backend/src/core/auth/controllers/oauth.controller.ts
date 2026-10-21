@@ -24,6 +24,7 @@ import {
 } from '../services/sign-in-completion.service';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
 import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
+import { LocalAuthOnly } from '../decorators/local-auth-only.decorator';
 
 const OAUTH_STATE_COOKIE = 'oauth_state';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10분
@@ -38,6 +39,7 @@ interface OAuthFormPostBody {
 }
 
 @ApiTags('Auth')
+@LocalAuthOnly()
 @Controller({ path: 'auth/oauth', version: '1' })
 export class OAuthController {
   private readonly logger = new Logger(OAuthController.name);
@@ -166,6 +168,8 @@ export class OAuthController {
           rememberMe: false,
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
+          // 세션을 줄 때 그 공급자 연동이 아직 있는지 잠금 아래에서 본다 — 재설정이 끊었으면 거절
+          proof: { kind: 'oauth', provider },
         },
         res,
       );

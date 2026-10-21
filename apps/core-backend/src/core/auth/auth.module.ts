@@ -27,14 +27,22 @@ import { SessionController } from './controllers/session.controller';
 import { SessionService } from './services/session.service';
 import { CsrfController } from './controllers/csrf.controller';
 import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
+import { ApiTokenModule } from './api-token/api-token.module';
+import { AuthModeModule } from './auth-mode.module';
+import { AuthModeGuard } from './guards/auth-mode.guard';
+import { OidcModule } from './oidc/oidc.module';
+import { OidcController } from './oidc/oidc.controller';
 
 @Module({
   imports: [
     PrismaModule,
+    AuthModeModule,
     UserModule,
     EmailModule,
     OAuthModule,
     OneTimeCodeModule,
+    ApiTokenModule,
+    OidcModule,
   ],
   controllers: [
     SignInController,
@@ -46,6 +54,7 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
     SessionController,
     CsrfController,
     AuthProvidersController,
+    OidcController,
   ],
   providers: [
     SignInService,
@@ -62,6 +71,12 @@ import { OneTimeCodeModule } from './one-time-code/one-time-code.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 인증 다음 — 닫힌 경로(@LocalAuthOnly · @SsoOnly)는 404. 인증보다 뒤라야 API 토큰의
+    // 「범위 없는 경로는 늘 401」 계약이 지켜진다. 공개 경로는 인증을 지나 여기서 404 가 된다
+    {
+      provide: APP_GUARD,
+      useClass: AuthModeGuard,
     },
     {
       provide: APP_GUARD,

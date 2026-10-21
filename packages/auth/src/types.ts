@@ -155,3 +155,23 @@ export interface User {
   /** 사용자 설정 (GET /users/me 전용) */
   userSetting?: UserSetting;
 }
+
+/** `GET /v1/auth/providers` — 켜진 로그인 수단. 파생 프로젝트가 칸을 더할 수 있다 */
+export interface AuthProviders {
+  /** AUTH_MODE=sso — 로그인은 SSO 단추 하나뿐이고 로컬 수단은 모두 false */
+  sso: boolean;
+  password: boolean;
+  google: boolean;
+  kakao: boolean;
+  naver: boolean;
+  apple: boolean;
+  /** 계정 서버의 계정 화면(비밀번호 · 2FA 를 고치는 곳). sso 이고 설정했을 때만 */
+  accountUrl?: string;
+  [extra: string]: boolean | string | undefined;
+}
+
+/** `POST /v1/auth/sign-out` — sso 면 발급자의 로그아웃 주소가 실린다 */
+export interface SignOutResponse {
+  message: string;
+  endSessionUrl?: string;
+}

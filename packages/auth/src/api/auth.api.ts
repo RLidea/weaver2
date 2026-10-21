@@ -13,6 +13,8 @@ import type {
   TwoFactorAuthenticateRequest,
   OAuthConnection,
   TwoFactorPending,
+  AuthProviders,
+  SignOutResponse,
 } from '../types';
 
 export const authApi = {
@@ -37,8 +39,15 @@ export const authApi = {
     apiClient.post<void>('/v1/auth/2fa/authenticate', body, { skipOnAuthError: true }),
 
   // 세션이 끝난 뒤에 부르는 길이기도 하다 — 여기서 onAuthError 가 다시 돌면 재귀가 된다
+  // sso 면 응답에 endSessionUrl — 화면이 그리로 문서 이동해 발급자 세션까지 끝낸다
   signOut: () =>
-    apiClient.post<void>('/v1/auth/sign-out', undefined, { skipOnAuthError: true }),
+    apiClient.post<SignOutResponse | null>('/v1/auth/sign-out', undefined, {
+      skipOnAuthError: true,
+    }),
+
+  /** 켜진 로그인 수단 — 로그인 전에도 묻는다 */
+  getProviders: () =>
+    apiClient.get<AuthProviders>('/v1/auth/providers', { skipOnAuthError: true }),
 
   signUp: (body: SignUpRequest) =>
     apiClient.post<void>('/v1/auth/sign-up/email', body),

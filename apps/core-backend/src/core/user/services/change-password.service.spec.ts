@@ -38,6 +38,7 @@ jest.mock('../../auth/repositories/reset-auth-attempts.command', () => ({
 
 import * as bcrypt from 'bcrypt';
 import { UpdateLocalCredentialPasswordCommand } from '../../auth/repositories/update-local-credential-password.command';
+import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
 import { ReserveAuthAttemptCommand } from '../../auth/repositories/reserve-auth-attempt.command';
 import { ResetAuthAttemptsCommand } from '../../auth/repositories/reset-auth-attempts.command';
 
@@ -46,7 +47,11 @@ describe('ChangePasswordService — 현재 비밀번호 대입도 PASSWORD 잠�
   const mockReserve = ReserveAuthAttemptCommand as jest.Mock;
   const mockReset = ResetAuthAttemptsCommand as jest.Mock;
   const mockUpdate = UpdateLocalCredentialPasswordCommand as jest.Mock;
-  const prisma = {} as PrismaService;
+  const mockDeleteTokens = DeleteRefreshTokensByUserIdCommand as jest.Mock;
+  const tx = { $queryRaw: jest.fn() };
+  const prisma = {
+    $transaction: jest.fn((fn: (t: unknown) => unknown) => fn(tx)),
+  } as unknown as PrismaService;
   let service: ChangePasswordService;
   const dto = { currentPassword: 'old', newPassword: 'NewPass1234!' };
 
@@ -62,8 +67,20 @@ describe('ChangePasswordService — 현재 비밀번호 대입도 PASSWORD 잠�
     await service.changePassword('user-1', dto);
 
     expect(mockReserve).toHaveBeenCalledWith(prisma, 'user-1', 'PASSWORD');
-    expect(mockUpdate).toHaveBeenCalledWith(prisma, 'user-1', 'hashed:new');
     expect(mockReset).toHaveBeenCalledWith(prisma, 'user-1', 'PASSWORD');
+  });
+
+  it('바꾸기와 세션 지우기는 사용자 행을 잠근 한 트랜잭션에서 — 겹친 로그인이 견줄 수 있게', async () => {
+    mockCompare.mockResolvedValue(true);
+
+    await service.changePassword('user-1', dto);
+
+    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith(tx, 'user-1', 'hashed:new');
+    expect(mockDeleteTokens).toHaveBeenCalledWith(tx, 'user-1');
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      mockUpdate.mock.invocationCallOrder[0],
+    );
   });
 
   it('틀리면 시도를 남기고 바꾸지 않는다', async () => {

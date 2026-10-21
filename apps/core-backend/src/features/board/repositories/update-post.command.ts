@@ -24,6 +24,7 @@ export async function UpdatePostCommand(
           id: true,
           name: true,
           description: true,
+          keepRevisions: true,
           deletedAt: true,
           createdAt: true,
           updatedAt: true,

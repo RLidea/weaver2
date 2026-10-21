@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@weaver2/prisma';
 import { OAuthService } from './oauth.service';
+import { AuthModeConfig } from '../auth-mode';
 import { OAuthProviderRegistry } from './oauth-provider.registry';
 import { OAuthProvider } from './interfaces/oauth-provider.interface';
 
@@ -79,6 +80,7 @@ describe('OAuthService', () => {
       env.APPLE_CLIENT_ID = 'aid';
 
       expect(service.getEnabledProviders()).toEqual({
+        sso: false,
         password: true,
         google: true,
         kakao: false,
@@ -103,6 +105,7 @@ describe('OAuthService', () => {
 
       expect(extended.getEnabledProviders()).toEqual({
         emailCode: true,
+        sso: false,
         password: true,
         google: false,
         kakao: false,
@@ -129,6 +132,47 @@ describe('OAuthService', () => {
     expect(extended.getEnabledProviders()).toMatchObject({
       emailCode: true,
       password: true,
+    });
+  });
+
+  describe('getEnabledProviders — AUTH_MODE=sso', () => {
+    it('sso 면 로컬 수단은 모두 false, sso 와 accountUrl 이 실린다', () => {
+      registry.register(fakeProvider('google', 'a@b.c'));
+      env.GOOGLE_CLIENT_ID = 'gid';
+      const config = { get: (k: string) => env[k] } as unknown as ConfigService;
+      const sso = new OAuthService(
+        prisma as unknown as PrismaService,
+        config,
+        registry,
+        [() => ({ password: true, emailCode: true })],
+        {
+          mode: 'sso',
+          sso: { accountUrl: 'https://accounts.example.com/me' },
+        } as AuthModeConfig,
+      );
+
+      expect(sso.getEnabledProviders()).toEqual({
+        emailCode: true,
+        sso: true,
+        password: false,
+        google: false,
+        kakao: false,
+        naver: false,
+        apple: false,
+        accountUrl: 'https://accounts.example.com/me',
+      });
+    });
+
+    it('accountUrl 이 없으면 칸을 싣지 않는다', () => {
+      const config = { get: (k: string) => env[k] } as unknown as ConfigService;
+      const sso = new OAuthService(
+        prisma as unknown as PrismaService,
+        config,
+        registry,
+        [],
+        { mode: 'sso', sso: {} } as AuthModeConfig,
+      );
+      expect(sso.getEnabledProviders()).not.toHaveProperty('accountUrl');
     });
   });
 
