@@ -25,7 +25,9 @@ describe('OAuthController', () => {
     service = {
       getAuthorizationUrl: jest.fn(),
       acceptsFormPost: jest.fn(),
-      resolveCallbackUser: jest.fn().mockResolvedValue('user-1'),
+      resolveCallbackUser: jest
+        .fn()
+        .mockResolvedValue({ userId: 'user-1', providerId: 'g-1' }),
     };
     completion = {
       complete: jest.fn().mockResolvedValue({ twoFactorRequired: false }),
@@ -140,7 +142,7 @@ describe('OAuthController', () => {
           rememberMe: false,
           ipAddress: '1.2.3.4',
           userAgent: 'ua',
-          proof: { kind: 'oauth', provider: 'google' },
+          proof: { kind: 'oauth', provider: 'google', providerId: 'g-1' },
         },
         res,
       );

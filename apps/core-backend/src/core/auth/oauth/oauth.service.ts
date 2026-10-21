@@ -109,7 +109,7 @@ export class OAuthService {
   }
 
   /**
-   * 콜백을 확인하고(state·code 교환·프로필) 그 사람의 userId 를 돌려준다. 세션은 주지 않는다 —
+   * 콜백을 확인하고(state·code 교환·프로필) 그 사람의 userId 와 공급자 쪽 계정 id 를 돌려준다. 세션은 주지 않는다 —
    * 탈퇴·정지·2FA·세션 발급은 비밀번호 로그인과 같은 SignInCompletionService 가 맡는다
    * (전에는 여기서 바로 세션을 줘, OAuth 로그인만 정지·2FA 를 건너뛰었다).
    * 실패하면 던진다. ConflictException 은 같은 이메일의 기존 계정이 있다는 뜻이다.
@@ -120,7 +120,7 @@ export class OAuthService {
     callbackState: string,
     cookieState: string,
     extras?: OAuthCallbackExtras,
-  ): Promise<string> {
+  ): Promise<{ userId: string; providerId: string }> {
     if (!cookieState || cookieState !== callbackState) {
       throw new UnauthorizedException(
         'OAuth state mismatch. Possible CSRF attack.',
@@ -137,7 +137,8 @@ export class OAuthService {
     );
 
     const { userId } = await this.findOrCreateUser(profile);
-    return userId;
+    // providerId 도 돌려준다 — 세션을 줄 때 「바로 이 공급자 계정」의 연동이 아직 있는지 잠금 아래에서 본다
+    return { userId, providerId: profile.providerId };
   }
 
   async getMyConnections(userId: string) {

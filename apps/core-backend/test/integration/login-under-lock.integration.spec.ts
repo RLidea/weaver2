@@ -207,7 +207,11 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
       where: { id: user.id },
       data: { ssoSubject: `sub_${tag}` },
     });
-    const oauth = { kind: 'oauth', provider: 'google' } as const;
+    const oauth = {
+      kind: 'oauth',
+      provider: 'google',
+      providerId: `g_${tag}`,
+    } as const;
     const sso = { kind: 'sso', sub: `sub_${tag}` } as const;
 
     await loginWith(user.id, oauth);
@@ -226,6 +230,37 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
       'Invalid credentials',
     );
     await expect(loginWith(user.id, sso)).rejects.toThrow(
+      'Invalid credentials',
+    );
+    expect(await refreshTokens(user.id)).toBe(0);
+  });
+
+  it('OAuth — 재설정이 선점자의 연동을 끊고 주인이 같은 공급자를 새로 이었어도, 선점자의 로그인은 거절된다', async () => {
+    const user = await passwordUser('relink');
+    const squatter = {
+      kind: 'oauth',
+      provider: 'google',
+      providerId: `g_squatter_${tag}`,
+    } as const;
+    await prisma.oAuthAccount.create({
+      data: {
+        userId: user.id,
+        provider: 'google',
+        providerId: squatter.providerId,
+      },
+    });
+
+    // 선점자의 콜백은 끝났고 세션을 받기 전 — 그 사이 재설정이 연동을 끊고, 주인이 자기 google 을 잇는다
+    await prisma.oAuthAccount.deleteMany({ where: { userId: user.id } });
+    await prisma.oAuthAccount.create({
+      data: {
+        userId: user.id,
+        provider: 'google',
+        providerId: `g_owner_${tag}`,
+      },
+    });
+
+    await expect(loginWith(user.id, squatter)).rejects.toThrow(
       'Invalid credentials',
     );
     expect(await refreshTokens(user.id)).toBe(0);

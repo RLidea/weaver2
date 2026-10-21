@@ -37,12 +37,13 @@ const DUMMY_PASSWORD_HASH =
  *
  * - `password` — 맞춰 본 그 자격의 passwordChangedAt(ms)과 해시 지문. 둘 다 같아야 같은 비밀번호다
  *   (시각만으로는 같은 ms 안의 두 번 변경 · 인스턴스 사이 시계 차이를 못 가린다. 해시는 바꿀 때마다 솔트가 새로 붙는다)
- * - `oauth` — 그 공급자 연동이 아직 있는가 (재설정이 미인증 계정의 연동을 끊는다 — 선점한 사람을 내보내는 길)
+ * - `oauth` — 바로 그 공급자 계정(provider + providerId)의 연동이 아직 있는가 (재설정이 미인증 계정의 연동을
+ *   끊는다 — 선점한 사람을 내보내는 길. 공급자만 보면 그 사이 주인이 같은 공급자를 새로 이은 연동에 걸려 통과한다)
  * - `sso` — 그 sub 가 아직 이 사람에게 이어져 있는가 (연결 해제 · 탈퇴가 끊는다)
  */
 export type SignInProof =
   | { kind: 'password'; changedAtMs: number; hashFingerprint: string }
-  | { kind: 'oauth'; provider: string }
+  | { kind: 'oauth'; provider: string; providerId: string }
   | { kind: 'sso'; sub: string };
 
 /**
@@ -194,7 +195,11 @@ export class SignInService {
           proof.hashFingerprint;
     } else if (proof.kind === 'oauth') {
       holds = !!(await tx.oAuthAccount.findFirst({
-        where: { userId, provider: proof.provider },
+        where: {
+          userId,
+          provider: proof.provider,
+          providerId: proof.providerId,
+        },
         select: { id: true },
       }));
     } else {

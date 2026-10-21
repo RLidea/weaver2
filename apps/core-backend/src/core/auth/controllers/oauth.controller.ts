@@ -152,13 +152,14 @@ export class OAuthController {
     }
 
     try {
-      const userId = await this.oauthService.resolveCallbackUser(
-        provider,
-        code,
-        state,
-        cookieState ?? '',
-        { user },
-      );
+      const { userId, providerId } =
+        await this.oauthService.resolveCallbackUser(
+          provider,
+          code,
+          state,
+          cookieState ?? '',
+          { user },
+        );
       // 비밀번호 로그인과 같은 끝 — 탈퇴·정지를 보고, 2FA 가 있으면 pre_auth 쿠키만 준다.
       // OAuth 에는 「로그인 유지」 선택이 없어 기본 수명으로 준다.
       const completion = await this.signInCompletionService.complete(
@@ -168,8 +169,9 @@ export class OAuthController {
           rememberMe: false,
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
-          // 세션을 줄 때 그 공급자 연동이 아직 있는지 잠금 아래에서 본다 — 재설정이 끊었으면 거절
-          proof: { kind: 'oauth', provider },
+          // 세션을 줄 때 바로 그 공급자 계정의 연동이 아직 있는지 잠금 아래에서 본다 — 재설정이 끊었으면 거절.
+          // 공급자만 보면 그 사이 주인이 같은 공급자를 새로 이은 연동에 걸려 통과한다
+          proof: { kind: 'oauth', provider, providerId },
         },
         res,
       );
