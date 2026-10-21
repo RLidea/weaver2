@@ -71,6 +71,18 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
     });
   });
 
+  it('맞춰 본 비밀번호의 passwordChangedAt 을 싣고 돌려준다 — 2FA 를 통과한 뒤 잠금 아래에서 견주게', () => {
+    const token = service.createPreAuthToken('user-1', false, 1234);
+    expect(service.verifyPreAuthToken(token).passwordChangedAtMs).toBe(1234);
+  });
+
+  it('그 값이 없는 토큰(OAuth · 배포 전 발급)은 비워 돌려준다 — 견주지 않는다', () => {
+    const token = service.createPreAuthToken('user-1');
+    expect(
+      service.verifyPreAuthToken(token).passwordChangedAtMs,
+    ).toBeUndefined();
+  });
+
   it('rememberMe 미지정 시 false', () => {
     const token = service.createPreAuthToken('user-1');
     expect(service.verifyPreAuthToken(token).rememberMe).toBe(false);

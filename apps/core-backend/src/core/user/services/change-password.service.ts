@@ -5,6 +5,7 @@ import { ChangePasswordDto } from '../dto/change-password.dto';
 import { FindLocalCredentialByUserIdQuery } from '../../auth/repositories/find-local-credential-by-user-id.query';
 import { UpdateLocalCredentialPasswordCommand } from '../../auth/repositories/update-local-credential-password.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../../auth/repositories/delete-refresh-tokens-by-user-id.command';
+import { LockUsersCommand } from '../../auth/repositories/lock-users.command';
 import {
   ACCOUNT_LOCKED_MESSAGE,
   ReserveAuthAttemptCommand,
@@ -47,12 +48,13 @@ export class ChangePasswordService {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    await UpdateLocalCredentialPasswordCommand(
-      this.prisma,
-      userId,
-      hashedNewPassword,
-    );
-
-    await DeleteRefreshTokensByUserIdCommand(this.prisma, userId);
+    // 바꾸기와 세션 지우기를 사용자 행 잠금 아래 한 트랜잭션에서 — 재설정과 같은 모양이다.
+    // 로그인도 이 행을 잠그고 passwordChangedAt 을 견주므로, 옛 비밀번호로 맞춰 본 로그인이
+    // 지우기 뒤에 새 refresh 행을 남기지 못한다 (SignInService.login)
+    await this.prisma.$transaction(async (tx) => {
+      await LockUsersCommand(tx, [userId]);
+      await UpdateLocalCredentialPasswordCommand(tx, userId, hashedNewPassword);
+      await DeleteRefreshTokensByUserIdCommand(tx, userId);
+    });
   }
 }

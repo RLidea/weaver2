@@ -1,5 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '@weaver2/prisma';
+import { Prisma, PrismaClient, PrismaService } from '@weaver2/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
@@ -11,6 +11,7 @@ import { PurgeStaleRefreshTokensCommand } from '../repositories/purge-stale-refr
 import { DeleteRefreshTokensByUserIdCommand } from '../repositories/delete-refresh-tokens-by-user-id.command';
 import { IsRefreshSessionRevokedQuery } from '../repositories/is-refresh-session-revoked.query';
 import { LockUsersCommand } from '../repositories/lock-users.command';
+import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
 import { JwtPayload } from '../strategy/jwt-payload.interface';
 import {
   ACCOUNT_LOCKED_MESSAGE,
@@ -27,6 +28,16 @@ const REFRESH_REUSE_GRACE_MS = 30 * 1000;
 /** 없는 계정에도 bcrypt 한 번을 들이기 위한 해시(비용 10, 아무 비밀번호와도 맞지 않는다) */
 const DUMMY_PASSWORD_HASH =
   '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.9BqvZGzBv6X3B7vlEPH5bWv1w7mS';
+
+/**
+ * 로그인이 맞춰 본 비밀번호 — 그 자격의 `passwordChangedAt`(ms). `login` 이 잠금 아래에서 지금도
+ * 그 비밀번호인지 견준다. 다르면 거절한다 — 비밀번호 길(`via: 'password'`)은 「틀렸다」,
+ * 2FA 를 거친 길(`via: 'two-factor'`)은 「로그인부터 다시」.
+ */
+export interface VerifiedPassword {
+  changedAtMs: number;
+  via: 'password' | 'two-factor';
+}
 
 @Injectable()
 export class SignInService {
@@ -90,16 +101,11 @@ export class SignInService {
     ipAddress?: string,
     userAgent?: string,
     oidcSid?: string,
+    password?: VerifiedPassword,
   ) {
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
     );
-
-    // Update user's last login time
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { lastLoginAt: new Date() },
-    });
 
     // SSO 로그인이면 sid 를 싣는다 — back-channel 로그아웃이 이 access token 도 다음 요청에서 막게(JwtStrategy).
     // 없으면 키 자체를 넣지 않는다
@@ -113,13 +119,43 @@ export class SignInService {
     const expiryDays = rememberMe ? 30 : 7;
     const tokenExpiry = expiryDays * 24 * 60 * 60 * 1000; // 밀리초
 
-    const generatedRefreshToken = await this.generateRefreshToken(
-      userId,
-      expiryDays,
-      ipAddress,
-      userAgent,
-      oidcSid,
-    );
+    /*
+      세션을 **사용자 행 잠금 아래 한 트랜잭션**에서 준다 — refresh 회전과 같은 자리.
+
+      비밀번호를 맞춰 본 뒤(bcrypt, 잠금 밖) 토큰을 넣기 전에 비밀번호 변경 · 재설정이 끼어들면,
+      그 변경은 아직 없는 토큰을 지우지 못하고 옛 비밀번호의 로그인이 7~30일짜리 refresh 토큰을 남긴다.
+      그래서 맞춰 본 비밀번호의 passwordChangedAt 을 잠금 아래에서 다시 읽어 견준다.
+      변경 · 재설정도 이 행을 잠근 채 커밋하므로, 다시 읽은 값은 늘 커밋된 최신 값이다.
+    */
+    const generatedRefreshToken = await this.prisma.$transaction(async (tx) => {
+      await LockUsersCommand(tx, [userId]);
+      if (password) {
+        const credential = await FindLocalCredentialByUserIdQuery(tx, userId);
+        if (credential?.passwordChangedAt.getTime() !== password.changedAtMs) {
+          this.logger.warn(
+            `Login rejected — password changed after it was verified: user=${userId}`,
+          );
+          throw new UnauthorizedException(
+            password.via === 'two-factor'
+              ? 'Invalid or expired pre-auth token'
+              : 'Invalid credentials',
+          );
+        }
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: new Date() },
+      });
+      return this.generateRefreshToken(
+        userId,
+        expiryDays,
+        ipAddress,
+        userAgent,
+        oidcSid,
+        tx,
+      );
+    });
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: generatedRefreshToken,
@@ -133,12 +169,13 @@ export class SignInService {
     ipAddress?: string,
     userAgent?: string,
     oidcSid?: string,
+    prisma: PrismaClient | Prisma.TransactionClient = this.prisma,
   ) {
     const token = randomUUID();
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
 
     await CreateRefreshTokenCommand(
-      this.prisma,
+      prisma,
       userId,
       token,
       expires,

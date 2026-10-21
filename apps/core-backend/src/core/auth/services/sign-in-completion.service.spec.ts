@@ -61,8 +61,51 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       '1.2.3.4',
       'ua',
       undefined,
+      undefined,
     );
     expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
+  });
+
+  it('비밀번호로 들어왔으면 맞춰 본 passwordChangedAt 을 login 에 넘긴다 — 잠금 아래에서 견주게', async () => {
+    await service.complete(
+      'u1',
+      { ...context, passwordChangedAtMs: 1234 },
+      res as unknown as Response,
+    );
+    expect(signIn.login).toHaveBeenCalledWith(
+      'u1',
+      'email',
+      true,
+      '1.2.3.4',
+      'ua',
+      undefined,
+      { changedAtMs: 1234, via: 'password' },
+    );
+  });
+
+  it('2FA 가 필요하면 그 값을 pre-auth 토큰에 싣고, 통과한 뒤에는 two-factor 길로 넘긴다', async () => {
+    prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
+    await service.complete(
+      'u1',
+      { ...context, passwordChangedAtMs: 1234 },
+      res as unknown as Response,
+    );
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true, 1234);
+
+    await service.completeAfterTwoFactor(
+      'u1',
+      { ...context, passwordChangedAtMs: 1234 },
+      res as unknown as Response,
+    );
+    expect(signIn.login).toHaveBeenCalledWith(
+      'u1',
+      'email',
+      true,
+      '1.2.3.4',
+      'ua',
+      undefined,
+      { changedAtMs: 1234, via: 'two-factor' },
+    );
   });
 
   it('확인된 2FA 가 있으면 pre_auth 쿠키만 주고 세션은 주지 않는다', async () => {
@@ -75,7 +118,11 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       availableMethods: { totp: false, email: true },
     });
 
-    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true);
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith(
+      'u1',
+      true,
+      undefined,
+    );
     expect(cookieNames()).toEqual(['pre_auth']);
     expect(signIn.login).not.toHaveBeenCalled();
   });
@@ -187,6 +234,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
         '1.2.3.4',
         'ua',
         'sid-1',
+        undefined,
       );
       expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
     });

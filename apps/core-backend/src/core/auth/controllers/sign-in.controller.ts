@@ -17,7 +17,7 @@ import { SignInService } from '../services/sign-in.service';
 import { SignInCompletionService } from '../services/sign-in-completion.service';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser } from '@weaver2/common/decorator/auth-user.decorator';
-import { CommonAuthUserDto } from '@weaver2/common/global/dto/common-auth-user.dto';
+import type { LocalAuthUser } from '../strategy/local.strategy';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { setAuthCookies, clearAuthCookies } from '../utils/auth-cookie.util';
@@ -69,7 +69,7 @@ export class SignInController {
   })
   @ApiOperation({ summary: '이메일/비밀번호 로그인' })
   async emailLogin(
-    @AuthUser() authUser: CommonAuthUserDto,
+    @AuthUser() authUser: LocalAuthUser,
     @Body() loginDto: { rememberMe?: boolean },
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -84,6 +84,7 @@ export class SignInController {
         rememberMe: loginDto.rememberMe ?? false,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
+        passwordChangedAtMs: authUser.passwordChangedAtMs,
       },
       res,
     );

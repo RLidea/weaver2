@@ -18,6 +18,12 @@ export interface SignInContext {
   userAgent?: string;
   /** SSO 로 받은 세션이면 id_token 의 sid — refresh 행에 남겨 back-channel 로그아웃이 찾는다 */
   oidcSid?: string;
+  /**
+   * 비밀번호로 들어왔으면 맞춰 본 비밀번호의 passwordChangedAt(ms). 세션을 줄 때 잠금 아래에서 견준다 —
+   * 그 사이 비밀번호가 바뀌었으면 거절한다 (SignInService.login). 2FA 를 거치면 pre-auth 토큰이 싣고 간다.
+   * OAuth · SSO 는 비밀번호가 없어 비운다
+   */
+  passwordChangedAtMs?: number;
 }
 
 export interface AvailableTwoFactorMethods {
@@ -56,6 +62,9 @@ export type SignInCompletion = SignInDecision;
  * 토큰을 쿠키가 아닌 응답 본문으로 주는 파생 프로젝트(모바일 등)는 `decide` 를 부른 뒤
  * `signInService.login` 을 직접 부른다. `twoFactorRequired` 일 때 pre-auth 토큰
  * (`twoFactorService.createPreAuthToken`)도 직접 만들어 줘야 한다.
+ * 비밀번호로 들어왔으면 맞춰 본 비밀번호의 passwordChangedAt 을 **반드시** 함께 넘긴다 — `login` 의
+ * 마지막 인자(`VerifiedPassword`)와 `createPreAuthToken` 의 세 번째 인자. 빼도 컴파일되지만, 그러면
+ * 비밀번호 변경과 겹친 옛 비밀번호의 로그인이 세션을 남긴다.
  *
  * 경로마다 검사를 복사하면 경로가 늘 때마다 하나씩 빠진다 — 전에는 OAuth 가 정지·2FA 를,
  * 2FA 통과가 탈퇴·정지를 보지 않았다.
@@ -128,6 +137,8 @@ export class SignInCompletionService {
    *   를 **다시** 부른다 — pre-auth 5분 사이에 탈퇴·정지가 끼어들 수 있다.
    * - `twoFactorRequired` 면 `login` 을 부르지 않는다. `twoFactorService.createPreAuthToken` 으로
    *   pre-auth 토큰을 내준다.
+   * - 비밀번호로 들어왔으면 `login` 에 `VerifiedPassword` 를, `createPreAuthToken` 에 passwordChangedAt 을 넘긴다
+   *   (2FA 를 통과한 뒤에는 `authenticate` 가 돌려준 값을 `via: 'two-factor'` 로).
    * - 이 서비스를 쓰는 파생 모듈은 AuthModule 을 import 하되, AuthModule 이 그 모듈을
    *   import 해서는 안 된다(순환).
    */
@@ -167,7 +178,11 @@ export class SignInCompletionService {
     if (decision.twoFactorRequired) {
       setPreAuthCookie(
         res,
-        this.twoFactorService.createPreAuthToken(userId, context.rememberMe),
+        this.twoFactorService.createPreAuthToken(
+          userId,
+          context.rememberMe,
+          context.passwordChangedAtMs,
+        ),
         this.isProduction,
       );
       return decision;
@@ -180,6 +195,12 @@ export class SignInCompletionService {
       context.ipAddress,
       context.userAgent,
       context.oidcSid,
+      context.passwordChangedAtMs === undefined
+        ? undefined
+        : {
+            changedAtMs: context.passwordChangedAtMs,
+            via: twoFactorPassed ? 'two-factor' : 'password',
+          },
     );
     setAuthCookies(res, tokens, this.isProduction);
     clearPreAuthCookie(res, this.isProduction);

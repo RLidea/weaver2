@@ -69,11 +69,12 @@ export class TwoFactorController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { userId, rememberMe } = await this.twoFactorService.authenticate(
-      readPreAuthCookie(req) ?? '',
-      dto.method,
-      dto.code,
-    );
+    const { userId, rememberMe, passwordChangedAtMs } =
+      await this.twoFactorService.authenticate(
+        readPreAuthCookie(req) ?? '',
+        dto.method,
+        dto.code,
+      );
 
     // 탈퇴·정지를 다시 보고 세션을 준다 — pre-auth 5분 사이에 끼어들 수 있다
     await this.signInCompletionService.completeAfterTwoFactor(
@@ -83,6 +84,7 @@ export class TwoFactorController {
         rememberMe,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
+        passwordChangedAtMs,
       },
       res,
     );

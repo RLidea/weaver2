@@ -50,6 +50,11 @@ interface PreAuthPayload {
   rememberMe: boolean;
   /** 발급 시각(ms) — 이 뒤에 로그인이 끝났으면(lastLoginAt) 이미 쓴 토큰이다 */
   issuedAtMs?: number;
+  /**
+   * 비밀번호로 들어왔으면 맞춰 본 비밀번호의 passwordChangedAt(ms) — 2FA 를 통과한 뒤 세션을 줄 때
+   * 잠금 아래에서 견준다 (SignInService.login). OAuth 와 배포 전에 발급된 토큰에는 없다
+   */
+  pwdAtMs?: number;
 }
 
 /**
@@ -71,11 +76,16 @@ export class TwoFactorService {
   // Pre-auth Token
   // ─────────────────────────────────────────
 
-  createPreAuthToken(userId: string, rememberMe = false): string {
+  createPreAuthToken(
+    userId: string,
+    rememberMe = false,
+    passwordChangedAtMs?: number,
+  ): string {
     const payload: PreAuthPayload = {
       sub: userId,
       rememberMe,
       issuedAtMs: Date.now(),
+      pwdAtMs: passwordChangedAtMs,
     };
     // 종류는 aud 로 적는다 — 액세스 토큰 자리에 쓰이면 검증에서 거절된다
     return this.jwtService.sign(payload, {
@@ -88,6 +98,7 @@ export class TwoFactorService {
     userId: string;
     rememberMe: boolean;
     issuedAtMs?: number;
+    passwordChangedAtMs?: number;
   } {
     try {
       // 액세스 토큰을 pre-auth 자리에 넣어도 aud 가 달라 거절된다
@@ -98,6 +109,7 @@ export class TwoFactorService {
         userId: payload.sub,
         rememberMe: payload.rememberMe ?? false,
         issuedAtMs: payload.issuedAtMs,
+        passwordChangedAtMs: payload.pwdAtMs,
       };
     } catch {
       throw new UnauthorizedException('Invalid or expired pre-auth token');
@@ -254,8 +266,12 @@ export class TwoFactorService {
     preAuthToken: string,
     method: 'totp' | 'email',
     code: string,
-  ): Promise<{ userId: string; rememberMe: boolean }> {
-    const { userId, rememberMe, issuedAtMs } =
+  ): Promise<{
+    userId: string;
+    rememberMe: boolean;
+    passwordChangedAtMs?: number;
+  }> {
+    const { userId, rememberMe, issuedAtMs, passwordChangedAtMs } =
       this.verifyPreAuthToken(preAuthToken);
     await this.assertPreAuthUnused(userId, issuedAtMs);
     const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
@@ -294,7 +310,7 @@ export class TwoFactorService {
 
     await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
-    return { userId, rememberMe };
+    return { userId, rememberMe, passwordChangedAtMs };
   }
 
   // ─────────────────────────────────────────
