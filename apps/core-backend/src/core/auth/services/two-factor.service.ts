@@ -35,6 +35,7 @@ import { TOKEN_AUDIENCE } from '../strategy/token-audience';
 import { OneTimeCodeService } from '../one-time-code/one-time-code.service';
 import { CodePurpose } from '../one-time-code/one-time-code.constants';
 import { encryptSecret, decryptSecret } from '../utils/auth-crypto.util';
+import type { SignInProof } from './sign-in.service';
 
 /**
  * 인증 앱(Google Authenticator 등)에 보이는 발급자 이름. 파생 프로젝트는 .env 의 TOTP_ISSUER 로 바꾼다.
@@ -51,10 +52,10 @@ interface PreAuthPayload {
   /** 발급 시각(ms) — 이 뒤에 로그인이 끝났으면(lastLoginAt) 이미 쓴 토큰이다 */
   issuedAtMs?: number;
   /**
-   * 비밀번호로 들어왔으면 맞춰 본 비밀번호의 passwordChangedAt(ms) — 2FA 를 통과한 뒤 세션을 줄 때
-   * 잠금 아래에서 견준다 (SignInService.login). OAuth 와 배포 전에 발급된 토큰에는 없다
+   * 첫 요소가 무엇으로 신원을 확인했는가 — 2FA 를 통과한 뒤 세션을 줄 때 잠금 아래에서 견준다
+   * (SignInService.login). 이 값을 싣기 전에 발급된 토큰에는 없다
    */
-  pwdAtMs?: number;
+  prf?: SignInProof;
 }
 
 /**
@@ -78,14 +79,14 @@ export class TwoFactorService {
 
   createPreAuthToken(
     userId: string,
-    rememberMe = false,
-    passwordChangedAtMs?: number,
+    rememberMe: boolean,
+    proof: SignInProof | null,
   ): string {
     const payload: PreAuthPayload = {
       sub: userId,
       rememberMe,
       issuedAtMs: Date.now(),
-      pwdAtMs: passwordChangedAtMs,
+      ...(proof ? { prf: proof } : {}),
     };
     // 종류는 aud 로 적는다 — 액세스 토큰 자리에 쓰이면 검증에서 거절된다
     return this.jwtService.sign(payload, {
@@ -98,7 +99,7 @@ export class TwoFactorService {
     userId: string;
     rememberMe: boolean;
     issuedAtMs?: number;
-    passwordChangedAtMs?: number;
+    proof: SignInProof | null;
   } {
     try {
       // 액세스 토큰을 pre-auth 자리에 넣어도 aud 가 달라 거절된다
@@ -109,7 +110,7 @@ export class TwoFactorService {
         userId: payload.sub,
         rememberMe: payload.rememberMe ?? false,
         issuedAtMs: payload.issuedAtMs,
-        passwordChangedAtMs: payload.pwdAtMs,
+        proof: payload.prf ?? null,
       };
     } catch {
       throw new UnauthorizedException('Invalid or expired pre-auth token');
@@ -269,9 +270,9 @@ export class TwoFactorService {
   ): Promise<{
     userId: string;
     rememberMe: boolean;
-    passwordChangedAtMs?: number;
+    proof: SignInProof | null;
   }> {
-    const { userId, rememberMe, issuedAtMs, passwordChangedAtMs } =
+    const { userId, rememberMe, issuedAtMs, proof } =
       this.verifyPreAuthToken(preAuthToken);
     await this.assertPreAuthUnused(userId, issuedAtMs);
     const methods = await FindTwoFactorMethodsQuery(this.prisma, userId);
@@ -310,7 +311,7 @@ export class TwoFactorService {
 
     await ResetAuthAttemptsCommand(this.prisma, userId, 'SECOND_FACTOR');
     this.logger.log(`2FA authenticated via ${method} for userId=${userId}`);
-    return { userId, rememberMe, passwordChangedAtMs };
+    return { userId, rememberMe, proof };
   }
 
   // ─────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@weaver2/prisma';
 import { normalizeEmail } from '../utils/email.util';
+import { LockUsersCommand } from '../repositories/lock-users.command';
 import { OidcUserHooks, runOidcHook } from './oidc-user-hooks';
 
 /**
@@ -141,6 +142,8 @@ export async function applyUnlink(
   hooks?: OidcUserHooks,
 ): Promise<void> {
   const count = await prisma.$transaction(async (tx) => {
+    // 로그인과 줄을 선다 — SSO 로그인은 잠금 아래에서 sub 가 아직 이어져 있는지 보므로, 풀고 지운 뒤에 새 세션이 남지 않는다
+    await LockUsersCommand(tx, [plan.userId]);
     const updated = await tx.user.updateMany({
       where: { id: plan.userId, ssoSubject: plan.sub },
       data: { ssoSubject: null },

@@ -13,6 +13,7 @@ import { IsRefreshSessionRevokedQuery } from '../repositories/is-refresh-session
 import { LockUsersCommand } from '../repositories/lock-users.command';
 import { FindLocalCredentialByUserIdQuery } from '../repositories/find-local-credential-by-user-id.query';
 import { JwtPayload } from '../strategy/jwt-payload.interface';
+import { hashToken } from '../utils/auth-crypto.util';
 import {
   ACCOUNT_LOCKED_MESSAGE,
   ReserveAuthAttemptCommand,
@@ -30,13 +31,30 @@ const DUMMY_PASSWORD_HASH =
   '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.9BqvZGzBv6X3B7vlEPH5bWv1w7mS';
 
 /**
- * 로그인이 맞춰 본 비밀번호 — 그 자격의 `passwordChangedAt`(ms). `login` 이 잠금 아래에서 지금도
- * 그 비밀번호인지 견준다. 다르면 거절한다 — 비밀번호 길(`via: 'password'`)은 「틀렸다」,
- * 2FA 를 거친 길(`via: 'two-factor'`)은 「로그인부터 다시」.
+ * 첫 요소가 무엇으로 신원을 확인했는가 — `login` 이 사용자 행 잠금 아래에서 그것이 지금도 유효한지 다시 본다.
+ * 확인한 뒤 · 세션을 주기 전에 비밀번호 변경 · 재설정 · 연동 해제가 끼어들면, 그쪽이 지운 세션 자리에
+ * 이 로그인의 새 refresh 행이 남는다. 그 사이를 이 값으로 가린다.
+ *
+ * - `password` — 맞춰 본 그 자격의 passwordChangedAt(ms)과 해시 지문. 둘 다 같아야 같은 비밀번호다
+ *   (시각만으로는 같은 ms 안의 두 번 변경 · 인스턴스 사이 시계 차이를 못 가린다. 해시는 바꿀 때마다 솔트가 새로 붙는다)
+ * - `oauth` — 그 공급자 연동이 아직 있는가 (재설정이 미인증 계정의 연동을 끊는다 — 선점한 사람을 내보내는 길)
+ * - `sso` — 그 sub 가 아직 이 사람에게 이어져 있는가 (연결 해제 · 탈퇴가 끊는다)
  */
-export interface VerifiedPassword {
-  changedAtMs: number;
-  via: 'password' | 'two-factor';
+export type SignInProof =
+  | { kind: 'password'; changedAtMs: number; hashFingerprint: string }
+  | { kind: 'oauth'; provider: string }
+  | { kind: 'sso'; sub: string };
+
+/**
+ * `login` 이 받는 확인 — 2FA 를 거쳤으면(`afterTwoFactor`) 거절 문구가 「로그인부터 다시」가 된다.
+ * `null` 은 견줄 것이 없다는 뜻이고, 이 값을 싣기 전에 발급된 pre-auth 토큰(수명 5분)뿐이다. 그때도 탈퇴는 본다.
+ * 일부러 선택 인자로 두지 않는다 — 빼먹으면 컴파일이 막아야 파생 프로젝트에서 틈이 조용히 돌아오지 않는다.
+ */
+export type LoginProof = SignInProof & { afterTwoFactor: boolean };
+
+/** 비밀번호 해시의 지문 — pre-auth 토큰에 해시 자체를 싣지 않으려고 한 번 더 감싼다 */
+export function passwordHashFingerprint(passwordHash: string): string {
+  return hashToken(passwordHash);
 }
 
 @Injectable()
@@ -97,11 +115,11 @@ export class SignInService {
   async login(
     userId: string,
     _provider: string,
-    rememberMe = false,
-    ipAddress?: string,
-    userAgent?: string,
-    oidcSid?: string,
-    password?: VerifiedPassword,
+    rememberMe: boolean,
+    ipAddress: string | undefined,
+    userAgent: string | undefined,
+    oidcSid: string | undefined,
+    proof: LoginProof | null,
   ) {
     this.logger.debug(
       `Logged in user is: ${userId}, rememberMe: ${rememberMe}`,
@@ -122,26 +140,14 @@ export class SignInService {
     /*
       세션을 **사용자 행 잠금 아래 한 트랜잭션**에서 준다 — refresh 회전과 같은 자리.
 
-      비밀번호를 맞춰 본 뒤(bcrypt, 잠금 밖) 토큰을 넣기 전에 비밀번호 변경 · 재설정이 끼어들면,
-      그 변경은 아직 없는 토큰을 지우지 못하고 옛 비밀번호의 로그인이 7~30일짜리 refresh 토큰을 남긴다.
-      그래서 맞춰 본 비밀번호의 passwordChangedAt 을 잠금 아래에서 다시 읽어 견준다.
-      변경 · 재설정도 이 행을 잠근 채 커밋하므로, 다시 읽은 값은 늘 커밋된 최신 값이다.
+      신원을 확인한 뒤(bcrypt · OAuth 콜백 · SSO, 잠금 밖) 토큰을 넣기 전에 비밀번호 변경 · 재설정 ·
+      연동 해제 · 탈퇴가 끼어들면, 그쪽은 아직 없는 토큰을 지우지 못하고 이 로그인이 7~30일짜리
+      refresh 토큰을 남긴다. 그래서 확인한 것이 지금도 그대로인지 잠금 아래에서 다시 읽어 견준다.
+      바꾸는 쪽도 이 행을 잠근 채 커밋하므로, 다시 읽은 값은 늘 커밋된 최신 값이다.
     */
     const generatedRefreshToken = await this.prisma.$transaction(async (tx) => {
       await LockUsersCommand(tx, [userId]);
-      if (password) {
-        const credential = await FindLocalCredentialByUserIdQuery(tx, userId);
-        if (credential?.passwordChangedAt.getTime() !== password.changedAtMs) {
-          this.logger.warn(
-            `Login rejected — password changed after it was verified: user=${userId}`,
-          );
-          throw new UnauthorizedException(
-            password.via === 'two-factor'
-              ? 'Invalid or expired pre-auth token'
-              : 'Invalid credentials',
-          );
-        }
-      }
+      await this.assertProofStillHolds(tx, userId, proof);
 
       await tx.user.update({
         where: { id: userId },
@@ -161,6 +167,49 @@ export class SignInService {
       refreshToken: generatedRefreshToken,
       tokenExpiry, // 쿠키 설정용
     };
+  }
+
+  /** 잠금 아래에서 — 탈퇴는 늘, 첫 요소는 실려 온 확인대로 다시 본다. 어긋나면 세션 없이 거절한다 */
+  private async assertProofStillHolds(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    proof: LoginProof | null,
+  ): Promise<void> {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { deletedAt: true, ssoSubject: true },
+    });
+    if (!user || user.deletedAt) {
+      throw new UnauthorizedException('ACCOUNT_DELETED');
+    }
+    if (!proof) return;
+
+    let holds: boolean;
+    if (proof.kind === 'password') {
+      const credential = await FindLocalCredentialByUserIdQuery(tx, userId);
+      holds =
+        !!credential?.passwordHash &&
+        credential.passwordChangedAt.getTime() === proof.changedAtMs &&
+        passwordHashFingerprint(credential.passwordHash) ===
+          proof.hashFingerprint;
+    } else if (proof.kind === 'oauth') {
+      holds = !!(await tx.oAuthAccount.findFirst({
+        where: { userId, provider: proof.provider },
+        select: { id: true },
+      }));
+    } else {
+      holds = user.ssoSubject === proof.sub;
+    }
+    if (holds) return;
+
+    this.logger.warn(
+      `Login rejected — ${proof.kind} changed after it was verified: user=${userId}`,
+    );
+    throw new UnauthorizedException(
+      proof.afterTwoFactor
+        ? 'Invalid or expired pre-auth token'
+        : 'Invalid credentials',
+    );
   }
 
   async generateRefreshToken(

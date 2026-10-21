@@ -69,7 +69,7 @@ export class TwoFactorController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { userId, rememberMe, passwordChangedAtMs } =
+    const { userId, rememberMe, proof } =
       await this.twoFactorService.authenticate(
         readPreAuthCookie(req) ?? '',
         dto.method,
@@ -84,7 +84,7 @@ export class TwoFactorController {
         rememberMe,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
-        passwordChangedAtMs,
+        proof,
       },
       res,
     );

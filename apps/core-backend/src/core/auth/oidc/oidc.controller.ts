@@ -305,6 +305,8 @@ export class OidcController {
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
           oidcSid: claims.sid,
+          // 세션을 줄 때 이 sub 가 아직 이 사람에게 이어져 있는지 잠금 아래에서 본다 — 연결 해제 · 탈퇴가 끊었으면 거절
+          proof: { kind: 'sso', sub: claims.sub },
         },
         res,
       );

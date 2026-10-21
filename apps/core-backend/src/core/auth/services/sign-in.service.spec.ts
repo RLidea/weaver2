@@ -1,6 +1,10 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { SignInService } from './sign-in.service';
+import {
+  LoginProof,
+  passwordHashFingerprint,
+  SignInService,
+} from './sign-in.service';
 import { PrismaService } from '@weaver2/prisma';
 
 jest.mock('bcrypt', () => ({
@@ -377,7 +381,15 @@ describe('SignInService.login — access token 의 sid 클레임', () => {
       .spyOn(createMod, 'CreateRefreshTokenCommand')
       .mockResolvedValue({} as never);
     sign = jest.fn<string, [Record<string, unknown>]>(() => 'jwt');
-    const tx = { $queryRaw: jest.fn(), user: { update: jest.fn() } };
+    const tx = {
+      $queryRaw: jest.fn(),
+      user: {
+        update: jest.fn(),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ deletedAt: null, ssoSubject: 'sub-1' }),
+      },
+    };
     service = new SignInService(
       {
         $transaction: jest.fn((fn: (t: unknown) => unknown) => fn(tx)),
@@ -389,28 +401,47 @@ describe('SignInService.login — access token 의 sid 클레임', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('SSO 로그인(oidcSid 있음) → sid 를 싣는다', async () => {
-    await service.login('u1', 'oidc', false, '1.2.3.4', 'ua', 'sid-1');
+    await service.login('u1', 'oidc', false, '1.2.3.4', 'ua', 'sid-1', null);
     expect(sign).toHaveBeenCalledWith({ sub: 'u1', sid: 'sid-1' });
   });
 
   it('그 밖의 로그인 → sid 키를 넣지 않는다', async () => {
-    await service.login('u1', 'local');
+    await service.login(
+      'u1',
+      'local',
+      false,
+      undefined,
+      undefined,
+      undefined,
+      null,
+    );
     const payload = sign.mock.calls[0][0];
     expect(payload).toEqual({ sub: 'u1' });
     expect('sid' in payload).toBe(false);
   });
 });
 
-describe('SignInService.login — 맞춰 본 비밀번호를 사용자 행 잠금 아래에서 견준다', () => {
+describe('SignInService.login — 첫 요소의 확인을 사용자 행 잠금 아래에서 다시 본다', () => {
   const VERIFIED_AT = new Date('2026-10-21T00:00:00.000Z');
+  const HASH = '$2b$04$hash';
+  const passwordProof = (afterTwoFactor = false): LoginProof => ({
+    kind: 'password',
+    changedAtMs: VERIFIED_AT.getTime(),
+    hashFingerprint: passwordHashFingerprint(HASH),
+    afterTwoFactor,
+  });
   let service: SignInService;
   let tx: {
     $queryRaw: jest.Mock;
-    user: { update: jest.Mock };
+    user: { update: jest.Mock; findUnique: jest.Mock };
     localCredential: { findUnique: jest.Mock };
+    oAuthAccount: { findFirst: jest.Mock };
   };
   let createSpy: jest.SpyInstance;
   let calls: string[];
+
+  const login = (proof: LoginProof | null) =>
+    service.login('u1', 'email', false, undefined, undefined, undefined, proof);
 
   beforeEach(async () => {
     const createMod =
@@ -424,12 +455,24 @@ describe('SignInService.login — 맞춰 본 비밀번호를 사용자 행 잠�
       });
     tx = {
       $queryRaw: jest.fn(() => Promise.resolve(calls.push('lock'))),
-      user: { update: jest.fn() },
+      user: {
+        update: jest.fn(),
+        findUnique: jest.fn(() => {
+          calls.push('readUser');
+          return Promise.resolve({ deletedAt: null, ssoSubject: 'sub-1' });
+        }),
+      },
       localCredential: {
         findUnique: jest.fn(() => {
           calls.push('readCredential');
-          return Promise.resolve({ passwordChangedAt: VERIFIED_AT });
+          return Promise.resolve({
+            passwordHash: HASH,
+            passwordChangedAt: VERIFIED_AT,
+          });
         }),
+      },
+      oAuthAccount: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'oa1' }),
       },
     };
     service = new SignInService(
@@ -442,14 +485,16 @@ describe('SignInService.login — 맞춰 본 비밀번호를 사용자 행 잠�
 
   afterEach(() => jest.restoreAllMocks());
 
-  it('그대로면 잠근 뒤 견주고 같은 트랜잭션에서 refresh 행을 넣는다', async () => {
-    await expect(
-      service.login('u1', 'email', false, undefined, undefined, undefined, {
-        changedAtMs: VERIFIED_AT.getTime(),
-        via: 'password',
-      }),
-    ).resolves.toMatchObject({ accessToken: 'jwt' });
-    expect(calls).toEqual(['lock', 'readCredential', 'createRefresh']);
+  it('비밀번호가 그대로면 잠근 뒤 견주고 같은 트랜잭션에서 refresh 행을 넣는다', async () => {
+    await expect(login(passwordProof())).resolves.toMatchObject({
+      accessToken: 'jwt',
+    });
+    expect(calls).toEqual([
+      'lock',
+      'readUser',
+      'readCredential',
+      'createRefresh',
+    ]);
     expect(createSpy).toHaveBeenCalledWith(
       tx,
       'u1',
@@ -462,57 +507,84 @@ describe('SignInService.login — 맞춰 본 비밀번호를 사용자 행 잠�
     expect(tx.user.update).toHaveBeenCalled();
   });
 
-  it('그 사이 비밀번호가 바뀌었으면(비밀번호 길) 「잘못된 자격 증명」 — refresh 행도 lastLoginAt 도 없다', async () => {
-    tx.localCredential.findUnique.mockResolvedValue({
-      passwordChangedAt: new Date(VERIFIED_AT.getTime() + 1),
-    });
-    await expect(
-      service.login('u1', 'email', false, undefined, undefined, undefined, {
-        changedAtMs: VERIFIED_AT.getTime(),
-        via: 'password',
-      }),
-    ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
-    expect(createSpy).not.toHaveBeenCalled();
-    expect(tx.user.update).not.toHaveBeenCalled();
-  });
+  it.each([
+    [
+      'passwordChangedAt 이 다르다',
+      {
+        passwordHash: HASH,
+        passwordChangedAt: new Date(VERIFIED_AT.getTime() + 1),
+      },
+    ],
+    [
+      '시각은 같은데 해시가 다르다 (같은 ms 안의 변경 · 시계 차이)',
+      { passwordHash: '$2b$04$other', passwordChangedAt: VERIFIED_AT },
+    ],
+    ['자격 행이 사라졌다', null],
+  ])(
+    '%s → 「잘못된 자격 증명」 — refresh 행도 lastLoginAt 도 없다',
+    async (_label, credential) => {
+      tx.localCredential.findUnique.mockResolvedValue(credential);
+      await expect(login(passwordProof())).rejects.toThrow(
+        new UnauthorizedException('Invalid credentials'),
+      );
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(tx.user.update).not.toHaveBeenCalled();
+    },
+  );
 
   it('2FA 를 거친 길이면 「pre-auth 가 낡았다」 — 로그인부터 다시', async () => {
     tx.localCredential.findUnique.mockResolvedValue({
-      passwordChangedAt: new Date(VERIFIED_AT.getTime() + 1),
+      passwordHash: '$2b$04$other',
+      passwordChangedAt: VERIFIED_AT,
     });
-    await expect(
-      service.login(
-        'u1',
-        'two-factor',
-        false,
-        undefined,
-        undefined,
-        undefined,
-        {
-          changedAtMs: VERIFIED_AT.getTime(),
-          via: 'two-factor',
-        },
-      ),
-    ).rejects.toThrow(
+    await expect(login(passwordProof(true))).rejects.toThrow(
       new UnauthorizedException('Invalid or expired pre-auth token'),
     );
     expect(createSpy).not.toHaveBeenCalled();
   });
 
-  it('자격 행이 사라졌으면 거절한다', async () => {
-    tx.localCredential.findUnique.mockResolvedValue(null);
+  it('OAuth — 그 공급자 연동이 아직 있으면 세션을 주고, 끊겼으면(재설정) 거절한다', async () => {
+    const proof: LoginProof = {
+      kind: 'oauth',
+      provider: 'google',
+      afterTwoFactor: false,
+    };
+    await login(proof);
+    expect(tx.oAuthAccount.findFirst).toHaveBeenCalledWith({
+      where: { userId: 'u1', provider: 'google' },
+      select: { id: true },
+    });
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    tx.oAuthAccount.findFirst.mockResolvedValue(null);
+    await expect(login(proof)).rejects.toThrow(
+      new UnauthorizedException('Invalid credentials'),
+    );
+    expect(createSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('SSO — 그 sub 가 아직 이어져 있으면 세션을 주고, 풀렸으면(연결 해제) 거절한다', async () => {
+    await login({ kind: 'sso', sub: 'sub-1', afterTwoFactor: false });
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
     await expect(
-      service.login('u1', 'email', false, undefined, undefined, undefined, {
-        changedAtMs: VERIFIED_AT.getTime(),
-        via: 'password',
-      }),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
+      login({ kind: 'sso', sub: 'sub-old', afterTwoFactor: false }),
+    ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
+    expect(createSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('잠금 아래에서 보니 탈퇴했으면 — 확인이 없어도(옛 pre-auth) 거절한다', async () => {
+    tx.user.findUnique.mockResolvedValue({
+      deletedAt: new Date(),
+      ssoSubject: null,
+    });
+    await expect(login(null)).rejects.toThrow('ACCOUNT_DELETED');
     expect(createSpy).not.toHaveBeenCalled();
   });
 
-  it('비밀번호가 없는 길(OAuth · SSO)은 잠그기만 하고 견주지 않는다', async () => {
-    await service.login('u1', 'oidc', false, undefined, undefined, 'sid-1');
-    expect(calls).toEqual(['lock', 'createRefresh']);
+  it('확인이 없으면(옛 pre-auth) 잠그고 탈퇴만 본다', async () => {
+    await login(null);
+    expect(calls).toEqual(['lock', 'readUser', 'createRefresh']);
     expect(tx.localCredential.findUnique).not.toHaveBeenCalled();
   });
 });

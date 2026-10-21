@@ -14,7 +14,11 @@ import {
   getTestingModule,
 } from './helpers/test-app.helper';
 import { ChangePasswordService } from '../../src/core/user/services/change-password.service';
-import { SignInService } from '../../src/core/auth/services/sign-in.service';
+import {
+  passwordHashFingerprint,
+  SignInProof,
+  SignInService,
+} from '../../src/core/auth/services/sign-in.service';
 import { LockUsersCommand } from '../../src/core/auth/repositories/lock-users.command';
 import { UpdateLocalCredentialPasswordCommand } from '../../src/core/auth/repositories/update-local-credential-password.command';
 import { DeleteRefreshTokensByUserIdCommand } from '../../src/core/auth/repositories/delete-refresh-tokens-by-user-id.command';
@@ -57,20 +61,25 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
     return { ...user, email };
   }
 
-  /** 로그인 화면이 하는 첫 단계 — 비밀번호를 맞춰 보고, 맞춰 본 비밀번호의 passwordChangedAt 을 쥔다 */
-  async function verify(email: string, password: string) {
+  /** 로그인 화면이 하는 첫 단계 — 비밀번호를 맞춰 보고, 맞춰 본 그 비밀번호의 확인을 쥔다 (LocalStrategy 와 같다) */
+  async function verify(email: string, password: string): Promise<SignInProof> {
     const user = await signIn.validateUserByEmail(email, password);
-    return user.localCredential!.passwordChangedAt.getTime();
+    const credential = user.localCredential!;
+    return {
+      kind: 'password',
+      changedAtMs: credential.passwordChangedAt.getTime(),
+      hashFingerprint: passwordHashFingerprint(credential.passwordHash),
+    };
   }
 
   const loginWith = (
     userId: string,
-    changedAtMs: number,
-    via: 'password' | 'two-factor' = 'password',
+    proof: SignInProof,
+    afterTwoFactor = false,
   ) =>
     signIn.login(userId, 'email', false, undefined, undefined, undefined, {
-      changedAtMs,
-      via,
+      ...proof,
+      afterTwoFactor,
     });
 
   const refreshTokens = (userId: string) =>
@@ -78,17 +87,17 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
 
   it('맞춰 본 뒤 비밀번호가 바뀌었으면 세션을 주지 않는다 — 비밀번호 길은 「잘못된 자격 증명」, 2FA 길은 「pre-auth 가 낡았다」', async () => {
     const user = await passwordUser('seq');
-    const changedAtMs = await verify(user.email, PASSWORDS[0]);
+    const proof = await verify(user.email, PASSWORDS[0]);
 
     await changePassword.changePassword(user.id, {
       currentPassword: PASSWORDS[0],
       newPassword: PASSWORDS[1],
     });
 
-    await expect(loginWith(user.id, changedAtMs)).rejects.toThrow(
+    await expect(loginWith(user.id, proof)).rejects.toThrow(
       'Invalid credentials',
     );
-    await expect(loginWith(user.id, changedAtMs, 'two-factor')).rejects.toThrow(
+    await expect(loginWith(user.id, proof, true)).rejects.toThrow(
       'Invalid or expired pre-auth token',
     );
     expect(await refreshTokens(user.id)).toBe(0);
@@ -132,7 +141,7 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
 
         // 2 · 3. 옛 해시를 읽고 맞춰 본 뒤 세션을 받으러 간다 — 잠금에서 기다린다
         logging = verify(user.email, PASSWORDS[0])
-          .then((changedAtMs) => loginWith(user.id, changedAtMs))
+          .then((proof) => loginWith(user.id, proof))
           .then(
             (value) => ({ status: 'fulfilled', value }),
             (reason: unknown) => ({ status: 'rejected', reason }),
@@ -168,12 +177,12 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
     for (let round = 0; round < 20; round++) {
       const current = PASSWORDS[round % 2];
       const next = PASSWORDS[(round + 1) % 2];
-      const changedAtMs = await verify(user.email, current);
+      const proof = await verify(user.email, current);
 
       const loginDelay = round % 2 ? 20 * (round % 10) : 0;
       const [loggedIn, changed] = await Promise.allSettled([
         new Promise((r) => setTimeout(r, loginDelay)).then(() =>
-          loginWith(user.id, changedAtMs),
+          loginWith(user.id, proof),
         ),
         changePassword.changePassword(user.id, {
           currentPassword: current,
@@ -187,5 +196,38 @@ describe('로그인을 사용자 행 잠금 아래로 — 비밀번호 변경과
       }
       expect(await refreshTokens(user.id)).toBe(0);
     }
+  });
+
+  it('OAuth · SSO — 잠금 아래에서 연동이 아직 있는지 실제 DB 로 본다 (재설정이 연동을 끊고 · 연결 해제가 sub 를 풀면 거절)', async () => {
+    const user = await passwordUser('links');
+    await prisma.oAuthAccount.create({
+      data: { userId: user.id, provider: 'google', providerId: `g_${tag}` },
+    });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { ssoSubject: `sub_${tag}` },
+    });
+    const oauth = { kind: 'oauth', provider: 'google' } as const;
+    const sso = { kind: 'sso', sub: `sub_${tag}` } as const;
+
+    await loginWith(user.id, oauth);
+    await loginWith(user.id, sso);
+    expect(await refreshTokens(user.id)).toBe(2);
+
+    // 재설정이 미인증 계정에서 하는 것 · SSO 연결 해제가 하는 것과 같은 끝 상태
+    await prisma.oAuthAccount.deleteMany({ where: { userId: user.id } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { ssoSubject: null },
+    });
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+    await expect(loginWith(user.id, oauth)).rejects.toThrow(
+      'Invalid credentials',
+    );
+    await expect(loginWith(user.id, sso)).rejects.toThrow(
+      'Invalid credentials',
+    );
+    expect(await refreshTokens(user.id)).toBe(0);
   });
 });

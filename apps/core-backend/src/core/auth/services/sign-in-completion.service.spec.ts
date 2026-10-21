@@ -5,6 +5,7 @@ import { PrismaService } from '@weaver2/prisma';
 import {
   AccountSuspendedException,
   SignInCompletionService,
+  SignInContext,
 } from './sign-in-completion.service';
 import { SignInService } from './sign-in.service';
 import { TwoFactorService } from './two-factor.service';
@@ -19,11 +20,17 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
   let twoFactor: { createPreAuthToken: jest.Mock };
   let res: { cookie: jest.Mock; clearCookie: jest.Mock };
   let service: SignInCompletionService;
-  const context = {
+  const context: SignInContext = {
     provider: 'email',
     rememberMe: true,
     ipAddress: '1.2.3.4',
     userAgent: 'ua',
+    proof: null,
+  };
+  const password = {
+    kind: 'password' as const,
+    changedAtMs: 1234,
+    hashFingerprint: 'fp',
   };
 
   beforeEach(() => {
@@ -61,15 +68,15 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       '1.2.3.4',
       'ua',
       undefined,
-      undefined,
+      null,
     );
     expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
   });
 
-  it('비밀번호로 들어왔으면 맞춰 본 passwordChangedAt 을 login 에 넘긴다 — 잠금 아래에서 견주게', async () => {
+  it('첫 요소의 확인을 login 에 넘긴다 — 잠금 아래에서 견주게', async () => {
     await service.complete(
       'u1',
-      { ...context, passwordChangedAtMs: 1234 },
+      { ...context, proof: password },
       res as unknown as Response,
     );
     expect(signIn.login).toHaveBeenCalledWith(
@@ -79,22 +86,26 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       '1.2.3.4',
       'ua',
       undefined,
-      { changedAtMs: 1234, via: 'password' },
+      { ...password, afterTwoFactor: false },
     );
   });
 
-  it('2FA 가 필요하면 그 값을 pre-auth 토큰에 싣고, 통과한 뒤에는 two-factor 길로 넘긴다', async () => {
+  it('2FA 가 필요하면 확인을 pre-auth 토큰에 싣고, 통과한 뒤에는 afterTwoFactor 로 넘긴다', async () => {
     prisma.twoFactorMethod.findMany.mockResolvedValue([{ kind: 'TOTP' }]);
     await service.complete(
       'u1',
-      { ...context, passwordChangedAtMs: 1234 },
+      { ...context, proof: password },
       res as unknown as Response,
     );
-    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true, 1234);
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith(
+      'u1',
+      true,
+      password,
+    );
 
     await service.completeAfterTwoFactor(
       'u1',
-      { ...context, passwordChangedAtMs: 1234 },
+      { ...context, proof: password },
       res as unknown as Response,
     );
     expect(signIn.login).toHaveBeenCalledWith(
@@ -104,7 +115,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       '1.2.3.4',
       'ua',
       undefined,
-      { changedAtMs: 1234, via: 'two-factor' },
+      { ...password, afterTwoFactor: true },
     );
   });
 
@@ -118,11 +129,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       availableMethods: { totp: false, email: true },
     });
 
-    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith(
-      'u1',
-      true,
-      undefined,
-    );
+    expect(twoFactor.createPreAuthToken).toHaveBeenCalledWith('u1', true, null);
     expect(cookieNames()).toEqual(['pre_auth']);
     expect(signIn.login).not.toHaveBeenCalled();
   });
@@ -217,6 +224,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
       provider: 'oidc',
       rememberMe: false,
       oidcSid: 'sid-1',
+      proof: { kind: 'sso' as const, sub: 'sub-1' },
     };
 
     it('2FA 를 켠 사람도 pre_auth 없이 세션을 준다 (rememberMe=false) — id_token 의 sid 를 세션에 남긴다', async () => {
@@ -234,7 +242,7 @@ describe('SignInCompletionService — 모든 로그인 경로의 끝', () => {
         '1.2.3.4',
         'ua',
         'sid-1',
-        undefined,
+        { kind: 'sso', sub: 'sub-1', afterTwoFactor: false },
       );
       expect(cookieNames()).toEqual(['access_token', 'refresh_token']);
     });

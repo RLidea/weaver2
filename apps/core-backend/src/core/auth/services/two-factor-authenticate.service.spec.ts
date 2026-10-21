@@ -157,7 +157,11 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
 
     await expect(
       ctx.service.authenticate('tok', 'email', '123456'),
-    ).resolves.toEqual({ userId: 'user-1', rememberMe: false });
+    ).resolves.toEqual({
+      userId: 'user-1',
+      rememberMe: false,
+      proof: null,
+    });
     expect(mockReset).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
@@ -219,7 +223,11 @@ describe('TwoFactorService.authenticate — 실패 잠금', () => {
 
     await expect(
       ctx.service.authenticate('tok', 'totp', '123456'),
-    ).resolves.toEqual({ userId: 'user-1', rememberMe: false });
+    ).resolves.toEqual({
+      userId: 'user-1',
+      rememberMe: false,
+      proof: null,
+    });
     expect(mockReset).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',

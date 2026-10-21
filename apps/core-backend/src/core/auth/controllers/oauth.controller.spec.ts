@@ -140,6 +140,7 @@ describe('OAuthController', () => {
           rememberMe: false,
           ipAddress: '1.2.3.4',
           userAgent: 'ua',
+          proof: { kind: 'oauth', provider: 'google' },
         },
         res,
       );

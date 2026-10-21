@@ -125,7 +125,7 @@ describe('JwtAuthGuard', () => {
     });
 
     it('🔴 pre-auth 토큰을 access_token 쿠키에 넣어도 비로그인 (2FA 우회 차단)', async () => {
-      const token = preAuth.createPreAuthToken(USER_ID);
+      const token = preAuth.createPreAuthToken(USER_ID, false, null);
       const res = await withCookie('/probe/public', token);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ isLogin: false });
@@ -173,7 +173,7 @@ describe('JwtAuthGuard', () => {
     });
 
     it('pre-auth 토큰이면 401', async () => {
-      const token = preAuth.createPreAuthToken(USER_ID);
+      const token = preAuth.createPreAuthToken(USER_ID, false, null);
       const res = await withCookie('/probe/private', token);
       expect(res.status).toBe(401);
     });

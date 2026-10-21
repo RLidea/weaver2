@@ -84,7 +84,7 @@ export class SignInController {
         rememberMe: loginDto.rememberMe ?? false,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
-        passwordChangedAtMs: authUser.passwordChangedAtMs,
+        proof: authUser.proof,
       },
       res,
     );

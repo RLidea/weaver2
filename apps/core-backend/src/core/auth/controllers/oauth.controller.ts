@@ -168,6 +168,8 @@ export class OAuthController {
           rememberMe: false,
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
+          // 세션을 줄 때 그 공급자 연동이 아직 있는지 잠금 아래에서 본다 — 재설정이 끊었으면 거절
+          proof: { kind: 'oauth', provider },
         },
         res,
       );
