@@ -21,7 +21,10 @@ export function ssoStartUrl({
   const params = new URLSearchParams({ entry });
   if (next) params.set('next', next);
   if (lang) params.set('lang', lang);
-  return `${apiBase.replace(/\/+$/, '')}/v1/auth/oidc/start?${params.toString()}`;
+  // 끝의 「/」는 정규식 없이 잘라 낸다 — /\/+$/ 는 「/」가 길게 이어진 문자열에서 느려진다 (CodeQL)
+  let base = apiBase;
+  while (base.endsWith('/')) base = base.slice(0, -1);
+  return `${base}/v1/auth/oidc/start?${params.toString()}`;
 }
 
 /** 콜백이 실패 주소에 싣는 `?error=` 값(D13) → 안내 문구. 모르는 값이면 null */
