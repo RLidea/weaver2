@@ -543,15 +543,17 @@ describe('SignInService.login — 첫 요소의 확인을 사용자 행 잠금 �
     expect(createSpy).not.toHaveBeenCalled();
   });
 
-  it('OAuth — 그 공급자 연동이 아직 있으면 세션을 주고, 끊겼으면(재설정) 거절한다', async () => {
+  it('OAuth — 바로 그 공급자 계정의 연동이 아직 있으면 세션을 주고, 끊겼으면(재설정) 거절한다', async () => {
     const proof: LoginProof = {
       kind: 'oauth',
       provider: 'google',
+      providerId: 'g-attacker',
       afterTwoFactor: false,
     };
     await login(proof);
+    // 공급자만이 아니라 공급자 쪽 계정 id 까지 — 그 사이 주인이 같은 공급자를 새로 이었어도 그 연동에 걸리지 않게
     expect(tx.oAuthAccount.findFirst).toHaveBeenCalledWith({
-      where: { userId: 'u1', provider: 'google' },
+      where: { userId: 'u1', provider: 'google', providerId: 'g-attacker' },
       select: { id: true },
     });
     expect(createSpy).toHaveBeenCalledTimes(1);

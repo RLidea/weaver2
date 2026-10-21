@@ -270,7 +270,7 @@ describe('OAuthService', () => {
 
       await expect(
         service.resolveCallbackUser('google', 'code', 'st', 'st'),
-      ).resolves.toBe('u9');
+      ).resolves.toEqual({ userId: 'u9', providerId: 'sub-9' });
       expect(CreateOAuthUserCommand).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ emailVerified: true }),
@@ -344,7 +344,7 @@ describe('OAuthService', () => {
 
       await expect(
         service.resolveCallbackUser('google', 'code', 'st', 'st'),
-      ).resolves.toBe('u1');
+      ).resolves.toMatchObject({ userId: 'u1' });
       const [, options] = (CreateOAuthUserCommand as jest.Mock).mock
         .calls[0] as [unknown, { displayName: string }];
       return options.displayName;

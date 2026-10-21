@@ -82,7 +82,10 @@ describe('TwoFactorService.verifyPreAuthToken', () => {
         hashFingerprint: 'fp',
       },
     ],
-    ['OAuth', { kind: 'oauth' as const, provider: 'google' }],
+    [
+      'OAuth',
+      { kind: 'oauth' as const, provider: 'google', providerId: 'g-1' },
+    ],
   ])(
     '첫 요소의 확인(%s)을 싣고 돌려준다 — 2FA 를 통과한 뒤 잠금 아래에서 견주게',
     (_label, proof) => {
