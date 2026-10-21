@@ -26,6 +26,8 @@ const SSO_ENV = {
   ACCOUNTS_OIDC_ISSUER: 'http://127.0.0.1:9/oidc',
   ACCOUNTS_OIDC_CLIENT_ID: 'test-client',
   ACCOUNTS_OIDC_CLIENT_SECRET: 'test-secret',
+  // sso 는 부팅 때 콜백 · 로그아웃 주소를 CLIENT_URL 에서 만든다 — CI 통합 잡에는 .env 가 없어 비어 있다
+  CLIENT_URL: 'http://localhost:3000',
 };
 
 describe('Public write routes in AUTH_MODE=sso (Integration)', () => {
