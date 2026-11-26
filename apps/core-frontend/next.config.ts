@@ -40,6 +40,10 @@ const nextConfig: NextConfig = {
   // libs/shared는 apps/core-frontend 외부에 있으므로 Next.js가 트랜스파일할 수 있도록 지정
   // packages/*는 소스 배포(.ts) workspace 패키지라 동일하게 트랜스파일 필요
   transpilePackages: ['@weaver2/shared', '@weaver2/ui', '@weaver2/api-client', '@weaver2/auth'],
+  // Next 16.4 부터 `next dev` 가 AI 에이전트를 알아채면 이 폴더에 AGENTS.md 를 만들고,
+  // 지워도 다시 만든다. 그러면 에이전트 세션마다 작업 트리가 더러워져 lane:land 가 거절한다.
+  // 에이전트 안내는 저장소의 CLAUDE.md · .agents/skills 가 맡으므로 끈다 (2026-11-26).
+  agentRules: false,
   async rewrites() {
     return [
       {
