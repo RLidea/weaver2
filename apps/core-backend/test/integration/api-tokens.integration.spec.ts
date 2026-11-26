@@ -112,7 +112,11 @@ describe('API Tokens (Integration)', () => {
   let adminCookies: string;
   let memberCookies: string;
   let limitedCookies: string;
-  let limitedGroupId: string;
+  // 🔴 '' 로 시작한다. Prisma 는 where 의 undefined 를 「조건 없음」으로 읽는다. beforeAll 이
+  // 이 값을 채우기 전에 멈추면 afterAll 의 deleteMany({ where: { id: undefined } }) 가 공용 DB 의
+  // 권한 그룹을 전부 지운다 — 2026-11-26 실제로 지워져 시드 계정의 권한 연결이 모두 끊겼다.
+  // '' 는 어떤 행과도 맞지 않아 아무것도 안 지운다 (admin-analytics 의 userId 와 같은 방식).
+  let limitedGroupId = '';
 
   async function createUser(name: string, groupName?: string) {
     const user = await prisma.user.create({
