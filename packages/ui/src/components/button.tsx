@@ -40,7 +40,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         aria-busy={isLoading}
         className={cn(
-          'inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-opacity',
+          // 높이가 크기별로 고정이라 글자가 줄바꿈되면 칸 밖으로 넘친다. 좁은 표 칸에서 한글이
+          // 한 글자씩 세로로 쪼개졌다 (관리자 사용자 표 액션 칸, 2026-11-26) — 줄바꿈 대신 칸이 넓어지게 한다
+          'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap font-medium transition-opacity',
           'disabled:cursor-not-allowed disabled:opacity-50',
           VARIANT_CLASSES[variant],
           SIZE_CLASSES[size],
